@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Global Aço - Ferramentas</title>
+    <link rel="icon" href="/lovable-uploads/ca14aac8-6439-4661-9952-a61c72ced23e.png" type="image/png">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a365d" />
+    <meta name="description" content="Ferramentas de análise comercial e gestão para Global Aço" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Global Aço" />
+    
+    <!-- PWA Icons -->
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta property="og:title" content="Global Aço - Ferramentas" />
+    <meta property="og:description" content="Ferramentas de análise comercial e gestão para Global Aço" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icon-512x512.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@globalaco" />
+    <meta name="twitter:image" content="/icon-512x512.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+              
+              // Check for updates immediately
+              registration.update();
+              
+              // Set up update checking
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('Nova versão encontrada, instalando...');
+                
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('Nova versão pronta para uso');
+                      // The UpdateNotification component will handle showing the notification
+                    }
+                  });
+                }
+              });
+
+              // Listen for controlling service worker change
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('Service worker updated, reloading...');
+              });
+              
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

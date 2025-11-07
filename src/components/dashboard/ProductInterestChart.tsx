@@ -1,0 +1,73 @@
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface ProductInterestChartProps {
+  leads: any[];
+}
+
+export function ProductInterestChart({ leads }: ProductInterestChartProps) {
+  // Agregar dados por interesse em produto
+  const productInterestData = leads.reduce((acc, lead) => {
+    const productInterest = lead.product_interest || lead.product_interest_custom;
+    if (productInterest && productInterest !== 'Não especificado') {
+      const existing = acc.find(item => item.name === productInterest);
+      if (existing) {
+        existing.value += 1;
+      } else {
+        acc.push({ name: productInterest, value: 1 });
+      }
+    }
+    return acc;
+  }, [] as Array<{ name: string; value: number }>);
+
+  // Ordenar por quantidade e pegar os top 8
+  const sortedData = productInterestData
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background border border-border rounded-lg p-2 shadow-lg">
+          <p className="text-sm font-medium">{label}</p>
+          <p className="text-sm text-muted-foreground">
+            {payload[0].value} leads ({((payload[0].value / leads.length) * 100).toFixed(1)}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">Produtos de Maior Interesse</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={sortedData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="name" 
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              interval={0}
+              fontSize={12}
+            />
+            <YAxis />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="value" fill="hsl(212 100% 47%)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        {sortedData.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            Nenhum dado de interesse em produtos disponível
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

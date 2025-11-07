@@ -27,6 +27,14 @@ export default function DashboardComercial() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
+  // Mock data para dashboard sem autenticação
+  const mockDashboardData = useMemo(() => [
+    { numeropedido: '10347', numeronf: 'NF10347', situacao: 'Emitida', data_emissao: '02/07/2025', descricaomat: 'Material Industrial', observacao: 'Pedido padrão', qtd: 1, un: 'PC', valor_un_bruto: 4435.16, valor: 4435.16, peso: 1500, classe: 'ARAMES', cli_nomefantasia: 'Cliente 10347', cliente: 'Cliente 10347', codigocliente: 'CLI10347', uf: 'SP', cli_cidade: 'São Paulo', data_inicio: '01/07/2025', data_pedido_pronto: '01/07/2025', faturamento_tipo: 1, cliente_novo: 'Cliente existente', vendedor: 'João Silva' },
+    { numeropedido: '10362', numeronf: 'NF10362', situacao: 'Emitida', data_emissao: '01/07/2025', descricaomat: 'Material Industrial', observacao: 'Pedido padrão', qtd: 1, un: 'PC', valor_un_bruto: 10381.45, valor: 10381.45, peso: 3200, classe: 'ARAMES', cli_nomefantasia: 'Cliente 10362', cliente: 'Cliente 10362', codigocliente: 'CLI10362', uf: 'RJ', cli_cidade: 'Rio de Janeiro', data_inicio: '30/06/2025', data_pedido_pronto: '30/06/2025', faturamento_tipo: 1, cliente_novo: 'Cliente existente', vendedor: 'Maria Santos' },
+    { numeropedido: '10363', numeronf: 'NF10363', situacao: 'Emitida', data_emissao: '03/07/2025', descricaomat: 'Chapa Galvanizada', observacao: 'Pedido urgente', qtd: 2, un: 'PC', valor_un_bruto: 2500, valor: 5000, peso: 800, classe: 'CHAPAS', cli_nomefantasia: 'Cliente 10363', cliente: 'Cliente 10363', codigocliente: 'CLI10363', uf: 'MG', cli_cidade: 'Belo Horizonte', data_inicio: '02/07/2025', data_pedido_pronto: '02/07/2025', faturamento_tipo: 1, cliente_novo: 'Cliente novo', vendedor: 'Carlos Pereira' },
+    { numeropedido: '10364', numeronf: '', situacao: 'Orçamento', data_emissao: '04/07/2025', descricaomat: 'Perfil L', observacao: 'Orçamento em análise', qtd: 5, un: 'PC', valor_un_bruto: 800, valor: 4000, peso: 600, classe: 'PERFIS', cli_nomefantasia: 'Cliente 10364', cliente: 'Cliente 10364', codigocliente: 'CLI10364', uf: 'PR', cli_cidade: 'Curitiba', data_inicio: '03/07/2025', data_pedido_pronto: '03/07/2025', faturamento_tipo: 0, cliente_novo: 'Cliente existente', vendedor: 'Ana Costa' },
+    { numeropedido: '10365', numeronf: '', situacao: 'Pedido', data_emissao: '', descricaomat: 'Chapa de Aço', observacao: 'Pedido em produção', qtd: 3, un: 'PC', valor_un_bruto: 1200, valor: 3600, peso: 400, classe: 'CHAPAS', cli_nomefantasia: 'Cliente 10365', cliente: 'Cliente 10365', codigocliente: 'CLI10365', uf: 'SP', cli_cidade: 'São Paulo', data_inicio: '05/07/2025', data_pedido_pronto: '', faturamento_tipo: 1, cliente_novo: 'Cliente existente', vendedor: 'João Silva' },
+  ], []);
   
   // Initialize active tab from localStorage, URL params, or default to "dashboard"
   const [activeTab, setActiveTab] = useState(() => {
@@ -44,7 +52,7 @@ export default function DashboardComercial() {
   
   try {
     comercialData = useComercial();
-    data = comercialData?.data || [];
+    data = activeTab === 'dashboard' ? mockDashboardData : (comercialData?.data || []);
     const { setActiveSession } = comercialData;
 
     // Sync session with tab
@@ -98,9 +106,12 @@ export default function DashboardComercial() {
     localStorage.setItem('dashboard-comercial-tab', newTab);
   };
 
+  // Usar dados mock para dashboard, dados do contexto para outras abas
+  const currentData = activeTab === 'dashboard' ? mockDashboardData : data;
+  
   // Usar dados não filtrados para orçamentos (mesma lógica da OrcamentosSection)
   const orcamentosData = useMemo(() => {
-    return data.filter(item => {
+    return currentData.filter(item => {
       // Excluir vendedor "VENDEDOR"
       if (item.vendedor === 'VENDEDOR') return false;
       
@@ -118,11 +129,11 @@ export default function DashboardComercial() {
       
       return ["Orçamento", "Pedido"].includes(item.situacao);
     });
-  }, [data]);
+  }, [currentData, activeTab]);
   
   // Dados filtrados APENAS para orçamentos (excluir pedidos) para o card de temperatura
   const orcamentosOnlyData = useMemo(() => {
-    return data.filter(item => {
+    return currentData.filter(item => {
       // Excluir vendedor "VENDEDOR"
       if (item.vendedor === 'VENDEDOR') return false;
       
@@ -141,7 +152,7 @@ export default function DashboardComercial() {
       // Apenas orçamentos, excluir pedidos
       return item.situacao === "Orçamento";
     });
-  }, [data]);
+  }, [currentData, activeTab]);
   
   const temperatureStats = orcamentosDataHook.calculateTemperatureStats(orcamentosOnlyData, orcamentosDataHook.ratings);
 

@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/context/AuthContext';
 
 interface MetasDialogProps {
   isOpen: boolean;
@@ -13,8 +12,8 @@ interface MetasDialogProps {
 }
 
 export function MetasDialog({ isOpen, onClose, onSave, metaAtual }: MetasDialogProps) {
-  const { userProfile } = useAuth();
-  const isAdmin = userProfile?.role === 'admin';
+  // Sem autenticação, assumir que não é admin (somente visualização)
+  const isAdmin = false;
   const [metaMensal, setMetaMensal] = useState(metaAtual.metaMensal.toString());
   const [metaDiaria, setMetaDiaria] = useState(metaAtual.metaDiaria.toString());
 

@@ -217,7 +217,11 @@ function CortePerfliContent() {
 }
 
 const CortePerfil = () => {
-  return <CortePerfliContent />;
+  return (
+    <PerfilProvider>
+      <CortePerfliContent />
+    </PerfilProvider>
+  );
 };
 
 export default CortePerfil;

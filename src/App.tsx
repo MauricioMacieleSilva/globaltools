@@ -9,6 +9,8 @@ import { PerfilProvider } from "./context/PerfilContext";
 import { ComercialProvider } from "./context/ComercialContext";
 import { PreVendasProvider } from "./context/PreVendasContext";
 import { ProducaoProvider } from "./context/ProducaoContext";
+import { AuthProvider } from "./context/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import CorteBlank from "./pages/CorteBlank";
@@ -25,6 +27,7 @@ import AdminAIProactive from "./pages/AdminAIProactive";
 import NotFound from "./pages/NotFound";
 import { Pipeline } from "./pages/Pipeline";
 import Producao from "./pages/Producao";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -98,59 +101,72 @@ function AppContent() {
   };
 
   return (
-    <ComercialProvider>
-      <ProducaoProvider>
-        <CorteBlanksProvider>
-          <PerfilProvider>
-            <PreVendasProvider>
-            <SidebarProvider defaultOpen={!isMobile}>
-              <div className="flex min-h-screen w-full">
-                <AppSidebar />
-                <SidebarInset className="flex-1">
-                  <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 sm:gap-4 px-2 sm:px-4 border-b bg-card">
-                    <SidebarTrigger className="-ml-1 h-10 w-10 sm:h-9 sm:w-9" />
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <img 
-                        src="/lovable-uploads/385d4fbf-dc72-4bfa-af3a-1ca81c747837.png" 
-                        alt="Global Aço" 
-                        className="w-12 sm:w-20 h-auto flex-shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate">{getPageTitle()}</h1>
-                        <p className="text-xs text-muted-foreground truncate hidden sm:block">{getPageSubtitle()}</p>
-                      </div>
-                    </div>
-                  </header>
-                  <main className="flex-1">
-                    <Routes>
-                      <Route path="/" element={<DashboardComercial />} />
-                      <Route path="/dashboard-comercial" element={<DashboardComercial />} />
-                      <Route path="/pre-vendas" element={<PreVendas />} />
-                      <Route path="/clientes" element={<Clientes />} />
-                      <Route path="/corte-chapa" element={<CorteBlank />} />
-                      <Route path="/corte-blank" element={<CorteBlank />} />
-                      <Route path="/corte-perfil" element={<CortePerfil />} />
-                      <Route path="/politica-comercial" element={<PoliticaComercial />} />
-                      <Route path="/assistente-global" element={<AssistenteGlobal />} />
-                      <Route path="/pipeline" element={<Pipeline />} />
-                      <Route path="/producao" element={<Producao />} />
-                      <Route path="/admin/conhecimento" element={<KnowledgeManagement />} />
-                      <Route path="/admin/usuarios" element={<UserManagement />} />
-                      <Route path="/admin/relatorios" element={<ReportsConfig />} />
-                      <Route path="/admin/ia-proativa" element={<AdminAIProactive />} />
-                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </main>
-                </SidebarInset>
-                <PWAInstallPrompt />
-              </div>
-            </SidebarProvider>
-            </PreVendasProvider>
-          </PerfilProvider>
-        </CorteBlanksProvider>
-      </ProducaoProvider>
-    </ComercialProvider>
+    <Routes>
+      {/* Public route - Auth page */}
+      <Route path="/auth" element={<Auth />} />
+      
+      {/* Protected routes - All other pages */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <ComercialProvider>
+              <ProducaoProvider>
+                <CorteBlanksProvider>
+                  <PerfilProvider>
+                    <PreVendasProvider>
+                      <SidebarProvider defaultOpen={!isMobile}>
+                        <div className="flex min-h-screen w-full">
+                          <AppSidebar />
+                          <SidebarInset className="flex-1">
+                            <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 sm:gap-4 px-2 sm:px-4 border-b bg-card">
+                              <SidebarTrigger className="-ml-1 h-10 w-10 sm:h-9 sm:w-9" />
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <img 
+                                  src="/lovable-uploads/385d4fbf-dc72-4bfa-af3a-1ca81c747837.png" 
+                                  alt="Global Aço" 
+                                  className="w-12 sm:w-20 h-auto flex-shrink-0"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate">{getPageTitle()}</h1>
+                                  <p className="text-xs text-muted-foreground truncate hidden sm:block">{getPageSubtitle()}</p>
+                                </div>
+                              </div>
+                            </header>
+                            <main className="flex-1">
+                              <Routes>
+                                <Route path="/" element={<DashboardComercial />} />
+                                <Route path="/dashboard-comercial" element={<DashboardComercial />} />
+                                <Route path="/pre-vendas" element={<PreVendas />} />
+                                <Route path="/clientes" element={<Clientes />} />
+                                <Route path="/corte-chapa" element={<CorteBlank />} />
+                                <Route path="/corte-blank" element={<CorteBlank />} />
+                                <Route path="/corte-perfil" element={<CortePerfil />} />
+                                <Route path="/politica-comercial" element={<PoliticaComercial />} />
+                                <Route path="/assistente-global" element={<AssistenteGlobal />} />
+                                <Route path="/pipeline" element={<Pipeline />} />
+                                <Route path="/producao" element={<Producao />} />
+                                <Route path="/admin/conhecimento" element={<KnowledgeManagement />} />
+                                <Route path="/admin/usuarios" element={<UserManagement />} />
+                                <Route path="/admin/relatorios" element={<ReportsConfig />} />
+                                <Route path="/admin/ia-proativa" element={<AdminAIProactive />} />
+                                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                                <Route path="*" element={<NotFound />} />
+                              </Routes>
+                            </main>
+                          </SidebarInset>
+                          <PWAInstallPrompt />
+                        </div>
+                      </SidebarProvider>
+                    </PreVendasProvider>
+                  </PerfilProvider>
+                </CorteBlanksProvider>
+              </ProducaoProvider>
+            </ComercialProvider>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 }
 
@@ -158,7 +174,9 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppContent />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </ErrorBoundary>

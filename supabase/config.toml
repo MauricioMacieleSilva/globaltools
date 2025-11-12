@@ -1,16 +1,1 @@
-project_id = "kqltnuyfwobzkdmxqrqm"
-
-[functions.send-daily-report]
-verify_jwt = false
-
-[functions.send-manual-report]
-verify_jwt = false
-
-[functions.ai-proactive-analysis]
-verify_jwt = false
-
-[functions.realtime-token]
-verify_jwt = false
-
-[functions.ze-global-chat]
-verify_jwt = true
+project_id = "xhkdwfpnmjvmfbmokvct"

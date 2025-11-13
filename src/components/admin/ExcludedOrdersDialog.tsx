@@ -14,10 +14,9 @@ import { ptBR } from 'date-fns/locale';
 interface ExcludedOrder {
   id: string;
   numero_pedido: string;
-  numero_nf?: string;
   motivo?: string;
-  excluded_by: string;
-  excluded_at: string;
+  created_by: string;
+  created_at: string;
 }
 
 interface ExcludedOrdersDialogProps {
@@ -31,7 +30,6 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
   const [isAdding, setIsAdding] = useState(false);
   const [newOrder, setNewOrder] = useState({
     numero_pedido: '',
-    numero_nf: '',
     motivo: ''
   });
   const { toast } = useToast();
@@ -42,7 +40,7 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
       const { data, error } = await supabase
         .from('excluded_orders')
         .select('*')
-        .order('excluded_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setExcludedOrders(data || []);
@@ -69,13 +67,13 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('excluded_orders')
         .insert({
           numero_pedido: newOrder.numero_pedido.trim(),
-          numero_nf: newOrder.numero_nf.trim() || null,
           motivo: newOrder.motivo.trim() || null,
-          excluded_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: user?.id
         });
 
       if (error) throw error;
@@ -85,7 +83,7 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
         description: "Pedido excluído dos indicadores"
       });
 
-      setNewOrder({ numero_pedido: '', numero_nf: '', motivo: '' });
+      setNewOrder({ numero_pedido: '', motivo: '' });
       setIsAdding(false);
       loadExcludedOrders();
     } catch (error: any) {
@@ -154,22 +152,14 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
               </div>
               
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium">Número do Pedido *</label>
-                  <Input
-                    value={newOrder.numero_pedido}
-                    onChange={(e) => setNewOrder(prev => ({ ...prev, numero_pedido: e.target.value }))}
-                    placeholder="Ex: 12345"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Número da NF</label>
-                  <Input
-                    value={newOrder.numero_nf}
-                    onChange={(e) => setNewOrder(prev => ({ ...prev, numero_nf: e.target.value }))}
-                    placeholder="Ex: NF12345"
-                  />
-                </div>
+              <div>
+                <label className="text-sm font-medium">Número do Pedido *</label>
+                <Input
+                  value={newOrder.numero_pedido}
+                  onChange={(e) => setNewOrder(prev => ({ ...prev, numero_pedido: e.target.value }))}
+                  placeholder="Ex: 12345"
+                />
+              </div>
               </div>
               
               <div>
@@ -208,7 +198,6 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
               <TableHeader>
                 <TableRow>
                   <TableHead>Número do Pedido</TableHead>
-                  <TableHead>Número da NF</TableHead>
                   <TableHead>Motivo</TableHead>
                   <TableHead>Excluído em</TableHead>
                   <TableHead className="w-20">Ações</TableHead>
@@ -217,13 +206,13 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">
+                    <TableCell colSpan={4} className="text-center py-4">
                       Carregando...
                     </TableCell>
                   </TableRow>
                 ) : excludedOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
                       Nenhum pedido excluído dos indicadores
                     </TableCell>
                   </TableRow>
@@ -233,14 +222,13 @@ export function ExcludedOrdersDialog({ isOpen, onClose }: ExcludedOrdersDialogPr
                       <TableCell>
                         <Badge variant="outline">{order.numero_pedido}</Badge>
                       </TableCell>
-                      <TableCell>{order.numero_nf || '-'}</TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
                           {order.motivo || 'Sem motivo especificado'}
                         </span>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {format(new Date(order.excluded_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                       </TableCell>
                       <TableCell>
                         <Button

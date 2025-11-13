@@ -65,6 +65,57 @@ export type Database = {
           },
         ]
       }
+      client_budget_comments: {
+        Row: {
+          budget_number: string
+          comment: string
+          created_at: string
+          id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          budget_number: string
+          comment: string
+          created_at?: string
+          id?: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          budget_number?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
+      client_budget_ratings: {
+        Row: {
+          budget_number: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          budget_number: string
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          budget_number?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cidade: string | null
@@ -348,6 +399,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_business_types: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean
+          label: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          label: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_history: {
         Row: {
           acao: string
@@ -396,6 +477,36 @@ export type Database = {
           },
         ]
       }
+      lead_product_interests: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean
+          label: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          label: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_qualification_config: {
         Row: {
           ativo: boolean
@@ -428,6 +539,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          budget_number: string | null
           cliente_cnpj: string | null
           cliente_email: string | null
           cliente_nome: string
@@ -450,6 +562,7 @@ export type Database = {
           vendedor_id: string | null
         }
         Insert: {
+          budget_number?: string | null
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_nome: string
@@ -472,6 +585,7 @@ export type Database = {
           vendedor_id?: string | null
         }
         Update: {
+          budget_number?: string | null
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_nome?: string
@@ -1307,6 +1421,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_invitation_rate_limit: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]

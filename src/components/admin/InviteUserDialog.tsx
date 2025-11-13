@@ -58,7 +58,7 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
     try {
       // Check rate limiting before proceeding
       const { data: rateLimitCheck, error: rateLimitError } = await supabase
-        .rpc('check_invitation_rate_limit', { user_uuid: userProfile.id })
+        .rpc('check_invitation_rate_limit', { user_id: userProfile.id })
 
       if (rateLimitError) {
         console.error('Rate limit check error:', rateLimitError)

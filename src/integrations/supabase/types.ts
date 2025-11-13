@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_goals: {
+        Row: {
+          created_at: string
+          daily_contacts_goal: number | null
+          deals_goal: number | null
+          id: string
+          month_year: string
+          monthly_contacts_goal: number | null
+          qualified_leads_goal: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_contacts_goal?: number | null
+          deals_goal?: number | null
+          id?: string
+          month_year: string
+          monthly_contacts_goal?: number | null
+          qualified_leads_goal?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_contacts_goal?: number | null
+          deals_goal?: number | null
+          id?: string
+          month_year?: string
+          monthly_contacts_goal?: number | null
+          qualified_leads_goal?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      budget_followups: {
+        Row: {
+          budget_number: string
+          completed: boolean
+          created_at: string
+          description: string | null
+          followup_date: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_number: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          followup_date: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_number?: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          followup_date?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cancelamentos: {
         Row: {
           cliente_id: string | null
@@ -99,6 +165,7 @@ export type Database = {
           id: string
           rating: number
           updated_at: string
+          user_name: string | null
         }
         Insert: {
           budget_number: string
@@ -106,6 +173,7 @@ export type Database = {
           id?: string
           rating: number
           updated_at?: string
+          user_name?: string | null
         }
         Update: {
           budget_number?: string
@@ -113,6 +181,7 @@ export type Database = {
           id?: string
           rating?: number
           updated_at?: string
+          user_name?: string | null
         }
         Relationships: []
       }
@@ -399,6 +468,39 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string
+          id: string
+          lead_id: string
+          next_action: string | null
+          result: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description: string
+          id?: string
+          lead_id: string
+          next_action?: string | null
+          result?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          lead_id?: string
+          next_action?: string | null
+          result?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_business_types: {
         Row: {
           created_at: string
@@ -426,6 +528,36 @@ export type Database = {
           label?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_dispositions: {
+        Row: {
+          created_at: string
+          disposition_type: string
+          id: string
+          lead_id: string
+          notes: string | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          disposition_type: string
+          id?: string
+          lead_id: string
+          notes?: string | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          disposition_type?: string
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          reason?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -540,10 +672,14 @@ export type Database = {
       leads: {
         Row: {
           budget_number: string | null
+          client_code: string | null
           cliente_cnpj: string | null
           cliente_email: string | null
           cliente_nome: string
           cliente_telefone: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string
           data_abertura: string
           data_fechamento: string | null
@@ -563,10 +699,14 @@ export type Database = {
         }
         Insert: {
           budget_number?: string | null
+          client_code?: string | null
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_nome: string
           cliente_telefone?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           data_abertura?: string
           data_fechamento?: string | null
@@ -586,10 +726,14 @@ export type Database = {
         }
         Update: {
           budget_number?: string | null
+          client_code?: string | null
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_nome?: string
           cliente_telefone?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           data_abertura?: string
           data_fechamento?: string | null

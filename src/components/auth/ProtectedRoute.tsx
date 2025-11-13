@@ -68,7 +68,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (requireEdit && !canEdit) {
       return renderAccessDenied('Você não tem permissão para editar nesta página.')
     }
-  } else if (!hasPermission(userProfile.role, requireRole)) {
+  } else if (!hasPermission((userProfile?.role ?? 'visitante') as UserRole, requireRole)) {
     // Usar verificação antiga por role como fallback
     return renderAccessDenied('Você não tem permissão para acessar esta funcionalidade.')
   }
@@ -101,7 +101,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
                 <span className="font-medium">Seu nível de acesso:</span>
                 <span className="capitalize">{userProfile.role}</span>
               </div>
-              {requireRole && (
+              {(!requirePageAccess && requireRole && requireRole !== 'visitante') && (
                 <div className="flex items-center gap-2 text-sm">
                   <Shield className="w-4 h-4 text-primary" />
                   <span className="font-medium">Nível necessário:</span>

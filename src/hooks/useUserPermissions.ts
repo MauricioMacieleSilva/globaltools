@@ -106,6 +106,7 @@ export const useUserPermissions = () => {
   const { user, userProfile } = useAuth()
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // Buscar permissões do usuário atual
   const fetchUserPermissions = async () => {
@@ -124,6 +125,16 @@ export const useUserPermissions = () => {
       if (error) throw error
 
       setUserPermissions(data || [])
+
+      // Também checar papel em user_roles para reconhecer administradores
+      const { data: roles, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+
+      if (!roleError) {
+        setIsAdmin(!!roles?.some((r: any) => r.role === 'admin'))
+      }
     } catch (error) {
       console.error('Erro ao buscar permissões do usuário:', error)
     } finally {
@@ -190,8 +201,8 @@ export const useUserPermissions = () => {
 
   // Verificar se o usuário tem acesso a uma página específica
   const checkPageAccess = (pageKey: PageKey): PermissionCheck => {
-    // Administradores têm acesso total sempre
-    if (userProfile?.role === 'admin') {
+    // Administradores têm acesso total sempre (via tabela user_roles)
+    if (isAdmin) {
       return { canView: true, canEdit: true }
     }
 
@@ -219,8 +230,8 @@ export const useUserPermissions = () => {
     if (!pageEntry) {
       // Se a rota não está mapeada, usar verificação por role antiga
       return { 
-        canView: hasPermission(userProfile?.role || 'visitante', 'visitante'), 
-        canEdit: hasPermission(userProfile?.role || 'visitante', 'operacional') 
+        canView: isAdmin || hasPermission(userProfile?.role || 'visitante', 'visitante'), 
+        canEdit: isAdmin || hasPermission(userProfile?.role || 'visitante', 'operacional') 
       }
     }
 

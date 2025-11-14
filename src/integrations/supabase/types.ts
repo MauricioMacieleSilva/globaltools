@@ -379,13 +379,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "follow_ups_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads_view"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "follow_ups_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -698,13 +691,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lead_history_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads_view"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lead_history_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -777,6 +763,7 @@ export type Database = {
         Row: {
           budget_number: string | null
           client_code: string | null
+          client_name: string | null
           cliente_cnpj: string | null
           cliente_email: string | null
           cliente_nome: string
@@ -790,11 +777,13 @@ export type Database = {
           empresa: string | null
           especialista_id: string | null
           id: string
+          notes: string | null
           numero_lead: string | null
           observacoes: string | null
           origem: string | null
           produto_interesse: string | null
           qualificacao_score: number | null
+          source: string | null
           status: Database["public"]["Enums"]["lead_status"]
           temperatura: number | null
           updated_at: string
@@ -804,6 +793,7 @@ export type Database = {
         Insert: {
           budget_number?: string | null
           client_code?: string | null
+          client_name?: string | null
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_nome: string
@@ -817,11 +807,13 @@ export type Database = {
           empresa?: string | null
           especialista_id?: string | null
           id?: string
+          notes?: string | null
           numero_lead?: string | null
           observacoes?: string | null
           origem?: string | null
           produto_interesse?: string | null
           qualificacao_score?: number | null
+          source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           temperatura?: number | null
           updated_at?: string
@@ -831,6 +823,7 @@ export type Database = {
         Update: {
           budget_number?: string | null
           client_code?: string | null
+          client_name?: string | null
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_nome?: string
@@ -844,11 +837,13 @@ export type Database = {
           empresa?: string | null
           especialista_id?: string | null
           id?: string
+          notes?: string | null
           numero_lead?: string | null
           observacoes?: string | null
           origem?: string | null
           produto_interesse?: string | null
           qualificacao_score?: number | null
+          source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           temperatura?: number | null
           updated_at?: string
@@ -1082,13 +1077,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orcamentos_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads_view"
             referencedColumns: ["id"]
           },
           {
@@ -1673,105 +1661,7 @@ export type Database = {
       }
     }
     Views: {
-      leads_view: {
-        Row: {
-          budget_number: string | null
-          client_code: string | null
-          client_name: string | null
-          cliente_cnpj: string | null
-          cliente_email: string | null
-          cliente_telefone: string | null
-          contact_email: string | null
-          contact_name: string | null
-          contact_phone: string | null
-          created_at: string | null
-          data_abertura: string | null
-          data_fechamento: string | null
-          empresa: string | null
-          especialista_id: string | null
-          id: string | null
-          notes: string | null
-          numero_lead: string | null
-          produto_interesse: string | null
-          qualificacao_score: number | null
-          source: string | null
-          status: Database["public"]["Enums"]["lead_status"] | null
-          temperatura: number | null
-          updated_at: string | null
-          valor_estimado: number | null
-          vendedor_id: string | null
-        }
-        Insert: {
-          budget_number?: string | null
-          client_code?: string | null
-          client_name?: string | null
-          cliente_cnpj?: string | null
-          cliente_email?: string | null
-          cliente_telefone?: string | null
-          contact_email?: string | null
-          contact_name?: string | null
-          contact_phone?: string | null
-          created_at?: string | null
-          data_abertura?: string | null
-          data_fechamento?: string | null
-          empresa?: string | null
-          especialista_id?: string | null
-          id?: string | null
-          notes?: string | null
-          numero_lead?: string | null
-          produto_interesse?: string | null
-          qualificacao_score?: number | null
-          source?: string | null
-          status?: Database["public"]["Enums"]["lead_status"] | null
-          temperatura?: number | null
-          updated_at?: string | null
-          valor_estimado?: number | null
-          vendedor_id?: string | null
-        }
-        Update: {
-          budget_number?: string | null
-          client_code?: string | null
-          client_name?: string | null
-          cliente_cnpj?: string | null
-          cliente_email?: string | null
-          cliente_telefone?: string | null
-          contact_email?: string | null
-          contact_name?: string | null
-          contact_phone?: string | null
-          created_at?: string | null
-          data_abertura?: string | null
-          data_fechamento?: string | null
-          empresa?: string | null
-          especialista_id?: string | null
-          id?: string | null
-          notes?: string | null
-          numero_lead?: string | null
-          produto_interesse?: string | null
-          qualificacao_score?: number | null
-          source?: string | null
-          status?: Database["public"]["Enums"]["lead_status"] | null
-          temperatura?: number | null
-          updated_at?: string | null
-          valor_estimado?: number | null
-          vendedor_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leads_especialista_id_fkey"
-            columns: ["especialista_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_vendedor_id_fkey"
-            columns: ["vendedor_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       check_invitation_rate_limit: {

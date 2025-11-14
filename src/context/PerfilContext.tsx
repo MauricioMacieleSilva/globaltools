@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { toast } from 'sonner';
 
 export interface CalculoItem {
   id: string;
@@ -283,15 +284,56 @@ function criarLinhasIniciaisCartolaSemiEnrijecido(): LinhaPerfilCartolaSemiEnrij
   }));
 }
 
+const STORAGE_KEY = 'corte-perfil-data';
+
 export function PerfilProvider({ children }: { children: ReactNode }) {
-  const [calculos, setCalculos] = useState<Record<string, CalculoItem>>({});
-  const [linhasU, setLinhasU] = useState<LinhaPerfilU[]>(criarLinhasIniciaisU());
-  const [linhasL, setLinhasL] = useState<LinhaPerfilL[]>(criarLinhasIniciaisL());
-  const [linhasUEnrijecido, setLinhasUEnrijecido] = useState<LinhaPerfilUEnrijecido[]>(criarLinhasIniciaisUEnrijecido());
-  const [linhasCartola, setLinhasCartola] = useState<LinhaPerfilCartola[]>(criarLinhasIniciaisCartola());
-  const [linhasCartolaEnrijecido, setLinhasCartolaEnrijecido] = useState<LinhaPerfilCartolaEnrijecido[]>(criarLinhasIniciaisCartolaEnrijecido());
-  const [linhasUSemiEnrijecido, setLinhasUSemiEnrijecido] = useState<LinhaPerfilUSemiEnrijecido[]>(criarLinhasIniciaisUSemiEnrijecido());
-  const [linhasCartolaSemiEnrijecido, setLinhasCartolaSemiEnrijecido] = useState<LinhaPerfilCartolaSemiEnrijecido[]>(criarLinhasIniciaisCartolaSemiEnrijecido());
+  // Função para carregar dados do localStorage
+  const carregarDados = () => {
+    try {
+      const dadosSalvos = localStorage.getItem(STORAGE_KEY);
+      if (dadosSalvos) {
+        return JSON.parse(dadosSalvos);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    }
+    return null;
+  };
+
+  const dadosIniciais = carregarDados();
+
+  const [calculos, setCalculos] = useState<Record<string, CalculoItem>>(dadosIniciais?.calculos || {});
+  const [linhasU, setLinhasU] = useState<LinhaPerfilU[]>(dadosIniciais?.linhasU || criarLinhasIniciaisU());
+  const [linhasL, setLinhasL] = useState<LinhaPerfilL[]>(dadosIniciais?.linhasL || criarLinhasIniciaisL());
+  const [linhasUEnrijecido, setLinhasUEnrijecido] = useState<LinhaPerfilUEnrijecido[]>(dadosIniciais?.linhasUEnrijecido || criarLinhasIniciaisUEnrijecido());
+  const [linhasCartola, setLinhasCartola] = useState<LinhaPerfilCartola[]>(dadosIniciais?.linhasCartola || criarLinhasIniciaisCartola());
+  const [linhasCartolaEnrijecido, setLinhasCartolaEnrijecido] = useState<LinhaPerfilCartolaEnrijecido[]>(dadosIniciais?.linhasCartolaEnrijecido || criarLinhasIniciaisCartolaEnrijecido());
+  const [linhasUSemiEnrijecido, setLinhasUSemiEnrijecido] = useState<LinhaPerfilUSemiEnrijecido[]>(dadosIniciais?.linhasUSemiEnrijecido || criarLinhasIniciaisUSemiEnrijecido());
+  const [linhasCartolaSemiEnrijecido, setLinhasCartolaSemiEnrijecido] = useState<LinhaPerfilCartolaSemiEnrijecido[]>(dadosIniciais?.linhasCartolaSemiEnrijecido || criarLinhasIniciaisCartolaSemiEnrijecido());
+
+  // Salvar dados automaticamente com debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      try {
+        const dados = {
+          calculos,
+          linhasU,
+          linhasL,
+          linhasUEnrijecido,
+          linhasCartola,
+          linhasCartolaEnrijecido,
+          linhasUSemiEnrijecido,
+          linhasCartolaSemiEnrijecido,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+      } catch (error) {
+        console.error('Erro ao salvar dados:', error);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [calculos, linhasU, linhasL, linhasUEnrijecido, linhasCartola, linhasCartolaEnrijecido, linhasUSemiEnrijecido, linhasCartolaSemiEnrijecido]);
 
   const adicionarCalculo = (calculo: CalculoItem) => {
     setCalculos(prev => ({
@@ -365,6 +407,15 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
 
   const limparCalculos = () => {
     setCalculos({});
+    setLinhasU(criarLinhasIniciaisU());
+    setLinhasL(criarLinhasIniciaisL());
+    setLinhasUEnrijecido(criarLinhasIniciaisUEnrijecido());
+    setLinhasCartola(criarLinhasIniciaisCartola());
+    setLinhasCartolaEnrijecido(criarLinhasIniciaisCartolaEnrijecido());
+    setLinhasUSemiEnrijecido(criarLinhasIniciaisUSemiEnrijecido());
+    setLinhasCartolaSemiEnrijecido(criarLinhasIniciaisCartolaSemiEnrijecido());
+    localStorage.removeItem(STORAGE_KEY);
+    toast.success('Todos os dados foram limpos');
   };
 
   return (

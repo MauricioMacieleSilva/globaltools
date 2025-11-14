@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calculator, FileDown } from 'lucide-react';
+import { Calculator, FileDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PerfilU } from '@/components/perfis/PerfilU';
 import { PerfilL } from '@/components/perfis/PerfilL';
@@ -19,7 +19,8 @@ import * as XLSX from 'xlsx';
 
 function CortePerfliContent() {
   const {
-    calculos
+    calculos,
+    limparCalculos
   } = usePerfilContext();
 
   const exportarPDF = async () => {
@@ -184,6 +185,18 @@ function CortePerfliContent() {
                         Resumo Geral
                       </div>
                       <div className="flex gap-2">
+                        <Button 
+                          onClick={() => {
+                            if (window.confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
+                              limparCalculos();
+                            }
+                          }}
+                          variant="outline" 
+                          className="gap-1 sm:gap-2 text-xs sm:text-sm hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          Limpar
+                        </Button>
                         <Button 
                           variant="outline" 
                           className="gap-1 sm:gap-2 text-xs sm:text-sm"

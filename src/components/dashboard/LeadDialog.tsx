@@ -149,11 +149,11 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
       setIsInitialized(false); // Reset initialization
       
       if (lead) {
-        console.log('Loading lead data for editing:', lead.cliente_nome);
+        console.log('Loading lead data for editing:', lead.client_name);
         console.log('Full lead object:', lead);
         
         const newFormData = {
-          cliente_nome: lead.cliente_nome || '',
+          cliente_nome: lead.client_name || '',
           client_code: lead.client_code || '',
           contact_name: lead.contact_name || '',
           contact_phone: lead.contact_phone || '',
@@ -161,9 +161,9 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
           uf: lead.uf || '',
           cidade: lead.cidade || '',
           status: lead.status || 'novo',
-          source: lead.origem || '',
+          source: lead.source || '',
           entry_channel: mapEntryChannelFromDatabase(lead.entry_channel || ''),
-          notes: lead.observacoes || ''
+          notes: lead.notes || ''
         };
         
         console.log('New form data being set:', newFormData);

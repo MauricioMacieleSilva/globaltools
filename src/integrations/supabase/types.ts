@@ -16,9 +16,11 @@ export type Database = {
     Tables: {
       admin_goals: {
         Row: {
+          conversion_goal_percent: number | null
           created_at: string
           daily_contacts_goal: number | null
           deals_goal: number | null
+          forwarded_leads_goal: number | null
           id: string
           month_year: string
           monthly_contacts_goal: number | null
@@ -26,9 +28,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          conversion_goal_percent?: number | null
           created_at?: string
           daily_contacts_goal?: number | null
           deals_goal?: number | null
+          forwarded_leads_goal?: number | null
           id?: string
           month_year: string
           monthly_contacts_goal?: number | null
@@ -36,9 +40,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          conversion_goal_percent?: number | null
           created_at?: string
           daily_contacts_goal?: number | null
           deals_goal?: number | null
+          forwarded_leads_goal?: number | null
           id?: string
           month_year?: string
           monthly_contacts_goal?: number | null
@@ -373,6 +379,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "follow_ups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "follow_ups_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -383,39 +396,78 @@ export type Database = {
       }
       knowledge_articles: {
         Row: {
+          article_type: string | null
           ativo: boolean
           author_id: string | null
           category_id: string | null
+          content: string | null
           conteudo: string
           created_at: string
+          difficulty_level: string | null
+          helpful_count: number | null
           id: string
+          is_featured: boolean | null
+          is_published: boolean | null
+          keywords: string[] | null
+          priority: number | null
+          search_terms: string[] | null
+          summary: string | null
           tags: string[] | null
+          title: string | null
           titulo: string
+          unhelpful_count: number | null
           updated_at: string
+          view_count: number | null
           views: number | null
         }
         Insert: {
+          article_type?: string | null
           ativo?: boolean
           author_id?: string | null
           category_id?: string | null
+          content?: string | null
           conteudo: string
           created_at?: string
+          difficulty_level?: string | null
+          helpful_count?: number | null
           id?: string
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          search_terms?: string[] | null
+          summary?: string | null
           tags?: string[] | null
+          title?: string | null
           titulo: string
+          unhelpful_count?: number | null
           updated_at?: string
+          view_count?: number | null
           views?: number | null
         }
         Update: {
+          article_type?: string | null
           ativo?: boolean
           author_id?: string | null
           category_id?: string | null
+          content?: string | null
           conteudo?: string
           created_at?: string
+          difficulty_level?: string | null
+          helpful_count?: number | null
           id?: string
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          search_terms?: string[] | null
+          summary?: string | null
           tags?: string[] | null
+          title?: string | null
           titulo?: string
+          unhelpful_count?: number | null
           updated_at?: string
+          view_count?: number | null
           views?: number | null
         }
         Relationships: [
@@ -438,30 +490,48 @@ export type Database = {
       knowledge_categories: {
         Row: {
           ativo: boolean
+          color: string | null
           created_at: string
           descricao: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
           icone: string | null
           id: string
+          is_active: boolean | null
+          name: string | null
           nome: string
           ordem: number | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          color?: string | null
           created_at?: string
           descricao?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
           icone?: string | null
           id?: string
+          is_active?: boolean | null
+          name?: string | null
           nome: string
           ordem?: number | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          color?: string | null
           created_at?: string
           descricao?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
           icone?: string | null
           id?: string
+          is_active?: boolean | null
+          name?: string | null
           nome?: string
           ordem?: number | null
           updated_at?: string
@@ -471,32 +541,44 @@ export type Database = {
       lead_activities: {
         Row: {
           activity_type: string
+          conversation_started: boolean | null
           created_at: string
           description: string
           id: string
           lead_id: string
           next_action: string | null
+          next_contact_date: string | null
           result: string | null
+          sdr_id: string | null
+          sdr_name: string | null
           user_id: string
         }
         Insert: {
           activity_type: string
+          conversation_started?: boolean | null
           created_at?: string
           description: string
           id?: string
           lead_id: string
           next_action?: string | null
+          next_contact_date?: string | null
           result?: string | null
+          sdr_id?: string | null
+          sdr_name?: string | null
           user_id: string
         }
         Update: {
           activity_type?: string
+          conversation_started?: boolean | null
           created_at?: string
           description?: string
           id?: string
           lead_id?: string
           next_action?: string | null
+          next_contact_date?: string | null
           result?: string | null
+          sdr_id?: string | null
+          sdr_name?: string | null
           user_id?: string
         }
         Relationships: []
@@ -534,8 +616,13 @@ export type Database = {
       lead_dispositions: {
         Row: {
           created_at: string
+          custom_reason: string | null
+          disposed_by: string | null
+          disposed_by_name: string | null
           disposition_type: string
           id: string
+          lead_client_code: string | null
+          lead_client_name: string | null
           lead_id: string
           notes: string | null
           reason: string | null
@@ -543,8 +630,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_reason?: string | null
+          disposed_by?: string | null
+          disposed_by_name?: string | null
           disposition_type: string
           id?: string
+          lead_client_code?: string | null
+          lead_client_name?: string | null
           lead_id: string
           notes?: string | null
           reason?: string | null
@@ -552,8 +644,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_reason?: string | null
+          disposed_by?: string | null
+          disposed_by_name?: string | null
           disposition_type?: string
           id?: string
+          lead_client_code?: string | null
+          lead_client_name?: string | null
           lead_id?: string
           notes?: string | null
           reason?: string | null
@@ -598,6 +695,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_view"
             referencedColumns: ["id"]
           },
           {
@@ -978,6 +1082,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_view"
             referencedColumns: ["id"]
           },
           {
@@ -1562,7 +1673,105 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leads_view: {
+        Row: {
+          budget_number: string | null
+          client_code: string | null
+          client_name: string | null
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_telefone: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          data_abertura: string | null
+          data_fechamento: string | null
+          empresa: string | null
+          especialista_id: string | null
+          id: string | null
+          notes: string | null
+          numero_lead: string | null
+          produto_interesse: string | null
+          qualificacao_score: number | null
+          source: string | null
+          status: Database["public"]["Enums"]["lead_status"] | null
+          temperatura: number | null
+          updated_at: string | null
+          valor_estimado: number | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          budget_number?: string | null
+          client_code?: string | null
+          client_name?: string | null
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_telefone?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          data_abertura?: string | null
+          data_fechamento?: string | null
+          empresa?: string | null
+          especialista_id?: string | null
+          id?: string | null
+          notes?: string | null
+          numero_lead?: string | null
+          produto_interesse?: string | null
+          qualificacao_score?: number | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
+          temperatura?: number | null
+          updated_at?: string | null
+          valor_estimado?: number | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          budget_number?: string | null
+          client_code?: string | null
+          client_name?: string | null
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_telefone?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          data_abertura?: string | null
+          data_fechamento?: string | null
+          empresa?: string | null
+          especialista_id?: string | null
+          id?: string | null
+          notes?: string | null
+          numero_lead?: string | null
+          produto_interesse?: string | null
+          qualificacao_score?: number | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
+          temperatura?: number | null
+          updated_at?: string | null
+          valor_estimado?: number | null
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_especialista_id_fkey"
+            columns: ["especialista_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_invitation_rate_limit: {

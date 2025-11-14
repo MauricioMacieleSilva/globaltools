@@ -71,11 +71,8 @@ export const LeadHistoryDialog: React.FC<LeadHistoryDialogProps> = ({
             description: description,
             details: {
               result: activity.result,
-              next_action: activity.next_action,
-              next_contact_date: activity.next_contact_date,
-              conversation_started: activity.conversation_started
-            },
-            user_name: activity.sdr_name
+              next_action: activity.next_action
+            }
           });
         });
       }

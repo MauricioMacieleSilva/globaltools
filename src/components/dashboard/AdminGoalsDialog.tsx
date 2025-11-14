@@ -12,8 +12,7 @@ interface AdminGoal {
   daily_contacts_goal: number;
   monthly_contacts_goal: number;
   qualified_leads_goal: number;
-  forwarded_leads_goal: number;
-  conversion_goal_percent: number;
+  deals_goal: number;
 }
 
 interface AdminGoalsDialogProps {
@@ -28,8 +27,7 @@ export const AdminGoalsDialog: React.FC<AdminGoalsDialogProps> = ({ open, onClos
     daily_contacts_goal: 40,
     monthly_contacts_goal: 1200,
     qualified_leads_goal: 30,
-    forwarded_leads_goal: 25,
-    conversion_goal_percent: 25
+    deals_goal: 20
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -71,8 +69,7 @@ export const AdminGoalsDialog: React.FC<AdminGoalsDialogProps> = ({ open, onClos
               daily_contacts_goal: formData.daily_contacts_goal,
               monthly_contacts_goal: formData.monthly_contacts_goal,
               qualified_leads_goal: formData.qualified_leads_goal,
-              forwarded_leads_goal: formData.forwarded_leads_goal,
-              conversion_goal_percent: formData.conversion_goal_percent
+              deals_goal: formData.deals_goal
             })
             .eq('id', formData.id)
         : await supabase
@@ -151,27 +148,14 @@ export const AdminGoalsDialog: React.FC<AdminGoalsDialogProps> = ({ open, onClos
             />
           </div>
           <div>
-            <Label htmlFor="forwarded_leads_goal">Meta de Leads Encaminhados</Label>
+            <Label htmlFor="deals_goal">Meta de Negócios Fechados</Label>
             <Input
-              id="forwarded_leads_goal"
+              id="deals_goal"
               type="number"
-              value={formData.forwarded_leads_goal}
-              onChange={(e) => setFormData({ ...formData, forwarded_leads_goal: parseInt(e.target.value) })}
+              value={formData.deals_goal}
+              onChange={(e) => setFormData({ ...formData, deals_goal: parseInt(e.target.value) })}
               required
               min="1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="conversion_goal_percent">Meta de Conversão (%)</Label>
-            <Input
-              id="conversion_goal_percent"
-              type="number"
-              step="0.1"
-              value={formData.conversion_goal_percent}
-              onChange={(e) => setFormData({ ...formData, conversion_goal_percent: parseFloat(e.target.value) })}
-              required
-              min="0"
-              max="100"
             />
           </div>
           <div className="flex justify-end gap-2">

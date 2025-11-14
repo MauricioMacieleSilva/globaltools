@@ -50,30 +50,45 @@ export const SpecialistAssignmentDialog: React.FC<SpecialistAssignmentDialogProp
     try {
       console.log('Loading specialists from Comercial department...');
       
-      // Buscar usuários do departamento Comercial (incluindo variações case-insensitive)
+      // Buscar usuários do departamento Comercial e juntar com user_roles
       const { data: comercialDeptUsers, error: deptError } = await supabase
         .from('user_profiles')
-        .select('id, full_name, department, role')
+        .select(`
+          id, 
+          full_name, 
+          department,
+          user_roles!inner(role)
+        `)
         .ilike('department', 'comercial%')
         .order('full_name');
 
       console.log('Comercial dept users query result:', { data: comercialDeptUsers, error: deptError });
 
-      // Fallback: buscar usuários com role 'comercial' que não tenham departamento definido
+      // Fallback: buscar usuários com role 'comercial' via user_roles
       const { data: comercialRoleUsers, error: roleError } = await supabase
         .from('user_profiles')
-        .select('id, full_name, department, role')
-        .eq('role', 'comercial')
+        .select(`
+          id, 
+          full_name, 
+          department,
+          user_roles!inner(role)
+        `)
+        .eq('user_roles.role', 'comercial')
         .is('department', null)
         .order('full_name');
 
       console.log('Comercial role users query result:', { data: comercialRoleUsers, error: roleError });
 
-      // Buscar admins (sempre incluir)
+      // Buscar admins
       const { data: adminUsers, error: adminError } = await supabase
         .from('user_profiles')
-        .select('id, full_name, department, role')
-        .eq('role', 'admin')
+        .select(`
+          id, 
+          full_name, 
+          department,
+          user_roles!inner(role)
+        `)
+        .eq('user_roles.role', 'admin')
         .order('full_name');
 
       console.log('Admin users query result:', { data: adminUsers, error: adminError });
@@ -82,11 +97,20 @@ export const SpecialistAssignmentDialog: React.FC<SpecialistAssignmentDialogProp
         throw deptError || roleError || adminError;
       }
 
-      // Combinar todos os resultados e remover duplicatas
+      // Combinar todos os resultados e remover duplicatas, extrair role do objeto user_roles
       const allSpecialists = [
-        ...(comercialDeptUsers || []),
-        ...(comercialRoleUsers || []),
-        ...(adminUsers || [])
+        ...(comercialDeptUsers || []).map((u: any) => ({
+          ...u,
+          role: u.user_roles?.[0]?.role || 'comercial'
+        })),
+        ...(comercialRoleUsers || []).map((u: any) => ({
+          ...u,
+          role: u.user_roles?.[0]?.role || 'comercial'
+        })),
+        ...(adminUsers || []).map((u: any) => ({
+          ...u,
+          role: u.user_roles?.[0]?.role || 'admin'
+        }))
       ];
 
       // Remover duplicatas baseado no ID

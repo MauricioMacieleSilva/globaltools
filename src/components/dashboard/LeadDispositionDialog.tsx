@@ -58,12 +58,10 @@ export const LeadDispositionDialog: React.FC<LeadDispositionDialogProps> = ({
         .from('lead_dispositions')
         .insert({
           lead_id: lead.id,
-          lead_client_name: lead.client_name,
-          lead_client_code: lead.client_code,
+          user_id: userProfile.id,
+          disposition_type: selectedReason,
           reason: selectedReason,
-          custom_reason: selectedReason === 'outro' ? customReason : null,
-          disposed_by: userProfile.id,
-          disposed_by_name: userProfile.full_name
+          notes: selectedReason === 'outro' ? customReason : null
         });
 
       if (dispositionError) throw dispositionError;

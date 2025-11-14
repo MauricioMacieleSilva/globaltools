@@ -15,10 +15,10 @@ export function LeadCountsIndicator({ leadId, type }: LeadCountsIndicatorProps) 
       try {
         if (type === 'followups') {
           const { count: followUpCount } = await supabase
-            .from('budget_followups')
+            .from('follow_ups')
             .select('*', { count: 'exact', head: true })
             .eq('lead_id', leadId)
-            .eq('is_completed', false);
+            .eq('concluido', false);
 
           setCount(followUpCount || 0);
         }

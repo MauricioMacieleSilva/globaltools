@@ -131,8 +131,7 @@ export const LeadStatusUpdateDialog: React.FC<LeadStatusUpdateDialogProps> = ({
           .from('lead_activities')
           .insert({
             lead_id: lead.id,
-            sdr_id: userProfile.id,
-            sdr_name: userProfile.full_name,
+            user_id: userProfile.id,
             activity_type: 'qualificacao',
             description: activityDescription,
             result: comment.trim() || undefined

@@ -22,7 +22,7 @@ interface LeadDialogProps {
 
 export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onSave }) => {
   const [formData, setFormData] = useState({
-    client_name: '',
+    cliente_nome: '',
     client_code: '',
     contact_name: '',
     contact_phone: '',
@@ -149,11 +149,11 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
       setIsInitialized(false); // Reset initialization
       
       if (lead) {
-        console.log('Loading lead data for editing:', lead.client_name);
+        console.log('Loading lead data for editing:', lead.cliente_nome);
         console.log('Full lead object:', lead);
         
         const newFormData = {
-          client_name: lead.client_name || '',
+          cliente_nome: lead.cliente_nome || '',
           client_code: lead.client_code || '',
           contact_name: lead.contact_name || '',
           contact_phone: lead.contact_phone || '',
@@ -161,9 +161,9 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
           uf: lead.uf || '',
           cidade: lead.cidade || '',
           status: lead.status || 'novo',
-          source: lead.source || '',
+          source: lead.origem || '',
           entry_channel: mapEntryChannelFromDatabase(lead.entry_channel || ''),
-          notes: lead.notes || ''
+          notes: lead.observacoes || ''
         };
         
         console.log('New form data being set:', newFormData);
@@ -178,7 +178,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
       } else {
         console.log('Setting up form for new lead');
         const emptyFormData = {
-          client_name: '',
+          cliente_nome: '',
           client_code: '',
           contact_name: '',
           contact_phone: '',
@@ -210,7 +210,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
   };
 
   const handleClientNameChange = (value: string) => {
-    const updatedFormData = { ...formData, client_name: value };
+    const updatedFormData = { ...formData, cliente_nome: value };
     
     // Só gera código se for um novo lead
     if (!lead && value.trim().length >= 3) {
@@ -231,7 +231,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
     // Validações dos campos obrigatórios
     const errors = [];
     
-    if (!formData.client_name.trim()) {
+    if (!formData.cliente_nome.trim()) {
       errors.push("Nome do cliente é obrigatório");
     }
     
@@ -295,7 +295,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
         // Gerar client_code se não foi fornecido
         if (!dataToSave.client_code) {
           const timestamp = Date.now().toString().slice(-6);
-          const namePrefix = dataToSave.client_name.trim().replace(/\s+/g, '').substring(0, 4).toUpperCase();
+          const namePrefix = dataToSave.cliente_nome.trim().replace(/\s+/g, '').substring(0, 4).toUpperCase();
           dataToSave.client_code = `${namePrefix}${timestamp}`;
         }
       }
@@ -322,8 +322,8 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
       // Buscar leads com critérios de duplicação
       const { data: existingLeads, error } = await supabase
         .from('leads')
-        .select('id, client_name, contact_name, contact_phone, contact_email, client_code')
-        .or(`client_name.ilike.%${newLeadData.client_name}%,contact_name.ilike.%${newLeadData.contact_name || ''}%,contact_phone.eq.${newLeadData.contact_phone || ''},contact_email.eq.${newLeadData.contact_email || ''}`);
+        .select('id, cliente_nome, contact_name, contact_phone, contact_email, client_code')
+        .or(`cliente_nome.ilike.%${newLeadData.cliente_nome}%,contact_name.ilike.%${newLeadData.contact_name || ''}%,contact_phone.eq.${newLeadData.contact_phone || ''},contact_email.eq.${newLeadData.contact_email || ''}`);
 
       if (error) {
         console.error('Erro ao verificar duplicatas:', error);
@@ -334,9 +334,9 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
         const duplicateReasons = [];
         const duplicateLead = existingLeads[0];
 
-        if (duplicateLead.client_name.toLowerCase().includes(newLeadData.client_name.toLowerCase()) || 
-            newLeadData.client_name.toLowerCase().includes(duplicateLead.client_name.toLowerCase())) {
-          duplicateReasons.push(`Nome da empresa similar: ${duplicateLead.client_name}`);
+        if (duplicateLead.cliente_nome.toLowerCase().includes(newLeadData.cliente_nome.toLowerCase()) || 
+            newLeadData.cliente_nome.toLowerCase().includes(duplicateLead.cliente_nome.toLowerCase())) {
+          duplicateReasons.push(`Nome da empresa similar: ${duplicateLead.cliente_nome}`);
         }
 
         if (newLeadData.contact_name && duplicateLead.contact_name && 
@@ -381,7 +381,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
         {process.env.NODE_ENV === 'development' && (
           <div className="bg-gray-100 p-2 text-xs">
             <div>Lead ID: {lead?.id || 'New'}</div>
-            <div>Form client_name: "{formData.client_name}"</div>
+            <div>Form cliente_nome: "{formData.cliente_nome}"</div>
             <div>Form contact_name: "{formData.contact_name}"</div>
             <div>Form uf: "{formData.uf}"</div>
           </div>
@@ -394,7 +394,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
                 <label className="text-sm font-medium mb-2 block">Nome do Cliente *</label>
                 <Input
                   placeholder="Digite o nome do cliente"
-                  value={formData.client_name}
+                  value={formData.cliente_nome}
                   onChange={(e) => {
                     console.log('Client name changed to:', e.target.value);
                     handleClientNameChange(e.target.value);
@@ -403,7 +403,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
                 />
                 {process.env.NODE_ENV === 'development' && (
                   <div className="text-xs text-gray-500 mt-1">
-                    Current value: "{formData.client_name}"
+                    Current value: "{formData.cliente_nome}"
                   </div>
                 )}
               </div>

@@ -369,7 +369,7 @@ export const PreVendasSection: React.FC = () => {
           vendor_id: specialistId,
           vendor_name: specialist.full_name,
           vendor_email: specialist.email,
-          lead_client_name: leadData.client_name,
+          lead_client_name: leadData.cliente_nome,
           sdr_name: userProfile?.full_name || 'SDR'
         }
       });

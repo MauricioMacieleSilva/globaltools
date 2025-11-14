@@ -31,7 +31,7 @@ export function BudgetCountsIndicator({ budgetNumber, type }: BudgetCountsIndica
           .from('budget_followups')
           .select('*', { count: 'exact', head: true })
           .eq('budget_number', budgetNumber)
-          .eq('is_completed', false);
+          .eq('completed', false);
 
         setCounts({
           comments: commentCount || 0,

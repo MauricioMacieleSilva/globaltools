@@ -51,11 +51,8 @@ export default function DashboardComercial() {
     useEffect(() => {
       const sessionMap: Record<string, any> = {
         dashboard: 'dashboard',
-        perdidos: 'perdidos', 
-        cancelamentos: 'cancelamentos',
-        precos: 'precos',
-        orcamentos: 'orcamentos',
-        followup: 'followup'
+        perdidos: 'perdidos',
+        orcamentos: 'orcamentos'
       };
       
       if (sessionMap[activeTab]) {
@@ -163,7 +160,7 @@ export default function DashboardComercial() {
           <div className="container mx-auto p-2 space-y-2">
             {/* Navegação por Abas */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1">
+              <TabsList className="grid w-full grid-cols-3 gap-1">
                 <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
                   <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Dashboard</span>
@@ -172,21 +169,9 @@ export default function DashboardComercial() {
                   <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Perdidos</span>
                 </TabsTrigger>
-                <TabsTrigger value="cancelamentos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                  <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Canc./Dev.</span>
-                </TabsTrigger>
-                <TabsTrigger value="precos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                  <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Preços</span>
-                </TabsTrigger>
                 <TabsTrigger value="orcamentos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
                   <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Orçamentos</span>
-                </TabsTrigger>
-                <TabsTrigger value="followup" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                  <CalendarDays className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Follow-up</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -244,51 +229,12 @@ export default function DashboardComercial() {
                 </ErrorBoundary>
               </TabsContent>
 
-              {/* Aba Cancelamentos/Devoluções */}
-              <TabsContent value="cancelamentos" className="space-y-4">
-                {/* KPIs Cancelamentos/Devoluções */}
-                <ErrorBoundary>
-                  <CancelamentosDevolucoesKPIs />
-                </ErrorBoundary>
-
-                {/* Gráficos Cancelamentos/Devoluções */}
-                <ErrorBoundary>
-                  <CancelamentosDevolucoesCharts />
-                </ErrorBoundary>
-
-                {/* Tabela Detalhada */}
-                <ErrorBoundary>
-                  <CancelamentosDevolucoesTable />
-                </ErrorBoundary>
-              </TabsContent>
-
-              {/* Aba Análise de Preços */}
-              <TabsContent value="precos" className="space-y-2">
-                {/* Análise de Preços */}
-                <ErrorBoundary>
-                  <AnalisePrecos />
-                </ErrorBoundary>
-
-                {/* Insights de Preços */}
-                <ErrorBoundary>
-                  <AnalisprecosInsights />
-                </ErrorBoundary>
-              </TabsContent>
-
               {/* Aba Orçamentos */}
               <TabsContent value="orcamentos" className="space-y-2">
                 <ErrorBoundary>
                   <OrcamentosSection 
                     sharedOrcamentosData={orcamentosDataHook}
                   />
-                </ErrorBoundary>
-              </TabsContent>
-
-
-              {/* Aba Follow-up */}
-              <TabsContent value="followup" className="space-y-2">
-                <ErrorBoundary>
-                  <FollowUpSection />
                 </ErrorBoundary>
               </TabsContent>
             </Tabs>

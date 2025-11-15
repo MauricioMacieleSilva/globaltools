@@ -166,17 +166,17 @@ export const Pipeline: React.FC = () => {
       setLoading(true);
       
       // Carregar todos os leads que foram encaminhados
-      let query = supabase
+      let query = (supabase as any)
         .from('leads')
         .select('*')
-        .eq('forwarded_to_specialist', true);
+        .eq('status', 'qualificado');
       
       // Se for comercial, filtrar apenas leads atribuídos a ele
       if (userProfile?.role === 'comercial') {
-        query = query.eq('assigned_specialist_id', userProfile.id);
+        query = query.eq('especialista_id', userProfile.id);
       }
       
-      const { data: leadsData, error: leadsError } = await query.order('forwarded_at', { ascending: false });
+      const { data: leadsData, error: leadsError } = await query.order('created_at', { ascending: false });
 
       if (leadsError) throw leadsError;
       
@@ -311,9 +311,9 @@ export const Pipeline: React.FC = () => {
         )
       );
 
-      // Se o status mudou de "encaminhado", marcar notificações como lidas
-      if (lead?.status === 'encaminhado' && newStatus !== 'encaminhado' && userProfile) {
-        await markLeadNotificationAsRead(leadId, userProfile.id);
+      // Se o status mudou, atualizar notificações
+      if (lead?.status !== newStatus && userProfile) {
+        await markLeadNotificationAsRead(leadId);
       }
 
       toast({
@@ -330,14 +330,12 @@ export const Pipeline: React.FC = () => {
     }
   };
 
-  const markLeadNotificationAsRead = async (leadId: string, vendorId: string) => {
+  const markLeadNotificationAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('vendor_notifications')
-        .update({ is_read: true, updated_at: new Date().toISOString() })
-        .eq('lead_id', leadId)
-        .eq('vendor_id', vendorId)
-        .eq('is_read', false);
+      const { error } = await (supabase as any)
+        .from('notifications')
+        .update({ lida: true, updated_at: new Date().toISOString() })
+        .eq('id', notificationId);
       
       if (error) throw error;
       
@@ -398,10 +396,10 @@ export const Pipeline: React.FC = () => {
         return updatedLeads;
       });
 
-      // Se o status mudou de 'encaminhado', marcar notificações como lidas
-      if (leadToQualify?.status === 'encaminhado' && updates.status !== 'encaminhado' && userProfile?.id) {
+      // Se o status mudou, marcar notificações como lidas
+      if (leadToQualify?.status !== updates.status && userProfile?.id) {
         console.log('Pipeline: Marking notification as read');
-        await markLeadNotificationAsRead(leadToQualify.id, userProfile.id);
+        await markLeadNotificationAsRead(leadToQualify.id);
       }
 
       console.log('Pipeline: Closing dialogs');

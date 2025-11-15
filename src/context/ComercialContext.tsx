@@ -228,8 +228,8 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from('metas_vendas')
         .select('*')
-        .eq('ano', parseInt(year) as any)
-        .eq('mes', parseInt(month) as any)
+        .eq('ano', parseInt(year.toString()))
+        .eq('mes', parseInt(month))
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {

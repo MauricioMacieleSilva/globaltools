@@ -449,7 +449,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
         description: "Lead criado com sucesso"
       });
       
-      return data as Lead;
+      return data as any;
     } catch (error) {
       console.error('Erro ao criar lead:', error);
       

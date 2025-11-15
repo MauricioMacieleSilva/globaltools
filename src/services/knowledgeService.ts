@@ -67,14 +67,19 @@ export interface ChatConversation {
 class KnowledgeService {
   // Buscar conhecimento
   async searchKnowledge(query: string, categoryId?: string, limit = 10): Promise<SearchResult[]> {
-    const { data, error } = await supabase.rpc('search_knowledge', {
-      search_query: query,
-      category_filter: categoryId || null,
-      limit_results: limit
-    });
+    try {
+      const { data, error } = await (supabase as any).rpc('search_knowledge', {
+        search_query: query,
+        category_filter: categoryId || null,
+        limit_results: limit
+      });
 
-    if (error) throw error;
-    return data || [];
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar conhecimento:', error);
+      return [];
+    }
   }
 
   // Obter categorias
@@ -136,11 +141,15 @@ class KnowledgeService {
 
   // Salvar conversa
   async saveConversation(conversation: Omit<ChatConversation, 'id' | 'created_at'>): Promise<void> {
-    const { error } = await supabase
-      .from('chat_conversations')
-      .insert(conversation);
+    try {
+      const { error } = await (supabase as any)
+        .from('chat_conversations')
+        .insert(conversation);
 
-    if (error) throw error;
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao salvar conversa:', error);
+    }
   }
 
   // Marcar artigo como útil/não útil

@@ -133,8 +133,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .maybeSingle()
 
             if (existingProfile && !error) {
-              console.log('✅ Perfil encontrado no banco:', existingProfile.email, 'role:', existingProfile.role)
-              setUserProfile(existingProfile as UserProfile)
+              const { data: roleData } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .maybeSingle()
+              
+              console.log('✅ Perfil encontrado no banco:', existingProfile.email)
+              setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
             } else {
               console.log('📝 Perfil não encontrado, criando em memória...')
               // Criar perfil em memória apenas se não existir no banco
@@ -206,8 +212,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .maybeSingle()
 
             if (existingProfile && !error) {
-              console.log('✅ Perfil encontrado no banco:', existingProfile.email, 'role:', existingProfile.role)
-              setUserProfile(existingProfile as UserProfile)
+              const { data: roleData } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .maybeSingle()
+              
+              console.log('✅ Perfil encontrado no banco:', existingProfile.email)
+              setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
             } else {
               console.log('📝 Perfil não encontrado, criando em memória...')
               // Criar perfil em memória apenas se não existir no banco
@@ -278,8 +290,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data) {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle()
+        
         console.log('✅ Perfil carregado:', data.email)
-        setUserProfile(data as UserProfile)
+        setUserProfile({ ...data, role: roleData?.role || 'visitante' } as UserProfile)
       } else {
         console.log('📝 Perfil não encontrado, criando...')
         await createUserProfile(userId)

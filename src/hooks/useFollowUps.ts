@@ -113,15 +113,12 @@ export function useFollowUps() {
         leadData = data;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('budget_followups')
         .insert({
           ...followUp,
-          user_id: user.id,
-          user_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-          sdr_id: leadData?.sdr_id || followUp.sdr_id,
-          sdr_name: leadData?.sdr_name || followUp.sdr_name
-        });
+          user_id: user.id
+        } as any);
 
       if (error) throw error;
 
@@ -231,7 +228,7 @@ export function useFollowUps() {
         query = query.eq('user_id', user.id);
       }
 
-      const { data, error } = await query
+      const { data, error } = await (query as any)
         .eq('show_today', true)
         .eq('is_completed', false)
         .gte('scheduled_date', startOfDay.toISOString())

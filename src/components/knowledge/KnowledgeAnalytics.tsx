@@ -57,18 +57,16 @@ export const KnowledgeAnalytics: React.FC = () => {
       setLoading(true);
 
       // Carregar estatísticas gerais
-      const [articlesResult, conversationsResult, categoriesResult] = await Promise.all([
+      const [articlesResult, categoriesResult] = await Promise.all([
         supabase.from('knowledge_articles').select('id, view_count, helpful_count, unhelpful_count, is_published, title'),
-        supabase.from('chat_conversations').select('id, created_at, search_query, was_helpful'),
         supabase.from('knowledge_categories').select('id, name, color').eq('is_active', true)
       ]);
 
       if (articlesResult.error) throw articlesResult.error;
-      if (conversationsResult.error) throw conversationsResult.error;
       if (categoriesResult.error) throw categoriesResult.error;
 
       const articles = articlesResult.data || [];
-      const conversations = conversationsResult.data || [];
+      const conversations: any[] = [];
       const categories = categoriesResult.data || [];
 
       // Calcular estatísticas

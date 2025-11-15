@@ -22,7 +22,7 @@ export function AINotificationBell() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('ai_notifications')
+        .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -31,7 +31,7 @@ export function AINotificationBell() {
       if (error) throw error;
 
       setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+      setUnreadCount(data?.filter(n => !n.lida).length || 0);
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
     }
@@ -82,14 +82,14 @@ export function AINotificationBell() {
   const markAsRead = async (notificationId: string) => {
     try {
       const { error } = await supabase
-        .from('ai_notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
+        .from('notifications')
+        .update({ lida: true })
         .eq('id', notificationId);
 
       if (error) throw error;
 
       setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+        prev.map(n => n.id === notificationId ? { ...n, lida: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
@@ -103,10 +103,10 @@ export function AINotificationBell() {
       if (!user) return;
 
       const { error } = await supabase
-        .from('ai_notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
+        .from('notifications')
+        .update({ lida: true })
         .eq('user_id', user.id)
-        .eq('is_read', false);
+        .eq('lida', false);
 
       if (error) throw error;
 

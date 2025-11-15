@@ -71,7 +71,7 @@ export function useFollowUps() {
     if (!user) return [];
     
     try {
-      let query = supabase
+      let query = (supabase as any)
         .from('budget_followups')
         .select('*');
 
@@ -81,8 +81,8 @@ export function useFollowUps() {
       }
 
       const { data, error } = await query
-        .eq('client_name', clientName)
-        .order('scheduled_date', { ascending: false });
+        .eq('budget_number', clientName)
+        .order('followup_date', { ascending: false });
 
       if (error) throw error;
       return data || [];

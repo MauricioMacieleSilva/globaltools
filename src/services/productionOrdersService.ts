@@ -20,7 +20,7 @@ export interface ProductionOrderUpdate {
 // Carregar todos os dados de pedidos de produção
 export async function loadProductionOrders(): Promise<Record<string, ProductionOrderData>> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('production_orders')
       .select('*')
       .order('updated_at', { ascending: false });
@@ -32,8 +32,8 @@ export async function loadProductionOrders(): Promise<Record<string, ProductionO
 
     // Converter array em objeto indexado por numero_pedido para facilitar acesso
     const orders: Record<string, ProductionOrderData> = {};
-    data?.forEach(order => {
-      orders[order.numero_pedido] = order;
+    (data || []).forEach((order: any) => {
+      orders[order.numero_pedido] = order as ProductionOrderData;
     });
 
     console.log('Dados de produção carregados:', Object.keys(orders).length, 'pedidos');
@@ -64,7 +64,7 @@ export async function saveProductionOrder(orderData: ProductionOrderUpdate): Pro
     const userName = profile?.full_name || user.email || 'Usuário desconhecido';
 
     // Usar upsert para inserir ou atualizar automaticamente
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('production_orders')
       .upsert({
         numero_pedido: orderData.numero_pedido,
@@ -92,7 +92,7 @@ export async function saveProductionOrder(orderData: ProductionOrderUpdate): Pro
 // Buscar dados de um pedido específico
 export async function getProductionOrder(numeroPedido: string): Promise<ProductionOrderData | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('production_orders')
       .select('*')
       .eq('numero_pedido', numeroPedido)
@@ -103,7 +103,7 @@ export async function getProductionOrder(numeroPedido: string): Promise<Producti
       return null;
     }
 
-    return data;
+    return data as ProductionOrderData;
   } catch (error) {
     console.error('Erro ao buscar dados do pedido:', error);
     return null;

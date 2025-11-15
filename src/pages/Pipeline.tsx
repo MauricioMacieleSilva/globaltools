@@ -206,28 +206,28 @@ export const Pipeline: React.FC = () => {
       setLoading(true);
       
       // Construir query base
-      let query = supabase
+      let query = (supabase as any)
         .from('leads')
         .select('*')
-        .eq('forwarded_to_specialist', true);
+        .eq('status', 'qualificado');
       
-      // Verificar se o usuário é SDR (tem leads onde sdr_id = user.id)
-      const { data: userSdrLeads } = await supabase
+      // Verificar se o usuário é SDR (tem leads onde vendedor_id = user.id)
+      const { data: userSdrLeads } = await (supabase as any)
         .from('leads')
         .select('id')
-        .eq('sdr_id', userProfile?.id)
+        .eq('vendedor_id', userProfile?.id)
         .limit(1);
       
       const isUserSdr = userSdrLeads && userSdrLeads.length > 0;
       
-      // Se o usuário é SDR, filtrar apenas seus leads encaminhados
-      if (isUserSdr) {
-        query = query.eq('sdr_id', userProfile.id);
+      // Se o usuário é comercial, filtrar apenas seus leads
+      if (userProfile?.role === 'comercial') {
+        query = query.eq('especialista_id', userProfile.id);
       }
       
       // Executar query
       const { data: leadsData, error: leadsError } = await query
-        .order('forwarded_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (leadsError) throw leadsError;
       
@@ -285,15 +285,16 @@ export const Pipeline: React.FC = () => {
     if (!userProfile?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('vendor_notifications')
+      const { data, error } = await (supabase as any)
+        .from('notifications')
         .select('*')
-        .eq('vendor_id', userProfile.id)
+        .eq('user_id', userProfile.id)
+        .eq('lida', false)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      setNotifications(data || []);
+      setNotifications((data || []) as any);
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
     }
@@ -301,9 +302,9 @@ export const Pipeline: React.FC = () => {
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('vendor_notifications')
-        .update({ is_read: true })
+      const { error } = await (supabase as any)
+        .from('notifications')
+        .update({ lida: true })
         .eq('id', notificationId);
 
       if (error) throw error;
@@ -311,7 +312,7 @@ export const Pipeline: React.FC = () => {
       setNotifications(prev => 
         prev.map(notif => 
           notif.id === notificationId 
-            ? { ...notif, is_read: true }
+            ? { ...notif as any, lida: true }
             : notif
         )
       );
@@ -322,16 +323,16 @@ export const Pipeline: React.FC = () => {
 
   const markAllNotificationsAsRead = async () => {
     try {
-      const { error } = await supabase
-        .from('vendor_notifications')
-        .update({ is_read: true })
-        .eq('vendor_id', userProfile?.id)
-        .eq('is_read', false);
+      const { error } = await (supabase as any)
+        .from('notifications')
+        .update({ lida: true })
+        .eq('user_id', userProfile?.id)
+        .eq('lida', false);
 
       if (error) throw error;
 
       setNotifications(prev => 
-        prev.map(notif => ({ ...notif, is_read: true }))
+        prev.map(notif => ({ ...notif as any, lida: true }))
       );
 
       toast({
@@ -362,9 +363,9 @@ export const Pipeline: React.FC = () => {
         )
       );
 
-      // Se o status mudou de "encaminhado", marcar notificações como lidas
-      if (lead?.status === 'encaminhado' && newStatus !== 'encaminhado' && userProfile) {
-        await markLeadNotificationAsRead(leadId, userProfile.id);
+      // Se o status mudou, marcar notificações como lidas
+      if (lead?.status !== newStatus && userProfile) {
+        await markLeadNotificationAsRead(leadId);
       }
 
       toast({
@@ -381,14 +382,12 @@ export const Pipeline: React.FC = () => {
     }
   };
 
-  const markLeadNotificationAsRead = async (leadId: string, vendorId: string) => {
+  const markLeadNotificationAsRead = async (leadId: string) => {
     try {
-      const { error } = await supabase
-        .from('vendor_notifications')
-        .update({ is_read: true, updated_at: new Date().toISOString() })
-        .eq('lead_id', leadId)
-        .eq('vendor_id', vendorId)
-        .eq('is_read', false);
+      const { error } = await (supabase as any)
+        .from('notifications')
+        .update({ lida: true, updated_at: new Date().toISOString() })
+        .eq('id', leadId);
       
       if (error) throw error;
       
@@ -449,10 +448,10 @@ export const Pipeline: React.FC = () => {
         return updatedLeads;
       });
 
-      // Se o status mudou de 'encaminhado', marcar notificações como lidas
-      if (leadToQualify?.status === 'encaminhado' && updates.status !== 'encaminhado' && userProfile?.id) {
+      // Se o status mudou, marcar notificações como lidas
+      if (leadToQualify?.status !== updates.status && userProfile?.id) {
         console.log('Pipeline: Marking notification as read');
-        await markLeadNotificationAsRead(leadToQualify.id, userProfile.id);
+        await markLeadNotificationAsRead(leadToQualify.id);
       }
 
       console.log('Pipeline: Closing dialogs');

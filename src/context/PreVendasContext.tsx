@@ -173,7 +173,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
   const loadLeads = async (filters?: any) => {
     setLoading(true);
     try {
-      let query = supabase
+      let query = (supabase as any)
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false });
@@ -289,7 +289,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       const currentMonthYear = new Date().toISOString().slice(0, 7); // YYYY-MM
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('sdr_goals')
         .select('*')
         .eq('month_year', currentMonthYear)
@@ -297,7 +297,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
       
       if (error && error.code !== 'PGRST116') throw error;
       
-      setGoals(data);
+      setGoals(data as any);
     } catch (error) {
       console.error('Erro ao carregar metas:', error);
     }

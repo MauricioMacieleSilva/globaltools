@@ -179,7 +179,7 @@ class KnowledgeService {
 
     // Salvar feedback se usuário logado
     if (currentUser.user) {
-      await supabase
+      await (supabase as any)
         .from('knowledge_feedback')
         .insert({
           article_id: articleId,

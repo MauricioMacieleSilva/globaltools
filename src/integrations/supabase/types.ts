@@ -137,6 +137,51 @@ export type Database = {
           },
         ]
       }
+      chat_conversations: {
+        Row: {
+          articles_used: string[] | null
+          created_at: string | null
+          feedback_text: string | null
+          id: string
+          message: string
+          response: string | null
+          response_time_ms: number | null
+          response_type: string | null
+          search_query: string | null
+          session_id: string
+          user_id: string | null
+          was_helpful: boolean | null
+        }
+        Insert: {
+          articles_used?: string[] | null
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: string
+          message: string
+          response?: string | null
+          response_time_ms?: number | null
+          response_type?: string | null
+          search_query?: string | null
+          session_id: string
+          user_id?: string | null
+          was_helpful?: boolean | null
+        }
+        Update: {
+          articles_used?: string[] | null
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: string
+          message?: string
+          response?: string | null
+          response_time_ms?: number | null
+          response_type?: string | null
+          search_query?: string | null
+          session_id?: string
+          user_id?: string | null
+          was_helpful?: boolean | null
+        }
+        Relationships: []
+      }
       client_budget_comments: {
         Row: {
           budget_number: string
@@ -1678,6 +1723,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      search_knowledge: {
+        Args: {
+          category_filter?: string
+          limit_results?: number
+          search_query: string
+        }
+        Returns: {
+          article_id: string
+          category_name: string
+          content: string
+          relevance_score: number
+          summary: string
+          tags: string[]
+          title: string
+        }[]
       }
     }
     Enums: {

@@ -284,13 +284,13 @@ async function executeSystemQuery(queryType: string, filters: any, userId: strin
     switch (queryType) {
       case 'production_orders': {
         const query = supabase
-          .from('production_orders')
-          .select('numero_pedido, situacao, novo_prazo')
+          .from('ordens_producao')
+          .select('numero_op, status, data_fim_prevista')
           .order('created_at', { ascending: false })
           .limit(10);
 
         if (filters?.status) {
-          query.eq('situacao', filters.status);
+          query.eq('status', filters.status);
         }
 
         const { data, error } = await query;

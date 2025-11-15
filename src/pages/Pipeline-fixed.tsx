@@ -204,7 +204,7 @@ export const Pipeline: React.FC = () => {
         };
       });
       
-      setLeads(processedLeads as Lead[]);
+      setLeads(processedLeads as any);
 
       // Carregar atividades dos leads
       if (leadsData && leadsData.length > 0) {
@@ -234,7 +234,7 @@ export const Pipeline: React.FC = () => {
     if (!userProfile?.id) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('vendor_notifications')
         .select('*')
         .eq('vendor_id', userProfile.id)
@@ -242,7 +242,7 @@ export const Pipeline: React.FC = () => {
         .limit(50);
 
       if (error) throw error;
-      setNotifications(data || []);
+      setNotifications(data as any || []);
     } catch (error) {
       console.error('Erro ao carregar notificações:', error);
     }
@@ -250,9 +250,9 @@ export const Pipeline: React.FC = () => {
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('vendor_notifications')
-        .update({ is_read: true })
+        .update({ is_read: true } as any)
         .eq('id', notificationId);
 
       if (error) throw error;
@@ -271,9 +271,9 @@ export const Pipeline: React.FC = () => {
 
   const markAllNotificationsAsRead = async () => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('vendor_notifications')
-        .update({ is_read: true })
+        .update({ is_read: true } as any)
         .eq('vendor_id', userProfile?.id)
         .eq('is_read', false);
 

@@ -53,7 +53,7 @@ export const ArticleManager: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setArticles((data || []) as KnowledgeArticle[]);
+      setArticles((data || []) as any);
     } catch (error) {
       console.error('Erro ao carregar artigos:', error);
       toast({
@@ -115,7 +115,16 @@ export const ArticleManager: React.FC = () => {
   const handleSave = async () => {
     try {
       const articleData = {
-        ...formData,
+        titulo: formData.title,
+        conteudo: formData.content,
+        title: formData.title,
+        content: formData.content,
+        summary: formData.summary,
+        difficulty_level: formData.difficulty_level,
+        article_type: formData.article_type,
+        is_published: formData.is_published,
+        is_featured: formData.is_featured,
+        priority: formData.priority,
         keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean),
         search_terms: formData.search_terms.split(',').map(t => t.trim()).filter(Boolean),
         category_id: formData.category_id || null

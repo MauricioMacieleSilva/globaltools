@@ -226,9 +226,10 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
       const monthYear = `${year}-${month.padStart(2, '0')}`;
       
       const { data, error } = await supabase
-        .from('revenue_goals')
+        .from('metas_vendas')
         .select('*')
-        .eq('month_year', monthYear)
+        .eq('ano', parseInt(year) as any)
+        .eq('mes', parseInt(month) as any)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -238,8 +239,8 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         setMetasState({
-          metaMensal: data.monthly_goal,
-          metaDiaria: data.daily_goal
+          metaMensal: data.meta_mensal,
+          metaDiaria: data.meta_diaria || 0
         });
       } else {
         // Se não existir, usar valores padrão
@@ -271,32 +272,35 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
 
       // Verificar se já existe registro para este mês
       const { data: existing } = await supabase
-        .from('revenue_goals')
+        .from('metas_vendas')
         .select('id')
-        .eq('month_year', monthYear)
+        .eq('ano', parseInt(year))
+        .eq('mes', parseInt(month))
         .maybeSingle();
 
       if (existing) {
         // Atualizar registro existente
         const { error } = await supabase
-          .from('revenue_goals')
+          .from('metas_vendas')
           .update({
-            monthly_goal: updated.metaMensal,
-            daily_goal: updated.metaDiaria,
+            meta_mensal: updated.metaMensal,
+            meta_diaria: updated.metaDiaria,
             updated_at: new Date().toISOString()
           })
-          .eq('month_year', monthYear);
+          .eq('ano', parseInt(year))
+          .eq('mes', parseInt(month));
 
         if (error) throw error;
       } else {
         // Criar novo registro
         const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase
-          .from('revenue_goals')
+          .from('metas_vendas')
           .insert({
-            month_year: monthYear,
-            monthly_goal: updated.metaMensal,
-            daily_goal: updated.metaDiaria,
+            ano: parseInt(year),
+            mes: parseInt(month),
+            meta_mensal: updated.metaMensal,
+            meta_diaria: updated.metaDiaria,
             created_by: user?.id
           });
 

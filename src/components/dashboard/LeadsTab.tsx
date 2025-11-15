@@ -74,7 +74,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
     try {
       const { error } = await supabase
         .from('leads')
-        .update({ status: newStatus })
+        .update({ status: newStatus as any })
         .eq('id', leadId);
 
       if (error) throw error;
@@ -138,10 +138,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       const { error } = await supabase
         .from('leads')
         .update({ 
-          assigned_specialist_id: specialistId,
-          forwarded_to_specialist: true,
-          forwarded_at: new Date().toISOString(),
-          status: 'encaminhado'
+          especialista_id: specialistId,
+          status: 'qualificado' as any
         })
         .eq('id', leadId);
 

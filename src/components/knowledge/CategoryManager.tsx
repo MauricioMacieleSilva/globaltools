@@ -25,11 +25,16 @@ export const CategoryManager: React.FC = () => {
 
   // Form state
   const [formData, setFormData] = useState({
+    nome: '',
     name: '',
+    descricao: '',
     description: '',
     color: '#3B82F6',
+    icone: '',
     icon: '',
+    ativo: true,
     is_active: true,
+    ordem: 0,
     display_order: 0
   });
 
@@ -123,11 +128,16 @@ export const CategoryManager: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
+      nome: '',
       name: '',
+      descricao: '',
       description: '',
       color: '#3B82F6',
+      icone: '',
       icon: '',
+      ativo: true,
       is_active: true,
+      ordem: 0,
       display_order: 0
     });
     setEditingCategory(null);
@@ -135,13 +145,19 @@ export const CategoryManager: React.FC = () => {
 
   const openEditDialog = (category: KnowledgeCategory) => {
     setEditingCategory(category);
+    const cat = category as any;
     setFormData({
-      name: category.name,
-      description: category.description || '',
-      color: category.color || '#3B82F6',
-      icon: category.icon || '',
-      is_active: category.is_active || true,
-      display_order: category.display_order || 0
+      nome: cat.nome || cat.name || '',
+      name: cat.name || cat.nome || '',
+      descricao: cat.descricao || cat.description || '',
+      description: cat.description || cat.descricao || '',
+      color: cat.color || '#3B82F6',
+      icone: cat.icone || cat.icon || '',
+      icon: cat.icon || cat.icone || '',
+      ativo: cat.ativo ?? cat.is_active ?? true,
+      is_active: cat.is_active ?? cat.ativo ?? true,
+      ordem: cat.ordem || cat.display_order || 0,
+      display_order: cat.display_order || cat.ordem || 0
     });
     setIsDialogOpen(true);
   };

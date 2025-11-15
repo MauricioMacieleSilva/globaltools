@@ -211,7 +211,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
         };
       });
       
-      setLeads(correctedLeads as Lead[]);
+      setLeads(correctedLeads as any);
     } catch (error) {
       console.error('Erro ao carregar leads:', error);
       toast({
@@ -279,7 +279,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
       const { data, error } = await query;
       
       if (error) throw error;
-      setFollowUps(data as FollowUp[] || []);
+      setFollowUps(data as any || []);
     } catch (error) {
       console.error('Erro ao carregar follow-ups:', error);
     }
@@ -411,7 +411,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
       
       const { data, error } = await supabase
         .from('leads')
-        .insert([leadToInsert])
+        .insert([{...leadToInsert, cliente_nome: leadToInsert.client_name} as any])
         .select()
         .single();
       
@@ -642,8 +642,9 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
           description: activityData.description || '',
           conversation_started: activityData.conversation_started,
           sdr_id: activityData.sdr_id || '',
-          sdr_name: activityData.sdr_name || 'Sistema'
-        }])
+          sdr_name: activityData.sdr_name || 'Sistema',
+          user_id: activityData.sdr_id || ''
+        } as any])
         .select()
         .single();
       
@@ -789,7 +790,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
       
       if (goals) {
         // Atualizar metas existentes
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('sdr_goals')
           .update(goalsData)
           .eq('id', goals.id);
@@ -797,7 +798,7 @@ export const PreVendasProvider: React.FC<{ children: ReactNode }> = ({ children 
         if (error) throw error;
       } else {
         // Criar novas metas
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('sdr_goals')
           .insert([{
             ...goalsData,

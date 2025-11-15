@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { parseDate } from '@/lib/utils-comercial';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface Comment {
   id: string;
@@ -18,6 +20,7 @@ interface Rating {
 
 export function useOrcamentosData() {
   const { toast } = useToast();
+  const { userProfile } = useAuth();
   
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
   const [selectedBudget, setSelectedBudget] = useState<string | null>(null);
@@ -31,7 +34,29 @@ export function useOrcamentosData() {
   };
 
   const loadRatings = async () => {
-    // Sem banco de dados, não há ratings
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('client_budget_ratings')
+        .select('*');
+
+      if (error) {
+        console.error('Erro ao carregar classificações:', error);
+        return;
+      }
+
+      // Criar mapeamento de budget_number -> rating
+      const ratingsMap: Record<string, Rating> = {};
+      data?.forEach(rating => {
+        ratingsMap[rating.budget_number] = rating as Rating;
+      });
+      
+      setRatings(ratingsMap);
+    } catch (error) {
+      console.error('Erro ao carregar classificações:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addComment = async () => {
@@ -44,22 +69,66 @@ export function useOrcamentosData() {
   };
 
   const setRating = async (budgetNumber: string, rating: number) => {
-    // Sem banco de dados, não é possível salvar ratings
-    // Atualizar estado local apenas para feedback visual
-    setRatings(prev => ({
-      ...prev,
-      [budgetNumber]: {
+    if (!userProfile) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar autenticado para classificar orçamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Atualizar estado local imediatamente para feedback rápido
+      const newRating: Rating = {
         budget_number: budgetNumber,
         rating: rating,
-        user_name: 'Sistema',
+        user_name: userProfile.full_name || userProfile.email,
         created_at: new Date().toISOString()
-      }
-    }));
+      };
+      
+      setRatings(prev => ({
+        ...prev,
+        [budgetNumber]: newRating
+      }));
 
-    toast({
-      title: "Rating aplicado",
-      description: `Classificação local com ${rating} estrela${rating !== 1 ? 's' : ''} (não salvo no banco).`
-    });
+      // Salvar no banco de dados
+      const { error } = await supabase
+        .from('client_budget_ratings')
+        .upsert({
+          budget_number: budgetNumber,
+          rating: rating,
+          user_name: userProfile.full_name || userProfile.email
+        }, {
+          onConflict: 'budget_number'
+        });
+
+      if (error) {
+        console.error('Erro ao salvar classificação:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível salvar a classificação.",
+          variant: "destructive"
+        });
+        // Reverter estado local em caso de erro
+        await loadRatings();
+        return;
+      }
+
+      toast({
+        title: "Classificação salva",
+        description: `Orçamento classificado com ${rating} estrela${rating !== 1 ? 's' : ''}.`
+      });
+    } catch (error) {
+      console.error('Erro ao salvar classificação:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível salvar a classificação.",
+        variant: "destructive"
+      });
+      // Reverter estado local em caso de erro
+      await loadRatings();
+    }
   };
 
   const openCommentsDialog = (budgetNumber: string) => {
@@ -214,6 +283,11 @@ export function useOrcamentosData() {
 
     return stats;
   };
+
+  // Carregar ratings ao montar
+  useEffect(() => {
+    loadRatings();
+  }, []);
 
   return {
     // Estados

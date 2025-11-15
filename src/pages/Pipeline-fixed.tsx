@@ -298,7 +298,7 @@ export const Pipeline: React.FC = () => {
       
       const { error } = await supabase
         .from('leads')
-        .update({ status: newStatus })
+        .update({ status: newStatus as any })
         .eq('id', leadId);
 
       if (error) throw error;
@@ -443,9 +443,8 @@ export const Pipeline: React.FC = () => {
       const { error } = await supabase
         .from('leads')
         .update({ 
-          assigned_specialist_id: specialistId,
-          assigned_specialist_name: specialist.full_name
-        })
+          especialista_id: specialistId
+        } as any)
         .eq('id', leadId);
 
       if (error) throw error;

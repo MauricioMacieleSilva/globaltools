@@ -51,7 +51,7 @@ export const UserManagement: React.FC = () => {
         throw error
       }
       
-      const userProfiles = (data || []) as UserProfile[]
+      const userProfiles = (data || []) as any[]
       console.log('👥 Usuários carregados:', userProfiles.map(u => ({ 
         name: u.full_name, 
         email: u.email, 

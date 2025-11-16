@@ -109,19 +109,19 @@ serve(async (req) => {
           return acc;
         }, {} as Record<string, any[]>);
 
-        for (const [sdrId, sdrLeads] of Object.entries(leadsPorSDR)) {
-          notifications.push({
-            user_id: sdrId,
-            title: '📞 Leads Precisam de Contato',
-            message: `${sdrLeads.length} lead(s) sem contato há mais de 7 dias estão esfriando.`,
-            type: 'warning',
-            priority: 'high',
-            category: 'leads',
-            action_url: '/pre-vendas',
-            action_label: 'Ver Leads',
-            data: { leads: sdrLeads.slice(0, 5).map(l => ({ cliente: l.client_name, codigo: l.client_code })) }
-          });
-        }
+      for (const [sdrId, sdrLeads] of Object.entries(leadsPorSDR)) {
+        notifications.push({
+          user_id: sdrId,
+          title: '📞 Leads Precisam de Contato',
+          message: `${(sdrLeads as any[]).length} lead(s) sem contato há mais de 7 dias estão esfriando.`,
+          type: 'warning',
+          priority: 'high',
+          category: 'leads',
+          action_url: '/pre-vendas',
+          action_label: 'Ver Leads',
+          data: { leads: (sdrLeads as any[]).slice(0, 5).map((l: any) => ({ cliente: l.client_name, codigo: l.client_code })) }
+        });
+      }
       }
     }
 
@@ -145,7 +145,7 @@ serve(async (req) => {
         notifications.push({
           user_id: userId,
           title: '📅 Follow-ups Atrasados',
-          message: `Você tem ${userFollowups.length} follow-up(s) atrasado(s) que precisam de atenção.`,
+          message: `Você tem ${(userFollowups as any[]).length} follow-up(s) atrasado(s) que precisam de atenção.`,
           type: 'warning',
           priority: 'medium',
           category: 'budgets',
@@ -235,7 +235,7 @@ Identifique 1-2 insights ou oportunidades importantes com base nestes dados.
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro na análise proativa:', error);
     return new Response(JSON.stringify({ 
       error: error.message,

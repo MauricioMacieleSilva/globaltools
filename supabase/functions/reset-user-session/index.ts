@@ -96,7 +96,7 @@ serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro no reset de sessão:', error)
     
     return new Response(

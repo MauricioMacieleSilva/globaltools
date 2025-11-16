@@ -227,7 +227,7 @@ INSTRUÇÕES:
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro no ze-global-chat:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
@@ -351,7 +351,7 @@ async function executeSystemQuery(queryType: string, filters: any, userId: strin
           error: 'Tipo de query não suportado'
         };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao executar query:', error);
     return {
       success: false,

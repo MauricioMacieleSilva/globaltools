@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -437,7 +437,7 @@ const handler = async (req: Request): Promise<Response> => {
         results.push({ email: config.email, status: 'success', id: emailResponse.data?.id });
         console.log(`✅ Relatório enviado com sucesso para ${config.email}`);
 
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ Erro ao enviar para ${config.email}:`, error);
 
         // Registrar log de erro
@@ -465,7 +465,7 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('💥 Erro geral na edge function:', error);
     return new Response(JSON.stringify({ 
       error: 'Erro interno do servidor',

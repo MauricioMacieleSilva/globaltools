@@ -287,12 +287,32 @@ function criarLinhasIniciaisCartolaSemiEnrijecido(): LinhaPerfilCartolaSemiEnrij
 const STORAGE_KEY = 'corte-perfil-data';
 
 export function PerfilProvider({ children }: { children: ReactNode }) {
-  // Função para carregar dados do localStorage
+  // Função para carregar dados do localStorage já ajustando % de perda antigo (103) para o novo padrão (101)
   const carregarDados = () => {
     try {
       const dadosSalvos = localStorage.getItem(STORAGE_KEY);
       if (dadosSalvos) {
-        return JSON.parse(dadosSalvos);
+        const dadosParseados = JSON.parse(dadosSalvos);
+
+        const normalizarPercentualPerda = <T extends { percentualPerda?: string }>(linhas?: T[]): T[] | undefined => {
+          if (!linhas) return linhas;
+          return linhas.map(linha =>
+            linha.percentualPerda === '103'
+              ? { ...linha, percentualPerda: '101' }
+              : linha
+          );
+        };
+
+        return {
+          ...dadosParseados,
+          linhasU: normalizarPercentualPerda(dadosParseados.linhasU),
+          linhasL: normalizarPercentualPerda(dadosParseados.linhasL),
+          linhasUEnrijecido: normalizarPercentualPerda(dadosParseados.linhasUEnrijecido),
+          linhasCartola: normalizarPercentualPerda(dadosParseados.linhasCartola),
+          linhasCartolaEnrijecido: normalizarPercentualPerda(dadosParseados.linhasCartolaEnrijecido),
+          linhasUSemiEnrijecido: normalizarPercentualPerda(dadosParseados.linhasUSemiEnrijecido),
+          linhasCartolaSemiEnrijecido: normalizarPercentualPerda(dadosParseados.linhasCartolaSemiEnrijecido),
+        };
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);

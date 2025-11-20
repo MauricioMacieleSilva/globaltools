@@ -343,6 +343,92 @@ export type Database = {
           },
         ]
       }
+      email_reports_config: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string
+          frequency: string
+          full_name: string | null
+          id: string
+          include_cancelamentos: boolean
+          include_funil: boolean
+          include_perdidos: boolean
+          include_vendas: boolean
+          is_active: boolean
+          send_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email: string
+          frequency: string
+          full_name?: string | null
+          id?: string
+          include_cancelamentos?: boolean
+          include_funil?: boolean
+          include_perdidos?: boolean
+          include_vendas?: boolean
+          is_active?: boolean
+          send_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string
+          frequency?: string
+          full_name?: string | null
+          id?: string
+          include_cancelamentos?: boolean
+          include_funil?: boolean
+          include_perdidos?: boolean
+          include_vendas?: boolean
+          is_active?: boolean
+          send_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_reports_log: {
+        Row: {
+          config_id: string
+          email: string
+          error_message: string | null
+          id: string
+          report_date: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          config_id: string
+          email: string
+          error_message?: string | null
+          id?: string
+          report_date?: string
+          sent_at?: string
+          status: string
+        }
+        Update: {
+          config_id?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          report_date?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_reports_log_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "email_reports_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       excluded_orders: {
         Row: {
           created_at: string

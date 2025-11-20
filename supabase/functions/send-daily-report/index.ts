@@ -6,8 +6,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Mesmos IDs da planilha usados no googleSheetsService.ts
-const SHEET_ID = "1FJqWo_CThNb-aQZjKEgp1wRYVdoqBg3WpQY-NdYpN2E";
-const GID = "0";
+const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
+const GID = "2063157767";
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
 const corsHeaders = {

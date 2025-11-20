@@ -37,7 +37,7 @@ export function PerfilU() {
         comprimento: '6000',
         largura: '1200',
         quantidade: '',
-        percentualPerda: '103',
+        percentualPerda: '101',
         assimetrico: false
       }));
       atualizarLinhaU(linhasIniciais);
@@ -158,7 +158,7 @@ export function PerfilU() {
       comprimento: '6000',
       largura: '1200',
       quantidade: '',
-      percentualPerda: '103',
+      percentualPerda: '101',
       assimetrico: false
     };
     atualizarLinhaU([...linhasU, novaLinha]);
@@ -176,7 +176,7 @@ export function PerfilU() {
           comprimento: '6000',
           largura: '1200',
           quantidade: '',
-          percentualPerda: '103',
+          percentualPerda: '101',
           assimetrico: false,
           orientacaoUZ: 'U' as const
         };

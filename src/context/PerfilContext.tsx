@@ -177,7 +177,7 @@ function criarLinhasIniciaisU(): LinhaPerfilU[] {
     comprimento: '6000',
     largura: '1200',
     quantidade: '',
-    percentualPerda: '103',
+    percentualPerda: '101',
     assimetrico: false
   }));
 }
@@ -191,7 +191,7 @@ function criarLinhasIniciaisL(): LinhaPerfilL[] {
     comprimento: '6000',
     largura: '1200',
     quantidade: '',
-    percentualPerda: '103'
+    percentualPerda: '101'
   }));
 }
 
@@ -208,7 +208,7 @@ function criarLinhasIniciaisUEnrijecido(): LinhaPerfilUEnrijecido[] {
     comprimento: '6000',
     largura: '1200',
     quantidade: '',
-    percentualPerda: '103',
+    percentualPerda: '101',
     assimetrico: false
   }));
 }
@@ -225,7 +225,7 @@ function criarLinhasIniciaisCartola(): LinhaPerfilCartola[] {
     comprimento: '6000',
     largura: '1200',
     quantidade: '',
-    percentualPerda: '103',
+    percentualPerda: '101',
     assimetrico: false
   }));
 }
@@ -244,7 +244,7 @@ function criarLinhasIniciaisCartolaEnrijecido(): LinhaPerfilCartolaEnrijecido[] 
     comprimento: '6000',
     largura: '1200',
     quantidade: '',
-    percentualPerda: '103',
+    percentualPerda: '101',
     assimetrico: false
   }));
 }
@@ -261,7 +261,7 @@ function criarLinhasIniciaisUSemiEnrijecido(): LinhaPerfilUSemiEnrijecido[] {
     comprimento: '6000',
     largura: '1200',
     quantidade: '',
-    percentualPerda: '103',
+    percentualPerda: '101',
     assimetrico: false
   }));
 }
@@ -279,7 +279,7 @@ function criarLinhasIniciaisCartolaSemiEnrijecido(): LinhaPerfilCartolaSemiEnrij
     comprimento: '6000',
     largura: '1200',
     quantidade: '',
-    percentualPerda: '103',
+    percentualPerda: '101',
     assimetrico: false
   }));
 }

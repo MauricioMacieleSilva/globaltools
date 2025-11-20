@@ -39,7 +39,7 @@ export function PerfilCartolaEnrijecido() {
         comprimento: '6000',
         largura: '1200',
         quantidade: '',
-        percentualPerda: '103',
+        percentualPerda: '101',
         assimetrico: false
       }));
       atualizarLinhaCartolaEnrijecido(linhasIniciais);
@@ -180,7 +180,7 @@ export function PerfilCartolaEnrijecido() {
       comprimento: '6000',
       largura: '1200',
       quantidade: '',
-      percentualPerda: '103',
+      percentualPerda: '101',
       assimetrico: false
     };
     atualizarLinhaCartolaEnrijecido([...linhasCartolaEnrijecido, novaLinha]);

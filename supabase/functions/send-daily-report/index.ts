@@ -418,24 +418,29 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log(`📧 Enviando relatório para ${config.email}...`);
 
+        // Modo de teste: só envia para o email autorizado
+        const isTestMode = true;
+        const authorizedEmail = 'mauricio.maciel@globalaco.com.br';
+        
         const emailResponse = await resend.emails.send({
-          from: 'Global Aço <relatorios@globalaco.com.br>',
-          to: [config.email],
-          subject: `📊 Relatório Comercial Diário - ${new Date().toLocaleDateString('pt-BR')}`,
+          from: 'Lovable <onboarding@resend.dev>',
+          to: isTestMode ? [authorizedEmail] : [config.email],
+          subject: `📊 Relatório Comercial Diário - ${new Date().toLocaleDateString('pt-BR')}${isTestMode ? ' [TESTE]' : ''}`,
           html: reportHTML,
         });
 
         // Registrar log de sucesso
+        const actualRecipient = isTestMode ? authorizedEmail : config.email;
         await supabase.from('email_reports_log').insert({
           config_id: config.id,
-          recipient_email: config.email,
-          email_subject: `📊 Relatório Comercial Diário - ${new Date().toLocaleDateString('pt-BR')}`,
+          email: actualRecipient,
+          report_date: new Date().toISOString().split('T')[0],
           status: 'success',
-          report_data: { kpis, total_configs: configs.length }
+          sent_at: new Date().toISOString()
         });
 
-        results.push({ email: config.email, status: 'success', id: emailResponse.data?.id });
-        console.log(`✅ Relatório enviado com sucesso para ${config.email}`);
+        results.push({ email: config.email, status: 'success', id: emailResponse.data?.id, test_mode: isTestMode, sent_to: actualRecipient });
+        console.log(`✅ Relatório enviado com sucesso para ${actualRecipient}${isTestMode ? ' (modo teste - original: ' + config.email + ')' : ''}`);
 
       } catch (error: any) {
         console.error(`❌ Erro ao enviar para ${config.email}:`, error);
@@ -443,10 +448,11 @@ const handler = async (req: Request): Promise<Response> => {
         // Registrar log de erro
         await supabase.from('email_reports_log').insert({
           config_id: config.id,
-          recipient_email: config.email,
-          email_subject: `📊 Relatório Comercial Diário - ${new Date().toLocaleDateString('pt-BR')}`,
+          email: config.email,
+          report_date: new Date().toISOString().split('T')[0],
           status: 'error',
-          error_message: error.message
+          error_message: error.message,
+          sent_at: new Date().toISOString()
         });
 
         results.push({ email: config.email, status: 'failed', error: error.message });

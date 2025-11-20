@@ -151,7 +151,7 @@ serve(async (req) => {
     // No modo de teste do Resend, só podemos enviar para o email autorizado
     // ou para emails de domínios verificados
     const isTestMode = true; // Temporário até configurar domínio próprio
-    const authorizedTestEmail = 'mtabi.adm@gmail.com';
+    const authorizedTestEmail = 'mauricio.maciel@globalaco.com.br';
     
     const emailPayload = {
       from: isTestMode ? 'Lovable <onboarding@resend.dev>' : 'Global Aço <relatorios@globalaco.com.br>',
@@ -200,16 +200,10 @@ serve(async (req) => {
     // Registrar log de sucesso
     await supabase.from('email_reports_log').insert({
       config_id: config.id,
-      recipient_email: actualRecipient,
-      email_subject: emailPayload.subject,
+      email: actualRecipient,
+      report_date: new Date().toISOString().split('T')[0],
       status: 'success',
-      report_data: { 
-        kpis, 
-        manual: true, 
-        config_id: configId, 
-        test_mode: isTestMode,
-        original_recipient: config.email 
-      }
+      sent_at: new Date().toISOString()
     });
 
     return new Response(

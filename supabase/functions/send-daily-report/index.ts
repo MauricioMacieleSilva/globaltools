@@ -5,8 +5,9 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
-const GID = "2063157767";
+// Mesmos IDs da planilha usados no googleSheetsService.ts
+const SHEET_ID = "1FJqWo_CThNb-aQZjKEgp1wRYVdoqBg3WpQY-NdYpN2E";
+const GID = "0";
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
 const corsHeaders = {
@@ -14,9 +15,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Interface IGUAL ao ComercialData do frontend
+interface ComercialData {
+  numeropedido: string;
+  situacao: string;
+  data_emissao: string;
+  data_inicio: string;
+  data_perdido: string;
+  data_pedido_pronto: string;
+  valor: number;
+  peso: number;
+  classe: string;
+  cli_nomefantasia: string;
+  cliente: string;
+  codigocliente: string;
+  uf: string;
+  vendedor: string;
+  faturamento_tipo: number;
+  produto: string;
+  obs: string;
+}
+
 interface EmailKPIs {
   faturamento: number;
-  orcamentos: number;
+  orcamentosValor: number;
   pedidosNaoFaturados: number;
   perdidos: {
     valor: number;
@@ -24,157 +46,255 @@ interface EmailKPIs {
   };
 }
 
+// Parse CSV - IGUAL ao googleSheetsService.ts
 function parseCSV(csvText: string): string[][] {
+  const lines = csvText.split('\n');
   const result: string[][] = [];
-  let currentRow: string[] = [];
-  let currentField = "";
-  let inQuotes = false;
-  let i = 0;
-
-  while (i < csvText.length) {
-    const char = csvText[i];
-    const nextChar = csvText[i + 1];
-
-    if (inQuotes) {
+  
+  for (const line of lines) {
+    const values: string[] = [];
+    let currentValue = '';
+    let insideQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
       if (char === '"') {
-        if (nextChar === '"') {
-          currentField += '"';
-          i += 2;
-          continue;
-        } else {
-          inQuotes = false;
-        }
+        insideQuotes = !insideQuotes;
+      } else if (char === ',' && !insideQuotes) {
+        values.push(currentValue.trim());
+        currentValue = '';
       } else {
-        currentField += char;
-      }
-    } else {
-      if (char === '"') {
-        inQuotes = true;
-      } else if (char === ",") {
-        currentRow.push(currentField.trim());
-        currentField = "";
-      } else if (char === "\n" || (char === "\r" && nextChar === "\n")) {
-        currentRow.push(currentField.trim());
-        if (currentRow.length > 0 && currentRow.some((field) => field !== "")) {
-          result.push(currentRow);
-        }
-        currentRow = [];
-        currentField = "";
-        if (char === "\r" && nextChar === "\n") {
-          i++;
-        }
-      } else if (char === "\r") {
-        currentRow.push(currentField.trim());
-        if (currentRow.length > 0 && currentRow.some((field) => field !== "")) {
-          result.push(currentRow);
-        }
-        currentRow = [];
-        currentField = "";
-      } else {
-        currentField += char;
+        currentValue += char;
       }
     }
-    i++;
+    
+    values.push(currentValue.trim());
+    result.push(values);
   }
-
-  if (currentField !== "" || currentRow.length > 0) {
-    currentRow.push(currentField.trim());
-    if (currentRow.length > 0 && currentRow.some((field) => field !== "")) {
-      result.push(currentRow);
-    }
-  }
-
+  
   return result;
 }
 
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  
-  const parts = dateStr.split('/');
-  if (parts.length === 3) {
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]) - 1;
-    const year = parseInt(parts[2]);
-    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-      return new Date(year, month, day);
+function normalizeField(value: string): string {
+  return value?.trim().replace(/\s+/g, ' ') || '';
+}
+
+// Parse de data - IGUAL ao utils-comercial.ts
+function parseDate(dateString: string): Date | null {
+  if (!dateString || dateString === 'Invalid Date' || dateString === '') {
+    return null;
+  }
+
+  // Formato brasileiro dd/MM/yyyy (prioridade)
+  const brFormatMatch = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brFormatMatch) {
+    const [, day, month, year] = brFormatMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
     }
   }
-  
+
+  // Formato brasileiro com traço dd-MM-yyyy
+  const brDashMatch = dateString.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (brDashMatch) {
+    const [, day, month, year] = brDashMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
+  }
+
+  // Formato ISO yyyy-MM-dd
+  const isoFormatMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoFormatMatch) {
+    const [, year, month, day] = isoFormatMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
+  }
+
+  // Fallback: tentar Date nativo
+  try {
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime()) && date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
+  } catch {
+    return null;
+  }
+
   return null;
 }
 
-function isDateInRange(dateStr: string, startDate: Date, endDate: Date): boolean {
-  const date = parseDate(dateStr);
-  if (!date) return false;
-  return date >= startDate && date <= endDate;
+// Determinar qual campo de data usar - IGUAL ao ComercialContext (sessão 'dashboard')
+function getDateField(item: ComercialData): Date | null {
+  // Sessão 'dashboard': Emitida/Faturado usa data_emissao, outros usam data_inicio
+  if (item.situacao === 'Emitida' || item.situacao === 'Faturado') {
+    return parseDate(item.data_emissao || '');
+  }
+  return parseDate(item.data_inicio || '');
 }
 
-async function fetchComercialKPIsFromSheet(startDate: Date, endDate: Date): Promise<EmailKPIs> {
-  console.log(`📊 Buscando dados da planilha do período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
+// Carregar dados da planilha - IGUAL ao googleSheetsService.ts
+async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
+  console.log('📊 Buscando dados da planilha...');
   
-  const kpis: EmailKPIs = {
-    faturamento: 0,
-    orcamentos: 0,
-    pedidosNaoFaturados: 0,
-    perdidos: {
-      valor: 0,
-      quantidade: 0
-    }
-  };
-
   try {
     const response = await fetch(CSV_URL);
     if (!response.ok) {
-      console.error("Erro ao buscar CSV:", response.status);
-      return kpis;
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-
+    
     const csvText = await response.text();
     const rows = parseCSV(csvText);
     
     if (rows.length < 2) {
-      console.log("CSV sem dados suficientes");
-      return kpis;
+      console.log('⚠️ Planilha vazia ou com poucos dados');
+      return [];
     }
-
+    
+    const headers = rows[0].map(h => normalizeField(h.toLowerCase()));
+    console.log('📋 Headers encontrados (primeiros 10):', headers.slice(0, 10));
+    
+    // Mapear colunas - IGUAL ao googleSheetsService
+    const columnMap: Record<string, number> = {};
+    headers.forEach((header, index) => {
+      const normalized = normalizeField(header);
+      if (normalized === 'numeropedido') columnMap.numeropedido = index;
+      if (normalized === 'situacao') columnMap.situacao = index;
+      if (normalized === 'data emissao' || normalized === 'data_emissao') columnMap.data_emissao = index;
+      if (normalized === 'data inicio' || normalized === 'data_inicio') columnMap.data_inicio = index;
+      if (normalized === 'data perdido' || normalized === 'data_perdido') columnMap.data_perdido = index;
+      if (normalized === 'data pedido pronto' || normalized === 'data_pedido_pronto') columnMap.data_pedido_pronto = index;
+      if (normalized === 'valor') columnMap.valor = index;
+      if (normalized === 'peso') columnMap.peso = index;
+      if (normalized === 'classe') columnMap.classe = index;
+      if (normalized === 'cli_nomefantasia') columnMap.cli_nomefantasia = index;
+      if (normalized === 'cliente') columnMap.cliente = index;
+      if (normalized === 'codigocliente') columnMap.codigocliente = index;
+      if (normalized === 'uf') columnMap.uf = index;
+      if (normalized === 'vendedor') columnMap.vendedor = index;
+      if (normalized === 'faturamento_tipo') columnMap.faturamento_tipo = index;
+      if (normalized === 'produto') columnMap.produto = index;
+      if (normalized === 'obs') columnMap.obs = index;
+    });
+    
+    console.log('🗺️ Colunas principais mapeadas:', {
+      numeropedido: columnMap.numeropedido,
+      situacao: columnMap.situacao,
+      data_emissao: columnMap.data_emissao,
+      data_inicio: columnMap.data_inicio,
+      valor: columnMap.valor,
+      faturamento_tipo: columnMap.faturamento_tipo
+    });
+    
+    const data: ComercialData[] = [];
+    
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row.length < 31) continue;
-
-      const situacao = (row[3] || "").trim();
-      const data_emissao = row[4] || "";
-      const data_perdido = row[35] || "";
-      const valor = parseFloat((row[14] || "0").replace(",", ".")) || 0;
-      const cli_nomefantasia = (row[29] || "").toUpperCase();
-
-      if (cli_nomefantasia.includes("GLOBAL AÇO")) continue;
+      
+      const situacao = normalizeField(row[columnMap.situacao] || '');
+      const valorStr = (row[columnMap.valor] || '0').replace(/[^\d,-]/g, '').replace(',', '.');
+      const valor = parseFloat(valorStr) || 0;
+      const cli_nomefantasia = normalizeField(row[columnMap.cli_nomefantasia] || '');
+      
+      // Filtros - IGUAL ao googleSheetsService
+      if (!situacao) continue;
       if (valor <= 0) continue;
-
-      if (situacao === "Emitida" && isDateInRange(data_emissao, startDate, endDate)) {
-        kpis.faturamento += valor;
+      
+      // Excluir cliente GLOBAL AÇO
+      const normalizeText = (text: string) => text?.toUpperCase().replace(/\s+/g, ' ').trim();
+      const nomeFantasia = normalizeText(cli_nomefantasia);
+      if (nomeFantasia.includes('GLOBAL') && nomeFantasia.includes('AÇO')) {
+        continue;
       }
-
-      if (situacao === "Orçamento" && isDateInRange(data_emissao, startDate, endDate)) {
-        kpis.orcamentos++;
-      }
-
-      if (situacao === "Pedido" || situacao === "Em produção") {
-        kpis.pedidosNaoFaturados++;
-      }
-
-      if (situacao === "Perdido" && isDateInRange(data_perdido, startDate, endDate)) {
-        kpis.perdidos.valor += valor;
-        kpis.perdidos.quantidade++;
-      }
+      
+      const item: ComercialData = {
+        numeropedido: normalizeField(row[columnMap.numeropedido] || ''),
+        situacao,
+        data_emissao: normalizeField(row[columnMap.data_emissao] || ''),
+        data_inicio: normalizeField(row[columnMap.data_inicio] || ''),
+        data_perdido: normalizeField(row[columnMap.data_perdido] || ''),
+        data_pedido_pronto: normalizeField(row[columnMap.data_pedido_pronto] || ''),
+        valor,
+        peso: parseFloat((row[columnMap.peso] || '0').replace(/[^\d,-]/g, '').replace(',', '.')) || 0,
+        classe: normalizeField(row[columnMap.classe] || ''),
+        cli_nomefantasia,
+        cliente: normalizeField(row[columnMap.cliente] || ''),
+        codigocliente: normalizeField(row[columnMap.codigocliente] || ''),
+        uf: normalizeField(row[columnMap.uf] || ''),
+        vendedor: normalizeField(row[columnMap.vendedor] || ''),
+        faturamento_tipo: parseInt(row[columnMap.faturamento_tipo] || '0') || 0,
+        produto: normalizeField(row[columnMap.produto] || ''),
+        obs: normalizeField(row[columnMap.obs] || ''),
+      };
+      
+      data.push(item);
     }
-
-    console.log("✅ KPIs calculados:", JSON.stringify(kpis, null, 2));
-    return kpis;
-
+    
+    console.log(`✅ ${data.length} registros carregados da planilha`);
+    return data;
+    
   } catch (error) {
-    console.error("Erro ao processar planilha:", error);
-    return kpis;
+    console.error('❌ Erro ao buscar dados da planilha:', error);
+    throw error;
   }
+}
+
+// Calcular KPIs - IGUAL ao ComercialContext e ComercialKPIs
+function calculateKPIs(allData: ComercialData[], startDate: Date, endDate: Date): EmailKPIs {
+  console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
+  
+  // Filtrar dados por período usando getDateField
+  const filteredData = allData.filter(item => {
+    const date = getDateField(item);
+    return date && date >= startDate && date <= endDate;
+  });
+  
+  console.log(`📋 Registros no período: ${filteredData.length} de ${allData.length} totais`);
+  
+  // 1. FATURAMENTO - IGUAL ao ComercialKPIs
+  // Filtrar: situacao 'Emitida' ou 'Pedido' + faturamento_tipo === 1
+  const faturados = filteredData.filter(item =>
+    (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+    item.faturamento_tipo === 1
+  );
+  const faturamento = faturados.reduce((acc, item) => acc + item.valor, 0);
+  console.log(`💰 Faturamento: R$ ${faturamento.toFixed(2)} (${faturados.length} registros)`);
+  
+  // 2. ORÇAMENTOS - IGUAL ao ComercialContext
+  // Usar TODOS os dados (não filtrar por período), situacao 'Orçamento'
+  const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
+  const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
+  console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentos.length} registros)`);
+  
+  // 3. PEDIDOS NÃO FATURADOS - IGUAL ao ComercialKPIs
+  // Filtrar: situacao 'Pedido' + faturamento_tipo === 1 no período
+  const pedidosNaoFaturadosData = filteredData.filter(item =>
+    item.situacao === 'Pedido' && item.faturamento_tipo === 1
+  );
+  const pedidosNaoFaturados = pedidosNaoFaturadosData.length;
+  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados}`);
+  
+  // 4. PERDIDOS - IGUAL ao ComercialContext
+  // Filtrar: situacao 'Perdido' no período
+  const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
+  const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
+  const perdidosQuantidade = perdidosData.length;
+  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQuantidade} oportunidades)`);
+  
+  return {
+    faturamento,
+    orcamentosValor,
+    pedidosNaoFaturados,
+    perdidos: {
+      valor: perdidosValor,
+      quantidade: perdidosQuantidade,
+    },
+  };
 }
 
 function formatCurrency(value: number): string {
@@ -192,54 +312,7 @@ function formatDate(date: Date): string {
   });
 }
 
-function generateEmptyStateHTML(reportDate: string): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-        .content { padding: 30px; }
-        .empty-state { text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 8px; margin: 20px 0; }
-        .empty-state h2 { color: #495057; margin-bottom: 15px; }
-        .empty-state p { color: #6c757d; line-height: 1.6; }
-        .instructions { background: #e7f3ff; border-left: 4px solid #0066cc; padding: 20px; margin: 20px 0; border-radius: 4px; }
-        .instructions h3 { margin-top: 0; color: #0066cc; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1 style="margin: 0; font-size: 24px;">📊 Relatório Comercial Diário</h1>
-          <p style="margin: 10px 0 0 0; opacity: 0.9;">${reportDate}</p>
-        </div>
-        
-        <div class="content">
-          <div class="empty-state">
-            <h2>📭 Sem Dados para Ontem</h2>
-            <p>Não há transações comerciais registradas para o dia ${reportDate}.</p>
-          </div>
-
-          <div class="instructions">
-            <h3>💡 Este relatório será enviado automaticamente sempre que houver dados.</h3>
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
 function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
-  const hasData = kpis.faturamento > 0 || kpis.orcamentos > 0 || kpis.pedidosNaoFaturados > 0 || kpis.perdidos.quantidade > 0;
-
-  if (!hasData) {
-    return generateEmptyStateHTML(reportDate);
-  }
-
   return `
     <!DOCTYPE html>
     <html>
@@ -278,7 +351,7 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
         </div>
         
         <div class="content">
-          <h2 class="section-title">📈 Resumo do Dia</h2>
+          <h2 class="section-title">📈 KPIs do Dia</h2>
           
           <div class="kpi-grid">
             <div class="kpi-card success">
@@ -287,8 +360,8 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
             </div>
             
             <div class="kpi-card info">
-              <div class="kpi-label">📋 Orçamentos Emitidos</div>
-              <div class="kpi-value">${kpis.orcamentos}</div>
+              <div class="kpi-label">📋 Orçamentos (R$)</div>
+              <div class="kpi-value">${formatCurrency(kpis.orcamentosValor)}</div>
             </div>
             
             <div class="kpi-card warning">
@@ -299,7 +372,7 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
             <div class="kpi-card danger">
               <div class="kpi-label">❌ Valor Perdido</div>
               <div class="kpi-value">${formatCurrency(kpis.perdidos.valor)}</div>
-              <div class="kpi-subtitle">${kpis.perdidos.quantidade} oportunidade(s) perdida(s)</div>
+              <div class="kpi-subtitle">${kpis.perdidos.quantidade} oportunidade(s)</div>
             </div>
           </div>
 
@@ -307,7 +380,7 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
             <p>
               <strong>Resumo:</strong> 
               Ontem foram registrados ${formatCurrency(kpis.faturamento)} em faturamento, 
-              com ${kpis.orcamentos} orçamento(s) emitido(s), 
+              ${formatCurrency(kpis.orcamentosValor)} em orçamentos, 
               ${kpis.pedidosNaoFaturados} pedido(s) em aberto 
               e ${formatCurrency(kpis.perdidos.valor)} em oportunidades perdidas.
             </p>
@@ -315,8 +388,8 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
         </div>
 
         <div class="footer">
-          <p>Este relatório é gerado automaticamente com base nos dados comerciais da planilha.</p>
-          <p>Acesse o Dashboard Comercial para visualizar análises detalhadas.</p>
+          <p>Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
+          <p>Acesse o Dashboard para visualizar análises detalhadas.</p>
         </div>
       </div>
     </body>
@@ -352,6 +425,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Ontem completo
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday.setHours(0, 0, 0, 0);
@@ -361,7 +435,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     const reportDate = formatDate(yesterday);
 
-    const kpis = await fetchComercialKPIsFromSheet(yesterday, endOfYesterday);
+    console.log(`📅 Relatório diário para: ${reportDate}`);
+
+    // Carregar dados da planilha
+    const allData = await loadComercialDataFromSheet();
+    
+    // Calcular KPIs
+    const kpis = calculateKPIs(allData, yesterday, endOfYesterday);
+    
+    console.log('✅ KPIs finais:', {
+      faturamento: kpis.faturamento,
+      orcamentosValor: kpis.orcamentosValor,
+      pedidosNaoFaturados: kpis.pedidosNaoFaturados,
+      perdidosValor: kpis.perdidos.valor,
+      perdidosQtd: kpis.perdidos.quantidade
+    });
 
     const htmlContent = generateReportHTML(kpis, reportDate);
 

@@ -177,11 +177,11 @@ export function ReportConfigTable() {
         <CardDescription>
           Gerencie os destinatários e configurações dos relatórios automáticos
         </CardDescription>
-        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-800">
-            ⚠️ <strong>Modo de Teste:</strong> Os emails estão sendo enviados para o email autorizado (mtabi.adm@gmail.com) 
+        <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md">
+          <p className="text-sm text-amber-900 dark:text-amber-100">
+            ⚠️ <strong>Modo de Teste:</strong> Os emails estão sendo enviados para o email autorizado (mauricio.maciel@globalaco.com.br) 
             até que um domínio seja verificado no Resend. 
-            <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="underline ml-1">
+            <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="underline ml-1 font-medium hover:text-amber-700 dark:hover:text-amber-300">
               Configure um domínio aqui
             </a>
           </p>

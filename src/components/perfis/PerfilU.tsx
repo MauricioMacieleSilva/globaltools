@@ -164,6 +164,40 @@ export function PerfilU() {
     atualizarLinhaU([...linhasU, novaLinha]);
   };
 
+  const limparLinha = (id: string) => {
+    const updatedLinhas = linhasU.map(l => {
+      if (l.id === id) {
+        return {
+          ...l,
+          espessura: '',
+          aba1: '',
+          base: '',
+          aba2: '',
+          comprimento: '6000',
+          largura: '1200',
+          quantidade: '',
+          percentualPerda: '103',
+          assimetrico: false,
+          orientacaoUZ: 'U' as const
+        };
+      }
+      return l;
+    });
+    atualizarLinhaU(updatedLinhas);
+    removerCalculo(id);
+    
+    // Limpar erros de validação da linha
+    setErrosValidacao(prev => {
+      const newErrors = {...prev};
+      Object.keys(newErrors).forEach(key => {
+        if (key.startsWith(id)) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
+  };
+
   const removerLinha = (id: string) => {
     if (linhasU.length > 3) {
       if (confirm('Tem certeza que deseja remover esta linha?')) {
@@ -331,7 +365,7 @@ export function PerfilU() {
               </div>
               
               <div className="flex justify-center">
-                <Button variant="outline" size="sm" onClick={() => removerLinha(linha.id)} disabled={linhasU.length <= 3} className="h-6 w-6 p-0">
+                <Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>

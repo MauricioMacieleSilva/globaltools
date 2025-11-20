@@ -1,138 +1,180 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.52.1';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const resendApiKey = Deno.env.get('RESEND_API_KEY')!;
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
+const GID = "2063157767";
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface KPIData {
+interface EmailKPIs {
   faturamento: number;
   orcamentos: number;
-  pedidos: number;
-  perdidos: number;
-  cancelamentos: number;
-  devolucoes: number;
-  taxaConversao: number;
-  topClientes: Array<{ nome: string; valor: number }>;
-  topProdutos: Array<{ nome: string; valor: number; quantidade: number }>;
-  motivosPerdidos: Array<{ motivo: string; quantidade: number; valor: number }>;
-  statusOrcamentos: Record<string, number>;
+  pedidosNaoFaturados: number;
+  perdidos: {
+    valor: number;
+    quantidade: number;
+  };
 }
 
-async function fetchRealKPIs(startDate: string, endDate: string): Promise<KPIData> {
-  console.log(`📊 Buscando KPIs do período: ${startDate} a ${endDate}`);
+function parseCSV(csvText: string): string[][] {
+  const result: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
+  let i = 0;
 
-  const { data: pedidosData } = await supabase
-    .from('pedidos')
-    .select('valor_total, cliente_id, data_pedido, clientes(nome)')
-    .neq('status', 'cancelado')
-    .gte('data_pedido', startDate)
-    .lt('data_pedido', endDate);
+  while (i < csvText.length) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
 
-  const faturamento = pedidosData?.reduce((sum, p) => sum + (p.valor_total || 0), 0) || 0;
-  const numeroPedidos = pedidosData?.length || 0;
+    if (inQuotes) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          currentField += '"';
+          i += 2;
+          continue;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ",") {
+        currentRow.push(currentField.trim());
+        currentField = "";
+      } else if (char === "\n" || (char === "\r" && nextChar === "\n")) {
+        currentRow.push(currentField.trim());
+        if (currentRow.length > 0 && currentRow.some((field) => field !== "")) {
+          result.push(currentRow);
+        }
+        currentRow = [];
+        currentField = "";
+        if (char === "\r" && nextChar === "\n") {
+          i++;
+        }
+      } else if (char === "\r") {
+        currentRow.push(currentField.trim());
+        if (currentRow.length > 0 && currentRow.some((field) => field !== "")) {
+          result.push(currentRow);
+        }
+        currentRow = [];
+        currentField = "";
+      } else {
+        currentField += char;
+      }
+    }
+    i++;
+  }
 
-  const { data: orcamentosData } = await supabase
-    .from('orcamentos')
-    .select('status, valor_final, cliente_id, observacoes, clientes(nome)')
-    .gte('data_emissao', startDate)
-    .lt('data_emissao', endDate);
+  if (currentField !== "" || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    if (currentRow.length > 0 && currentRow.some((field) => field !== "")) {
+      result.push(currentRow);
+    }
+  }
 
-  const numeroOrcamentos = orcamentosData?.length || 0;
+  return result;
+}
 
-  const statusOrcamentos: Record<string, number> = {};
-  orcamentosData?.forEach(orc => {
-    statusOrcamentos[orc.status] = (statusOrcamentos[orc.status] || 0) + 1;
-  });
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1;
+    const year = parseInt(parts[2]);
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      return new Date(year, month, day);
+    }
+  }
+  
+  return null;
+}
 
-  const orcamentosPerdidos = orcamentosData?.filter(o => o.status === 'perdido') || [];
-  const valorPerdido = orcamentosPerdidos.reduce((sum, o) => sum + (o.valor_final || 0), 0);
+function isDateInRange(dateStr: string, startDate: Date, endDate: Date): boolean {
+  const date = parseDate(dateStr);
+  if (!date) return false;
+  return date >= startDate && date <= endDate;
+}
 
-  const { data: cancelamentosData } = await supabase
-    .from('cancelamentos')
-    .select('valor, motivo')
-    .gte('data_cancelamento', startDate)
-    .lt('data_cancelamento', endDate);
-
-  const valorCancelamentos = cancelamentosData?.reduce((sum, c) => sum + (c.valor || 0), 0) || 0;
-
-  const { data: devolucoesData } = await supabase
-    .from('devolucoes')
-    .select('valor, motivo')
-    .gte('data_devolucao', startDate)
-    .lt('data_devolucao', endDate);
-
-  const valorDevolucoes = devolucoesData?.reduce((sum, d) => sum + (d.valor || 0), 0) || 0;
-
-  const clienteMap = new Map<string, number>();
-  pedidosData?.forEach(p => {
-    const clienteNome = (p.clientes as any)?.nome || 'Cliente Desconhecido';
-    clienteMap.set(clienteNome, (clienteMap.get(clienteNome) || 0) + (p.valor_total || 0));
-  });
-
-  const topClientes = Array.from(clienteMap.entries())
-    .map(([nome, valor]) => ({ nome, valor }))
-    .sort((a, b) => b.valor - a.valor)
-    .slice(0, 5);
-
-  const { data: pedidoItensData } = await supabase
-    .from('pedido_itens')
-    .select('produto_nome, quantidade, preco_total, pedido_id, pedidos!inner(data_pedido, status)')
-    .gte('pedidos.data_pedido', startDate)
-    .lt('pedidos.data_pedido', endDate)
-    .neq('pedidos.status', 'cancelado');
-
-  const produtoMap = new Map<string, { valor: number; quantidade: number }>();
-  pedidoItensData?.forEach(item => {
-    const current = produtoMap.get(item.produto_nome) || { valor: 0, quantidade: 0 };
-    produtoMap.set(item.produto_nome, {
-      valor: current.valor + (item.preco_total || 0),
-      quantidade: current.quantidade + (item.quantidade || 0)
-    });
-  });
-
-  const topProdutos = Array.from(produtoMap.entries())
-    .map(([nome, dados]) => ({ nome, valor: dados.valor, quantidade: dados.quantidade }))
-    .sort((a, b) => b.valor - a.valor)
-    .slice(0, 5);
-
-  const motivosMap = new Map<string, { quantidade: number; valor: number }>();
-  orcamentosPerdidos.forEach(orc => {
-    const motivo = orc.observacoes || 'Não especificado';
-    const current = motivosMap.get(motivo) || { quantidade: 0, valor: 0 };
-    motivosMap.set(motivo, {
-      quantidade: current.quantidade + 1,
-      valor: current.valor + (orc.valor_final || 0)
-    });
-  });
-
-  const motivosPerdidos = Array.from(motivosMap.entries())
-    .map(([motivo, dados]) => ({ motivo, quantidade: dados.quantidade, valor: dados.valor }))
-    .sort((a, b) => b.valor - a.valor)
-    .slice(0, 5);
-
-  const taxaConversao = numeroOrcamentos > 0 ? (numeroPedidos / numeroOrcamentos) * 100 : 0;
-
-  return {
-    faturamento,
-    orcamentos: numeroOrcamentos,
-    pedidos: numeroPedidos,
-    perdidos: valorPerdido,
-    cancelamentos: valorCancelamentos,
-    devolucoes: valorDevolucoes,
-    taxaConversao,
-    topClientes,
-    topProdutos,
-    motivosPerdidos,
-    statusOrcamentos
+async function fetchComercialKPIsFromSheet(startDate: Date, endDate: Date): Promise<EmailKPIs> {
+  console.log(`📊 Buscando dados da planilha do período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
+  
+  const kpis: EmailKPIs = {
+    faturamento: 0,
+    orcamentos: 0,
+    pedidosNaoFaturados: 0,
+    perdidos: {
+      valor: 0,
+      quantidade: 0
+    }
   };
+
+  try {
+    const response = await fetch(CSV_URL);
+    if (!response.ok) {
+      console.error("Erro ao buscar CSV:", response.status);
+      return kpis;
+    }
+
+    const csvText = await response.text();
+    const rows = parseCSV(csvText);
+    
+    if (rows.length < 2) {
+      console.log("CSV sem dados suficientes");
+      return kpis;
+    }
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length < 31) continue;
+
+      const situacao = (row[3] || "").trim();
+      const data_emissao = row[4] || "";
+      const data_perdido = row[35] || "";
+      const valor = parseFloat((row[14] || "0").replace(",", ".")) || 0;
+      const cli_nomefantasia = (row[29] || "").toUpperCase();
+
+      if (cli_nomefantasia.includes("GLOBAL AÇO")) continue;
+      if (valor <= 0) continue;
+
+      if (situacao === "Emitida" && isDateInRange(data_emissao, startDate, endDate)) {
+        kpis.faturamento += valor;
+      }
+
+      if (situacao === "Orçamento" && isDateInRange(data_emissao, startDate, endDate)) {
+        kpis.orcamentos++;
+      }
+
+      if (situacao === "Pedido" || situacao === "Em produção") {
+        kpis.pedidosNaoFaturados++;
+      }
+
+      if (situacao === "Perdido" && isDateInRange(data_perdido, startDate, endDate)) {
+        kpis.perdidos.valor += valor;
+        kpis.perdidos.quantidade++;
+      }
+    }
+
+    console.log("✅ KPIs calculados:", JSON.stringify(kpis, null, 2));
+    return kpis;
+
+  } catch (error) {
+    console.error("Erro ao processar planilha:", error);
+    return kpis;
+  }
 }
 
 function formatCurrency(value: number): string {
@@ -142,243 +184,150 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
 function generateEmptyStateHTML(periodo: string): string {
   return `
-    <div style="padding: 40px 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; margin: 20px 0;">
-      <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-      <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600;">Nenhum Dado Registrado</h2>
-      <p style="margin: 0 0 24px 0; font-size: 16px; opacity: 0.9;">
-        Não há transações comerciais registradas para ${periodo}.
-      </p>
-      
-      <div style="background: rgba(255,255,255,0.1); padding: 24px; border-radius: 8px; text-align: left; max-width: 500px; margin: 0 auto;">
-        <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">🚀 Para começar a receber relatórios:</h3>
-        <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-          <li>✅ Cadastre orçamentos no sistema</li>
-          <li>✅ Registre pedidos de clientes</li>
-          <li>✅ Acompanhe o funil de vendas</li>
-          <li>✅ Monitore cancelamentos e devoluções</li>
-        </ul>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .empty-state { text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 8px; margin: 20px 0; }
+        .empty-state h2 { color: #495057; margin-bottom: 15px; }
+        .empty-state p { color: #6c757d; line-height: 1.6; }
+        .instructions { background: #e7f3ff; border-left: 4px solid #0066cc; padding: 20px; margin: 20px 0; border-radius: 4px; }
+        .instructions h3 { margin-top: 0; color: #0066cc; }
+        .instructions ul { padding-left: 20px; }
+        .instructions li { margin: 8px 0; color: #495057; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0; font-size: 24px;">📊 Relatório Comercial Manual</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">${periodo}</p>
+        </div>
+        
+        <div class="content">
+          <div class="empty-state">
+            <h2>📭 Sem Dados para o Período</h2>
+            <p>Não há transações comerciais registradas para ${periodo}.</p>
+          </div>
+
+          <div class="instructions">
+            <h3>📝 Para começar a receber relatórios com dados:</h3>
+            <ul>
+              <li>✅ Cadastre orçamentos no sistema</li>
+              <li>✅ Registre pedidos de clientes</li>
+              <li>✅ Acompanhe o funil de vendas no Dashboard Comercial</li>
+            </ul>
+            <p style="margin-top: 15px; color: #6c757d;">
+              O sistema está pronto para gerar insights valiosos assim que houver dados comerciais no período selecionado.
+            </p>
+          </div>
+        </div>
       </div>
-      
-      <p style="margin: 24px 0 0 0; font-size: 14px; opacity: 0.8;">
-        O sistema está pronto para gerar insights valiosos assim que houver dados.
-      </p>
-    </div>
+    </body>
+    </html>
   `;
 }
 
-function generateReportHTML(kpis: KPIData, config: any, reportDate: string, isManual: boolean): string {
-  const hasData = kpis.faturamento > 0 || kpis.orcamentos > 0 || kpis.pedidos > 0;
-  const periodo = isManual ? 'hoje' : 'ontem';
+function generateReportHTML(kpis: EmailKPIs, reportDate: string, periodo: string): string {
+  const hasData = kpis.faturamento > 0 || kpis.orcamentos > 0 || kpis.pedidosNaoFaturados > 0 || kpis.perdidos.quantidade > 0;
+
+  if (!hasData) {
+    return generateEmptyStateHTML(periodo);
+  }
 
   return `
     <!DOCTYPE html>
     <html>
     <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Relatório Comercial</title>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; }
+        .content { padding: 30px; }
+        .section-title { font-size: 18px; font-weight: 600; color: #2d3748; margin: 25px 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+        .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid #667eea; }
+        .kpi-card.success { border-left-color: #48bb78; }
+        .kpi-card.warning { border-left-color: #ed8936; }
+        .kpi-card.danger { border-left-color: #f56565; }
+        .kpi-card.info { border-left-color: #4299e1; }
+        .kpi-label { font-size: 12px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 8px; }
+        .kpi-value { font-size: 24px; font-weight: 700; color: #2d3748; }
+        .kpi-subtitle { font-size: 13px; color: #718096; margin-top: 5px; }
+        .summary { background: #e6fffa; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #38b2ac; }
+        .summary p { margin: 0; color: #234e52; line-height: 1.6; }
+        .footer { background: #f7fafc; padding: 20px; text-align: center; font-size: 13px; color: #718096; }
+        @media (max-width: 600px) {
+          .kpi-grid { grid-template-columns: 1fr; }
+        }
+      </style>
     </head>
-    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-      <div style="max-width: 650px; margin: 0 auto; background-color: white; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
-          <div style="background: white; width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 32px;">
-            📊
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📊 Relatório Comercial Manual</h1>
+          <p>Gerado em ${reportDate}</p>
+          <p><strong>Período:</strong> ${periodo}</p>
+        </div>
+        
+        <div class="content">
+          <h2 class="section-title">📈 Resumo Executivo</h2>
+          
+          <div class="kpi-grid">
+            <div class="kpi-card success">
+              <div class="kpi-label">💰 Faturamento</div>
+              <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
+            </div>
+            
+            <div class="kpi-card info">
+              <div class="kpi-label">📋 Orçamentos Emitidos</div>
+              <div class="kpi-value">${kpis.orcamentos}</div>
+            </div>
+            
+            <div class="kpi-card warning">
+              <div class="kpi-label">📦 Pedidos Não Faturados</div>
+              <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
+            </div>
+            
+            <div class="kpi-card danger">
+              <div class="kpi-label">❌ Valor Perdido</div>
+              <div class="kpi-value">${formatCurrency(kpis.perdidos.valor)}</div>
+              <div class="kpi-subtitle">${kpis.perdidos.quantidade} oportunidade(s) perdida(s)</div>
+            </div>
           </div>
-          <h1 style="margin: 0; color: white; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">
-            Relatório Comercial
-          </h1>
-          <p style="margin: 12px 0 0 0; color: rgba(255,255,255,0.95); font-size: 16px;">
-            ${reportDate}
-          </p>
-          <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.8); font-size: 13px;">
-            ${isManual ? '📤 Enviado manualmente' : '⏰ Relatório automático'} • Período: ${periodo}
-          </p>
+
+          <div class="summary">
+            <p>
+              <strong>Resumo do Período:</strong> 
+              Neste período, foram registrados ${formatCurrency(kpis.faturamento)} em faturamento, 
+              com ${kpis.orcamentos} orçamento(s) emitido(s), 
+              ${kpis.pedidosNaoFaturados} pedido(s) em aberto 
+              e ${formatCurrency(kpis.perdidos.valor)} em oportunidades perdidas.
+            </p>
+          </div>
         </div>
 
-        <!-- Content -->
-        <div style="padding: 40px 30px;">
-          ${!hasData ? generateEmptyStateHTML(periodo) : `
-          <!-- Executive Summary -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="margin: 0 0 24px 0; font-size: 22px; font-weight: 600; color: #1a1a1a; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-              💼 Resumo Executivo
-            </h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-              <!-- Faturamento Card -->
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
-                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px; font-weight: 500;">💰 Faturamento</div>
-                <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">${formatCurrency(kpis.faturamento)}</div>
-                <div style="font-size: 11px; opacity: 0.8;">Total do período</div>
-              </div>
-              
-              <!-- Orçamentos Card -->
-              <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 24px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(240, 147, 251, 0.3);">
-                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px; font-weight: 500;">📋 Orçamentos</div>
-                <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">${kpis.orcamentos}</div>
-                <div style="font-size: 11px; opacity: 0.8;">Emitidos ${periodo}</div>
-              </div>
-              
-              <!-- Pedidos Card -->
-              <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 24px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(79, 172, 254, 0.3);">
-                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px; font-weight: 500;">📦 Pedidos</div>
-                <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">${kpis.pedidos}</div>
-                <div style="font-size: 11px; opacity: 0.8;">Não faturados</div>
-              </div>
-              
-              <!-- Perdidos Card -->
-              <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 24px; border-radius: 12px; color: white; box-shadow: 0 4px 6px rgba(250, 112, 154, 0.3);">
-                <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px; font-weight: 500;">❌ Perdidos</div>
-                <div style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">${formatCurrency(kpis.perdidos)}</div>
-                <div style="font-size: 11px; opacity: 0.8;">Valor perdido</div>
-              </div>
-            </div>
-            
-            <!-- Insights -->
-            ${kpis.faturamento > 50000 ? `
-            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 16px; border-radius: 6px; margin-bottom: 16px;">
-              <strong style="color: #155724;">🎉 Excelente performance!</strong>
-              <p style="margin: 4px 0 0 0; color: #155724; font-size: 14px;">Faturamento acima de R$ 50.000 no período.</p>
-            </div>
-            ` : ''}
-            
-            ${kpis.orcamentos > 0 && kpis.taxaConversao < 20 ? `
-            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; border-radius: 6px; margin-bottom: 16px;">
-              <strong style="color: #856404;">⚠️ Atenção à conversão</strong>
-              <p style="margin: 4px 0 0 0; color: #856404; font-size: 14px;">Taxa de conversão abaixo de 20%. Considere revisar follow-up dos orçamentos.</p>
-            </div>
-            ` : ''}
-            
-            ${kpis.taxaConversao > 0 ? `
-            <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e9ecef;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 14px; font-weight: 600; color: #495057;">🎯 Taxa de Conversão</span>
-                <span style="font-size: 18px; font-weight: 700; color: #667eea;">${kpis.taxaConversao.toFixed(1)}%</span>
-              </div>
-              <div style="width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
-                <div style="height: 100%; width: ${Math.min(kpis.taxaConversao, 100)}%; background: linear-gradient(90deg, #667eea, #764ba2);"></div>
-              </div>
-            </div>
-            ` : ''}
-          </div>
-
-          ${config.include_vendas && kpis.topClientes.length > 0 ? `
-          <!-- Top Clientes -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1a1a1a; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-              🏆 Top 5 Clientes
-            </h2>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: #f8f9fa;">
-                  <th style="padding: 12px; text-align: left; font-size: 13px; color: #6c757d; font-weight: 600;">#</th>
-                  <th style="padding: 12px; text-align: left; font-size: 13px; color: #6c757d; font-weight: 600;">Cliente</th>
-                  <th style="padding: 12px; text-align: right; font-size: 13px; color: #6c757d; font-weight: 600;">Faturamento</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${kpis.topClientes.map((cliente, idx) => `
-                  <tr style="border-bottom: 1px solid #e9ecef;">
-                    <td style="padding: 12px; font-weight: 700; color: #667eea;">${idx + 1}</td>
-                    <td style="padding: 12px; color: #495057;">${cliente.nome}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #28a745;">${formatCurrency(cliente.valor)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          ` : ''}
-
-          ${config.include_vendas && kpis.topProdutos.length > 0 ? `
-          <!-- Top Produtos -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1a1a1a; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-              🔥 Top 5 Produtos
-            </h2>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: #f8f9fa;">
-                  <th style="padding: 12px; text-align: left; font-size: 13px; color: #6c757d; font-weight: 600;">#</th>
-                  <th style="padding: 12px; text-align: left; font-size: 13px; color: #6c757d; font-weight: 600;">Produto</th>
-                  <th style="padding: 12px; text-align: center; font-size: 13px; color: #6c757d; font-weight: 600;">Qtd</th>
-                  <th style="padding: 12px; text-align: right; font-size: 13px; color: #6c757d; font-weight: 600;">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${kpis.topProdutos.map((produto, idx) => `
-                  <tr style="border-bottom: 1px solid #e9ecef;">
-                    <td style="padding: 12px; font-weight: 700; color: #667eea;">${idx + 1}</td>
-                    <td style="padding: 12px; color: #495057;">${produto.nome}</td>
-                    <td style="padding: 12px; text-align: center; color: #6c757d;">${produto.quantidade.toFixed(0)}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #28a745;">${formatCurrency(produto.valor)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          ` : ''}
-
-          ${config.include_perdidos && kpis.motivosPerdidos.length > 0 ? `
-          <!-- Análise de Perdidos -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1a1a1a; border-bottom: 3px solid #dc3545; padding-bottom: 12px;">
-              ❌ Análise de Perdidos
-            </h2>
-            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; border-radius: 6px; margin-bottom: 16px;">
-              <strong style="color: #856404;">Total Perdido: ${formatCurrency(kpis.perdidos)}</strong>
-            </div>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: #f8f9fa;">
-                  <th style="padding: 12px; text-align: left; font-size: 13px; color: #6c757d; font-weight: 600;">Motivo</th>
-                  <th style="padding: 12px; text-align: center; font-size: 13px; color: #6c757d; font-weight: 600;">Qtd</th>
-                  <th style="padding: 12px; text-align: right; font-size: 13px; color: #6c757d; font-weight: 600;">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${kpis.motivosPerdidos.map((motivo) => `
-                  <tr style="border-bottom: 1px solid #e9ecef;">
-                    <td style="padding: 12px; color: #495057;">${motivo.motivo}</td>
-                    <td style="padding: 12px; text-align: center; color: #6c757d;">${motivo.quantidade}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #dc3545;">${formatCurrency(motivo.valor)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          ` : ''}
-
-          ${config.include_cancelamentos && (kpis.cancelamentos > 0 || kpis.devolucoes > 0) ? `
-          <!-- Cancelamentos e Devoluções -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: #1a1a1a; border-bottom: 3px solid #ffc107; padding-bottom: 12px;">
-              🔄 Cancelamentos e Devoluções
-            </h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-              <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
-                <div style="font-size: 12px; color: #856404; margin-bottom: 8px; font-weight: 500;">Cancelamentos</div>
-                <div style="font-size: 24px; font-weight: 700; color: #856404;">${formatCurrency(kpis.cancelamentos)}</div>
-              </div>
-              <div style="background: #f8d7da; padding: 20px; border-radius: 8px; border-left: 4px solid #dc3545;">
-                <div style="font-size: 12px; color: #721c24; margin-bottom: 8px; font-weight: 500;">Devoluções</div>
-                <div style="font-size: 24px; font-weight: 700; color: #721c24;">${formatCurrency(kpis.devolucoes)}</div>
-              </div>
-            </div>
-          </div>
-          ` : ''}
-          `}
-        </div>
-
-        <!-- Footer -->
-        <div style="background: #f8f9fa; padding: 24px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-          <p style="margin: 0 0 8px 0; color: #6c757d; font-size: 13px;">
-            Este relatório foi gerado automaticamente pelo sistema Global Aço
-          </p>
-          <p style="margin: 0; color: #adb5bd; font-size: 12px;">
-            © ${new Date().getFullYear()} Global Aço. Todos os direitos reservados.
-          </p>
+        <div class="footer">
+          <p>Este relatório é gerado automaticamente com base nos dados comerciais da planilha.</p>
+          <p>Acesse o Dashboard Comercial para visualizar análises detalhadas.</p>
         </div>
       </div>
     </body>
@@ -387,10 +336,10 @@ function generateReportHTML(kpis: KPIData, config: any, reportDate: string, isMa
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('🚀 [send-manual-report] Função iniciada');
+  console.log("🚀 [send-manual-report] Função iniciada");
 
   if (req.method === 'OPTIONS') {
-    console.log('📋 [send-manual-report] Respondendo OPTIONS');
+    console.log("📋 [send-manual-report] Respondendo OPTIONS");
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -398,9 +347,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { configId } = await req.json();
     console.log(`📧 [send-manual-report] Processando envio para config: ${configId}`);
 
-    if (!resendApiKey) {
-      throw new Error('RESEND_API_KEY não configurada');
-    }
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { data: config, error: configError } = await supabase
       .from('email_reports_config')
@@ -412,86 +359,70 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Configuração não encontrada');
     }
 
-    // Período do dia atual (hoje)
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startDate = startOfDay.toISOString();
-    const endDate = now.toISOString();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endDate = now;
 
-    console.log(`📊 Buscando KPIs do período: ${startDate} a ${endDate}`);
+    const reportDate = formatDate(now);
+    const periodo = `${formatDate(startDate)} a ${formatDate(endDate)}`;
 
-    const kpis = await fetchRealKPIs(startDate, endDate);
+    const kpis = await fetchComercialKPIsFromSheet(startDate, endDate);
 
-    console.log('✅ KPIs calculados:', {
-      faturamento: kpis.faturamento,
-      numeroOrcamentos: kpis.orcamentos,
-      numeroPedidos: kpis.pedidos,
-      valorPerdido: kpis.perdidos,
-      valorCancelamentos: kpis.cancelamentos,
-      valorDevolucoes: kpis.devolucoes,
-      taxaConversao: kpis.taxaConversao.toFixed(2) + '%'
-    });
+    const htmlContent = generateReportHTML(kpis, reportDate, periodo);
 
-    const reportDate = now.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-
-    const htmlContent = generateReportHTML(kpis, config, reportDate, true);
-
-    // Modo de teste: enviar para email autorizado
     const isTestMode = true;
-    const authorizedTestEmail = 'mauricio.maciel@globalaco.com.br';
-    const recipientEmail = isTestMode ? authorizedTestEmail : config.email;
-
-    console.log('📧 Enviando email via Resend API...');
-
+    const authorizedTestEmail = "mauricio.maciel@globalaco.com.br";
+    
     const emailPayload = {
       from: "Lovable <onboarding@resend.dev>",
-      to: [recipientEmail],
-      subject: `📊 Relatório Comercial Manual - ${reportDate}${isTestMode ? ' [TESTE]' : ''}`,
+      to: isTestMode ? [authorizedTestEmail] : [config.email],
+      subject: isTestMode 
+        ? `📊 Relatório Comercial Manual - ${reportDate} [TESTE]`
+        : `📊 Relatório Comercial Manual - ${reportDate}`,
       html: htmlContent,
       ...(isTestMode && { test: true })
     };
 
-    console.log('📧 Payload do email:', { ...emailPayload, html: '[HTML Content]' });
+    console.log("📧 Payload do email:", JSON.stringify({ ...emailPayload, html: "[HTML Content]" }, null, 2));
+    console.log("📧 Enviando email via Resend API...");
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
-      body: JSON.stringify(emailPayload)
+      body: JSON.stringify(emailPayload),
     });
 
-    const result = await response.json();
+    const resendData = await resendResponse.json();
+    console.log("📧 Resposta do Resend:", resendData);
 
-    if (!response.ok) {
-      console.error('❌ Erro ao enviar email:', result);
-      throw new Error(result.message || 'Erro ao enviar email');
+    if (!resendResponse.ok) {
+      throw new Error(`Erro no Resend: ${JSON.stringify(resendData)}`);
     }
 
-    console.log('📧 Resposta do Resend:', result);
-
-    // Log de sucesso
     await supabase.from('email_reports_log').insert({
       config_id: configId,
-      email: recipientEmail,
+      email: isTestMode ? authorizedTestEmail : config.email,
       status: 'success',
-      report_date: startOfDay.toISOString().split('T')[0]
+      report_date: now.toISOString().split('T')[0]
     });
 
-    console.log(`✅ Relatório manual enviado com sucesso para ${recipientEmail}${isTestMode ? ' (modo teste)' : ''}`);
+    console.log(`✅ Relatório manual enviado com sucesso para ${isTestMode ? authorizedTestEmail + ' (modo teste)' : config.email}`);
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Relatório enviado com sucesso', testMode: isTestMode }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Relatório enviado com sucesso',
+        testMode: isTestMode,
+        recipient: isTestMode ? authorizedTestEmail : config.email
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('❌ Erro ao enviar relatório:', error);
+    console.error("❌ [send-manual-report] Erro:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

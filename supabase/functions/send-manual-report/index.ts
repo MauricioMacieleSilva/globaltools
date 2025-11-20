@@ -141,11 +141,22 @@ function getDateField(item: ComercialData): Date | null {
 // Carregar dados da planilha - IGUAL ao googleSheetsService.ts
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   console.log('📊 Buscando dados da planilha...');
+  console.log('📋 URL:', CSV_URL);
   
   try {
-    const response = await fetch(CSV_URL);
+    const response = await fetch(CSV_URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0)',
+      },
+    });
+    
+    console.log('📥 Status da resposta:', response.status, response.statusText);
+    console.log('📥 Headers da resposta:', Object.fromEntries(response.headers.entries()));
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Resposta de erro:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
     }
     
     const csvText = await response.text();

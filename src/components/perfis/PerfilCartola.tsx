@@ -33,7 +33,7 @@ export function PerfilCartola() {
         comprimento: '6000',
         largura: '1200',
         quantidade: '',
-        percentualPerda: '103',
+        percentualPerda: '101',
         assimetrico: false
       }));
       atualizarLinhaCartola(linhasIniciais);
@@ -162,7 +162,7 @@ export function PerfilCartola() {
       comprimento: '6000',
       largura: '1200',
       quantidade: '',
-      percentualPerda: '103',
+      percentualPerda: '101',
       assimetrico: false
     };
     atualizarLinhaCartola([...linhasCartola, novaLinha]);

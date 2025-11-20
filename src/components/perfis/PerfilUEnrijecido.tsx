@@ -39,7 +39,7 @@ export function PerfilUEnrijecido() {
         comprimento: '6000',
         largura: '1200',
         quantidade: '',
-        percentualPerda: '103',
+        percentualPerda: '101',
         assimetrico: false
       }));
       atualizarLinhaUEnrijecido(linhasIniciais);
@@ -173,7 +173,7 @@ export function PerfilUEnrijecido() {
       comprimento: '6000',
       largura: '1200',
       quantidade: '',
-      percentualPerda: '103',
+      percentualPerda: '101',
       assimetrico: false
     };
     atualizarLinhaUEnrijecido([...linhasUEnrijecido, novaLinha]);

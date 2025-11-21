@@ -552,13 +552,13 @@ function generateReportHTML(
     <head>
       <meta charset="UTF-8">
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #2d3748; }
+        .container { max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 24px 30px; text-align: center; }
         .header h1 { margin: 0; font-size: 22px; color: #ffffff !important; }
-        .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; color: #ffffff !important; }
-        .content { padding: 24px 30px 30px 30px; }
-        .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+        .header p { margin: 6px 0 0 0; opacity: 0.95; font-size: 13px; color: #ffffff !important; }
+        .content { padding: 24px 30px 30px 30px; background: #ffffff; }
+        .section-title { font-size: 16px; font-weight: 600; color: #2d3748 !important; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
         .section-title.no-border { border-bottom: none; }
         .section-title.spaced { margin-top: 16px; }
         .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
@@ -568,33 +568,33 @@ function generateReportHTML(
         .kpi-card.danger { border-left-color: #f56565; }
         .kpi-card.info { border-left-color: #4299e1; }
         .kpi-card.purple { border-left-color: #667eea; }
-        .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px; }
-        .kpi-value { font-size: 20px; font-weight: 700; color: #2d3748; }
-        .kpi-subtitle { font-size: 12px; color: #718096; margin-top: 3px; }
+        .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096 !important; font-weight: 600; margin-bottom: 6px; }
+        .kpi-value { font-size: 20px; font-weight: 700; color: #2d3748 !important; }
+        .kpi-subtitle { font-size: 12px; color: #718096 !important; margin-top: 3px; }
         .meta-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 16px; }
         .meta-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .meta-item { padding: 6px 0; }
-        .meta-label { color: #718096; font-size: 12px; margin-bottom: 2px; }
-        .meta-value { color: #2d3748; font-size: 18px; font-weight: bold; }
+        .meta-label { color: #718096 !important; font-size: 12px; margin-bottom: 2px; }
+        .meta-value { color: #2d3748 !important; font-size: 18px; font-weight: bold; }
         .comp-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 16px; }
         .comp-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .comp-card { background: #f7fafc; padding: 10px 12px; border-radius: 6px; border-left: 3px solid #4299e1; }
+        .comp-card { background: #ffffff; padding: 10px 12px; border-radius: 6px; border-left: 3px solid #4299e1; }
         .comp-card.gold { background: #fffaf0; border-left-color: #f6ad55; }
-        .comp-title { color: #2d3748; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
-        .comp-value { color: #4a5568; font-size: 14px; margin-bottom: 4px; }
+        .comp-title { color: #2d3748 !important; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+        .comp-value { color: #4a5568 !important; font-size: 14px; margin-bottom: 4px; }
         .comp-var { font-size: 13px; font-weight: bold; }
-        .comp-var.pos { color: #48bb78; }
-        .comp-var.neg { color: #f56565; }
-        .ranking-table, .hot-table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 16px; }
-        .ranking-table th, .ranking-table td, .hot-table th, .hot-table td { border-bottom: 1px solid #e2e8f0; font-size: 13px; }
-        .ranking-table th, .hot-table th { background: #f7fafc; padding: 8px 10px; text-align: left; color: #4a5568; font-weight: 600; }
-        .ranking-table td, .hot-table td { padding: 8px 10px; color: #2d3748; }
-        .analysis { background: white; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
-        .analysis p { margin: 6px 0; color: #4a5568; line-height: 1.6; font-size: 13px; }
-        .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; }
+        .comp-var.pos { color: #48bb78 !important; }
+        .comp-var.neg { color: #f56565 !important; }
+        .ranking-table, .hot-table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 16px; background: #ffffff; }
+        .ranking-table th, .ranking-table td, .hot-table th, .hot-table td { border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #2d3748 !important; }
+        .ranking-table th, .hot-table th { background: #f7fafc; padding: 8px 10px; text-align: left; color: #4a5568 !important; font-weight: 600; }
+        .ranking-table td, .hot-table td { padding: 8px 10px; color: #2d3748 !important; }
+        .analysis { background: #ffffff; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
+        .analysis p { margin: 6px 0; color: #4a5568 !important; line-height: 1.6; font-size: 13px; }
+        .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; background: #ffffff; }
         .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: transform 0.2s; }
         .cta-button:hover { transform: translateY(-2px); }
-        .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096; }
+        .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096 !important; }
         @media (max-width: 600px) {
           .content { padding: 18px 16px 20px 16px; }
         }
@@ -774,46 +774,46 @@ function generateReportHTML(
 
           <!-- Seção 6: Análise Rápida -->
           <div class="analysis" style="margin-top: 16px;">
-            <h3 class="section-title no-border">💡 Análise Rápida</h3>
-            <p>• Faturamento no período representa <strong>${percentualMeta.toFixed(
+            <h3 class="section-title no-border" style="color: #2d3748 !important;">💡 Análise Rápida</h3>
+            <p style="color: #4a5568 !important;">• Faturamento no período representa <strong style="color: #2d3748 !important;">${percentualMeta.toFixed(
               1
             )}%</strong> da meta mensal</p>
             ${
               mesAnterior
-                ? `<p>• ${
+                ? `<p style="color: #4a5568 !important;">• ${
                     mesAnterior.variacao >= 0 ? 'Aumento' : 'Redução'
-                  } de <strong>${Math.abs(
+                  } de <strong style="color: #2d3748 !important;">${Math.abs(
                     mesAnterior.variacao
                   ).toFixed(1)}%</strong> em relação ao mês anterior</p>`
                 : ''
             }
             ${
               faltaMeta > 0
-                ? `<p>• Ainda há <strong>${formatCurrency(
+                ? `<p style="color: #4a5568 !important;">• Ainda há <strong style="color: #2d3748 !important;">${formatCurrency(
                     faltaMeta
                   )}</strong> para atingir a meta</p>`
-                : `<p>• <strong>Meta atingida!</strong> Superou em ${formatCurrency(
+                : `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(
                     Math.abs(faltaMeta)
                   )}</p>`
             }
-            <p>• Média de <strong>${formatCurrency(
+            <p style="color: #4a5568 !important;">• Média de <strong style="color: #2d3748 !important;">${formatCurrency(
               kpis.mediaDiaria
             )}</strong> por dia útil (${kpis.diasUteis} dias)</p>
             ${
               kpis.pedidosNaoFaturados > 0
-                ? `<p>• <strong>${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>`
+                ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>`
                 : ''
             }
             ${
               kpis.perdidosQtd > 0
-                ? `<p>• <strong>${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(
+                ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(
                     kpis.perdidosValor
                   )}</p>`
                 : ''
             }
             ${
               ranking.length > 0
-                ? `<p>• <strong>${ranking[0].nome}</strong> lidera o ranking com ${formatCurrency(
+                ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${ranking[0].nome}</strong> lidera o ranking com ${formatCurrency(
                     ranking[0].faturamento
                   )} (${ranking[0].percentualTotal.toFixed(
                     1
@@ -822,10 +822,10 @@ function generateReportHTML(
             }
             ${
               orcamentosQuentes.length > 0
-                ? `<p>• Existem <strong>${orcamentosQuentes.length}</strong> orçamentos quentes em aberto somando ${formatCurrency(
+                ? `<p style="color: #4a5568 !important;">• Existem <strong style="color: #2d3748 !important;">${orcamentosQuentes.length}</strong> orçamentos quentes em aberto somando ${formatCurrency(
                     totalOrcamentosQuentes
                   )}</p>`
-                : '<p>• Atenção: nenhum orçamento classificado como quente (3+ estrelas) no momento.</p>'
+                : '<p style="color: #4a5568 !important;">• Atenção: nenhum orçamento classificado como quente (3+ estrelas) no momento.</p>'
             }
           </div>
         </div>
@@ -837,8 +837,8 @@ function generateReportHTML(
         </div>
 
         <div class="footer">
-          <p>Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
-          <p>Acesse o Dashboard para visualizar análises detalhadas.</p>
+          <p style="color: #718096 !important;">Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
+          <p style="color: #718096 !important;">Acesse o Dashboard para visualizar análises detalhadas.</p>
         </div>
       </div>
     </body>

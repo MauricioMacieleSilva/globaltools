@@ -41,6 +41,8 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
     setLoading(true);
 
     try {
+      console.log('📝 Dados do formulário:', formData);
+      
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -49,6 +51,7 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
           description: "Você precisa estar logado para adicionar configurações.",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
@@ -63,7 +66,9 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
         return;
       }
 
-      const { error } = await supabase
+      console.log('✅ Validações passaram, inserindo no banco...');
+
+      const { data, error } = await supabase
         .from('email_reports_config' as any)
         .insert({
           email: formData.email,
@@ -76,9 +81,15 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
           include_perdidos: true,
           include_cancelamentos: true,
           created_by: user.id
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      console.log('📊 Resposta do Supabase:', { data, error });
+
+      if (error) {
+        console.error('❌ Erro do Supabase:', error);
+        throw error;
+      }
 
       toast({
         title: "Configuração adicionada",
@@ -97,7 +108,7 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
       onConfigAdded?.();
 
     } catch (error: any) {
-      console.error('Erro ao adicionar configuração:', error);
+      console.error('❌ Erro ao adicionar configuração:', error);
       toast({
         title: "Erro ao adicionar",
         description: error.message || "Erro inesperado ao adicionar configuração.",

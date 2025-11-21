@@ -726,7 +726,7 @@ function generateReportHTML(
           }
 
           <!-- Seção 5: Orçamentos Quentes -->
-          <h2 class="section-title spaced">🔥 Orçamentos Quentes (3+ Estrelas)</h2>
+          <h2 class="section-title spaced">🔥 Orçamentos Quentes</h2>
           ${
             orcamentosQuentes.length > 0
               ? `

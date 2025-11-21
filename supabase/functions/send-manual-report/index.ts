@@ -40,10 +40,17 @@ interface EmailKPIs {
   faturamento: number;
   orcamentosValor: number;
   pedidosNaoFaturados: number;
-  perdidos: {
-    valor: number;
-    quantidade: number;
-  };
+  perdidosValor: number;
+  perdidosQtd: number;
+  diasUteis: number;
+  mediaDiaria: number;
+}
+
+interface ComparativoMes {
+  mes: string;
+  ano: number;
+  faturamento: number;
+  variacao: number;
 }
 
 // Parse CSV - IGUAL ao googleSheetsService.ts
@@ -74,10 +81,6 @@ function parseCSV(csvText: string): string[][] {
   }
   
   return result;
-}
-
-function normalizeField(value: string): string {
-  return value?.trim().replace(/\s+/g, ' ') || '';
 }
 
 // Parse de data - IGUAL ao utils-comercial.ts
@@ -138,6 +141,23 @@ function getDateField(item: ComercialData): Date | null {
   return parseDate(item.data_inicio || '');
 }
 
+// Calcula dias úteis (segunda a sexta) entre duas datas
+function calcularDiasUteis(startDate: Date, endDate: Date): number {
+  let diasUteis = 0;
+  const current = new Date(startDate);
+  
+  while (current <= endDate) {
+    const diaSemana = current.getDay();
+    // 0 = domingo, 6 = sábado
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasUteis++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return diasUteis;
+}
+
 // Carregar dados da planilha - IGUAL ao googleSheetsService.ts
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   console.log('📊 Buscando dados da planilha...');
@@ -149,9 +169,6 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
         'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0)',
       },
     });
-    
-    console.log('📥 Status da resposta:', response.status, response.statusText);
-    console.log('📥 Headers da resposta:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -169,24 +186,11 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
       return [];
     }
     
-    // Log dos headers (primeira linha)
-    console.log('📋 Headers encontrados (primeiros 10):', rows[0].slice(0, 10));
-    
     // Processar linhas de dados (pular header) - ÍNDICES FIXOS como no Dashboard
     const comercialData: ComercialData[] = rows
       .slice(1)
       .filter((row: string[]) => row.length > 30 && row[3]) // Filtrar linhas válidas
-      .map((row: string[], index: number): ComercialData => {
-        // Log das primeiras 3 linhas para debug
-        if (index < 3) {
-          console.log(`📊 Linha ${index + 1}:`, {
-            numeropedido: row[1],
-            situacao: row[3],
-            valor: row[14],
-            cliente: row[29]
-          });
-        }
-        
+      .map((row: string[]): ComercialData => {
         return {
           numeropedido: row[1] || '', // Coluna B
           situacao: (row[3] || '').trim().replace(/\s+/g, ' '), // Coluna D
@@ -221,19 +225,6 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
       });
     
     console.log(`✅ ${comercialData.length} registros carregados da planilha`);
-    
-    // Log dos primeiros 3 registros para debug
-    if (comercialData.length > 0) {
-      console.log('📋 Primeiros 3 registros:', 
-        comercialData.slice(0, 3).map(r => ({
-          numeropedido: r.numeropedido,
-          situacao: r.situacao,
-          valor: r.valor,
-          cliente: r.cliente
-        }))
-      );
-    }
-    
     return comercialData;
     
   } catch (error) {
@@ -243,7 +234,12 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
 }
 
 // Calcular KPIs - IGUAL ao ComercialContext e ComercialKPIs
-function calculateKPIs(allData: ComercialData[], startDate: Date, endDate: Date): EmailKPIs {
+function calculateKPIs(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date,
+  calcularDias: boolean = true
+): EmailKPIs {
   console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
   
   // Filtrar dados por período usando getDateField
@@ -254,44 +250,47 @@ function calculateKPIs(allData: ComercialData[], startDate: Date, endDate: Date)
   
   console.log(`📋 Registros no período: ${filteredData.length} de ${allData.length} totais`);
   
-  // 1. FATURAMENTO - IGUAL ao ComercialKPIs
-  // Filtrar: situacao 'Emitida' ou 'Pedido' + faturamento_tipo === 1
+  // 1. FATURAMENTO
   const faturados = filteredData.filter(item =>
     (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
     item.faturamento_tipo === 1
   );
-  const faturamento = faturados.reduce((acc, item) => acc + item.valor, 0);
-  console.log(`💰 Faturamento: R$ ${faturamento.toFixed(2)} (${faturados.length} registros)`);
+  const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
+  console.log(`💰 Faturamento: R$ ${faturado.toFixed(2)} (${faturados.length} registros)`);
   
-  // 2. ORÇAMENTOS - IGUAL ao ComercialContext
-  // Usar TODOS os dados (não filtrar por período), situacao 'Orçamento'
+  // 2. ORÇAMENTOS
   const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
   const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
   console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentos.length} registros)`);
   
-  // 3. PEDIDOS NÃO FATURADOS - IGUAL ao ComercialKPIs
-  // Filtrar: situacao 'Pedido' + faturamento_tipo === 1 no período
+  // 3. PEDIDOS NÃO FATURADOS
   const pedidosNaoFaturadosData = filteredData.filter(item =>
     item.situacao === 'Pedido' && item.faturamento_tipo === 1
   );
   const pedidosNaoFaturados = pedidosNaoFaturadosData.length;
   console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados}`);
   
-  // 4. PERDIDOS - IGUAL ao ComercialContext
-  // Filtrar: situacao 'Perdido' no período
+  // 4. PERDIDOS
   const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
-  const perdidosQuantidade = perdidosData.length;
-  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQuantidade} oportunidades)`);
+  const perdidosQtd = perdidosData.length;
+  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} oportunidades)`);
+
+  // Calcular dias úteis e média diária
+  const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
+  const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
   
+  console.log(`📊 Dias úteis no período: ${diasUteis}`);
+  console.log(`📊 Média diária: R$ ${mediaDiaria.toFixed(2)}`);
+
   return {
-    faturamento,
+    faturamento: faturado,
     orcamentosValor,
     pedidosNaoFaturados,
-    perdidos: {
-      valor: perdidosValor,
-      quantidade: perdidosQuantidade,
-    },
+    perdidosValor,
+    perdidosQtd,
+    diasUteis,
+    mediaDiaria,
   };
 }
 
@@ -310,7 +309,29 @@ function formatDate(date: Date): string {
   });
 }
 
-function generateReportHTML(kpis: EmailKPIs, reportDate: string, periodo: string): string {
+function generateReportHTML(
+  kpis: EmailKPIs,
+  reportDate: string,
+  periodo: string,
+  meta: number,
+  mesAnterior: ComparativoMes | null,
+  melhorMes: ComparativoMes | null
+): string {
+  // Calcular percentual da meta
+  const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
+  const faltaMeta = meta - kpis.faturamento;
+  
+  // Definir status da meta
+  let statusMeta = '✗';
+  let corMeta = '#f56565';
+  if (percentualMeta >= 100) {
+    statusMeta = '✓';
+    corMeta = '#48bb78';
+  } else if (percentualMeta >= 80) {
+    statusMeta = '⚠';
+    corMeta = '#ed8936';
+  }
+
   return `
     <!DOCTYPE html>
     <html>
@@ -330,14 +351,29 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string, periodo: string
         .kpi-card.warning { border-left-color: #ed8936; }
         .kpi-card.danger { border-left-color: #f56565; }
         .kpi-card.info { border-left-color: #4299e1; }
+        .kpi-card.purple { border-left-color: #667eea; }
         .kpi-label { font-size: 12px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 8px; }
         .kpi-value { font-size: 24px; font-weight: 700; color: #2d3748; }
         .kpi-subtitle { font-size: 13px; color: #718096; margin-top: 5px; }
-        .summary { background: #e6fffa; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #38b2ac; }
-        .summary p { margin: 0; color: #234e52; line-height: 1.6; }
+        .meta-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .meta-item { padding: 15px; background: #f7fafc; border-radius: 6px; }
+        .meta-label { color: #718096; font-size: 13px; margin-bottom: 5px; }
+        .meta-value { color: #2d3748; font-size: 20px; font-weight: bold; }
+        .comp-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .comp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .comp-card { background: #f7fafc; padding: 15px; border-radius: 6px; border-left: 4px solid #4299e1; }
+        .comp-card.gold { background: #fffaf0; border-left-color: #f6ad55; }
+        .comp-title { color: #2d3748; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+        .comp-value { color: #4a5568; font-size: 16px; margin-bottom: 5px; }
+        .comp-var { font-size: 14px; font-weight: bold; }
+        .comp-var.pos { color: #48bb78; }
+        .comp-var.neg { color: #f56565; }
+        .analysis { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .analysis p { margin: 8px 0; color: #4a5568; line-height: 1.8; }
         .footer { background: #f7fafc; padding: 20px; text-align: center; font-size: 13px; color: #718096; }
         @media (max-width: 600px) {
-          .kpi-grid { grid-template-columns: 1fr; }
+          .kpi-grid, .meta-grid, .comp-grid { grid-template-columns: 1fr; }
         }
       </style>
     </head>
@@ -370,19 +406,75 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string, periodo: string
             
             <div class="kpi-card danger">
               <div class="kpi-label">❌ Valor Perdido</div>
-              <div class="kpi-value">${formatCurrency(kpis.perdidos.valor)}</div>
-              <div class="kpi-subtitle">${kpis.perdidos.quantidade} oportunidade(s)</div>
+              <div class="kpi-value">${formatCurrency(kpis.perdidosValor)}</div>
+              <div class="kpi-subtitle">${kpis.perdidosQtd} oportunidade(s)</div>
+            </div>
+
+            <div class="kpi-card purple">
+              <div class="kpi-label">📊 Média Diária (Dias Úteis)</div>
+              <div class="kpi-value">${formatCurrency(kpis.mediaDiaria)}</div>
+              <div class="kpi-subtitle">${kpis.diasUteis} dias úteis</div>
             </div>
           </div>
 
-          <div class="summary">
-            <p>
-              <strong>Resumo:</strong> 
-              No período foram registrados ${formatCurrency(kpis.faturamento)} em faturamento, 
-              ${formatCurrency(kpis.orcamentosValor)} em orçamentos, 
-              ${kpis.pedidosNaoFaturados} pedido(s) em aberto 
-              e ${formatCurrency(kpis.perdidos.valor)} em oportunidades perdidas.
-            </p>
+          <div class="meta-section">
+            <h3 class="section-title">🎯 Meta do Mês</h3>
+            <div class="meta-grid">
+              <div class="meta-item">
+                <div class="meta-label">Meta Mensal</div>
+                <div class="meta-value">${formatCurrency(meta)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Realizado</div>
+                <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Atingimento</div>
+                <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(1)}% ${statusMeta}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Faltam</div>
+                <div class="meta-value" style="color: ${faltaMeta > 0 ? '#ed8936' : '#48bb78'};">
+                  ${faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          ${mesAnterior || melhorMes ? `
+          <div class="comp-section">
+            <h3 class="section-title">📈 Comparativos</h3>
+            <div class="comp-grid">
+              ${mesAnterior ? `
+              <div class="comp-card">
+                <div class="comp-title">Mês Anterior (${mesAnterior.mes}/${mesAnterior.ano})</div>
+                <div class="comp-value">${formatCurrency(mesAnterior.faturamento)}</div>
+                <div class="comp-var ${mesAnterior.variacao >= 0 ? 'pos' : 'neg'}">
+                  ${mesAnterior.variacao >= 0 ? '+' : ''}${mesAnterior.variacao.toFixed(1)}% ${mesAnterior.variacao >= 0 ? '↗️' : '↘️'}
+                </div>
+              </div>
+              ` : ''}
+              ${melhorMes ? `
+              <div class="comp-card gold">
+                <div class="comp-title">🏆 Melhor Mês (${melhorMes.mes}/${melhorMes.ano})</div>
+                <div class="comp-value">${formatCurrency(melhorMes.faturamento)}</div>
+                <div class="comp-var ${melhorMes.variacao >= 0 ? 'pos' : 'neg'}">
+                  ${melhorMes.variacao >= 0 ? '+' : ''}${melhorMes.variacao.toFixed(1)}% vs melhor
+                </div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          <div class="analysis">
+            <h3 class="section-title">💡 Análise Rápida</h3>
+            <p>• Faturamento no período representa <strong>${percentualMeta.toFixed(1)}%</strong> da meta mensal</p>
+            ${mesAnterior ? `<p>• ${mesAnterior.variacao >= 0 ? 'Aumento' : 'Redução'} de <strong>${Math.abs(mesAnterior.variacao).toFixed(1)}%</strong> em relação ao mês anterior</p>` : ''}
+            ${faltaMeta > 0 ? `<p>• Ainda há <strong>${formatCurrency(faltaMeta)}</strong> para atingir a meta</p>` : `<p>• <strong>Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
+            <p>• Média de <strong>${formatCurrency(kpis.mediaDiaria)}</strong> por dia útil (${kpis.diasUteis} dias)</p>
+            ${kpis.pedidosNaoFaturados > 0 ? `<p>• <strong>${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
+            ${kpis.perdidosQtd > 0 ? `<p>• <strong>${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.perdidosValor)}</p>` : ''}
           </div>
         </div>
 
@@ -408,9 +500,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { configId } = await req.json();
     console.log(`📧 [send-manual-report] Processando envio para config: ${configId}`);
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: config, error: configError } = await supabase
+    const { data: config, error: configError } = await supabaseAdmin
       .from('email_reports_config')
       .select('*')
       .eq('id', configId)
@@ -420,7 +512,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Configuração não encontrada');
     }
 
-    // Período: mês atual até hoje
+    // 1. Definir período: mês atual até hoje
     const now = new Date();
     const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     startDate.setHours(0, 0, 0, 0);
@@ -432,22 +524,112 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📅 Período: ${periodo}`);
 
-    // Carregar dados da planilha
+    // 2. Carregar dados da planilha
     const allData = await loadComercialDataFromSheet();
     
-    // Calcular KPIs
+    // 3. Buscar meta mensal do banco de dados
+    console.log('🎯 Buscando meta mensal...');
+    const ano = startDate.getFullYear();
+    const mes = startDate.getMonth() + 1;
+    
+    let metaMensal = 2000000; // Valor padrão: R$ 2.000.000,00
+    
+    try {
+      const { data: metaData, error: metaError } = await supabaseAdmin
+        .from('metas_vendas')
+        .select('meta_mensal')
+        .eq('ano', ano)
+        .eq('mes', mes)
+        .limit(1)
+        .single();
+      
+      if (metaError) {
+        console.log('⚠️ Meta não encontrada no banco, usando valor padrão:', metaError.message);
+      } else if (metaData?.meta_mensal) {
+        metaMensal = Number(metaData.meta_mensal);
+        console.log('✅ Meta mensal encontrada:', metaMensal);
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao buscar meta, usando valor padrão:', error);
+    }
+
+    // 4. Calcular KPIs do período solicitado
+    console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
     const kpis = calculateKPIs(allData, startDate, endDate);
     
-    console.log('✅ KPIs finais:', {
-      faturamento: kpis.faturamento,
-      orcamentosValor: kpis.orcamentosValor,
-      pedidosNaoFaturados: kpis.pedidosNaoFaturados,
-      perdidosValor: kpis.perdidos.valor,
-      perdidosQtd: kpis.perdidos.quantidade
-    });
+    // 5. Calcular KPIs do mês anterior
+    let mesAnterior: ComparativoMes | null = null;
+    try {
+      const mesAnteriorDate = new Date(ano, mes - 2, 1); // Mês anterior
+      const ultimoDiaMesAnterior = new Date(ano, mes - 1, 0);
+      
+      console.log(`📊 Calculando KPIs do mês anterior: ${mesAnteriorDate.toISOString()} a ${ultimoDiaMesAnterior.toISOString()}`);
+      const kpisMesAnterior = calculateKPIs(allData, mesAnteriorDate, ultimoDiaMesAnterior, false);
+      
+      if (kpisMesAnterior.faturamento > 0) {
+        const variacao = kpisMesAnterior.faturamento > 0 
+          ? ((kpis.faturamento - kpisMesAnterior.faturamento) / kpisMesAnterior.faturamento) * 100 
+          : 0;
+        
+        mesAnterior = {
+          mes: String(mes - 1 === 0 ? 12 : mes - 1).padStart(2, '0'),
+          ano: mes - 1 === 0 ? ano - 1 : ano,
+          faturamento: kpisMesAnterior.faturamento,
+          variacao,
+        };
+        console.log('📊 Mês anterior:', mesAnterior);
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao calcular mês anterior:', error);
+    }
+    
+    // 6. Identificar o melhor mês (últimos 12 meses)
+    let melhorMes: ComparativoMes | null = null;
+    try {
+      console.log('🏆 Identificando melhor mês...');
+      const mesesParaAnalise = 12;
+      let maiorFaturamento = 0;
+      let melhorMesData: { mes: number; ano: number } | null = null;
+      
+      for (let i = 1; i <= mesesParaAnalise; i++) {
+        const mesAnalise = new Date(ano, mes - i, 1);
+        const ultimoDiaMesAnalise = new Date(ano, mes - i + 1, 0);
+        
+        const kpisMes = calculateKPIs(allData, mesAnalise, ultimoDiaMesAnalise, false);
+        
+        if (kpisMes.faturamento > maiorFaturamento) {
+          maiorFaturamento = kpisMes.faturamento;
+          melhorMesData = {
+            mes: mesAnalise.getMonth() + 1,
+            ano: mesAnalise.getFullYear(),
+          };
+        }
+      }
+      
+      if (melhorMesData && maiorFaturamento > 0) {
+        const variacao = maiorFaturamento > 0 
+          ? ((kpis.faturamento - maiorFaturamento) / maiorFaturamento) * 100 
+          : 0;
+        
+        melhorMes = {
+          mes: String(melhorMesData.mes).padStart(2, '0'),
+          ano: melhorMesData.ano,
+          faturamento: maiorFaturamento,
+          variacao,
+        };
+        console.log('🏆 Melhor mês:', melhorMes);
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao identificar melhor mês:', error);
+    }
 
-    const htmlContent = generateReportHTML(kpis, reportDate, periodo);
+    console.log('✅ KPIs finais:', kpis);
 
+    // 7. Gerar HTML do relatório
+    console.log('📧 Gerando HTML do relatório...');
+    const reportHTML = generateReportHTML(kpis, reportDate, periodo, metaMensal, mesAnterior, melhorMes);
+
+    // 8. Enviar email via Resend
     const isTestMode = true;
     const authorizedTestEmail = "mauricio.maciel@globalaco.com.br";
     
@@ -457,7 +639,7 @@ const handler = async (req: Request): Promise<Response> => {
       subject: isTestMode 
         ? `📊 Relatório Comercial Manual - ${reportDate} [TESTE]`
         : `📊 Relatório Comercial Manual - ${reportDate}`,
-      html: htmlContent,
+      html: reportHTML,
       ...(isTestMode && { test: true })
     };
 
@@ -479,29 +661,28 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Erro no Resend: ${JSON.stringify(resendData)}`);
     }
 
-    await supabase.from('email_reports_log').insert({
+    // 9. Registrar envio no banco de dados
+    await supabaseAdmin.from('email_reports_log').insert({
       config_id: configId,
       email: isTestMode ? authorizedTestEmail : config.email,
       status: 'success',
-      report_date: now.toISOString().split('T')[0]
+      report_date: startDate.toISOString().split('T')[0],
     });
 
-    console.log(`✅ Relatório manual enviado com sucesso para ${isTestMode ? authorizedTestEmail + ' (modo teste)' : config.email}`);
+    console.log(`✅ Relatório manual enviado com sucesso para ${isTestMode ? authorizedTestEmail : config.email} ${isTestMode ? '(modo teste)' : ''}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Relatório enviado com sucesso',
-        testMode: isTestMode,
-        recipient: isTestMode ? authorizedTestEmail : config.email
+        message: `Relatório enviado para ${isTestMode ? authorizedTestEmail : config.email}` 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error("❌ [send-manual-report] Erro:", error);
+    console.error("❌ Erro ao processar relatório:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

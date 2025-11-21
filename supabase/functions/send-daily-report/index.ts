@@ -40,10 +40,17 @@ interface EmailKPIs {
   faturamento: number;
   orcamentosValor: number;
   pedidosNaoFaturados: number;
-  perdidos: {
-    valor: number;
-    quantidade: number;
-  };
+  perdidosValor: number;
+  perdidosQtd: number;
+  diasUteis: number;
+  mediaDiaria: number;
+}
+
+interface ComparativoMes {
+  mes: string;
+  ano: number;
+  faturamento: number;
+  variacao: number;
 }
 
 // Parse CSV - IGUAL ao googleSheetsService.ts
@@ -74,10 +81,6 @@ function parseCSV(csvText: string): string[][] {
   }
   
   return result;
-}
-
-function normalizeField(value: string): string {
-  return value?.trim().replace(/\s+/g, ' ') || '';
 }
 
 // Parse de data - IGUAL ao utils-comercial.ts
@@ -129,19 +132,33 @@ function parseDate(dateString: string): Date | null {
   return null;
 }
 
-// Determinar qual campo de data usar - IGUAL ao ComercialContext (sessão 'dashboard')
+// Determinar qual campo de data usar
 function getDateField(item: ComercialData): Date | null {
-  // Sessão 'dashboard': Emitida/Faturado usa data_emissao, outros usam data_inicio
   if (item.situacao === 'Emitida' || item.situacao === 'Faturado') {
     return parseDate(item.data_emissao || '');
   }
   return parseDate(item.data_inicio || '');
 }
 
-// Carregar dados da planilha - IGUAL ao googleSheetsService.ts
+// Calcula dias úteis (segunda a sexta) entre duas datas
+function calcularDiasUteis(startDate: Date, endDate: Date): number {
+  let diasUteis = 0;
+  const current = new Date(startDate);
+  
+  while (current <= endDate) {
+    const diaSemana = current.getDay();
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasUteis++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return diasUteis;
+}
+
+// Carregar dados da planilha
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   console.log('📊 Buscando dados da planilha...');
-  console.log('📋 URL:', CSV_URL);
   
   try {
     const response = await fetch(CSV_URL, {
@@ -150,148 +167,99 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
       },
     });
     
-    console.log('📥 Status da resposta:', response.status, response.statusText);
-    console.log('📥 Headers da resposta:', Object.fromEntries(response.headers.entries()));
-    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Resposta de erro:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const csvText = await response.text();
     const rows = parseCSV(csvText);
     
-    console.log(`✅ ${rows.length} linhas parseadas`);
-    
     if (rows.length < 2) {
-      console.warn('⚠️ Planilha vazia ou só com header');
       return [];
     }
     
-    // Log dos headers (primeira linha)
-    console.log('📋 Headers encontrados (primeiros 10):', rows[0].slice(0, 10));
-    
-    // Processar linhas de dados (pular header) - ÍNDICES FIXOS como no Dashboard
     const comercialData: ComercialData[] = rows
       .slice(1)
-      .filter((row: string[]) => row.length > 30 && row[3]) // Filtrar linhas válidas
-      .map((row: string[], index: number): ComercialData => {
-        // Log das primeiras 3 linhas para debug
-        if (index < 3) {
-          console.log(`📊 Linha ${index + 1}:`, {
-            numeropedido: row[1],
-            situacao: row[3],
-            valor: row[14],
-            cliente: row[29]
-          });
-        }
-        
+      .filter((row: string[]) => row.length > 30 && row[3])
+      .map((row: string[]): ComercialData => {
         return {
-          numeropedido: row[1] || '', // Coluna B
-          situacao: (row[3] || '').trim().replace(/\s+/g, ' '), // Coluna D
-          data_emissao: row[4] || '', // Coluna E
-          data_inicio: row[33] || '', // Coluna AH
-          data_perdido: row[35] || '', // Coluna AJ
-          data_pedido_pronto: row[34] || '', // Coluna AI
-          valor: parseFloat(row[14]?.replace(',', '.')) || 0, // Coluna O
-          peso: parseFloat(row[19]?.replace(',', '.')) || 0, // Coluna T
-          classe: (row[21] || '').trim().replace(/\s+/g, ' '), // Coluna V
-          cli_nomefantasia: row[29] || '', // Coluna AD
-          cliente: row[29] || '', // Coluna AD
-          codigocliente: row[28] || '', // Coluna AC
-          uf: (row[30] || '').trim().replace(/\s+/g, ' '), // Coluna AE
-          vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '), // Coluna AB
-          faturamento_tipo: parseInt(row[43]) || 0, // Coluna AR
-          produto: row[9] || '', // Coluna J (descricaomat)
-          obs: row[10] || '', // Coluna K (observacao)
+          numeropedido: row[1] || '',
+          situacao: (row[3] || '').trim().replace(/\s+/g, ' '),
+          data_emissao: row[4] || '',
+          data_inicio: row[33] || '',
+          data_perdido: row[35] || '',
+          data_pedido_pronto: row[34] || '',
+          valor: parseFloat(row[14]?.replace(',', '.')) || 0,
+          peso: parseFloat(row[19]?.replace(',', '.')) || 0,
+          classe: (row[21] || '').trim().replace(/\s+/g, ' '),
+          cli_nomefantasia: row[29] || '',
+          cliente: row[29] || '',
+          codigocliente: row[28] || '',
+          uf: (row[30] || '').trim().replace(/\s+/g, ' '),
+          vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '),
+          faturamento_tipo: parseInt(row[43]) || 0,
+          produto: row[9] || '',
+          obs: row[10] || '',
         };
       })
       .filter((item: ComercialData) => {
-        // Filtrar registros válidos
         if (!item.situacao || item.valor <= 0) return false;
-        
-        // Excluir clientes que contenham "GLOBAL AÇO" no nome
         const nomeFantasia = item.cli_nomefantasia?.toUpperCase() || '';
         if (nomeFantasia.includes('GLOBAL AÇO')) {
           return false;
         }
-        
         return true;
       });
     
-    console.log(`✅ ${comercialData.length} registros carregados da planilha`);
-    
-    // Log dos primeiros 3 registros para debug
-    if (comercialData.length > 0) {
-      console.log('📋 Primeiros 3 registros:', 
-        comercialData.slice(0, 3).map(r => ({
-          numeropedido: r.numeropedido,
-          situacao: r.situacao,
-          valor: r.valor,
-          cliente: r.cliente
-        }))
-      );
-    }
-    
+    console.log(`✅ ${comercialData.length} registros carregados`);
     return comercialData;
     
   } catch (error) {
-    console.error('❌ Erro ao buscar dados da planilha:', error);
+    console.error('❌ Erro ao buscar dados:', error);
     throw error;
   }
 }
 
-// Calcular KPIs - IGUAL ao ComercialContext e ComercialKPIs
-function calculateKPIs(allData: ComercialData[], startDate: Date, endDate: Date): EmailKPIs {
-  console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
-  
-  // Filtrar dados por período usando getDateField
+// Calcular KPIs
+function calculateKPIs(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date,
+  calcularDias: boolean = true
+): EmailKPIs {
   const filteredData = allData.filter(item => {
     const date = getDateField(item);
     return date && date >= startDate && date <= endDate;
   });
   
-  console.log(`📋 Registros no período: ${filteredData.length} de ${allData.length} totais`);
-  
-  // 1. FATURAMENTO - IGUAL ao ComercialKPIs
-  // Filtrar: situacao 'Emitida' ou 'Pedido' + faturamento_tipo === 1
   const faturados = filteredData.filter(item =>
     (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
     item.faturamento_tipo === 1
   );
-  const faturamento = faturados.reduce((acc, item) => acc + item.valor, 0);
-  console.log(`💰 Faturamento: R$ ${faturamento.toFixed(2)} (${faturados.length} registros)`);
+  const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
   
-  // 2. ORÇAMENTOS - IGUAL ao ComercialContext
-  // Usar TODOS os dados (não filtrar por período), situacao 'Orçamento'
   const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
   const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
-  console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentos.length} registros)`);
   
-  // 3. PEDIDOS NÃO FATURADOS - IGUAL ao ComercialKPIs
-  // Filtrar: situacao 'Pedido' + faturamento_tipo === 1 no período
-  const pedidosNaoFaturadosData = filteredData.filter(item =>
+  const pedidosNaoFaturados = filteredData.filter(item =>
     item.situacao === 'Pedido' && item.faturamento_tipo === 1
-  );
-  const pedidosNaoFaturados = pedidosNaoFaturadosData.length;
-  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados}`);
+  ).length;
   
-  // 4. PERDIDOS - IGUAL ao ComercialContext
-  // Filtrar: situacao 'Perdido' no período
   const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
-  const perdidosQuantidade = perdidosData.length;
-  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQuantidade} oportunidades)`);
-  
+  const perdidosQtd = perdidosData.length;
+
+  const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
+  const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
+
   return {
-    faturamento,
+    faturamento: faturado,
     orcamentosValor,
     pedidosNaoFaturados,
-    perdidos: {
-      valor: perdidosValor,
-      quantidade: perdidosQuantidade,
-    },
+    perdidosValor,
+    perdidosQtd,
+    diasUteis,
+    mediaDiaria,
   };
 }
 
@@ -310,7 +278,26 @@ function formatDate(date: Date): string {
   });
 }
 
-function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
+function generateReportHTML(
+  kpis: EmailKPIs,
+  reportDate: string,
+  meta: number,
+  mesAnterior: ComparativoMes | null,
+  melhorMes: ComparativoMes | null
+): string {
+  const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
+  const faltaMeta = meta - kpis.faturamento;
+  
+  let statusMeta = '✗';
+  let corMeta = '#f56565';
+  if (percentualMeta >= 100) {
+    statusMeta = '✓';
+    corMeta = '#48bb78';
+  } else if (percentualMeta >= 80) {
+    statusMeta = '⚠';
+    corMeta = '#ed8936';
+  }
+
   return `
     <!DOCTYPE html>
     <html>
@@ -330,14 +317,29 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
         .kpi-card.warning { border-left-color: #ed8936; }
         .kpi-card.danger { border-left-color: #f56565; }
         .kpi-card.info { border-left-color: #4299e1; }
+        .kpi-card.purple { border-left-color: #667eea; }
         .kpi-label { font-size: 12px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 8px; }
         .kpi-value { font-size: 24px; font-weight: 700; color: #2d3748; }
         .kpi-subtitle { font-size: 13px; color: #718096; margin-top: 5px; }
-        .summary { background: #e6fffa; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #38b2ac; }
-        .summary p { margin: 0; color: #234e52; line-height: 1.6; }
+        .meta-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .meta-item { padding: 15px; background: #f7fafc; border-radius: 6px; }
+        .meta-label { color: #718096; font-size: 13px; margin-bottom: 5px; }
+        .meta-value { color: #2d3748; font-size: 20px; font-weight: bold; }
+        .comp-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .comp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .comp-card { background: #f7fafc; padding: 15px; border-radius: 6px; border-left: 4px solid #4299e1; }
+        .comp-card.gold { background: #fffaf0; border-left-color: #f6ad55; }
+        .comp-title { color: #2d3748; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+        .comp-value { color: #4a5568; font-size: 16px; margin-bottom: 5px; }
+        .comp-var { font-size: 14px; font-weight: bold; }
+        .comp-var.pos { color: #48bb78; }
+        .comp-var.neg { color: #f56565; }
+        .analysis { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .analysis p { margin: 8px 0; color: #4a5568; line-height: 1.8; }
         .footer { background: #f7fafc; padding: 20px; text-align: center; font-size: 13px; color: #718096; }
         @media (max-width: 600px) {
-          .kpi-grid { grid-template-columns: 1fr; }
+          .kpi-grid, .meta-grid, .comp-grid { grid-template-columns: 1fr; }
         }
       </style>
     </head>
@@ -369,25 +371,63 @@ function generateReportHTML(kpis: EmailKPIs, reportDate: string): string {
             
             <div class="kpi-card danger">
               <div class="kpi-label">❌ Valor Perdido</div>
-              <div class="kpi-value">${formatCurrency(kpis.perdidos.valor)}</div>
-              <div class="kpi-subtitle">${kpis.perdidos.quantidade} oportunidade(s)</div>
+              <div class="kpi-value">${formatCurrency(kpis.perdidosValor)}</div>
+              <div class="kpi-subtitle">${kpis.perdidosQtd} oportunidade(s)</div>
             </div>
           </div>
 
-          <div class="summary">
-            <p>
-              <strong>Resumo:</strong> 
-              Ontem foram registrados ${formatCurrency(kpis.faturamento)} em faturamento, 
-              ${formatCurrency(kpis.orcamentosValor)} em orçamentos, 
-              ${kpis.pedidosNaoFaturados} pedido(s) em aberto 
-              e ${formatCurrency(kpis.perdidos.valor)} em oportunidades perdidas.
-            </p>
+          <div class="meta-section">
+            <h3 class="section-title">🎯 Meta do Mês (Progresso)</h3>
+            <div class="meta-grid">
+              <div class="meta-item">
+                <div class="meta-label">Meta Mensal</div>
+                <div class="meta-value">${formatCurrency(meta)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Atingimento</div>
+                <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(1)}% ${statusMeta}</div>
+              </div>
+            </div>
+          </div>
+
+          ${mesAnterior || melhorMes ? `
+          <div class="comp-section">
+            <h3 class="section-title">📈 Comparativos (Mês Atual)</h3>
+            <div class="comp-grid">
+              ${mesAnterior ? `
+              <div class="comp-card">
+                <div class="comp-title">Mês Anterior (${mesAnterior.mes}/${mesAnterior.ano})</div>
+                <div class="comp-value">${formatCurrency(mesAnterior.faturamento)}</div>
+                <div class="comp-var ${mesAnterior.variacao >= 0 ? 'pos' : 'neg'}">
+                  ${mesAnterior.variacao >= 0 ? '+' : ''}${mesAnterior.variacao.toFixed(1)}% ${mesAnterior.variacao >= 0 ? '↗️' : '↘️'}
+                </div>
+              </div>
+              ` : ''}
+              ${melhorMes ? `
+              <div class="comp-card gold">
+                <div class="comp-title">🏆 Melhor Mês (${melhorMes.mes}/${melhorMes.ano})</div>
+                <div class="comp-value">${formatCurrency(melhorMes.faturamento)}</div>
+                <div class="comp-var ${melhorMes.variacao >= 0 ? 'pos' : 'neg'}">
+                  ${melhorMes.variacao >= 0 ? '+' : ''}${melhorMes.variacao.toFixed(1)}% vs melhor
+                </div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          <div class="analysis">
+            <h3 class="section-title">💡 Análise Rápida</h3>
+            <p>• Faturamento de ontem: <strong>${formatCurrency(kpis.faturamento)}</strong></p>
+            ${mesAnterior ? `<p>• Mês atual com ${mesAnterior.variacao >= 0 ? 'aumento' : 'redução'} de <strong>${Math.abs(mesAnterior.variacao).toFixed(1)}%</strong> vs mês anterior</p>` : ''}
+            ${faltaMeta > 0 ? `<p>• Ainda faltam <strong>${formatCurrency(faltaMeta)}</strong> para atingir a meta mensal</p>` : `<p>• <strong>Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
+            ${kpis.pedidosNaoFaturados > 0 ? `<p>• <strong>${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
+            ${kpis.perdidosQtd > 0 ? `<p>• <strong>${kpis.perdidosQtd}</strong> oportunidades perdidas ontem (${formatCurrency(kpis.perdidosValor)})</p>` : ''}
           </div>
         </div>
 
         <div class="footer">
           <p>Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
-          <p>Acesse o Dashboard para visualizar análises detalhadas.</p>
         </div>
       </div>
     </body>
@@ -403,9 +443,9 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: configs, error: configError } = await supabase
+    const { data: configs, error: configError } = await supabaseAdmin
       .from('email_reports_config')
       .select('*')
       .eq('is_active', true)
@@ -433,23 +473,100 @@ const handler = async (req: Request): Promise<Response> => {
 
     const reportDate = formatDate(yesterday);
 
-    console.log(`📅 Relatório diário para: ${reportDate}`);
-
-    // Carregar dados da planilha
+    // Carregar dados
     const allData = await loadComercialDataFromSheet();
-    
-    // Calcular KPIs
-    const kpis = calculateKPIs(allData, yesterday, endOfYesterday);
-    
-    console.log('✅ KPIs finais:', {
-      faturamento: kpis.faturamento,
-      orcamentosValor: kpis.orcamentosValor,
-      pedidosNaoFaturados: kpis.pedidosNaoFaturados,
-      perdidosValor: kpis.perdidos.valor,
-      perdidosQtd: kpis.perdidos.quantidade
-    });
 
-    const htmlContent = generateReportHTML(kpis, reportDate);
+    // Buscar meta mensal
+    const ano = yesterday.getFullYear();
+    const mes = yesterday.getMonth() + 1;
+    
+    let metaMensal = 2000000;
+    
+    try {
+      const { data: metaData } = await supabaseAdmin
+        .from('metas_vendas')
+        .select('meta_mensal')
+        .eq('ano', ano)
+        .eq('mes', mes)
+        .limit(1)
+        .single();
+      
+      if (metaData?.meta_mensal) {
+        metaMensal = Number(metaData.meta_mensal);
+      }
+    } catch (error) {
+      console.log('⚠️ Meta não encontrada, usando padrão');
+    }
+
+    // Calcular KPIs de ontem
+    const kpis = calculateKPIs(allData, yesterday, endOfYesterday, false);
+    
+    // Calcular KPIs do mês atual até ontem
+    const primeiroDiaMes = new Date(ano, mes - 1, 1);
+    const kpisMesAtual = calculateKPIs(allData, primeiroDiaMes, endOfYesterday);
+    
+    // Calcular mês anterior
+    let mesAnterior: ComparativoMes | null = null;
+    try {
+      const mesAnteriorDate = new Date(ano, mes - 2, 1);
+      const ultimoDiaMesAnterior = new Date(ano, mes - 1, 0);
+      
+      const kpisMesAnterior = calculateKPIs(allData, mesAnteriorDate, ultimoDiaMesAnterior, false);
+      
+      if (kpisMesAnterior.faturamento > 0) {
+        const variacao = kpisMesAnterior.faturamento > 0 
+          ? ((kpisMesAtual.faturamento - kpisMesAnterior.faturamento) / kpisMesAnterior.faturamento) * 100 
+          : 0;
+        
+        mesAnterior = {
+          mes: String(mes - 1 === 0 ? 12 : mes - 1).padStart(2, '0'),
+          ano: mes - 1 === 0 ? ano - 1 : ano,
+          faturamento: kpisMesAnterior.faturamento,
+          variacao,
+        };
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao calcular mês anterior');
+    }
+    
+    // Identificar melhor mês
+    let melhorMes: ComparativoMes | null = null;
+    try {
+      let maiorFaturamento = 0;
+      let melhorMesData: { mes: number; ano: number } | null = null;
+      
+      for (let i = 1; i <= 12; i++) {
+        const mesAnalise = new Date(ano, mes - i, 1);
+        const ultimoDiaMesAnalise = new Date(ano, mes - i + 1, 0);
+        
+        const kpisMes = calculateKPIs(allData, mesAnalise, ultimoDiaMesAnalise, false);
+        
+        if (kpisMes.faturamento > maiorFaturamento) {
+          maiorFaturamento = kpisMes.faturamento;
+          melhorMesData = {
+            mes: mesAnalise.getMonth() + 1,
+            ano: mesAnalise.getFullYear(),
+          };
+        }
+      }
+      
+      if (melhorMesData && maiorFaturamento > 0) {
+        const variacao = maiorFaturamento > 0 
+          ? ((kpisMesAtual.faturamento - maiorFaturamento) / maiorFaturamento) * 100 
+          : 0;
+        
+        melhorMes = {
+          mes: String(melhorMesData.mes).padStart(2, '0'),
+          ano: melhorMesData.ano,
+          faturamento: maiorFaturamento,
+          variacao,
+        };
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao identificar melhor mês');
+    }
+
+    const htmlContent = generateReportHTML(kpis, reportDate, metaMensal, mesAnterior, melhorMes);
 
     const results = [];
     for (const config of configs) {
@@ -479,29 +596,25 @@ const handler = async (req: Request): Promise<Response> => {
         const resendData = await resendResponse.json();
 
         if (resendResponse.ok) {
-          await supabase.from('email_reports_log').insert({
+          await supabaseAdmin.from('email_reports_log').insert({
             config_id: config.id,
             email: isTestMode ? authorizedTestEmail : config.email,
             status: 'success',
-            report_date: yesterday.toISOString().split('T')[0]
+            report_date: yesterday.toISOString().split('T')[0],
           });
 
-          results.push({ config: config.id, status: 'success' });
-          console.log(`✅ Relatório enviado para ${isTestMode ? authorizedTestEmail + ' (teste)' : config.email}`);
-        } else {
-          throw new Error(JSON.stringify(resendData));
+          results.push({
+            email: isTestMode ? authorizedTestEmail : config.email,
+            success: true
+          });
         }
       } catch (error: any) {
-        await supabase.from('email_reports_log').insert({
-          config_id: config.id,
+        console.error(`Erro ao enviar para ${config.email}:`, error);
+        results.push({
           email: config.email,
-          status: 'error',
-          error_message: error.message,
-          report_date: yesterday.toISOString().split('T')[0]
+          success: false,
+          error: error.message
         });
-
-        results.push({ config: config.id, status: 'error', error: error.message });
-        console.error(`❌ Erro ao enviar para ${config.email}:`, error);
       }
     }
 
@@ -511,9 +624,9 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("❌ [send-daily-report] Erro:", error);
+    console.error("❌ Erro:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

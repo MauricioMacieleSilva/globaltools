@@ -545,17 +545,17 @@ function generateReportHTML(
         .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; }
         .content { padding: 24px 30px 30px 30px; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
-        .section-title.spaced { margin-top: 32px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 24px 0 32px 0; }
+        .section-title.spaced { margin-top: 40px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 24px 0 40px 0; }
         .summary-column { }
         .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
-        .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 14px 16px; border-left: 3px solid #667eea; }
+        .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 16px 18px; border-left: 3px solid #667eea; }
         .kpi-card.success { border-left-color: #48bb78; }
         .kpi-card.warning { border-left-color: #ed8936; }
         .kpi-card.danger { border-left-color: #f56565; }
         .kpi-card.info { border-left-color: #4299e1; }
         .kpi-card.purple { border-left-color: #667eea; }
-        .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px; }
+        .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px; }
         .kpi-value { font-size: 20px; font-weight: 700; color: #2d3748; }
         .kpi-subtitle { font-size: 12px; color: #718096; margin-top: 3px; }
         .meta-section { background: #f7fafc; padding: 14px 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 10px; }

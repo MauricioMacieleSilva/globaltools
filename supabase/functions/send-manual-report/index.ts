@@ -546,7 +546,7 @@ function generateReportHTML(
         .content { padding: 24px 30px 30px 30px; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
         .section-title.spaced { margin-top: 32px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 24px 0 16px 0; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 24px 0 32px 0; }
         .summary-column { }
         .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
         .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 14px 16px; border-left: 3px solid #667eea; }

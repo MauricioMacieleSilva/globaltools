@@ -1005,7 +1005,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 8. Enviar email via Resend
     // Em modo teste, Resend só permite enviar para email verificado
-    const verifiedEmail = "comercial@globalaco.com.br";
+    const verifiedEmail = "mauricio.maciel@globalaco.com.br";
     const isTestMode = config.email !== verifiedEmail;
     const targetEmail = isTestMode ? verifiedEmail : config.email;
     

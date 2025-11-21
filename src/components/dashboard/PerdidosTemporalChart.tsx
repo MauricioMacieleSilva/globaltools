@@ -48,21 +48,21 @@ export function PerdidosTemporalChart() {
         if (data) {
           const mesAno = format(data, 'MMM/yy', { locale: ptBR });
           if (!acc[mesAno]) {
-            acc[mesAno] = { valor: 0, pedidos: 0, clientes: new Set(), peso: 0 };
+            acc[mesAno] = { valor: 0, pedidos: new Set<string>(), clientes: new Set<string>(), peso: 0 };
           }
           acc[mesAno].valor += item.valor;
-          acc[mesAno].pedidos += 1;
+          acc[mesAno].pedidos.add(item.numeropedido);
           acc[mesAno].clientes.add(item.cliente);
           acc[mesAno].peso += item.peso || 0;
         }
         return acc;
-      }, {} as Record<string, { valor: number; pedidos: number; clientes: Set<string>; peso: number }>);
+      }, {} as Record<string, { valor: number; pedidos: Set<string>; clientes: Set<string>; peso: number }>);
 
       return Object.entries(agrupado)
         .map(([periodo, data]) => ({ 
           periodo, 
           valor: data.valor,
-          pedidos: data.pedidos,
+          pedidos: data.pedidos.size,
           clientes: data.clientes.size,
           peso: data.peso,
           color: 'hsl(var(--destructive))'
@@ -87,23 +87,23 @@ export function PerdidosTemporalChart() {
         if (data && data.getMonth() === month && data.getFullYear() === year) {
           const dia = format(data, 'dd');
           if (!acc[dia]) {
-            acc[dia] = { valor: 0, pedidos: 0, clientes: new Set(), peso: 0 };
+            acc[dia] = { valor: 0, pedidos: new Set<string>(), clientes: new Set<string>(), peso: 0 };
           }
           acc[dia].valor += item.valor;
-          acc[dia].pedidos += 1;
+          acc[dia].pedidos.add(item.numeropedido);
           acc[dia].clientes.add(item.cliente);
           acc[dia].peso += item.peso || 0;
         }
         return acc;
-      }, {} as Record<string, { valor: number; pedidos: number; clientes: Set<string>; peso: number }>);
+      }, {} as Record<string, { valor: number; pedidos: Set<string>; clientes: Set<string>; peso: number }>);
 
       return allDays.map(day => {
         const dia = format(day, 'dd');
-        const data = agrupado[dia] || { valor: 0, pedidos: 0, clientes: new Set(), peso: 0 };
+        const data = agrupado[dia] || { valor: 0, pedidos: new Set<string>(), clientes: new Set<string>(), peso: 0 };
         return { 
           periodo: dia, 
           valor: data.valor,
-          pedidos: data.pedidos,
+          pedidos: data.pedidos.size,
           clientes: data.clientes.size,
           peso: data.peso,
           color: 'hsl(var(--destructive))'

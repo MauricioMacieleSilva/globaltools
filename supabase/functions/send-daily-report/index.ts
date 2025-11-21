@@ -162,92 +162,79 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
     const csvText = await response.text();
     const rows = parseCSV(csvText);
     
+    console.log(`✅ ${rows.length} linhas parseadas`);
+    
     if (rows.length < 2) {
-      console.log('⚠️ Planilha vazia ou com poucos dados');
+      console.warn('⚠️ Planilha vazia ou só com header');
       return [];
     }
     
-    const headers = rows[0].map(h => normalizeField(h.toLowerCase()));
-    console.log('📋 Headers encontrados (primeiros 10):', headers.slice(0, 10));
+    // Log dos headers (primeira linha)
+    console.log('📋 Headers encontrados (primeiros 10):', rows[0].slice(0, 10));
     
-    // Mapear colunas - IGUAL ao googleSheetsService
-    const columnMap: Record<string, number> = {};
-    headers.forEach((header, index) => {
-      const normalized = normalizeField(header);
-      if (normalized === 'numeropedido') columnMap.numeropedido = index;
-      if (normalized === 'situacao') columnMap.situacao = index;
-      if (normalized === 'data emissao' || normalized === 'data_emissao') columnMap.data_emissao = index;
-      if (normalized === 'data inicio' || normalized === 'data_inicio') columnMap.data_inicio = index;
-      if (normalized === 'data perdido' || normalized === 'data_perdido') columnMap.data_perdido = index;
-      if (normalized === 'data pedido pronto' || normalized === 'data_pedido_pronto') columnMap.data_pedido_pronto = index;
-      if (normalized === 'valor') columnMap.valor = index;
-      if (normalized === 'peso') columnMap.peso = index;
-      if (normalized === 'classe') columnMap.classe = index;
-      if (normalized === 'cli_nomefantasia') columnMap.cli_nomefantasia = index;
-      if (normalized === 'cliente') columnMap.cliente = index;
-      if (normalized === 'codigocliente') columnMap.codigocliente = index;
-      if (normalized === 'uf') columnMap.uf = index;
-      if (normalized === 'vendedor') columnMap.vendedor = index;
-      if (normalized === 'faturamento_tipo') columnMap.faturamento_tipo = index;
-      if (normalized === 'produto') columnMap.produto = index;
-      if (normalized === 'obs') columnMap.obs = index;
-    });
+    // Processar linhas de dados (pular header) - ÍNDICES FIXOS como no Dashboard
+    const comercialData: ComercialData[] = rows
+      .slice(1)
+      .filter((row: string[]) => row.length > 30 && row[3]) // Filtrar linhas válidas
+      .map((row: string[], index: number): ComercialData => {
+        // Log das primeiras 3 linhas para debug
+        if (index < 3) {
+          console.log(`📊 Linha ${index + 1}:`, {
+            numeropedido: row[1],
+            situacao: row[3],
+            valor: row[14],
+            cliente: row[29]
+          });
+        }
+        
+        return {
+          numeropedido: row[1] || '', // Coluna B
+          situacao: (row[3] || '').trim().replace(/\s+/g, ' '), // Coluna D
+          data_emissao: row[4] || '', // Coluna E
+          data_inicio: row[33] || '', // Coluna AH
+          data_perdido: row[35] || '', // Coluna AJ
+          data_pedido_pronto: row[34] || '', // Coluna AI
+          valor: parseFloat(row[14]?.replace(',', '.')) || 0, // Coluna O
+          peso: parseFloat(row[19]?.replace(',', '.')) || 0, // Coluna T
+          classe: (row[21] || '').trim().replace(/\s+/g, ' '), // Coluna V
+          cli_nomefantasia: row[29] || '', // Coluna AD
+          cliente: row[29] || '', // Coluna AD
+          codigocliente: row[28] || '', // Coluna AC
+          uf: (row[30] || '').trim().replace(/\s+/g, ' '), // Coluna AE
+          vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '), // Coluna AB
+          faturamento_tipo: parseInt(row[43]) || 0, // Coluna AR
+          produto: row[9] || '', // Coluna J (descricaomat)
+          obs: row[10] || '', // Coluna K (observacao)
+        };
+      })
+      .filter((item: ComercialData) => {
+        // Filtrar registros válidos
+        if (!item.situacao || item.valor <= 0) return false;
+        
+        // Excluir clientes que contenham "GLOBAL AÇO" no nome
+        const nomeFantasia = item.cli_nomefantasia?.toUpperCase() || '';
+        if (nomeFantasia.includes('GLOBAL AÇO')) {
+          return false;
+        }
+        
+        return true;
+      });
     
-    console.log('🗺️ Colunas principais mapeadas:', {
-      numeropedido: columnMap.numeropedido,
-      situacao: columnMap.situacao,
-      data_emissao: columnMap.data_emissao,
-      data_inicio: columnMap.data_inicio,
-      valor: columnMap.valor,
-      faturamento_tipo: columnMap.faturamento_tipo
-    });
+    console.log(`✅ ${comercialData.length} registros carregados da planilha`);
     
-    const data: ComercialData[] = [];
-    
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      
-      const situacao = normalizeField(row[columnMap.situacao] || '');
-      const valorStr = (row[columnMap.valor] || '0').replace(/[^\d,-]/g, '').replace(',', '.');
-      const valor = parseFloat(valorStr) || 0;
-      const cli_nomefantasia = normalizeField(row[columnMap.cli_nomefantasia] || '');
-      
-      // Filtros - IGUAL ao googleSheetsService
-      if (!situacao) continue;
-      if (valor <= 0) continue;
-      
-      // Excluir cliente GLOBAL AÇO
-      const normalizeText = (text: string) => text?.toUpperCase().replace(/\s+/g, ' ').trim();
-      const nomeFantasia = normalizeText(cli_nomefantasia);
-      if (nomeFantasia.includes('GLOBAL') && nomeFantasia.includes('AÇO')) {
-        continue;
-      }
-      
-      const item: ComercialData = {
-        numeropedido: normalizeField(row[columnMap.numeropedido] || ''),
-        situacao,
-        data_emissao: normalizeField(row[columnMap.data_emissao] || ''),
-        data_inicio: normalizeField(row[columnMap.data_inicio] || ''),
-        data_perdido: normalizeField(row[columnMap.data_perdido] || ''),
-        data_pedido_pronto: normalizeField(row[columnMap.data_pedido_pronto] || ''),
-        valor,
-        peso: parseFloat((row[columnMap.peso] || '0').replace(/[^\d,-]/g, '').replace(',', '.')) || 0,
-        classe: normalizeField(row[columnMap.classe] || ''),
-        cli_nomefantasia,
-        cliente: normalizeField(row[columnMap.cliente] || ''),
-        codigocliente: normalizeField(row[columnMap.codigocliente] || ''),
-        uf: normalizeField(row[columnMap.uf] || ''),
-        vendedor: normalizeField(row[columnMap.vendedor] || ''),
-        faturamento_tipo: parseInt(row[columnMap.faturamento_tipo] || '0') || 0,
-        produto: normalizeField(row[columnMap.produto] || ''),
-        obs: normalizeField(row[columnMap.obs] || ''),
-      };
-      
-      data.push(item);
+    // Log dos primeiros 3 registros para debug
+    if (comercialData.length > 0) {
+      console.log('📋 Primeiros 3 registros:', 
+        comercialData.slice(0, 3).map(r => ({
+          numeropedido: r.numeropedido,
+          situacao: r.situacao,
+          valor: r.valor,
+          cliente: r.cliente
+        }))
+      );
     }
     
-    console.log(`✅ ${data.length} registros carregados da planilha`);
-    return data;
+    return comercialData;
     
   } catch (error) {
     console.error('❌ Erro ao buscar dados da planilha:', error);

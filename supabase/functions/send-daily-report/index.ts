@@ -241,9 +241,17 @@ function calculateKPIs(
   const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
   const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
   
-  const pedidosNaoFaturados = filteredData.filter(item =>
+  // Contar pedidos únicos, não linhas
+  const pedidosNaoFaturadosData = filteredData.filter(item =>
     item.situacao === 'Pedido' && item.faturamento_tipo === 1
-  ).length;
+  );
+  const pedidosNaoFaturadosUnicos = new Map<string, ComercialData>();
+  pedidosNaoFaturadosData.forEach(p => {
+    if (!pedidosNaoFaturadosUnicos.has(p.numeropedido)) {
+      pedidosNaoFaturadosUnicos.set(p.numeropedido, p);
+    }
+  });
+  const pedidosNaoFaturados = pedidosNaoFaturadosUnicos.size;
   
   const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);

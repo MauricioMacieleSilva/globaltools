@@ -252,8 +252,17 @@ function calculateKPIs(data: ComercialData[], inicio: Date, fim: Date): EmailKPI
   const perdidosQtd = perdidosUnicos.size;
   console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
 
-  const pedidosNaoFaturados = registrosPeriodo.filter(r => r.situacao === 'Pedido').length;
-  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados}`);
+  // Pedidos não faturados (contar pedidos únicos, não linhas)
+  const pedidosRaw = registrosPeriodo.filter(r => r.situacao === 'Pedido');
+  const pedidosUnicos = new Map<string, ComercialData>();
+  pedidosRaw.forEach(p => {
+    if (!pedidosUnicos.has(p.numeropedido)) {
+      pedidosUnicos.set(p.numeropedido, p);
+    }
+  });
+  const pedidosNaoFaturados = pedidosUnicos.size;
+  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos (${pedidosRaw.length} linhas)`);
+
 
   const diasUteis = calcularDiasUteis(inicio, fim);
   console.log(`📊 Dias úteis no período: ${diasUteis}`);

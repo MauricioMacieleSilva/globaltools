@@ -286,8 +286,10 @@ function calculateKPIs(
   
   const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
-  const perdidosQtd = perdidosData.length;
-  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} oportunidades)`);
+  const perdidosQtd = new Set(
+    perdidosData.map(item => item.numeropedido).filter(Boolean)
+  ).size;
+  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
 
   const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
   const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
@@ -543,6 +545,7 @@ function generateReportHTML(
         .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; }
         .content { padding: 24px 30px 30px 30px; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+        .section-title.spaced { margin-top: 32px; }
         .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 24px 0 16px 0; }
         .summary-column { }
         .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
@@ -575,6 +578,9 @@ function generateReportHTML(
         .ranking-table td, .hot-table td { padding: 8px 10px; color: #2d3748; }
         .analysis { background: white; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
         .analysis p { margin: 6px 0; color: #4a5568; line-height: 1.6; font-size: 13px; }
+        .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: transform 0.2s; }
+        .cta-button:hover { transform: translateY(-2px); }
         .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096; }
         @media (max-width: 600px) {
           .content { padding: 18px 16px 20px 16px; }
@@ -703,7 +709,7 @@ function generateReportHTML(
             </div>
           </div>
 
-          <h2 class="section-title">🏆 Ranking de Vendedores</h2>
+          <h2 class="section-title spaced">🏆 Ranking de Vendedores</h2>
           ${
             ranking.length > 0
               ? `
@@ -726,7 +732,7 @@ function generateReportHTML(
               : `<p style="color:#718096; font-size: 13px;">Sem dados de faturamento para montar o ranking neste período.</p>`
           }
 
-          <h2 class="section-title">🔥 Orçamentos Quentes (3+ Estrelas)</h2>
+          <h2 class="section-title spaced">🔥 Orçamentos Quentes (3+ Estrelas)</h2>
           ${
             orcamentosQuentes.length > 0
               ? `
@@ -809,6 +815,12 @@ function generateReportHTML(
                 : '<p>• Atenção: nenhum orçamento classificado como quente (3+ estrelas) no momento.</p>'
             }
           </div>
+        </div>
+
+        <div class="cta-section">
+          <a href="https://globaltools.lovable.app" class="cta-button">
+            🚀 Acessar Dashboard Completo
+          </a>
         </div>
 
         <div class="footer">

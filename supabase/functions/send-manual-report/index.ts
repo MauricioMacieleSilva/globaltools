@@ -53,6 +53,24 @@ interface ComparativoMes {
   variacao: number;
 }
 
+interface VendedorPerformance {
+  nome: string;
+  faturamento: number;
+  numPedidos: number;
+  ticketMedio: number;
+  percentualTotal: number;
+}
+
+interface OrcamentoQuente {
+  numeroPedido: string;
+  cliente: string;
+  vendedor: string;
+  valor: number;
+  peso: number;
+  rating: number;
+  dataEmissao: string;
+}
+
 // Parse CSV - IGUAL ao googleSheetsService.ts
 function parseCSV(csvText: string): string[][] {
   const lines = csvText.split('\n');
@@ -242,7 +260,6 @@ function calculateKPIs(
 ): EmailKPIs {
   console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
   
-  // Filtrar dados por período usando getDateField
   const filteredData = allData.filter(item => {
     const date = getDateField(item);
     return date && date >= startDate && date <= endDate;
@@ -250,7 +267,6 @@ function calculateKPIs(
   
   console.log(`📋 Registros no período: ${filteredData.length} de ${allData.length} totais`);
   
-  // 1. FATURAMENTO
   const faturados = filteredData.filter(item =>
     (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
     item.faturamento_tipo === 1
@@ -258,25 +274,21 @@ function calculateKPIs(
   const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
   console.log(`💰 Faturamento: R$ ${faturado.toFixed(2)} (${faturados.length} registros)`);
   
-  // 2. ORÇAMENTOS
   const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
   const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
   console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentos.length} registros)`);
   
-  // 3. PEDIDOS NÃO FATURADOS
   const pedidosNaoFaturadosData = filteredData.filter(item =>
     item.situacao === 'Pedido' && item.faturamento_tipo === 1
   );
   const pedidosNaoFaturados = pedidosNaoFaturadosData.length;
   console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados}`);
   
-  // 4. PERDIDOS
   const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
   const perdidosQtd = perdidosData.length;
   console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} oportunidades)`);
 
-  // Calcular dias úteis e média diária
   const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
   const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
   
@@ -292,6 +304,136 @@ function calculateKPIs(
     diasUteis,
     mediaDiaria,
   };
+}
+
+function calcularRankingVendedores(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date
+): VendedorPerformance[] {
+  const faturadosNoPeriodo = allData.filter(item => {
+    const date = getDateField(item);
+    return (
+      date &&
+      date >= startDate &&
+      date <= endDate &&
+      (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+      item.faturamento_tipo === 1 &&
+      item.vendedor &&
+      item.vendedor !== 'VENDEDOR' &&
+      item.vendedor !== 'Não informado'
+    );
+  });
+
+  const vendedoresMap: Record<string, { faturamento: number; pedidos: Set<string> }> = {};
+
+  faturadosNoPeriodo.forEach(item => {
+    const vendedor = item.vendedor || 'Não informado';
+    if (!vendedoresMap[vendedor]) {
+      vendedoresMap[vendedor] = { faturamento: 0, pedidos: new Set() };
+    }
+    vendedoresMap[vendedor].faturamento += item.valor;
+    vendedoresMap[vendedor].pedidos.add(item.numeropedido);
+  });
+
+  const totalFaturamento = Object.values(vendedoresMap).reduce(
+    (sum, v) => sum + v.faturamento,
+    0
+  );
+
+  const ranking = Object.entries(vendedoresMap)
+    .map(([nome, dados]) => {
+      const numPedidos = dados.pedidos.size || 1;
+      return {
+        nome,
+        faturamento: dados.faturamento,
+        numPedidos,
+        ticketMedio: dados.faturamento / numPedidos,
+        percentualTotal:
+          totalFaturamento > 0
+            ? (dados.faturamento / totalFaturamento) * 100
+            : 0,
+      } as VendedorPerformance;
+    })
+    .sort((a, b) => b.faturamento - a.faturamento);
+
+  console.log('🏆 Ranking de vendedores (top 5):', ranking.slice(0, 5));
+  return ranking;
+}
+
+async function buscarOrcamentosQuentes(
+  allData: ComercialData[],
+  supabaseAdmin: any
+): Promise<OrcamentoQuente[]> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('client_budget_ratings')
+      .select('budget_number, rating')
+      .gte('rating', 3)
+      .order('rating', { ascending: false });
+
+    if (error) {
+      console.error('❌ Erro ao buscar ratings de orçamentos:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      console.log('ℹ️ Nenhum orçamento com rating >= 3 encontrado.');
+      return [];
+    }
+
+    const ratingsMap = new Map<string, number>();
+    (data as { budget_number: string; rating: number }[]).forEach(r => {
+      ratingsMap.set(r.budget_number, r.rating);
+    });
+
+    const orcamentosEmAberto = allData.filter(item =>
+      item.situacao === 'Orçamento' && ratingsMap.has(item.numeropedido)
+    );
+
+    const orcamentosMap: Record<string, { items: ComercialData[]; rating: number }> = {};
+
+    orcamentosEmAberto.forEach(item => {
+      const numeroPedido = item.numeropedido;
+      const rating = ratingsMap.get(numeroPedido) ?? 0;
+
+      if (!orcamentosMap[numeroPedido]) {
+        orcamentosMap[numeroPedido] = {
+          items: [],
+          rating,
+        };
+      }
+
+      orcamentosMap[numeroPedido].items.push(item);
+    });
+
+    const orcamentosQuentes: OrcamentoQuente[] = Object.entries(orcamentosMap)
+      .map(([numeroPedido, dados]) => {
+        const firstItem = dados.items[0];
+        const valor = dados.items.reduce((sum, item) => sum + item.valor, 0);
+        const peso = dados.items.reduce((sum, item) => sum + item.peso, 0);
+
+        return {
+          numeroPedido,
+          cliente: firstItem.cli_nomefantasia || firstItem.cliente,
+          vendedor: firstItem.vendedor,
+          valor,
+          peso,
+          rating: dados.rating,
+          dataEmissao: firstItem.data_pedido_pronto || firstItem.data_emissao,
+        } as OrcamentoQuente;
+      })
+      .sort((a, b) => {
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        return b.valor - a.valor;
+      });
+
+    console.log(`🔥 ${orcamentosQuentes.length} orçamentos quentes encontrados`);
+    return orcamentosQuentes;
+  } catch (error) {
+    console.error('❌ Erro ao montar orçamentos quentes:', error);
+    return [];
+  }
 }
 
 function formatCurrency(value: number): string {
@@ -315,13 +457,13 @@ function generateReportHTML(
   periodo: string,
   meta: number,
   mesAnterior: ComparativoMes | null,
-  melhorMes: ComparativoMes | null
+  melhorMes: ComparativoMes | null,
+  ranking: VendedorPerformance[],
+  orcamentosQuentes: OrcamentoQuente[]
 ): string {
-  // Calcular percentual da meta
   const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
   const faltaMeta = meta - kpis.faturamento;
   
-  // Definir status da meta
   let statusMeta = '✗';
   let corMeta = '#f56565';
   if (percentualMeta >= 100) {
@@ -332,6 +474,62 @@ function generateReportHTML(
     corMeta = '#ed8936';
   }
 
+  const rankingRows = ranking
+    .map((vendedor, index) => {
+      const posicao =
+        index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1;
+      const isTop3 = index < 3;
+      return `
+        <tr>
+          <td style="padding: 8px 10px; font-weight: ${isTop3 ? 'bold' : 'normal'};">${posicao}</td>
+          <td style="padding: 8px 10px; font-weight: ${isTop3 ? 'bold' : 'normal'};">${vendedor.nome}</td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: ${isTop3 ? 'bold' : 'normal'};">${formatCurrency(vendedor.faturamento)}</td>
+          <td style="padding: 8px 10px; text-align: center;">${vendedor.numPedidos}</td>
+          <td style="padding: 8px 10px; text-align: right;">${formatCurrency(vendedor.ticketMedio)}</td>
+          <td style="padding: 8px 10px; text-align: right;">${vendedor.percentualTotal.toFixed(1)}%</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  const totalOrcamentosQuentes = orcamentosQuentes.reduce(
+    (sum, o) => sum + o.valor,
+    0
+  );
+
+  const orcamentosRows = orcamentosQuentes
+    .map(orc => {
+      let bgColor = '#ffffff';
+      let estrelas = '';
+      if (orc.rating >= 5) {
+        bgColor = '#fff5f5';
+        estrelas = '⭐⭐⭐⭐⭐';
+      } else if (orc.rating === 4) {
+        bgColor = '#fffaf0';
+        estrelas = '⭐⭐⭐⭐';
+      } else {
+        bgColor = '#fffff0';
+        estrelas = '⭐⭐⭐';
+      }
+
+      return `
+        <tr style="background: ${bgColor};">
+          <td style="padding: 8px 10px; text-align: center; font-size: 14px;">${estrelas}</td>
+          <td style="padding: 8px 10px; font-weight: bold;">${orc.numeroPedido}</td>
+          <td style="padding: 8px 10px;">${orc.cliente}</td>
+          <td style="padding: 8px 10px;">${orc.vendedor}</td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: bold;">${formatCurrency(orc.valor)}</td>
+          <td style="padding: 8px 10px; text-align: right;">${Math.round(orc.peso).toLocaleString('pt-BR')}</td>
+          <td style="padding: 8px 10px; text-align: center; font-size: 12px;">${
+            orc.dataEmissao
+              ? new Date(orc.dataEmissao).toLocaleDateString('pt-BR')
+              : ''
+          }</td>
+        </tr>
+      `;
+    })
+    .join('');
+
   return `
     <!DOCTYPE html>
     <html>
@@ -339,41 +537,48 @@ function generateReportHTML(
       <meta charset="UTF-8">
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; }
-        .content { padding: 30px; }
-        .section-title { font-size: 18px; font-weight: 600; color: #2d3748; margin: 25px 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
-        .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
-        .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid #667eea; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 22px; }
+        .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; }
+        .content { padding: 24px 30px 30px 30px; }
+        .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 18px 0 12px 0; }
+        .summary-column { }
+        .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
+        .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 14px 16px; border-left: 3px solid #667eea; }
         .kpi-card.success { border-left-color: #48bb78; }
         .kpi-card.warning { border-left-color: #ed8936; }
         .kpi-card.danger { border-left-color: #f56565; }
         .kpi-card.info { border-left-color: #4299e1; }
         .kpi-card.purple { border-left-color: #667eea; }
-        .kpi-label { font-size: 12px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 8px; }
-        .kpi-value { font-size: 24px; font-weight: 700; color: #2d3748; }
-        .kpi-subtitle { font-size: 13px; color: #718096; margin-top: 5px; }
-        .meta-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
-        .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .meta-item { padding: 15px; background: #f7fafc; border-radius: 6px; }
-        .meta-label { color: #718096; font-size: 13px; margin-bottom: 5px; }
-        .meta-value { color: #2d3748; font-size: 20px; font-weight: bold; }
-        .comp-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
-        .comp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .comp-card { background: #f7fafc; padding: 15px; border-radius: 6px; border-left: 4px solid #4299e1; }
+        .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px; }
+        .kpi-value { font-size: 20px; font-weight: 700; color: #2d3748; }
+        .kpi-subtitle { font-size: 12px; color: #718096; margin-top: 3px; }
+        .meta-section { background: #f7fafc; padding: 14px 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 10px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .meta-item { padding: 6px 0; }
+        .meta-label { color: #718096; font-size: 12px; margin-bottom: 2px; }
+        .meta-value { color: #2d3748; font-size: 18px; font-weight: bold; }
+        .comp-section { background: #f7fafc; padding: 14px 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 10px; }
+        .comp-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .comp-card { background: #f7fafc; padding: 10px 12px; border-radius: 6px; border-left: 3px solid #4299e1; }
         .comp-card.gold { background: #fffaf0; border-left-color: #f6ad55; }
-        .comp-title { color: #2d3748; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
-        .comp-value { color: #4a5568; font-size: 16px; margin-bottom: 5px; }
-        .comp-var { font-size: 14px; font-weight: bold; }
+        .comp-title { color: #2d3748; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+        .comp-value { color: #4a5568; font-size: 14px; margin-bottom: 4px; }
+        .comp-var { font-size: 13px; font-weight: bold; }
         .comp-var.pos { color: #48bb78; }
         .comp-var.neg { color: #f56565; }
-        .analysis { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
-        .analysis p { margin: 8px 0; color: #4a5568; line-height: 1.8; }
-        .footer { background: #f7fafc; padding: 20px; text-align: center; font-size: 13px; color: #718096; }
+        .ranking-table, .hot-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .ranking-table th, .ranking-table td, .hot-table th, .hot-table td { border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+        .ranking-table th, .hot-table th { background: #f7fafc; padding: 8px 10px; text-align: left; color: #4a5568; font-weight: 600; }
+        .ranking-table td, .hot-table td { padding: 8px 10px; color: #2d3748; }
+        .analysis { background: white; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
+        .analysis p { margin: 6px 0; color: #4a5568; line-height: 1.6; font-size: 13px; }
+        .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096; }
         @media (max-width: 600px) {
-          .kpi-grid, .meta-grid, .comp-grid { grid-template-columns: 1fr; }
+          .content { padding: 18px 16px 20px 16px; }
+          .summary-grid { grid-template-columns: 1fr; }
         }
       </style>
     </head>
@@ -386,95 +591,223 @@ function generateReportHTML(
         </div>
         
         <div class="content">
-          <h2 class="section-title">📈 KPIs Comerciais</h2>
-          
-          <div class="kpi-grid">
-            <div class="kpi-card success">
-              <div class="kpi-label">💰 Faturamento</div>
-              <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
-            </div>
-            
-            <div class="kpi-card info">
-              <div class="kpi-label">📋 Orçamentos (R$)</div>
-              <div class="kpi-value">${formatCurrency(kpis.orcamentosValor)}</div>
-            </div>
-            
-            <div class="kpi-card warning">
-              <div class="kpi-label">📦 Pedidos Não Faturados</div>
-              <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
-            </div>
-            
-            <div class="kpi-card danger">
-              <div class="kpi-label">❌ Valor Perdido</div>
-              <div class="kpi-value">${formatCurrency(kpis.perdidosValor)}</div>
-              <div class="kpi-subtitle">${kpis.perdidosQtd} oportunidade(s)</div>
-            </div>
-
-            <div class="kpi-card purple">
-              <div class="kpi-label">📊 Média Diária (Dias Úteis)</div>
-              <div class="kpi-value">${formatCurrency(kpis.mediaDiaria)}</div>
-              <div class="kpi-subtitle">${kpis.diasUteis} dias úteis</div>
-            </div>
-          </div>
-
-          <div class="meta-section">
-            <h3 class="section-title">🎯 Meta do Mês</h3>
-            <div class="meta-grid">
-              <div class="meta-item">
-                <div class="meta-label">Meta Mensal</div>
-                <div class="meta-value">${formatCurrency(meta)}</div>
-              </div>
-              <div class="meta-item">
-                <div class="meta-label">Realizado</div>
-                <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
-              </div>
-              <div class="meta-item">
-                <div class="meta-label">Atingimento</div>
-                <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(1)}% ${statusMeta}</div>
-              </div>
-              <div class="meta-item">
-                <div class="meta-label">Faltam</div>
-                <div class="meta-value" style="color: ${faltaMeta > 0 ? '#ed8936' : '#48bb78'};">
-                  ${faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'}
+          <div class="summary-grid">
+            <div class="summary-column">
+              <h2 class="section-title">📈 KPIs Comerciais</h2>
+              <div class="kpi-grid">
+                <div class="kpi-card success">
+                  <div class="kpi-label">💰 Faturamento</div>
+                  <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
+                </div>
+                <div class="kpi-card info">
+                  <div class="kpi-label">📋 Orçamentos (R$)</div>
+                  <div class="kpi-value">${formatCurrency(kpis.orcamentosValor)}</div>
+                </div>
+                <div class="kpi-card warning">
+                  <div class="kpi-label">📦 Pedidos Não Faturados</div>
+                  <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
+                </div>
+                <div class="kpi-card danger">
+                  <div class="kpi-label">❌ Valor Perdido</div>
+                  <div class="kpi-value">${formatCurrency(kpis.perdidosValor)}</div>
+                  <div class="kpi-subtitle">${kpis.perdidosQtd} oportunidade(s)</div>
+                </div>
+                <div class="kpi-card purple">
+                  <div class="kpi-label">📊 Média Diária (Dias Úteis)</div>
+                  <div class="kpi-value">${formatCurrency(kpis.mediaDiaria)}</div>
+                  <div class="kpi-subtitle">${kpis.diasUteis} dias úteis</div>
                 </div>
               </div>
             </div>
-          </div>
 
-          ${mesAnterior || melhorMes ? `
-          <div class="comp-section">
-            <h3 class="section-title">📈 Comparativos</h3>
-            <div class="comp-grid">
-              ${mesAnterior ? `
-              <div class="comp-card">
-                <div class="comp-title">Mês Anterior (${mesAnterior.mes}/${mesAnterior.ano})</div>
-                <div class="comp-value">${formatCurrency(mesAnterior.faturamento)}</div>
-                <div class="comp-var ${mesAnterior.variacao >= 0 ? 'pos' : 'neg'}">
-                  ${mesAnterior.variacao >= 0 ? '+' : ''}${mesAnterior.variacao.toFixed(1)}% ${mesAnterior.variacao >= 0 ? '↗️' : '↘️'}
+            <div class="summary-column">
+              <h2 class="section-title">🎯 Meta do Mês</h2>
+              <div class="meta-section">
+                <div class="meta-grid">
+                  <div class="meta-item">
+                    <div class="meta-label">Meta Mensal</div>
+                    <div class="meta-value">${formatCurrency(meta)}</div>
+                  </div>
+                  <div class="meta-item">
+                    <div class="meta-label">Realizado</div>
+                    <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
+                  </div>
+                  <div class="meta-item">
+                    <div class="meta-label">Atingimento</div>
+                    <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(
+                      1
+                    )}% ${statusMeta}</div>
+                  </div>
+                  <div class="meta-item">
+                    <div class="meta-label">Faltam</div>
+                    <div class="meta-value" style="color: ${
+                      faltaMeta > 0 ? '#ed8936' : '#48bb78'
+                    };"><span>${
+    faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'
+  }</span></div>
+                  </div>
                 </div>
               </div>
-              ` : ''}
-              ${melhorMes ? `
-              <div class="comp-card gold">
-                <div class="comp-title">🏆 Melhor Mês (${melhorMes.mes}/${melhorMes.ano})</div>
-                <div class="comp-value">${formatCurrency(melhorMes.faturamento)}</div>
-                <div class="comp-var ${melhorMes.variacao >= 0 ? 'pos' : 'neg'}">
-                  ${melhorMes.variacao >= 0 ? '+' : ''}${melhorMes.variacao.toFixed(1)}% vs melhor
+            </div>
+
+            <div class="summary-column">
+              <h2 class="section-title">📊 Comparativos</h2>
+              ${mesAnterior || melhorMes
+                ? `
+                <div class="comp-section">
+                  <div class="comp-grid">
+                    ${
+                      mesAnterior
+                        ? `
+                    <div class="comp-card">
+                      <div class="comp-title">Mês Anterior (${mesAnterior.mes}/${mesAnterior.ano})</div>
+                      <div class="comp-value">${formatCurrency(
+                        mesAnterior.faturamento
+                      )}</div>
+                      <div class="comp-var ${
+                        mesAnterior.variacao >= 0 ? 'pos' : 'neg'
+                      }">
+                        ${
+                          mesAnterior.variacao >= 0 ? '+' : ''
+                        }${mesAnterior.variacao.toFixed(1)}% ${
+    mesAnterior.variacao >= 0 ? '↗️' : '↘️'
+  }
+                      </div>
+                    </div>
+                    `
+                        : ''
+                    }
+                    ${
+                      melhorMes
+                        ? `
+                    <div class="comp-card gold">
+                      <div class="comp-title">🏆 Melhor Mês (${melhorMes.mes}/${melhorMes.ano})</div>
+                      <div class="comp-value">${formatCurrency(
+                        melhorMes.faturamento
+                      )}</div>
+                      <div class="comp-var ${
+                        melhorMes.variacao >= 0 ? 'pos' : 'neg'
+                      }">
+                        ${
+                          melhorMes.variacao >= 0 ? '+' : ''
+                        }${melhorMes.variacao.toFixed(1)}% vs melhor
+                      </div>
+                    </div>
+                    `
+                        : ''
+                    }
+                  </div>
                 </div>
-              </div>
-              ` : ''}
+              `
+                : `<p style="color:#718096; font-size: 13px; margin-top: 8px;">Sem dados suficientes para comparativos.</p>`}
             </div>
           </div>
-          ` : ''}
+
+          <h2 class="section-title">🏆 Ranking de Vendedores</h2>
+          ${
+            ranking.length > 0
+              ? `
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th>Vendedor</th>
+                <th style="text-align:right;">Faturamento</th>
+                <th style="text-align:center;">Pedidos</th>
+                <th style="text-align:right;">Ticket Médio</th>
+                <th style="text-align:right;">% do Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rankingRows}
+            </tbody>
+          </table>
+          `
+              : `<p style="color:#718096; font-size: 13px;">Sem dados de faturamento para montar o ranking neste período.</p>`
+          }
+
+          <h2 class="section-title">🔥 Orçamentos Quentes (3+ Estrelas)</h2>
+          ${
+            orcamentosQuentes.length > 0
+              ? `
+          <p style="color:#4a5568; font-size: 13px; margin: 6px 0 10px 0;">
+            ${orcamentosQuentes.length} orçamento(s) classificado(s) como quente(s).
+            Valor total: <strong>${formatCurrency(totalOrcamentosQuentes)}</strong>
+          </p>
+          <table class="hot-table">
+            <thead>
+              <tr>
+                <th style="width: 80px; text-align:center;">Rating</th>
+                <th>Pedido</th>
+                <th>Cliente</th>
+                <th>Vendedor</th>
+                <th style="text-align:right;">Valor</th>
+                <th style="text-align:right;">Peso (kg)</th>
+                <th style="text-align:center;">Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orcamentosRows}
+            </tbody>
+          </table>
+          `
+              : `<p style="color:#718096; font-size: 13px;">Nenhum orçamento com 3 ou mais estrelas no momento.</p>`
+          }
 
           <div class="analysis">
             <h3 class="section-title">💡 Análise Rápida</h3>
-            <p>• Faturamento no período representa <strong>${percentualMeta.toFixed(1)}%</strong> da meta mensal</p>
-            ${mesAnterior ? `<p>• ${mesAnterior.variacao >= 0 ? 'Aumento' : 'Redução'} de <strong>${Math.abs(mesAnterior.variacao).toFixed(1)}%</strong> em relação ao mês anterior</p>` : ''}
-            ${faltaMeta > 0 ? `<p>• Ainda há <strong>${formatCurrency(faltaMeta)}</strong> para atingir a meta</p>` : `<p>• <strong>Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
-            <p>• Média de <strong>${formatCurrency(kpis.mediaDiaria)}</strong> por dia útil (${kpis.diasUteis} dias)</p>
-            ${kpis.pedidosNaoFaturados > 0 ? `<p>• <strong>${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
-            ${kpis.perdidosQtd > 0 ? `<p>• <strong>${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.perdidosValor)}</p>` : ''}
+            <p>• Faturamento no período representa <strong>${percentualMeta.toFixed(
+              1
+            )}%</strong> da meta mensal</p>
+            ${
+              mesAnterior
+                ? `<p>• ${
+                    mesAnterior.variacao >= 0 ? 'Aumento' : 'Redução'
+                  } de <strong>${Math.abs(
+                    mesAnterior.variacao
+                  ).toFixed(1)}%</strong> em relação ao mês anterior</p>`
+                : ''
+            }
+            ${
+              faltaMeta > 0
+                ? `<p>• Ainda há <strong>${formatCurrency(
+                    faltaMeta
+                  )}</strong> para atingir a meta</p>`
+                : `<p>• <strong>Meta atingida!</strong> Superou em ${formatCurrency(
+                    Math.abs(faltaMeta)
+                  )}</p>`
+            }
+            <p>• Média de <strong>${formatCurrency(
+              kpis.mediaDiaria
+            )}</strong> por dia útil (${kpis.diasUteis} dias)</p>
+            ${
+              kpis.pedidosNaoFaturados > 0
+                ? `<p>• <strong>${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>`
+                : ''
+            }
+            ${
+              kpis.perdidosQtd > 0
+                ? `<p>• <strong>${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(
+                    kpis.perdidosValor
+                  )}</p>`
+                : ''
+            }
+            ${
+              ranking.length > 0
+                ? `<p>• <strong>${ranking[0].nome}</strong> lidera o ranking com ${formatCurrency(
+                    ranking[0].faturamento
+                  )} (${ranking[0].percentualTotal.toFixed(
+                    1
+                  )}% do total)</p>`
+                : ''
+            }
+            ${
+              orcamentosQuentes.length > 0
+                ? `<p>• Existem <strong>${orcamentosQuentes.length}</strong> orçamentos quentes em aberto somando ${formatCurrency(
+                    totalOrcamentosQuentes
+                  )}</p>`
+                : '<p>• Atenção: nenhum orçamento classificado como quente (3+ estrelas) no momento.</p>'
+            }
           </div>
         </div>
 
@@ -556,8 +889,14 @@ const handler = async (req: Request): Promise<Response> => {
     // 4. Calcular KPIs do período solicitado
     console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
     const kpis = calculateKPIs(allData, startDate, endDate);
+
+    // 5. Calcular ranking de vendedores no período
+    const ranking = calcularRankingVendedores(allData, startDate, endDate);
+
+    // 6. Buscar orçamentos quentes (3+ estrelas)
+    const orcamentosQuentes = await buscarOrcamentosQuentes(allData, supabaseAdmin);
     
-    // 5. Calcular KPIs do mês anterior
+    // 7. Calcular KPIs do mês anterior
     let mesAnterior: ComparativoMes | null = null;
     try {
       const mesAnteriorDate = new Date(ano, mes - 2, 1); // Mês anterior
@@ -583,7 +922,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('⚠️ Erro ao calcular mês anterior:', error);
     }
     
-    // 6. Identificar o melhor mês (últimos 12 meses)
+    // 8. Identificar o melhor mês (últimos 12 meses)
     let melhorMes: ComparativoMes | null = null;
     try {
       console.log('🏆 Identificando melhor mês...');
@@ -625,9 +964,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('✅ KPIs finais:', kpis);
 
-    // 7. Gerar HTML do relatório
+    // 9. Gerar HTML do relatório
     console.log('📧 Gerando HTML do relatório...');
-    const reportHTML = generateReportHTML(kpis, reportDate, periodo, metaMensal, mesAnterior, melhorMes);
+    const reportHTML = generateReportHTML(
+      kpis,
+      reportDate,
+      periodo,
+      metaMensal,
+      mesAnterior,
+      melhorMes,
+      ranking,
+      orcamentosQuentes
+    );
 
     // 8. Enviar email via Resend
     const isTestMode = true;

@@ -40,6 +40,7 @@ interface EmailKPIs {
   faturamento: number;
   orcamentosValor: number;
   pedidosNaoFaturados: number;
+  pedidosNaoFaturadosValor: number;
   perdidosValor: number;
   perdidosQtd: number;
   diasUteis: number;
@@ -241,17 +242,22 @@ function calculateKPIs(
   const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
   const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
   
-  // Contar pedidos únicos, não linhas
+  // Contar pedidos únicos, não linhas, e somar valor total
   const pedidosNaoFaturadosData = filteredData.filter(item =>
     item.situacao === 'Pedido' && item.faturamento_tipo === 1
   );
-  const pedidosNaoFaturadosUnicos = new Map<string, ComercialData>();
+  const pedidosNaoFaturadosMap = new Map<string, ComercialData[]>();
   pedidosNaoFaturadosData.forEach(p => {
-    if (!pedidosNaoFaturadosUnicos.has(p.numeropedido)) {
-      pedidosNaoFaturadosUnicos.set(p.numeropedido, p);
+    if (!pedidosNaoFaturadosMap.has(p.numeropedido)) {
+      pedidosNaoFaturadosMap.set(p.numeropedido, []);
     }
+    pedidosNaoFaturadosMap.get(p.numeropedido)!.push(p);
   });
-  const pedidosNaoFaturados = pedidosNaoFaturadosUnicos.size;
+  const pedidosNaoFaturados = pedidosNaoFaturadosMap.size;
+  const pedidosNaoFaturadosValor = Array.from(pedidosNaoFaturadosMap.values()).reduce(
+    (sum, items) => sum + items.reduce((s, item) => s + item.valor, 0),
+    0
+  );
   
   const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
@@ -264,6 +270,7 @@ function calculateKPIs(
     faturamento: faturado,
     orcamentosValor,
     pedidosNaoFaturados,
+    pedidosNaoFaturadosValor,
     perdidosValor,
     perdidosQtd,
     diasUteis,
@@ -374,7 +381,8 @@ function generateReportHTML(
             
             <div class="kpi-card warning">
               <div class="kpi-label">📦 Pedidos Não Faturados</div>
-              <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
+              <div class="kpi-value">${formatCurrency(kpis.pedidosNaoFaturadosValor)}</div>
+              <div class="kpi-subtitle">${kpis.pedidosNaoFaturados} pedido(s)</div>
             </div>
             
             <div class="kpi-card danger">

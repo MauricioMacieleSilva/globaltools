@@ -184,7 +184,11 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   const headers = rows[0];
   const dataRows = rows.slice(1);
   
-  return dataRows.map((row: string[]) => {
+  // Filtrar apenas os últimos 6 meses para reduzir memória
+  const seiseMesesAtras = new Date();
+  seiseMesesAtras.setMonth(seiseMesesAtras.getMonth() - 6);
+  
+  const dados = dataRows.map((row: string[]) => {
     const obj: any = {};
     headers.forEach((h: string, i: number) => {
       obj[h] = row[i] || '';
@@ -209,6 +213,12 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
       produto: obj.produto || '',
       obs: obj.obs || '',
     };
+  });
+  
+  // Filtrar apenas registros dos últimos 6 meses
+  return dados.filter(item => {
+    const d = getDateField(item);
+    return d && d >= seiseMesesAtras;
   });
 }
 
@@ -293,16 +303,15 @@ function calcularRankingVendedores(data: ComercialData[], inicio: Date, fim: Dat
   return ranking.slice(0, 5);
 }
 
-async function buscarOrcamentosQuentes(supabaseAdmin: any): Promise<OrcamentoQuente[]> {
+async function buscarOrcamentosQuentes(supabaseAdmin: any, allData: ComercialData[]): Promise<OrcamentoQuente[]> {
   const { data, error } = await supabaseAdmin
     .from('client_budget_ratings')
-    .select('budget_number, rating, user_name')
+    .select('budget_number, rating')
     .gte('rating', 3)
-    .order('rating', { ascending: false });
+    .order('rating', { ascending: false })
+    .limit(10);
 
   if (error || !data || data.length === 0) return [];
-
-  const allData = await loadComercialDataFromSheet();
   
   const orcamentos: OrcamentoQuente[] = [];
   for (const rating of data) {
@@ -320,6 +329,7 @@ async function buscarOrcamentosQuentes(supabaseAdmin: any): Promise<OrcamentoQue
     }
   }
 
+  console.log(`🔥 ${orcamentos.length} orçamentos quentes encontrados`);
   return orcamentos.sort((a, b) => b.rating - a.rating).slice(0, 10);
 }
 
@@ -700,8 +710,10 @@ const handler = async (req: Request): Promise<Response> => {
     const { configId } = await req.json();
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Carregar os dados
+    console.log('📊 Carregando dados da planilha (últimos 6 meses)...');
+    // Carregar os dados UMA VEZ (já filtrados por período)
     const allData = await loadComercialDataFromSheet();
+    console.log(`📋 ${allData.length} registros carregados`);
 
     // Definir período: mês atual até hoje
     const agora = new Date();
@@ -732,16 +744,19 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("⚠️ Usando meta padrão");
     }
 
-    // Calcular KPIs
+    // Calcular KPIs do mês atual
+    console.log('📊 Calculando KPIs...');
     const kpis = calculateKPIs(allData, inicioMes, fimPeriodo);
 
-    // Ranking de vendedores
+    // Ranking de vendedores (reusar dados já carregados)
+    console.log('🏆 Calculando ranking de vendedores...');
     const ranking = calcularRankingVendedores(allData, inicioMes, fimPeriodo);
 
-    // Orçamentos quentes
-    const orcamentosQuentes = await buscarOrcamentosQuentes(supabaseAdmin);
+    // Orçamentos quentes (reusar dados já carregados)
+    console.log('🔥 Buscando orçamentos quentes...');
+    const orcamentosQuentes = await buscarOrcamentosQuentes(supabaseAdmin, allData);
 
-    // Calcular mês anterior
+    // Calcular mês anterior (reusar dados já carregados)
     let mesAnterior: ComparativoMes | null = null;
     if (mesAtual > 0 || anoAtual > inicioMes.getFullYear()) {
       const mesAnt = mesAtual === 0 ? 11 : mesAtual - 1;
@@ -750,7 +765,7 @@ const handler = async (req: Request): Promise<Response> => {
       const fimAnt = new Date(anoAnt, mesAnt + 1, 0);
       const kpisAnt = calculateKPIs(allData, inicioAnt, fimAnt);
       mesAnterior = {
-        mes: String(mesAnt + 1),
+        mes: String(mesAnt + 1).padStart(2, '0'),
         ano: anoAnt,
         faturamento: kpisAnt.faturamento,
         variacao: kpisAnt.faturamento > 0 
@@ -759,10 +774,11 @@ const handler = async (req: Request): Promise<Response> => {
       };
     }
 
-    // Melhor mês (simplificado para o exemplo)
+    // Remover cálculo do melhor mês para economizar recursos
     const melhorMes: ComparativoMes | null = null;
 
     // Gerar HTML
+    console.log('📄 Gerando HTML do relatório...');
     const html = generateReportHTML(
       kpis,
       meta,
@@ -778,16 +794,16 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ html }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   } catch (error: any) {
-    console.error('Erro ao gerar pré-visualização:', error);
+    console.error('❌ Erro ao gerar pré-visualização:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

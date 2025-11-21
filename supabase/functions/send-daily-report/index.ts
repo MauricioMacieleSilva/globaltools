@@ -476,23 +476,22 @@ const handler = async (req: Request): Promise<Response> => {
     // Carregar dados
     const allData = await loadComercialDataFromSheet();
 
-    // Buscar meta mensal
+    // Buscar meta mensal do admin_goals
     const ano = yesterday.getFullYear();
     const mes = yesterday.getMonth() + 1;
+    const monthYear = `${ano}-${String(mes).padStart(2, '0')}`;
     
     let metaMensal = 2000000;
     
     try {
       const { data: metaData } = await supabaseAdmin
-        .from('metas_vendas')
-        .select('meta_mensal')
-        .eq('ano', ano)
-        .eq('mes', mes)
-        .limit(1)
-        .single();
+        .from('admin_goals')
+        .select('monthly_revenue_goal')
+        .eq('month_year', monthYear)
+        .maybeSingle();
       
-      if (metaData?.meta_mensal) {
-        metaMensal = Number(metaData.meta_mensal);
+      if (metaData?.monthly_revenue_goal) {
+        metaMensal = Number(metaData.monthly_revenue_goal);
       }
     } catch (error) {
       console.log('⚠️ Meta não encontrada, usando padrão');

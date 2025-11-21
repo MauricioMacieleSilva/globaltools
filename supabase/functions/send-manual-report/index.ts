@@ -870,27 +870,28 @@ const handler = async (req: Request): Promise<Response> => {
     // 2. Carregar dados da planilha
     const allData = await loadComercialDataFromSheet();
     
-    // 3. Buscar meta mensal do banco de dados
+    // 3. Buscar meta mensal do banco de dados (admin_goals)
     console.log('🎯 Buscando meta mensal...');
     const ano = startDate.getFullYear();
     const mes = startDate.getMonth() + 1;
+    const monthYear = `${ano}-${String(mes).padStart(2, '0')}`;
     
     let metaMensal = 2000000; // Valor padrão: R$ 2.000.000,00
     
     try {
       const { data: metaData, error: metaError } = await supabaseAdmin
-        .from('metas_vendas')
-        .select('meta_mensal')
-        .eq('ano', ano)
-        .eq('mes', mes)
-        .limit(1)
-        .single();
+        .from('admin_goals')
+        .select('monthly_revenue_goal')
+        .eq('month_year', monthYear)
+        .maybeSingle();
       
       if (metaError) {
         console.log('⚠️ Meta não encontrada no banco, usando valor padrão:', metaError.message);
-      } else if (metaData?.meta_mensal) {
-        metaMensal = Number(metaData.meta_mensal);
+      } else if (metaData?.monthly_revenue_goal) {
+        metaMensal = Number(metaData.monthly_revenue_goal);
         console.log('✅ Meta mensal encontrada:', metaMensal);
+      } else {
+        console.log('⚠️ Meta não encontrada para o período, usando valor padrão');
       }
     } catch (error) {
       console.log('⚠️ Erro ao buscar meta, usando valor padrão:', error);

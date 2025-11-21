@@ -696,21 +696,20 @@ const handler = async (req: Request): Promise<Response> => {
     const periodo = `${formatDate(inicioMes)} a ${formatDate(fimPeriodo)}`;
     const reportDate = formatDate(agora);
 
-    // Meta mensal
+    // Meta mensal do admin_goals
     let meta = 2000000;
     try {
       const mesStr = String(mesAtual + 1).padStart(2, '0');
       const anoStr = String(anoAtual);
+      const monthYear = `${anoStr}-${mesStr}`;
       const { data: metaData } = await supabaseAdmin
-        .from('metas_vendas')
-        .select('meta_mensal')
-        .is('vendedor_id', null)
-        .eq('mes', parseInt(mesStr))
-        .eq('ano', parseInt(anoStr))
+        .from('admin_goals')
+        .select('monthly_revenue_goal')
+        .eq('month_year', monthYear)
         .maybeSingle();
       
-      if (metaData?.meta_mensal) {
-        meta = metaData.meta_mensal;
+      if (metaData?.monthly_revenue_goal) {
+        meta = Number(metaData.monthly_revenue_goal);
       }
     } catch (err) {
       console.log("⚠️ Usando meta padrão");

@@ -439,7 +439,7 @@ function generateReportHTML(
         
         <div class="content">
           <!-- Seção 1: KPIs Comerciais -->
-          <h2 class="section-title">📈 KPIs Comerciais</h2>
+          <h2 class="section-title no-border">📈 KPIs Comerciais</h2>
           <div class="kpi-grid">
             <div class="kpi-card success">
               <div class="kpi-label">💰 Faturamento</div>

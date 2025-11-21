@@ -3,6 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 interface MetasDialogProps {
   isOpen: boolean;
@@ -12,25 +15,109 @@ interface MetasDialogProps {
 }
 
 export function MetasDialog({ isOpen, onClose, onSave, metaAtual }: MetasDialogProps) {
-  // Sem autenticação, assumir que não é admin (somente visualização)
-  const isAdmin = false;
+  const { userProfile } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [metaMensal, setMetaMensal] = useState(metaAtual.metaMensal.toString());
   const [metaDiaria, setMetaDiaria] = useState(metaAtual.metaDiaria.toString());
+  const [loading, setLoading] = useState(false);
+
+  // Verificar se o usuário é admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!userProfile?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userProfile.id)
+          .single();
+        
+        if (!error && data) {
+          setIsAdmin(data.role === 'admin');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar role:', error);
+      }
+    };
+    
+    checkAdminRole();
+  }, [userProfile]);
 
   useEffect(() => {
     setMetaMensal(metaAtual.metaMensal.toString());
     setMetaDiaria(metaAtual.metaDiaria.toString());
   }, [metaAtual]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const metaMensalNum = parseFloat(metaMensal) || 2000000;
     const metaDiariaNum = parseFloat(metaDiaria) || 100000;
     
-    onSave({
-      metaMensal: metaMensalNum,
-      metaDiaria: metaDiariaNum
-    });
-    onClose();
+    if (!isAdmin) {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem alterar as metas.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      
+      // Buscar meta existente para o mês atual
+      const { data: existingGoal } = await supabase
+        .from('admin_goals')
+        .select('id')
+        .eq('month_year', currentMonth)
+        .maybeSingle();
+
+      if (existingGoal) {
+        // Atualizar meta existente
+        const { error } = await supabase
+          .from('admin_goals')
+          .update({
+            monthly_revenue_goal: metaMensalNum,
+            daily_revenue_goal: metaDiariaNum
+          })
+          .eq('id', existingGoal.id);
+
+        if (error) throw error;
+      } else {
+        // Criar nova meta
+        const { error } = await supabase
+          .from('admin_goals')
+          .insert({
+            month_year: currentMonth,
+            monthly_revenue_goal: metaMensalNum,
+            daily_revenue_goal: metaDiariaNum
+          });
+
+        if (error) throw error;
+      }
+
+      onSave({
+        metaMensal: metaMensalNum,
+        metaDiaria: metaDiariaNum
+      });
+
+      toast({
+        title: "Metas atualizadas",
+        description: "As metas de faturamento foram salvas com sucesso."
+      });
+
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar metas:', error);
+      toast({
+        title: "Erro ao salvar metas",
+        description: "Não foi possível salvar as metas. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatCurrency = (value: string) => {
@@ -95,8 +182,8 @@ export function MetasDialog({ isOpen, onClose, onSave, metaAtual }: MetasDialogP
             {isAdmin ? 'Cancelar' : 'Fechar'}
           </Button>
           {isAdmin && (
-            <Button onClick={handleSave}>
-              Salvar
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? 'Salvando...' : 'Salvar'}
             </Button>
           )}
         </div>

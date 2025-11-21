@@ -19,11 +19,13 @@ export type Database = {
           conversion_goal_percent: number | null
           created_at: string
           daily_contacts_goal: number | null
+          daily_revenue_goal: number | null
           deals_goal: number | null
           forwarded_leads_goal: number | null
           id: string
           month_year: string
           monthly_contacts_goal: number | null
+          monthly_revenue_goal: number | null
           qualified_leads_goal: number | null
           updated_at: string
         }
@@ -31,11 +33,13 @@ export type Database = {
           conversion_goal_percent?: number | null
           created_at?: string
           daily_contacts_goal?: number | null
+          daily_revenue_goal?: number | null
           deals_goal?: number | null
           forwarded_leads_goal?: number | null
           id?: string
           month_year: string
           monthly_contacts_goal?: number | null
+          monthly_revenue_goal?: number | null
           qualified_leads_goal?: number | null
           updated_at?: string
         }
@@ -43,11 +47,13 @@ export type Database = {
           conversion_goal_percent?: number | null
           created_at?: string
           daily_contacts_goal?: number | null
+          daily_revenue_goal?: number | null
           deals_goal?: number | null
           forwarded_leads_goal?: number | null
           id?: string
           month_year?: string
           monthly_contacts_goal?: number | null
+          monthly_revenue_goal?: number | null
           qualified_leads_goal?: number | null
           updated_at?: string
         }

@@ -545,6 +545,7 @@ function generateReportHTML(
         .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; }
         .content { padding: 24px 30px 30px 30px; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+        .section-title.no-border { border-bottom: none; }
         .section-title.spaced { margin-top: 16px; }
         .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
         .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 16px 18px; border-left: 3px solid #667eea; }
@@ -702,7 +703,7 @@ function generateReportHTML(
             : `<p style="color:#718096; font-size: 13px; margin-top: 8px;">Sem dados suficientes para comparativos.</p>`}
 
           <!-- Seção 4: Ranking de Vendedores -->
-          <h2 class="section-title spaced">🏆 Ranking de Vendedores</h2>
+          <h2 class="section-title spaced no-border">🏆 Ranking de Vendedores</h2>
           ${
             ranking.length > 0
               ? `
@@ -726,7 +727,7 @@ function generateReportHTML(
           }
 
           <!-- Seção 5: Orçamentos Quentes -->
-          <h2 class="section-title spaced">🔥 Orçamentos Quentes</h2>
+          <h2 class="section-title spaced no-border">🔥 Orçamentos Quentes</h2>
           ${
             orcamentosQuentes.length > 0
               ? `
@@ -756,7 +757,7 @@ function generateReportHTML(
 
           <!-- Seção 6: Análise Rápida -->
           <div class="analysis" style="margin-top: 16px;">
-            <h3 class="section-title">💡 Análise Rápida</h3>
+            <h3 class="section-title no-border">💡 Análise Rápida</h3>
             <p>• Faturamento no período representa <strong>${percentualMeta.toFixed(
               1
             )}%</strong> da meta mensal</p>

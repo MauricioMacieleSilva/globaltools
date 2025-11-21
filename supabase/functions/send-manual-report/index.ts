@@ -978,10 +978,17 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     // 8. Enviar email via Resend
+    // Em modo teste, Resend só permite enviar para email verificado
+    const verifiedEmail = "mauricio.maciel@globalaco.com.br";
+    const isTestMode = config.email !== verifiedEmail;
+    const targetEmail = isTestMode ? verifiedEmail : config.email;
+    
     const emailPayload = {
       from: "Lovable <onboarding@resend.dev>",
-      to: [config.email],
-      subject: `📊 Relatório Comercial Manual - ${reportDate}`,
+      to: [targetEmail],
+      subject: isTestMode 
+        ? `📊 Relatório Comercial Manual - ${reportDate} [TESTE - Destinatário real: ${config.email}]`
+        : `📊 Relatório Comercial Manual - ${reportDate}`,
       html: reportHTML,
     };
 
@@ -1006,17 +1013,23 @@ const handler = async (req: Request): Promise<Response> => {
     // 9. Registrar envio no banco de dados
     await supabaseAdmin.from('email_reports_log').insert({
       config_id: configId,
-      email: config.email,
+      email: targetEmail,
       status: 'success',
       report_date: startDate.toISOString().split('T')[0],
     });
 
-    console.log(`✅ Relatório manual enviado com sucesso para ${config.email}`);
+    const logMessage = isTestMode 
+      ? `✅ Relatório manual enviado em MODO TESTE para ${targetEmail} (destinatário configurado: ${config.email})`
+      : `✅ Relatório manual enviado com sucesso para ${config.email}`;
+    
+    console.log(logMessage);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Relatório enviado para ${config.email}` 
+        message: isTestMode 
+          ? `Relatório enviado em modo teste para ${targetEmail} (Para enviar para ${config.email}, verifique um domínio em resend.com/domains)`
+          : `Relatório enviado para ${config.email}` 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -430,6 +430,11 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
     const perdidosValor = perdidos.reduce((acc, item) => acc + item.valor, 0);
     const perdidosPeso = perdidos.reduce((acc, item) => acc + item.peso, 0);
     const perdidosClientes = new Set(perdidos.map(item => item.codigocliente)).size;
+    const perdidosPedidos = new Set(
+      perdidos
+        .map(item => item.numeropedido)
+        .filter(Boolean)
+    ).size;
     
     const cancelamentosValor = cancelados.reduce((acc, item) => acc + item.valor, 0);
     const cancelamentosPeso = cancelados.reduce((acc, item) => acc + item.peso, 0);
@@ -480,7 +485,7 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
         valor: perdidosValor,
         peso: perdidosPeso,
         numClientes: perdidosClientes,
-        numPedidos: perdidos.length,
+        numPedidos: perdidosPedidos,
         motivosPrincipais
       },
       cancelamentos: {

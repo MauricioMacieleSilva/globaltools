@@ -12,7 +12,11 @@ export function PerdidosKPIs() {
 
     const valor = dadosFiltrados.reduce((acc, item) => acc + item.valor, 0);
     const peso = dadosFiltrados.reduce((acc, item) => acc + (item.peso || 0), 0);
-    const numPedidos = dadosFiltrados.length;
+    const numPedidos = new Set(
+      dadosFiltrados
+        .map(item => item.numeropedido)
+        .filter(Boolean)
+    ).size;
     const numClientes = new Set(dadosFiltrados.map(item => item.cliente)).size;
 
     return {

@@ -554,9 +554,9 @@ function generateReportHTML(
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
         .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 22px; }
-        .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 24px 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 22px; color: #ffffff !important; }
+        .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; color: #ffffff !important; }
         .content { padding: 24px 30px 30px 30px; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
         .section-title.no-border { border-bottom: none; }
@@ -592,7 +592,7 @@ function generateReportHTML(
         .analysis { background: white; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
         .analysis p { margin: 6px 0; color: #4a5568; line-height: 1.6; font-size: 13px; }
         .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; }
-        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: transform 0.2s; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: transform 0.2s; }
         .cta-button:hover { transform: translateY(-2px); }
         .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096; }
         @media (max-width: 600px) {
@@ -603,9 +603,9 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <h1>📊 Relatório Comercial</h1>
-          <p>Gerado em ${reportDate}</p>
-          <p><strong>Período:</strong> ${periodo}</p>
+          <h1 style="color: #ffffff !important;">📊 Relatório Comercial</h1>
+          <p style="color: #ffffff !important;">Gerado em ${reportDate}</p>
+          <p style="color: #ffffff !important;"><strong>Período:</strong> ${periodo}</p>
         </div>
         
         <div class="content">
@@ -831,7 +831,7 @@ function generateReportHTML(
         </div>
 
         <div class="cta-section">
-          <a href="https://globaltools.lovable.app" class="cta-button">
+          <a href="https://globaltools.lovable.app" class="cta-button" style="color: #ffffff !important;">
             🚀 Acessar Dashboard Completo
           </a>
         </div>

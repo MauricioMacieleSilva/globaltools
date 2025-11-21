@@ -281,8 +281,15 @@ function calculateKPIs(
   const pedidosNaoFaturadosData = filteredData.filter(item =>
     item.situacao === 'Pedido' && item.faturamento_tipo === 1
   );
-  const pedidosNaoFaturados = pedidosNaoFaturadosData.length;
-  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados}`);
+  // Contar pedidos únicos, não linhas
+  const pedidosNaoFaturadosUnicos = new Map<string, ComercialData>();
+  pedidosNaoFaturadosData.forEach(p => {
+    if (!pedidosNaoFaturadosUnicos.has(p.numeropedido)) {
+      pedidosNaoFaturadosUnicos.set(p.numeropedido, p);
+    }
+  });
+  const pedidosNaoFaturados = pedidosNaoFaturadosUnicos.size;
+  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos (${pedidosNaoFaturadosData.length} linhas)`);
   
   const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);

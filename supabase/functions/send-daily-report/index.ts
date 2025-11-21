@@ -587,7 +587,7 @@ const handler = async (req: Request): Promise<Response> => {
     for (const config of configs) {
       try {
         const isTestMode = true;
-        const authorizedTestEmail = "mauricio.maciel@globalaco.com.br";
+        const authorizedTestEmail = "comercial@globalaco.com.br";
 
         const emailPayload = {
           from: "Lovable <onboarding@resend.dev>",

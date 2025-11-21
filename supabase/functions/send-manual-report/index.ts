@@ -998,9 +998,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailPayload = {
       from: "Lovable <onboarding@resend.dev>",
       to: [targetEmail],
-      subject: isTestMode 
-        ? `📊 Relatório Comercial Manual - ${reportDate} [TESTE - Destinatário real: ${config.email}]`
-        : `📊 Relatório Comercial Manual - ${reportDate}`,
+      subject: `📊 Relatório Comercial Manual - ${reportDate}`,
       html: reportHTML,
     };
 

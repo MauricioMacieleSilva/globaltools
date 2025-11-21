@@ -432,7 +432,7 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <h1>📊 Relatório Comercial Manual</h1>
+          <h1>📊 Relatório Comercial</h1>
           <p>Gerado em ${reportDate}</p>
           <p><strong>Período:</strong> ${periodo}</p>
         </div>

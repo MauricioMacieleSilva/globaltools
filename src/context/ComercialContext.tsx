@@ -184,6 +184,31 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
     metaMensal: 2000000,
     metaDiaria: 100000
   });
+
+  // Carregar metas do banco de dados
+  useEffect(() => {
+    const loadMetas = async () => {
+      try {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const { data, error } = await supabase
+          .from('admin_goals')
+          .select('monthly_revenue_goal, daily_revenue_goal')
+          .eq('month_year', currentMonth)
+          .maybeSingle();
+
+        if (!error && data) {
+          setMetasState({
+            metaMensal: data.monthly_revenue_goal || 2000000,
+            metaDiaria: data.daily_revenue_goal || 100000
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar metas:', error);
+      }
+    };
+
+    loadMetas();
+  }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);

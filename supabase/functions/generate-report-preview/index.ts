@@ -388,10 +388,8 @@ function generateReportHTML(
         .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; }
         .content { padding: 24px 30px 30px 30px; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
-        .section-title.spaced { margin-top: 56px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 24px 0 48px 0; }
-        .summary-column { }
-        .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
+        .section-title.spaced { margin-top: 16px; }
+        .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
         .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 16px 18px; border-left: 3px solid #667eea; }
         .kpi-card.success { border-left-color: #48bb78; }
         .kpi-card.warning { border-left-color: #ed8936; }
@@ -401,12 +399,12 @@ function generateReportHTML(
         .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px; }
         .kpi-value { font-size: 20px; font-weight: 700; color: #2d3748; }
         .kpi-subtitle { font-size: 12px; color: #718096; margin-top: 3px; }
-        .meta-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 14px; }
+        .meta-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 16px; }
         .meta-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .meta-item { padding: 6px 0; }
         .meta-label { color: #718096; font-size: 12px; margin-bottom: 2px; }
         .meta-value { color: #2d3748; font-size: 18px; font-weight: bold; }
-        .comp-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 14px; margin-bottom: 8px; }
+        .comp-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 16px; }
         .comp-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .comp-card { background: #f7fafc; padding: 10px 12px; border-radius: 6px; border-left: 3px solid #4299e1; }
         .comp-card.gold { background: #fffaf0; border-left-color: #f6ad55; }
@@ -427,7 +425,6 @@ function generateReportHTML(
         .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096; }
         @media (max-width: 600px) {
           .content { padding: 18px 16px 20px 16px; }
-          .summary-grid { grid-template-columns: 1fr; }
         }
       </style>
     </head>
@@ -440,118 +437,114 @@ function generateReportHTML(
         </div>
         
         <div class="content">
-          <div class="summary-grid">
-            <div class="summary-column">
-              <h2 class="section-title">📈 KPIs Comerciais</h2>
-              <div class="kpi-grid">
-                <div class="kpi-card success">
-                  <div class="kpi-label">💰 Faturamento</div>
-                  <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
-                </div>
-                <div class="kpi-card info">
-                  <div class="kpi-label">📋 Orçamentos (R$)</div>
-                  <div class="kpi-value">${formatCurrency(kpis.orcamentosValor)}</div>
-                </div>
-                <div class="kpi-card warning">
-                  <div class="kpi-label">📦 Pedidos Não Faturados</div>
-                  <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
-                </div>
-                <div class="kpi-card danger">
-                  <div class="kpi-label">❌ Valor Perdido</div>
-                  <div class="kpi-value">${formatCurrency(kpis.perdidosValor)}</div>
-                  <div class="kpi-subtitle">${kpis.perdidosQtd} oportunidade(s)</div>
-                </div>
-                <div class="kpi-card purple">
-                  <div class="kpi-label">📊 Média Diária (Dias Úteis)</div>
-                  <div class="kpi-value">${formatCurrency(kpis.mediaDiaria)}</div>
-                  <div class="kpi-subtitle">${kpis.diasUteis} dias úteis</div>
-                </div>
-              </div>
+          <!-- Seção 1: KPIs Comerciais -->
+          <h2 class="section-title">📈 KPIs Comerciais</h2>
+          <div class="kpi-grid">
+            <div class="kpi-card success">
+              <div class="kpi-label">💰 Faturamento</div>
+              <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
             </div>
-
-            <div class="summary-column">
-              <h2 class="section-title">🎯 Meta do Mês</h2>
-              <div class="meta-section">
-                <div class="meta-grid">
-                  <div class="meta-item">
-                    <div class="meta-label">Meta Mensal</div>
-                    <div class="meta-value">${formatCurrency(meta)}</div>
-                  </div>
-                  <div class="meta-item">
-                    <div class="meta-label">Realizado</div>
-                    <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
-                  </div>
-                  <div class="meta-item">
-                    <div class="meta-label">Atingimento</div>
-                    <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(
-                      1
-                    )}% ${statusMeta}</div>
-                  </div>
-                  <div class="meta-item">
-                    <div class="meta-label">Faltam</div>
-                    <div class="meta-value" style="color: ${
-                      faltaMeta > 0 ? '#ed8936' : '#48bb78'
-                    };"><span>${
-    faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'
-  }</span></div>
-                  </div>
-                </div>
-              </div>
+            <div class="kpi-card info">
+              <div class="kpi-label">📋 Orçamentos (R$)</div>
+              <div class="kpi-value">${formatCurrency(kpis.orcamentosValor)}</div>
             </div>
-
-            <div class="summary-column">
-              <h2 class="section-title">📊 Comparativos</h2>
-              ${mesAnterior || melhorMes
-                ? `
-                <div class="comp-section">
-                  <div class="comp-grid">
-                    ${
-                      mesAnterior
-                        ? `
-                    <div class="comp-card">
-                      <div class="comp-title">Mês Anterior (${mesAnterior.mes}/${mesAnterior.ano})</div>
-                      <div class="comp-value">${formatCurrency(
-                        mesAnterior.faturamento
-                      )}</div>
-                      <div class="comp-var ${
-                        mesAnterior.variacao >= 0 ? 'pos' : 'neg'
-                      }">
-                        ${
-                          mesAnterior.variacao >= 0 ? '+' : ''
-                        }${mesAnterior.variacao.toFixed(1)}% ${
-    mesAnterior.variacao >= 0 ? '↗️' : '↘️'
-  }
-                      </div>
-                    </div>
-                    `
-                        : ''
-                    }
-                    ${
-                      melhorMes
-                        ? `
-                    <div class="comp-card gold">
-                      <div class="comp-title">🏆 Melhor Mês (${melhorMes.mes}/${melhorMes.ano})</div>
-                      <div class="comp-value">${formatCurrency(
-                        melhorMes.faturamento
-                      )}</div>
-                      <div class="comp-var ${
-                        melhorMes.variacao >= 0 ? 'pos' : 'neg'
-                      }">
-                        ${
-                          melhorMes.variacao >= 0 ? '+' : ''
-                        }${melhorMes.variacao.toFixed(1)}% vs melhor
-                      </div>
-                    </div>
-                    `
-                        : ''
-                    }
-                  </div>
-                </div>
-              `
-                : `<p style="color:#718096; font-size: 13px; margin-top: 8px;">Sem dados suficientes para comparativos.</p>`}
+            <div class="kpi-card warning">
+              <div class="kpi-label">📦 Pedidos Não Faturados</div>
+              <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
+            </div>
+            <div class="kpi-card danger">
+              <div class="kpi-label">❌ Valor Perdido</div>
+              <div class="kpi-value">${formatCurrency(kpis.perdidosValor)}</div>
+              <div class="kpi-subtitle">${kpis.perdidosQtd} oportunidade(s)</div>
+            </div>
+            <div class="kpi-card purple">
+              <div class="kpi-label">📊 Média Diária (Dias Úteis)</div>
+              <div class="kpi-value">${formatCurrency(kpis.mediaDiaria)}</div>
+              <div class="kpi-subtitle">${kpis.diasUteis} dias úteis</div>
             </div>
           </div>
 
+          <!-- Seção 2: Meta do Mês -->
+          <h2 class="section-title spaced">🎯 Meta do Mês</h2>
+          <div class="meta-section">
+            <div class="meta-grid">
+              <div class="meta-item">
+                <div class="meta-label">Meta Mensal</div>
+                <div class="meta-value">${formatCurrency(meta)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Realizado</div>
+                <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Atingimento</div>
+                <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(
+                  1
+                )}% ${statusMeta}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Faltam</div>
+                <div class="meta-value" style="color: ${
+                  faltaMeta > 0 ? '#ed8936' : '#48bb78'
+                };"><span>${
+    faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'
+  }</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 3: Comparativos -->
+          <h2 class="section-title spaced">📊 Comparativos</h2>
+          ${mesAnterior || melhorMes
+            ? `
+            <div class="comp-section">
+              <div class="comp-grid">
+                ${
+                  mesAnterior
+                    ? `
+                <div class="comp-card">
+                  <div class="comp-title">Mês Anterior (${mesAnterior.mes}/${mesAnterior.ano})</div>
+                  <div class="comp-value">${formatCurrency(
+                    mesAnterior.faturamento
+                  )}</div>
+                  <div class="comp-var ${
+                    mesAnterior.variacao >= 0 ? 'pos' : 'neg'
+                  }">
+                    ${
+                      mesAnterior.variacao >= 0 ? '+' : ''
+                    }${mesAnterior.variacao.toFixed(1)}% ${
+    mesAnterior.variacao >= 0 ? '↗️' : '↘️'
+  }
+                  </div>
+                </div>
+                `
+                    : ''
+                }
+                ${
+                  melhorMes
+                    ? `
+                <div class="comp-card gold">
+                  <div class="comp-title">🏆 Melhor Mês (${melhorMes.mes}/${melhorMes.ano})</div>
+                  <div class="comp-value">${formatCurrency(
+                    melhorMes.faturamento
+                  )}</div>
+                  <div class="comp-var ${
+                    melhorMes.variacao >= 0 ? 'pos' : 'neg'
+                  }">
+                    ${
+                      melhorMes.variacao >= 0 ? '+' : ''
+                    }${melhorMes.variacao.toFixed(1)}% vs melhor
+                  </div>
+                </div>
+                `
+                    : ''
+                }
+              </div>
+            </div>
+          `
+            : `<p style="color:#718096; font-size: 13px; margin-top: 8px;">Sem dados suficientes para comparativos.</p>`}
+
+          <!-- Seção 4: Ranking de Vendedores -->
           <h2 class="section-title spaced">🏆 Ranking de Vendedores</h2>
           ${
             ranking.length > 0
@@ -575,6 +568,7 @@ function generateReportHTML(
               : `<p style="color:#718096; font-size: 13px;">Sem dados de faturamento para montar o ranking neste período.</p>`
           }
 
+          <!-- Seção 5: Orçamentos Quentes -->
           <h2 class="section-title spaced">🔥 Orçamentos Quentes (3+ Estrelas)</h2>
           ${
             orcamentosQuentes.length > 0
@@ -603,7 +597,8 @@ function generateReportHTML(
               : `<p style="color:#718096; font-size: 13px;">Nenhum orçamento com 3 ou mais estrelas no momento.</p>`
           }
 
-          <div class="analysis">
+          <!-- Seção 6: Análise Rápida -->
+          <div class="analysis" style="margin-top: 16px;">
             <h3 class="section-title">💡 Análise Rápida</h3>
             <p>• Faturamento no período representa <strong>${percentualMeta.toFixed(
               1

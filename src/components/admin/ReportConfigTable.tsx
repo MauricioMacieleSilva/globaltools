@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Clock, Mail, BarChart3, Send } from "lucide-react";
 import { ReportConfigDialog } from './ReportConfigDialog';
+import { ReportPreviewDialog } from './ReportPreviewDialog';
 
 interface ReportConfig {
   id: string;
@@ -241,6 +242,10 @@ export function ReportConfigTable() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <ReportPreviewDialog 
+                        configId={config.id}
+                        disabled={!config.is_active}
+                      />
                       <Button
                         variant="ghost"
                         size="sm"

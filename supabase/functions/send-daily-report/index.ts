@@ -321,9 +321,9 @@ function generateReportHTML(
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
         .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; color: #ffffff !important; }
+        .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; color: #ffffff !important; }
         .content { padding: 30px; }
         .section-title { font-size: 18px; font-weight: 600; color: #2d3748; margin: 25px 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
         .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
@@ -361,8 +361,8 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <h1>📊 Relatório Comercial Diário</h1>
-          <p><strong>Ontem:</strong> ${reportDate}</p>
+          <h1 style="color: #ffffff !important;">📊 Relatório Comercial Diário</h1>
+          <p style="color: #ffffff !important;"><strong>Ontem:</strong> ${reportDate}</p>
         </div>
         
         <div class="content">

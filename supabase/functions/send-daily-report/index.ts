@@ -319,13 +319,13 @@ function generateReportHTML(
     <head>
       <meta charset="UTF-8">
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #2d3748; }
+        .container { max-width: 700px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 30px; text-align: center; }
         .header h1 { margin: 0; font-size: 24px; color: #ffffff !important; }
-        .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; color: #ffffff !important; }
-        .content { padding: 30px; }
-        .section-title { font-size: 18px; font-weight: 600; color: #2d3748; margin: 25px 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .header p { margin: 10px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff !important; }
+        .content { padding: 30px; background: #ffffff; }
+        .section-title { font-size: 18px; font-weight: 600; color: #2d3748 !important; margin: 25px 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
         .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
         .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid #667eea; }
         .kpi-card.success { border-left-color: #48bb78; }
@@ -333,26 +333,26 @@ function generateReportHTML(
         .kpi-card.danger { border-left-color: #f56565; }
         .kpi-card.info { border-left-color: #4299e1; }
         .kpi-card.purple { border-left-color: #667eea; }
-        .kpi-label { font-size: 12px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 8px; }
-        .kpi-value { font-size: 24px; font-weight: 700; color: #2d3748; }
-        .kpi-subtitle { font-size: 13px; color: #718096; margin-top: 5px; }
-        .meta-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .kpi-label { font-size: 12px; text-transform: uppercase; color: #718096 !important; font-weight: 600; margin-bottom: 8px; }
+        .kpi-value { font-size: 24px; font-weight: 700; color: #2d3748 !important; }
+        .kpi-subtitle { font-size: 13px; color: #718096 !important; margin-top: 5px; }
+        .meta-section { background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
         .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .meta-item { padding: 15px; background: #f7fafc; border-radius: 6px; }
-        .meta-label { color: #718096; font-size: 13px; margin-bottom: 5px; }
-        .meta-value { color: #2d3748; font-size: 20px; font-weight: bold; }
-        .comp-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .meta-label { color: #718096 !important; font-size: 13px; margin-bottom: 5px; }
+        .meta-value { color: #2d3748 !important; font-size: 20px; font-weight: bold; }
+        .comp-section { background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
         .comp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .comp-card { background: #f7fafc; padding: 15px; border-radius: 6px; border-left: 4px solid #4299e1; }
         .comp-card.gold { background: #fffaf0; border-left-color: #f6ad55; }
-        .comp-title { color: #2d3748; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
-        .comp-value { color: #4a5568; font-size: 16px; margin-bottom: 5px; }
+        .comp-title { color: #2d3748 !important; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+        .comp-value { color: #4a5568 !important; font-size: 16px; margin-bottom: 5px; }
         .comp-var { font-size: 14px; font-weight: bold; }
-        .comp-var.pos { color: #48bb78; }
-        .comp-var.neg { color: #f56565; }
-        .analysis { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
-        .analysis p { margin: 8px 0; color: #4a5568; line-height: 1.8; }
-        .footer { background: #f7fafc; padding: 20px; text-align: center; font-size: 13px; color: #718096; }
+        .comp-var.pos { color: #48bb78 !important; }
+        .comp-var.neg { color: #f56565 !important; }
+        .analysis { background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
+        .analysis p { margin: 8px 0; color: #4a5568 !important; line-height: 1.8; }
+        .footer { background: #f7fafc; padding: 20px; text-align: center; font-size: 13px; color: #718096 !important; }
         @media (max-width: 600px) {
           .kpi-grid, .meta-grid, .comp-grid { grid-template-columns: 1fr; }
         }
@@ -433,17 +433,17 @@ function generateReportHTML(
           ` : ''}
 
           <div class="analysis">
-            <h3 class="section-title">💡 Análise Rápida</h3>
-            <p>• Faturamento de ontem: <strong>${formatCurrency(kpis.faturamento)}</strong></p>
-            ${mesAnterior ? `<p>• Mês atual com ${mesAnterior.variacao >= 0 ? 'aumento' : 'redução'} de <strong>${Math.abs(mesAnterior.variacao).toFixed(1)}%</strong> vs mês anterior</p>` : ''}
-            ${faltaMeta > 0 ? `<p>• Ainda faltam <strong>${formatCurrency(faltaMeta)}</strong> para atingir a meta mensal</p>` : `<p>• <strong>Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
-            ${kpis.pedidosNaoFaturados > 0 ? `<p>• <strong>${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
-            ${kpis.perdidosQtd > 0 ? `<p>• <strong>${kpis.perdidosQtd}</strong> oportunidades perdidas ontem (${formatCurrency(kpis.perdidosValor)})</p>` : ''}
+            <h3 class="section-title" style="color: #2d3748 !important;">💡 Análise Rápida</h3>
+            <p style="color: #4a5568 !important;">• Faturamento de ontem: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong></p>
+            ${mesAnterior ? `<p style="color: #4a5568 !important;">• Mês atual com ${mesAnterior.variacao >= 0 ? 'aumento' : 'redução'} de <strong style="color: #2d3748 !important;">${Math.abs(mesAnterior.variacao).toFixed(1)}%</strong> vs mês anterior</p>` : ''}
+            ${faltaMeta > 0 ? `<p style="color: #4a5568 !important;">• Ainda faltam <strong style="color: #2d3748 !important;">${formatCurrency(faltaMeta)}</strong> para atingir a meta mensal</p>` : `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
+            ${kpis.pedidosNaoFaturados > 0 ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
+            ${kpis.perdidosQtd > 0 ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.perdidosQtd}</strong> oportunidades perdidas ontem (${formatCurrency(kpis.perdidosValor)})</p>` : ''}
           </div>
         </div>
 
         <div class="footer">
-          <p>Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
+          <p style="color: #718096 !important;">Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
         </div>
       </div>
     </body>

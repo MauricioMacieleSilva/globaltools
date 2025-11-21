@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Clock, Mail, BarChart3, Send } from "lucide-react";
+import { Trash2, Clock, Mail, Send } from "lucide-react";
 import { ReportConfigDialog } from './ReportConfigDialog';
 import { ReportPreviewDialog } from './ReportPreviewDialog';
 import { ReportDownloadButton } from './ReportDownloadButton';
@@ -18,6 +18,7 @@ interface ReportConfig {
   is_active: boolean;
   frequency: string;
   send_time: string;
+  custom_days: string[] | null;
   include_vendas: boolean;
   include_funil: boolean;
   include_perdidos: boolean;
@@ -138,22 +139,27 @@ export function ReportConfigTable() {
     }
   };
 
-  const getFrequencyLabel = (frequency: string) => {
+  const getFrequencyLabel = (frequency: string, customDays?: string[] | null) => {
+    if (frequency === 'custom' && customDays && customDays.length > 0) {
+      const dayLabels: Record<string, string> = {
+        monday: 'Seg',
+        tuesday: 'Ter',
+        wednesday: 'Qua',
+        thursday: 'Qui',
+        friday: 'Sex',
+        saturday: 'Sáb',
+        sunday: 'Dom'
+      };
+      return customDays.map(d => dayLabels[d] || d).join(', ');
+    }
+    
     switch (frequency) {
       case 'daily': return 'Diário';
       case 'weekly': return 'Semanal';
       case 'monthly': return 'Mensal';
+      case 'custom': return 'Personalizada';
       default: return frequency;
     }
-  };
-
-  const getSectionsCount = (config: ReportConfig) => {
-    return [
-      config.include_vendas,
-      config.include_funil,
-      config.include_perdidos,
-      config.include_cancelamentos
-    ].filter(Boolean).length;
   };
 
   if (loading) {
@@ -206,7 +212,6 @@ export function ReportConfigTable() {
                 <TableHead>Destinatário</TableHead>
                 <TableHead>Frequência</TableHead>
                 <TableHead>Horário</TableHead>
-                <TableHead>Seções</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -225,16 +230,10 @@ export function ReportConfigTable() {
                   <TableCell>
                     <Badge variant="outline" className="gap-1">
                       <Clock className="h-3 w-3" />
-                      {getFrequencyLabel(config.frequency)}
+                      {getFrequencyLabel(config.frequency, config.custom_days)}
                     </Badge>
                   </TableCell>
                   <TableCell>{config.send_time}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="gap-1">
-                      <BarChart3 className="h-3 w-3" />
-                      {getSectionsCount(config)} seções
-                    </Badge>
-                  </TableCell>
                   <TableCell>
                     <Switch
                       checked={config.is_active}

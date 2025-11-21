@@ -353,6 +353,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          custom_days: string[] | null
           email: string
           frequency: string
           full_name: string | null
@@ -368,6 +369,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          custom_days?: string[] | null
           email: string
           frequency: string
           full_name?: string | null
@@ -383,6 +385,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          custom_days?: string[] | null
           email?: string
           frequency?: string
           full_name?: string | null

@@ -3,26 +3,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GOOGLE_SHEETS_API_KEY = Deno.env.get("GOOGLE_SHEETS_API_KEY")!;
-const SPREADSHEET_ID = "1meFHGnpxg5t2wJe-B82i-FDDcNPLHHl1sL2ImpFxWLM";
-const RANGE = "comercial!A:Z";
+
+// Mesmos IDs da planilha usados nas outras funções
+const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
+const GID = "2063157767";
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Importar as mesmas interfaces e funções do send-manual-report
+// Interface IGUAL ao ComercialData do frontend
 interface ComercialData {
-  vendedor: string;
-  dataFaturamento?: string;
-  dataEmissao?: string;
-  dataPerdido?: string;
-  numeroPedido: string;
-  cliente: string;
+  numeropedido: string;
+  situacao: string;
+  data_emissao: string;
+  data_inicio: string;
+  data_perdido: string;
+  data_pedido_pronto: string;
   valor: number;
-  status: string;
-  peso?: number;
+  peso: number;
+  classe: string;
+  cli_nomefantasia: string;
+  cliente: string;
+  codigocliente: string;
+  uf: string;
+  vendedor: string;
+  faturamento_tipo: number;
+  produto: string;
+  obs: string;
 }
 
 interface EmailKPIs {
@@ -134,17 +144,16 @@ function parseDate(dateStr: string): Date | null {
 }
 
 function getDateField(row: ComercialData): Date | null {
-  if (row.dataFaturamento) {
-    const d = parseDate(row.dataFaturamento);
+  if (row.data_inicio) {
+    const d = parseDate(row.data_inicio);
     if (d) return d;
   }
-  if (row.dataEmissao) {
-    const d = parseDate(row.dataEmissao);
+  if (row.data_emissao) {
+    const d = parseDate(row.data_emissao);
     if (d) return d;
   }
-  if (row.dataPerdido) {
-    const d = parseDate(row.dataPerdido);
-    if (d) return d;
+  if (row.data_perdido) {
+    return parseDate(row.data_perdido);
   }
   return null;
 }
@@ -163,13 +172,12 @@ function calcularDiasUteis(inicio: Date, fim: Date): number {
 }
 
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}?key=${GOOGLE_SHEETS_API_KEY}`;
-  const response = await fetch(url);
+  const response = await fetch(CSV_URL);
   if (!response.ok) {
     throw new Error(`Erro ao buscar dados da planilha: ${response.statusText}`);
   }
-  const json = await response.json();
-  const rows = json.values || [];
+  const csvText = await response.text();
+  const rows = parseCSV(csvText);
   
   if (rows.length < 2) return [];
   
@@ -181,16 +189,25 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
     headers.forEach((h: string, i: number) => {
       obj[h] = row[i] || '';
     });
+    
     return {
-      vendedor: obj.Vendedor || '',
-      dataFaturamento: obj['Data Faturamento'] || obj['Data de Faturamento'] || '',
-      dataEmissao: obj['Data de Emissão'] || obj['Data Emissão'] || '',
-      dataPerdido: obj['Data Perdido'] || '',
-      numeroPedido: obj['Nº Pedido'] || obj['Numero Pedido'] || '',
-      cliente: obj.Cliente || '',
-      valor: parseFloat((obj.Valor || '0').replace(',', '.')) || 0,
-      status: obj.Status || '',
-      peso: parseFloat((obj.Peso || '0').replace(',', '.')) || 0,
+      numeropedido: obj.numeropedido || '',
+      situacao: obj.situacao || '',
+      data_emissao: obj.data_emissao || '',
+      data_inicio: obj.data_inicio || '',
+      data_perdido: obj.data_perdido || '',
+      data_pedido_pronto: obj.data_pedido_pronto || '',
+      valor: parseFloat((obj.valor || '0').replace(',', '.')) || 0,
+      peso: parseFloat((obj.peso || '0').replace(',', '.')) || 0,
+      classe: obj.classe || '',
+      cli_nomefantasia: obj.cli_nomefantasia || '',
+      cliente: obj.cliente || '',
+      codigocliente: obj.codigocliente || '',
+      uf: obj.uf || '',
+      vendedor: obj.vendedor || '',
+      faturamento_tipo: parseInt(obj.faturamento_tipo || '0'),
+      produto: obj.produto || '',
+      obs: obj.obs || '',
     };
   });
 }
@@ -204,28 +221,28 @@ function calculateKPIs(data: ComercialData[], inicio: Date, fim: Date): EmailKPI
   console.log(`📋 Registros no período: ${registrosPeriodo.length} de ${data.length} totais`);
 
   const faturamento = registrosPeriodo
-    .filter(r => r.status === 'Faturado')
+    .filter(r => r.situacao === 'Faturado')
     .reduce((sum, r) => sum + r.valor, 0);
-  console.log(`💰 Faturamento: R$ ${faturamento.toFixed(2)} (${registrosPeriodo.filter(r => r.status === 'Faturado').length} registros)`);
+  console.log(`💰 Faturamento: R$ ${faturamento.toFixed(2)} (${registrosPeriodo.filter(r => r.situacao === 'Faturado').length} registros)`);
 
   const orcamentosValor = registrosPeriodo
-    .filter(r => r.status === 'Orçamento')
+    .filter(r => r.situacao === 'Orçamento')
     .reduce((sum, r) => sum + r.valor, 0);
-  const orcamentosQtd = registrosPeriodo.filter(r => r.status === 'Orçamento').length;
+  const orcamentosQtd = registrosPeriodo.filter(r => r.situacao === 'Orçamento').length;
   console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentosQtd} registros)`);
 
-  const perdidosRaw = registrosPeriodo.filter(r => r.status === 'Perdido');
+  const perdidosRaw = registrosPeriodo.filter(r => r.situacao === 'Perdido');
   const perdidosUnicos = new Map<string, ComercialData>();
   perdidosRaw.forEach(p => {
-    if (!perdidosUnicos.has(p.numeroPedido)) {
-      perdidosUnicos.set(p.numeroPedido, p);
+    if (!perdidosUnicos.has(p.numeropedido)) {
+      perdidosUnicos.set(p.numeropedido, p);
     }
   });
   const perdidosValor = Array.from(perdidosUnicos.values()).reduce((sum, r) => sum + r.valor, 0);
   const perdidosQtd = perdidosUnicos.size;
   console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
 
-  const pedidosNaoFaturados = registrosPeriodo.filter(r => r.status === 'Pedido').length;
+  const pedidosNaoFaturados = registrosPeriodo.filter(r => r.situacao === 'Pedido').length;
   console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados}`);
 
   const diasUteis = calcularDiasUteis(inicio, fim);
@@ -248,7 +265,7 @@ function calculateKPIs(data: ComercialData[], inicio: Date, fim: Date): EmailKPI
 
 function calcularRankingVendedores(data: ComercialData[], inicio: Date, fim: Date): VendedorPerformance[] {
   const faturados = data.filter(r => {
-    if (r.status !== 'Faturado') return false;
+    if (r.situacao !== 'Faturado') return false;
     const d = getDateField(r);
     return d && d >= inicio && d <= fim;
   });
@@ -289,16 +306,16 @@ async function buscarOrcamentosQuentes(supabaseAdmin: any): Promise<OrcamentoQue
   
   const orcamentos: OrcamentoQuente[] = [];
   for (const rating of data) {
-    const found = allData.find(r => r.numeroPedido === rating.budget_number && r.status === 'Orçamento');
+    const found = allData.find(r => r.numeropedido === rating.budget_number && r.situacao === 'Orçamento');
     if (found) {
       orcamentos.push({
-        numeroPedido: found.numeroPedido,
+        numeroPedido: found.numeropedido,
         cliente: found.cliente,
         vendedor: found.vendedor,
         valor: found.valor,
         peso: found.peso || 0,
         rating: rating.rating,
-        dataEmissao: found.dataEmissao
+        dataEmissao: found.data_emissao
       });
     }
   }

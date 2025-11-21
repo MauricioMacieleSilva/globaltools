@@ -66,7 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
     const emailResponse = await resend.emails.send({
-      from: "Global Aço <noreply@globalaco.com.br>",
+      from: "Global Aço Comercial <comercial@resend.dev>",
       to: [vendor_email],
       subject: `Novo Lead Encaminhado: ${lead_client_name}`,
       html: `

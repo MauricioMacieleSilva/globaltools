@@ -414,7 +414,7 @@ function generateReportHTML(
         .comp-var { font-size: 13px; font-weight: bold; }
         .comp-var.pos { color: #48bb78; }
         .comp-var.neg { color: #f56565; }
-        .ranking-table, .hot-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .ranking-table, .hot-table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 16px; }
         .ranking-table th, .ranking-table td, .hot-table th, .hot-table td { border-bottom: 1px solid #e2e8f0; font-size: 13px; }
         .ranking-table th, .hot-table th { background: #f7fafc; padding: 8px 10px; text-align: left; color: #4a5568; font-weight: 600; }
         .ranking-table td, .hot-table td { padding: 8px 10px; color: #2d3748; }
@@ -568,6 +568,8 @@ function generateReportHTML(
           `
               : `<p style="color:#718096; font-size: 13px;">Sem dados de faturamento para montar o ranking neste período.</p>`
           }
+
+          <div style="margin-bottom: 16px;"></div>
 
           <!-- Seção 5: Orçamentos Quentes -->
           <h2 class="section-title spaced no-border">🔥 Orçamentos Quentes</h2>

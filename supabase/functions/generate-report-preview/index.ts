@@ -172,102 +172,139 @@ function calcularDiasUteis(inicio: Date, fim: Date): number {
 }
 
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
-  const response = await fetch(CSV_URL);
-  if (!response.ok) {
-    throw new Error(`Erro ao buscar dados da planilha: ${response.statusText}`);
-  }
-  const csvText = await response.text();
-  const rows = parseCSV(csvText);
-  
-  if (rows.length < 2) return [];
-  
-  const headers = rows[0];
-  const dataRows = rows.slice(1);
-  
-  // Filtrar apenas os últimos 6 meses para reduzir memória
-  const seiseMesesAtras = new Date();
-  seiseMesesAtras.setMonth(seiseMesesAtras.getMonth() - 6);
-  
-  const dados = dataRows.map((row: string[]) => {
-    const obj: any = {};
-    headers.forEach((h: string, i: number) => {
-      obj[h] = row[i] || '';
+  console.log('📊 Buscando dados da planilha...');
+  console.log('📋 URL:', CSV_URL);
+
+  try {
+    const response = await fetch(CSV_URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0)',
+      },
     });
-    
-    return {
-      numeropedido: obj.numeropedido || '',
-      situacao: obj.situacao || '',
-      data_emissao: obj.data_emissao || '',
-      data_inicio: obj.data_inicio || '',
-      data_perdido: obj.data_perdido || '',
-      data_pedido_pronto: obj.data_pedido_pronto || '',
-      valor: parseFloat((obj.valor || '0').replace(',', '.')) || 0,
-      peso: parseFloat((obj.peso || '0').replace(',', '.')) || 0,
-      classe: obj.classe || '',
-      cli_nomefantasia: obj.cli_nomefantasia || '',
-      cliente: obj.cliente || '',
-      codigocliente: obj.codigocliente || '',
-      uf: obj.uf || '',
-      vendedor: obj.vendedor || '',
-      faturamento_tipo: parseInt(obj.faturamento_tipo || '0'),
-      produto: obj.produto || '',
-      obs: obj.obs || '',
-    };
-  });
-  
-  // Filtrar apenas registros dos últimos 6 meses
-  return dados.filter(item => {
-    const d = getDateField(item);
-    return d && d >= seiseMesesAtras;
-  });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Resposta de erro:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    }
+
+    const csvText = await response.text();
+    const rows = parseCSV(csvText);
+
+    console.log(`✅ ${rows.length} linhas parseadas`);
+
+    if (rows.length < 2) {
+      console.warn('⚠️ Planilha vazia ou só com header');
+      return [];
+    }
+
+    const comercialData: ComercialData[] = rows
+      .slice(1)
+      .filter((row: string[]) => row.length > 30 && row[3])
+      .map((row: string[]): ComercialData => {
+        return {
+          numeropedido: row[1] || '', // Coluna B
+          situacao: (row[3] || '').trim().replace(/\s+/g, ' '), // Coluna D
+          data_emissao: row[4] || '', // Coluna E
+          data_inicio: row[33] || '', // Coluna AH
+          data_perdido: row[35] || '', // Coluna AJ
+          data_pedido_pronto: row[34] || '', // Coluna AI
+          valor: parseFloat(row[14]?.replace(',', '.')) || 0, // Coluna O
+          peso: parseFloat(row[19]?.replace(',', '.')) || 0, // Coluna T
+          classe: (row[21] || '').trim().replace(/\s+/g, ' '), // Coluna V
+          cli_nomefantasia: row[29] || '', // Coluna AD
+          cliente: row[29] || '', // Coluna AD
+          codigocliente: row[28] || '', // Coluna AC
+          uf: (row[30] || '').trim().replace(/\s+/g, ' '), // Coluna AE
+          vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '), // Coluna AB
+          faturamento_tipo: parseInt(row[43]) || 0, // Coluna AR
+          produto: row[9] || '', // Coluna J (descricaomat)
+          obs: row[10] || '', // Coluna K (observacao)
+        };
+      })
+      .filter((item: ComercialData) => {
+        // Filtrar registros válidos
+        if (!item.situacao || item.valor <= 0) return false;
+
+        // Excluir clientes que contenham "GLOBAL AÇO" no nome
+        const nomeFantasia = item.cli_nomefantasia?.toUpperCase() || '';
+        if (nomeFantasia.includes('GLOBAL AÇO')) {
+          return false;
+        }
+
+        return true;
+      });
+
+    console.log(`✅ ${comercialData.length} registros carregados da planilha`);
+
+    // Filtrar apenas os últimos 6 meses para reduzir memória
+    const seisMesesAtras = new Date();
+    seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 6);
+
+    const dadosFiltrados = comercialData.filter(item => {
+      const d = getDateField(item);
+      return d && d >= seisMesesAtras;
+    });
+
+    console.log(`✅ ${dadosFiltrados.length} registros após filtro de 6 meses`);
+    return dadosFiltrados;
+  } catch (error) {
+    console.error('❌ Erro ao buscar dados da planilha:', error);
+    throw error;
+  }
 }
 
-function calculateKPIs(data: ComercialData[], inicio: Date, fim: Date): EmailKPIs {
-  const registrosPeriodo = data.filter(row => {
-    const d = getDateField(row);
-    return d && d >= inicio && d <= fim;
+function calculateKPIs(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date,
+  calcularDias: boolean = true
+): EmailKPIs {
+  console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
+
+  const filteredData = allData.filter(item => {
+    const date = getDateField(item);
+    return date && date >= startDate && date <= endDate;
   });
 
-  console.log(`📋 Registros no período: ${registrosPeriodo.length} de ${data.length} totais`);
+  console.log(`📋 Registros no período: ${filteredData.length} de ${allData.length} totais`);
 
-  const faturamento = registrosPeriodo
-    .filter(r => r.situacao === 'Faturado')
-    .reduce((sum, r) => sum + r.valor, 0);
-  console.log(`💰 Faturamento: R$ ${faturamento.toFixed(2)} (${registrosPeriodo.filter(r => r.situacao === 'Faturado').length} registros)`);
+  const faturados = filteredData.filter(item =>
+    (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+    item.faturamento_tipo === 1
+  );
+  const faturamento = faturados.reduce((acc, item) => acc + item.valor, 0);
+  console.log(`💰 Faturamento: R$ ${faturamento.toFixed(2)} (${faturados.length} registros)`);
 
-  const orcamentosValor = registrosPeriodo
-    .filter(r => r.situacao === 'Orçamento')
-    .reduce((sum, r) => sum + r.valor, 0);
-  const orcamentosQtd = registrosPeriodo.filter(r => r.situacao === 'Orçamento').length;
-  console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentosQtd} registros)`);
+  const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
+  const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
+  const orcamentosQtd = new Set(
+    orcamentos.map(item => item.numeropedido).filter(Boolean)
+  ).size;
+  console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentosQtd} pedidos distintos)`);
 
-  const perdidosRaw = registrosPeriodo.filter(r => r.situacao === 'Perdido');
-  const perdidosUnicos = new Map<string, ComercialData>();
-  perdidosRaw.forEach(p => {
-    if (!perdidosUnicos.has(p.numeropedido)) {
-      perdidosUnicos.set(p.numeropedido, p);
-    }
-  });
-  const perdidosValor = Array.from(perdidosUnicos.values()).reduce((sum, r) => sum + r.valor, 0);
-  const perdidosQtd = perdidosUnicos.size;
-  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
-
-  // Pedidos não faturados (contar pedidos únicos, não linhas)
-  const pedidosRaw = registrosPeriodo.filter(r => r.situacao === 'Pedido');
+  const pedidosNaoFaturadosData = filteredData.filter(item =>
+    item.situacao === 'Pedido' && item.faturamento_tipo === 1
+  );
   const pedidosUnicos = new Map<string, ComercialData>();
-  pedidosRaw.forEach(p => {
+  pedidosNaoFaturadosData.forEach(p => {
     if (!pedidosUnicos.has(p.numeropedido)) {
       pedidosUnicos.set(p.numeropedido, p);
     }
   });
   const pedidosNaoFaturados = pedidosUnicos.size;
-  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos (${pedidosRaw.length} linhas)`);
+  console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos (${pedidosNaoFaturadosData.length} linhas)`);
 
+  const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
+  const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
+  const perdidosQtd = new Set(
+    perdidosData.map(item => item.numeropedido).filter(Boolean)
+  ).size;
+  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
 
-  const diasUteis = calcularDiasUteis(inicio, fim);
-  console.log(`📊 Dias úteis no período: ${diasUteis}`);
-  
+  const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
   const mediaDiaria = diasUteis > 0 ? faturamento / diasUteis : 0;
+  console.log(`📊 Dias úteis no período: ${diasUteis}`);
   console.log(`📊 Média diária: R$ ${mediaDiaria.toFixed(2)}`);
 
   return {
@@ -278,7 +315,7 @@ function calculateKPIs(data: ComercialData[], inicio: Date, fim: Date): EmailKPI
     perdidosQtd,
     pedidosNaoFaturados,
     diasUteis,
-    mediaDiaria
+    mediaDiaria,
   };
 }
 

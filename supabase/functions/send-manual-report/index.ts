@@ -521,9 +521,9 @@ function generateReportHTML(
           <td style="padding: 8px 10px; text-align: right; font-weight: bold;">${formatCurrency(orc.valor)}</td>
           <td style="padding: 8px 10px; text-align: right;">${Math.round(orc.peso).toLocaleString('pt-BR')}</td>
           <td style="padding: 8px 10px; text-align: center; font-size: 12px;">${
-            orc.dataEmissao
-              ? new Date(orc.dataEmissao).toLocaleDateString('pt-BR')
-              : ''
+            orc.dataEmissao && parseDate(orc.dataEmissao)
+              ? parseDate(orc.dataEmissao)!.toLocaleDateString('pt-BR')
+              : '-'
           }</td>
         </tr>
       `;
@@ -543,7 +543,7 @@ function generateReportHTML(
         .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; }
         .content { padding: 24px 30px 30px 30px; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
-        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 18px 0 12px 0; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 24px 0 16px 0; }
         .summary-column { }
         .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px; }
         .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 14px 16px; border-left: 3px solid #667eea; }
@@ -845,14 +845,14 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Configuração não encontrada');
     }
 
-    // 1. Definir período: mês atual até hoje
-    const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    // 1. Definir período: mês atual até hoje (timezone Brasil)
+    const nowBrasil = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const startDate = new Date(nowBrasil.getFullYear(), nowBrasil.getMonth(), 1);
     startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(now);
+    const endDate = new Date(nowBrasil);
     endDate.setHours(23, 59, 59, 999);
 
-    const reportDate = formatDate(now);
+    const reportDate = formatDate(nowBrasil);
     const periodo = `${formatDate(startDate)} a ${formatDate(endDate)}`;
 
     console.log(`📅 Período: ${periodo}`);
@@ -978,17 +978,11 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     // 8. Enviar email via Resend
-    const isTestMode = true;
-    const authorizedTestEmail = "mauricio.maciel@globalaco.com.br";
-    
     const emailPayload = {
       from: "Lovable <onboarding@resend.dev>",
-      to: isTestMode ? [authorizedTestEmail] : [config.email],
-      subject: isTestMode 
-        ? `📊 Relatório Comercial Manual - ${reportDate} [TESTE]`
-        : `📊 Relatório Comercial Manual - ${reportDate}`,
+      to: [config.email],
+      subject: `📊 Relatório Comercial Manual - ${reportDate}`,
       html: reportHTML,
-      ...(isTestMode && { test: true })
     };
 
     console.log("📧 Enviando email via Resend...");
@@ -1012,17 +1006,17 @@ const handler = async (req: Request): Promise<Response> => {
     // 9. Registrar envio no banco de dados
     await supabaseAdmin.from('email_reports_log').insert({
       config_id: configId,
-      email: isTestMode ? authorizedTestEmail : config.email,
+      email: config.email,
       status: 'success',
       report_date: startDate.toISOString().split('T')[0],
     });
 
-    console.log(`✅ Relatório manual enviado com sucesso para ${isTestMode ? authorizedTestEmail : config.email} ${isTestMode ? '(modo teste)' : ''}`);
+    console.log(`✅ Relatório manual enviado com sucesso para ${config.email}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Relatório enviado para ${isTestMode ? authorizedTestEmail : config.email}` 
+        message: `Relatório enviado para ${config.email}` 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

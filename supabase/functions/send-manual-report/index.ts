@@ -154,10 +154,15 @@ function parseDate(dateString: string): Date | null {
 
 // Determinar qual campo de data usar - IGUAL ao ComercialContext (sessão 'dashboard')
 function getDateField(item: ComercialData): Date | null {
-  // Sessão 'dashboard': Emitida/Faturado usa data_emissao, outros usam data_inicio
+  // Para perdidos, usar data_perdido
+  if (item.situacao === 'Perdido') {
+    return parseDate(item.data_perdido || '');
+  }
+  // Emitida/Faturado usa data_emissao
   if (item.situacao === 'Emitida' || item.situacao === 'Faturado') {
     return parseDate(item.data_emissao || '');
   }
+  // Outros usam data_inicio
   return parseDate(item.data_inicio || '');
 }
 
@@ -648,7 +653,7 @@ function generateReportHTML(
 
           <!-- Seção 2: Meta do Mês -->
           <h2 class="section-title spaced">🎯 Meta do Mês</h2>
-          <div class="meta-section">
+          <div class="meta-section" style="border-left: 4px solid ${corMeta};">
             <div class="meta-grid">
               <div class="meta-item">
                 <div class="meta-label">Meta Mensal</div>
@@ -656,11 +661,11 @@ function generateReportHTML(
               </div>
               <div class="meta-item">
                 <div class="meta-label">Realizado</div>
-                <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
+                <div class="meta-value" style="color: ${corMeta};">${formatCurrency(kpis.faturamento)}</div>
               </div>
               <div class="meta-item">
                 <div class="meta-label">Atingimento</div>
-                <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(
+                <div class="meta-value" style="color: ${corMeta}; font-size: 22px;">${percentualMeta.toFixed(
                   1
                 )}% ${statusMeta}</div>
               </div>
@@ -672,6 +677,10 @@ function generateReportHTML(
     faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'
   }</span></div>
               </div>
+            </div>
+            <!-- Barra de progresso visual -->
+            <div style="margin-top: 12px; background: #e2e8f0; border-radius: 6px; height: 10px; overflow: hidden;">
+              <div style="width: ${Math.min(percentualMeta, 100)}%; height: 100%; background: ${corMeta}; transition: width 0.3s;"></div>
             </div>
           </div>
 

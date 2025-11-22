@@ -20,6 +20,7 @@ import { PerfilUIcon } from './icons/PerfilUIcon';
 import { UpdateNotification } from './UpdateNotification';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/context/AuthContext';
+import { useUserPermissions, type PageKey } from '@/hooks/useUserPermissions';
 import { Button } from '@/components/ui/button';
 
 const menuItems = [
@@ -112,6 +113,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const isMobile = useIsMobile();
   const { userProfile, signOut } = useAuth();
+  const { checkPageAccess, loading } = useUserPermissions();
 
   const isActive = (path: string) => currentPath === path;
 
@@ -145,7 +147,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Ferramentas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {(loading ? menuItems : menuItems.filter(item => checkPageAccess(item.pageKey as PageKey).canView)).map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url}>

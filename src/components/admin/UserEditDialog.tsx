@@ -80,26 +80,40 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
 
     setLoading(true)
     try {
-      const { error } = await supabase
+      const roleChanged = formData.role !== user.role
+
+      // Atualizar dados básicos do perfil (sem role, que fica em user_roles)
+      const { error: profileError } = await supabase
         .from('user_profiles')
         .update({
           full_name: formData.full_name.trim(),
-          role: formData.role,
           department: formData.department?.trim() || null
         })
         .eq('id', user.id)
 
-      if (error) {
-        // Handle specific RLS policy errors
-        if (error.message.includes('Insufficient permissions')) {
-          toast({
-            title: 'Erro de Permissão',
-            description: 'Você não tem permissão para alterar este campo. Apenas administradores podem alterar roles e informações críticas.',
-            variant: 'destructive',
-          })
-          return
+      if (profileError) {
+        throw profileError
+      }
+
+      // Se a role mudou, atualizar tabela de roles e permissões padrão
+      if (roleChanged) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({ user_id: user.id, role: formData.role })
+
+        if (roleError) {
+          throw roleError
         }
-        throw error
+
+        // Regerar permissões padrão para o novo papel
+        const { error: permsError } = await supabase.rpc('create_default_permissions_for_user', {
+          _user_id: user.id,
+          _role: formData.role,
+        })
+
+        if (permsError) {
+          console.error('Erro ao atualizar permissões padrão:', permsError)
+        }
       }
 
       toast({

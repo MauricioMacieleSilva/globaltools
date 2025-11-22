@@ -135,17 +135,94 @@ function AppContent() {
                             </header>
                             <main className="flex-1">
                               <Routes>
-                                <Route path="/" element={<DashboardComercial />} />
-                                <Route path="/dashboard-comercial" element={<DashboardComercial />} />
-                                <Route path="/pre-vendas" element={<PreVendas />} />
-                                <Route path="/clientes" element={<Clientes />} />
-                                <Route path="/corte-chapa" element={<CorteBlank />} />
-                                <Route path="/corte-blank" element={<CorteBlank />} />
-                                <Route path="/corte-perfil" element={<CortePerfil />} />
-                                <Route path="/politica-comercial" element={<PoliticaComercial />} />
-                                <Route path="/assistente-global" element={<AssistenteGlobal />} />
-                                <Route path="/pipeline" element={<Pipeline />} />
-                                <Route path="/producao" element={<Producao />} />
+                                <Route
+                                  path="/"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/dashboard-comercial">
+                                      <DashboardComercial />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/dashboard-comercial"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/dashboard-comercial">
+                                      <DashboardComercial />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/pre-vendas"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/pre-vendas">
+                                      <PreVendas />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/clientes"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/clientes">
+                                      <Clientes />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/corte-chapa"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/corte-blank">
+                                      <CorteBlank />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/corte-blank"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/corte-blank">
+                                      <CorteBlank />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/corte-perfil"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/corte-perfil">
+                                      <CortePerfil />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/politica-comercial"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/politica-comercial">
+                                      <PoliticaComercial />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/assistente-global"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/assistente-global">
+                                      <AssistenteGlobal />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/pipeline"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/pipeline">
+                                      <Pipeline />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/producao"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/producao">
+                                      <Producao />
+                                    </ProtectedRoute>
+                                  }
+                                />
                                 <Route
                                   path="/admin/conhecimento"
                                   element={

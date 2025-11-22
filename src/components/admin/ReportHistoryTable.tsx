@@ -14,8 +14,7 @@ interface ReportLog {
   report_type: string;
   status: 'success' | 'failed' | 'pending';
   error_message?: string;
-  sent_at?: string;
-  created_at: string;
+  sent_at: string;
   is_scheduled: boolean;
 }
 
@@ -28,13 +27,13 @@ export function ReportHistoryTable() {
   const loadLogs = async () => {
     try {
       const { data, error } = await supabase
-        .from('email_reports_log' as any)
+        .from('email_reports_log')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('sent_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      setLogs((data as unknown as ReportLog[]) || []);
+      setLogs((data as ReportLog[]) || []);
     } catch (error: any) {
       console.error('Erro ao carregar histórico:', error);
       toast({
@@ -183,7 +182,7 @@ export function ReportHistoryTable() {
                 <TableRow key={log.id}>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="text-sm">{formatDate(log.sent_at || log.created_at)}</div>
+                      <div className="text-sm">{formatDate(log.sent_at)}</div>
                       <div className="text-xs text-muted-foreground">
                         Data do relatório: {new Date(log.report_date).toLocaleDateString('pt-BR')}
                       </div>

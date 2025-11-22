@@ -31,8 +31,11 @@ function shouldSendReport(config: ReportConfig, now: Date): boolean {
     return false;
   }
 
+  // Converter para horário de Brasília (UTC-3)
+  const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  
   // Obter hora atual em formato HH:MM
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const currentTime = `${brasiliaTime.getHours().toString().padStart(2, '0')}:${brasiliaTime.getMinutes().toString().padStart(2, '0')}`;
   const [configHour, configMinute] = config.send_time.split(':').map(Number);
   const [currentHour, currentMinute] = currentTime.split(':').map(Number);
 
@@ -91,8 +94,10 @@ const handler = async (req: Request): Promise<Response> => {
     
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date();
+    const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     
-    console.log(`📅 Data/hora atual: ${now.toISOString()} (${getDayOfWeek(now)})`);
+    console.log(`📅 Data/hora UTC: ${now.toISOString()}`);
+    console.log(`📅 Data/hora Brasília: ${brasiliaTime.toLocaleString('pt-BR')} (${getDayOfWeek(brasiliaTime)})`);
 
     // Buscar todas as configurações ativas
     const { data: configs, error: configError } = await supabaseAdmin

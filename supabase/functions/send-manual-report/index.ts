@@ -154,15 +154,11 @@ function parseDate(dateString: string): Date | null {
 
 // Determinar qual campo de data usar - IGUAL ao ComercialContext (sessão 'dashboard')
 function getDateField(item: ComercialData): Date | null {
-  // Para perdidos, usar data_perdido
-  if (item.situacao === 'Perdido') {
-    return parseDate(item.data_perdido || '');
-  }
   // Emitida/Faturado usa data_emissao
   if (item.situacao === 'Emitida' || item.situacao === 'Faturado') {
     return parseDate(item.data_emissao || '');
   }
-  // Outros usam data_inicio
+  // Demais situações (inclui Orçamento, Pedido, Perdido, Cancelado, Devolvido) usam data_inicio
   return parseDate(item.data_inicio || '');
 }
 

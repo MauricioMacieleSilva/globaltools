@@ -304,16 +304,33 @@ function calculateKPIs(
   );
   console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos = R$ ${pedidosNaoFaturadosValor.toFixed(2)} (${pedidosNaoFaturadosData.length} linhas)`);
   
+  // Debug de perdidos
+  const todosPerdidos = allData.filter(item => item.situacao === 'Perdido');
+  console.log(`🔍 Total de perdidos na base: ${todosPerdidos.length}`);
+  
+  const perdidosComMotivo = todosPerdidos.filter(item => 
+    item.perdido_motivo && item.perdido_motivo !== 'Não informado'
+  );
+  console.log(`🔍 Perdidos com motivo válido: ${perdidosComMotivo.length}`);
+  
+  const perdidosComData = perdidosComMotivo.filter(item => {
+    const date = getDateField(item);
+    return date !== null;
+  });
+  console.log(`🔍 Perdidos com data válida: ${perdidosComData.length}`);
+  
   const perdidosData = filteredData.filter(item => 
     item.situacao === 'Perdido' && 
     item.perdido_motivo && 
     item.perdido_motivo !== 'Não informado'
   );
+  console.log(`🔍 Perdidos no período: ${perdidosData.length}`);
+  
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
   const perdidosQtd = new Set(
     perdidosData.map(item => item.numeropedido).filter(Boolean)
   ).size;
-  console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
+  console.log(`❌ Perdidos FINAL: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
 
   const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
   const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;

@@ -557,6 +557,8 @@ function generateReportHTML(
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 24px 30px; text-align: center; }
         .header h1 { margin: 0; font-size: 22px; color: #ffffff !important; }
         .header p { margin: 6px 0 0 0; opacity: 0.95; font-size: 13px; color: #ffffff !important; }
+        .header-icon { font-size: 32px; margin-bottom: 8px; }
+        .header-subtitle { margin: 4px 0; font-size: 14px; opacity: 0.95; color: #ffffff !important; }
         .content { padding: 24px 30px 30px 30px; background: #ffffff; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748 !important; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
         .section-title.no-border { border-bottom: none; }
@@ -603,9 +605,10 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <h1 style="color: #ffffff !important;">📊 Relatório Comercial</h1>
-          <p style="color: #ffffff !important;">Gerado em ${reportDate}</p>
-          <p style="color: #ffffff !important;"><strong>Período:</strong> ${periodo}</p>
+          <div class="header-icon">📊</div>
+          <h1>Relatório Comercial</h1>
+          <p class="header-subtitle">Gerado em ${reportDate}</p>
+          <p class="header-subtitle"><strong>Período:</strong> ${periodo}</p>
         </div>
         
         <div class="content">

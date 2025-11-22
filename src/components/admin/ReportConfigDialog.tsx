@@ -11,17 +11,25 @@ import { Plus, Mail, Clock } from "lucide-react";
 
 interface ReportConfigDialogProps {
   onConfigAdded?: () => void;
+  editConfig?: {
+    id: string;
+    email: string;
+    full_name: string | null;
+    frequency: string;
+    send_time: string;
+    custom_days: string[] | null;
+  } | null;
 }
 
-export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
+export function ReportConfigDialog({ onConfigAdded, editConfig }: ReportConfigDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    fullName: '',
-    frequency: 'daily',
-    sendTime: '08:00',
-    customDays: [] as string[]
+    email: editConfig?.email || '',
+    fullName: editConfig?.full_name || '',
+    frequency: editConfig?.frequency || 'daily',
+    sendTime: editConfig?.send_time || '08:00',
+    customDays: editConfig?.custom_days || [] as string[]
   });
 
   const weekDays = [
@@ -66,23 +74,43 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
         return;
       }
 
-      console.log('✅ Validações passaram, inserindo no banco...');
+      console.log('✅ Validações passaram, salvando no banco...');
 
-      const { data, error } = await supabase
-        .from('email_reports_config' as any)
-        .insert({
-          email: formData.email,
-          full_name: formData.fullName || null,
-          frequency: formData.frequency,
-          send_time: formData.sendTime,
-          custom_days: formData.frequency === 'custom' ? formData.customDays : null,
-          include_vendas: true,
-          include_funil: true,
-          include_perdidos: true,
-          include_cancelamentos: true,
-          created_by: user.id
-        })
-        .select();
+      const dataToSave = {
+        email: formData.email,
+        full_name: formData.fullName || null,
+        frequency: formData.frequency,
+        send_time: formData.sendTime,
+        custom_days: formData.frequency === 'custom' ? formData.customDays : null,
+        include_vendas: true,
+        include_funil: true,
+        include_perdidos: true,
+        include_cancelamentos: true,
+      };
+
+      let data, error;
+
+      if (editConfig) {
+        // Atualizar configuração existente
+        const result = await supabase
+          .from('email_reports_config')
+          .update(dataToSave)
+          .eq('id', editConfig.id)
+          .select();
+        data = result.data;
+        error = result.error;
+      } else {
+        // Criar nova configuração
+        const result = await supabase
+          .from('email_reports_config')
+          .insert({
+            ...dataToSave,
+            created_by: user.id
+          })
+          .select();
+        data = result.data;
+        error = result.error;
+      }
 
       console.log('📊 Resposta do Supabase:', { data, error });
 
@@ -92,8 +120,10 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
       }
 
       toast({
-        title: "Configuração adicionada",
-        description: "O destinatário foi adicionado com sucesso aos relatórios automáticos.",
+        title: editConfig ? "Configuração atualizada" : "Configuração adicionada",
+        description: editConfig 
+          ? "A configuração foi atualizada com sucesso."
+          : "O destinatário foi adicionado com sucesso aos relatórios automáticos.",
       });
 
       setFormData({
@@ -120,21 +150,26 @@ export function ReportConfigDialog({ onConfigAdded }: ReportConfigDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Adicionar Destinatário
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open || !!editConfig} onOpenChange={setOpen}>
+      {!editConfig && (
+        <DialogTrigger asChild>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar Destinatário
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Configurar Relatório Automático
+            {editConfig ? 'Editar' : 'Configurar'} Relatório Automático
           </DialogTitle>
           <DialogDescription>
-            Adicione um novo destinatário para receber relatórios comerciais automaticamente.
+            {editConfig 
+              ? 'Atualize as configurações do relatório automático.'
+              : 'Adicione um novo destinatário para receber relatórios comerciais automaticamente.'
+            }
           </DialogDescription>
         </DialogHeader>
 

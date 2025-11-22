@@ -14,11 +14,13 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { UpdateNotification } from './UpdateNotification';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const menuItems = [
   {
@@ -109,6 +111,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const isMobile = useIsMobile();
+  const { userProfile, signOut } = useAuth();
 
   const isActive = (path: string) => currentPath === path;
 
@@ -156,23 +159,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Administração</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {userProfile?.role === 'admin' && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administração</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminMenuItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       
       <SidebarFooter>
@@ -180,6 +185,17 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <UpdateNotification />
+              <SidebarMenuItem>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2"
+                  onClick={signOut}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Sair</span>
+                </Button>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

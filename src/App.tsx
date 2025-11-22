@@ -146,10 +146,38 @@ function AppContent() {
                                 <Route path="/assistente-global" element={<AssistenteGlobal />} />
                                 <Route path="/pipeline" element={<Pipeline />} />
                                 <Route path="/producao" element={<Producao />} />
-                                <Route path="/admin/conhecimento" element={<KnowledgeManagement />} />
-                                <Route path="/admin/usuarios" element={<UserManagement />} />
-                                <Route path="/admin/relatorios" element={<ReportsConfig />} />
-                                <Route path="/admin/ia-proativa" element={<AdminAIProactive />} />
+                                <Route
+                                  path="/admin/conhecimento"
+                                  element={
+                                    <ProtectedRoute requireRole="admin">
+                                      <KnowledgeManagement />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/admin/usuarios"
+                                  element={
+                                    <ProtectedRoute requireRole="admin">
+                                      <UserManagement />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/admin/relatorios"
+                                  element={
+                                    <ProtectedRoute requireRole="admin">
+                                      <ReportsConfig />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/admin/ia-proativa"
+                                  element={
+                                    <ProtectedRoute requireRole="admin">
+                                      <AdminAIProactive />
+                                    </ProtectedRoute>
+                                  }
+                                />
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                                 <Route path="*" element={<NotFound />} />
                               </Routes>

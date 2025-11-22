@@ -34,18 +34,16 @@ function shouldSendReport(config: ReportConfig, now: Date): boolean {
   // Converter para horário de Brasília (UTC-3)
   const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   
-  // Obter hora atual em formato HH:MM
-  const currentTime = `${brasiliaTime.getHours().toString().padStart(2, '0')}:${brasiliaTime.getMinutes().toString().padStart(2, '0')}`;
+  // Obter hora e minuto atuais
+  const currentHour = brasiliaTime.getHours();
+  const currentMinute = brasiliaTime.getMinutes();
   const [configHour, configMinute] = config.send_time.split(':').map(Number);
-  const [currentHour, currentMinute] = currentTime.split(':').map(Number);
 
-  // Verificar se está dentro da janela de 10 minutos do horário configurado
-  const configTimeInMinutes = configHour * 60 + configMinute;
-  const currentTimeInMinutes = currentHour * 60 + currentMinute;
-  const diffMinutes = Math.abs(currentTimeInMinutes - configTimeInMinutes);
-
-  if (diffMinutes > 10) {
-    console.log(`⏰ Fora da janela de tempo. Config: ${config.send_time}, Atual: ${currentTime}`);
+  // Verificar se é EXATAMENTE o horário configurado
+  if (currentHour !== configHour || currentMinute !== configMinute) {
+    console.log(
+      `⏰ Horário diferente. Config: ${config.send_time}, Atual: ${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
+    );
     return false;
   }
 
@@ -140,9 +138,37 @@ const handler = async (req: Request): Promise<Response> => {
     // Enviar cada relatório
     const results = [];
     for (const config of reportsToSend) {
-      console.log(`📧 Enviando relatório para ${config.email}...`);
+      console.log(`📧 Verificando envio para ${config.email}...`);
       
       try {
+        // Verificar se já foi enviado hoje (idempotência)
+        const todayStr = brasiliaTime.toISOString().split('T')[0];
+        
+        const { data: alreadySent, error: logError } = await supabaseAdmin
+          .from('email_reports_log')
+          .select('id')
+          .eq('config_id', config.id)
+          .eq('report_date', todayStr)
+          .eq('is_scheduled', true)
+          .eq('status', 'success')
+          .maybeSingle();
+
+        if (logError) {
+          console.error('❌ Erro ao verificar log de envio:', logError);
+        }
+
+        if (alreadySent) {
+          console.log(`ℹ️ Relatório já enviado hoje para ${config.email} (config ${config.id}). Pulando...`);
+          results.push({
+            email: config.email,
+            status: 'skipped',
+            reason: 'already_sent_today'
+          });
+          continue;
+        }
+
+        console.log(`📧 Enviando relatório para ${config.email}...`);
+        
         // Chamar a função de envio manual de relatórios
         const { data, error } = await supabaseAdmin.functions.invoke('send-manual-report', {
           body: { 

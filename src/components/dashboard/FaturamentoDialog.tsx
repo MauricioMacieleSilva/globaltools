@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { formatDateSafe, parseDate } from '@/lib/utils-comercial';
 
 interface FaturamentoDialogProps {
   isOpen: boolean;
@@ -32,10 +33,6 @@ export function FaturamentoDialog({ isOpen, onClose, data }: FaturamentoDialogPr
     }).format(value);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
   const groupedData = useMemo(() => {
     const groups: Record<string, any[]> = {};
     data.forEach(item => {
@@ -50,8 +47,8 @@ export function FaturamentoDialog({ isOpen, onClose, data }: FaturamentoDialogPr
     const sortedGroups: Record<string, any[]> = {};
     Object.entries(groups)
       .sort(([, a], [, b]) => {
-        const dateA = new Date(a[0].data_emissao).getTime();
-        const dateB = new Date(b[0].data_emissao).getTime();
+        const dateA = (parseDate(a[0].data_emissao) || new Date(0)).getTime();
+        const dateB = (parseDate(b[0].data_emissao) || new Date(0)).getTime();
         return dateB - dateA; // Data mais nova primeiro
       })
       .forEach(([key, value]) => {
@@ -73,7 +70,7 @@ export function FaturamentoDialog({ isOpen, onClose, data }: FaturamentoDialogPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[85vh]"> {/* Aumentado de max-w-4xl para max-w-6xl e altura de 80vh para 85vh */}
+      <DialogContent className="max-w-[90vw] max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Pedidos Faturados ({totalPedidos} pedidos • {totalClientes} clientes)</DialogTitle>
         </DialogHeader>
@@ -111,7 +108,7 @@ export function FaturamentoDialog({ isOpen, onClose, data }: FaturamentoDialogPr
                       </TableCell>
                       <TableCell className="font-medium">{firstItem.numeropedido || pedidoNumber}</TableCell>
                       <TableCell>{firstItem.numeronf || '-'}</TableCell>
-                      <TableCell>{formatDate(firstItem.data_emissao)}</TableCell>
+                      <TableCell>{formatDateSafe(firstItem.data_emissao)}</TableCell>
                       <TableCell className="max-w-[150px] truncate" title={firstItem.cli_nomefantasia}>
                         {firstItem.cli_nomefantasia}
                       </TableCell>

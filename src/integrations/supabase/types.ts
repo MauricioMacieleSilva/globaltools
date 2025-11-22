@@ -406,7 +406,9 @@ export type Database = {
           email: string
           error_message: string | null
           id: string
+          is_scheduled: boolean | null
           report_date: string
+          report_type: string | null
           sent_at: string
           status: string
         }
@@ -415,7 +417,9 @@ export type Database = {
           email: string
           error_message?: string | null
           id?: string
+          is_scheduled?: boolean | null
           report_date?: string
+          report_type?: string | null
           sent_at?: string
           status: string
         }
@@ -424,7 +428,9 @@ export type Database = {
           email?: string
           error_message?: string | null
           id?: string
+          is_scheduled?: boolean | null
           report_date?: string
+          report_type?: string | null
           sent_at?: string
           status?: string
         }

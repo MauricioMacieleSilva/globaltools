@@ -16,6 +16,7 @@ interface ReportLog {
   error_message?: string;
   sent_at?: string;
   created_at: string;
+  is_scheduled: boolean;
 }
 
 export function ReportHistoryTable() {
@@ -149,7 +150,7 @@ export function ReportHistoryTable() {
           </div>
         </CardTitle>
         <CardDescription>
-          Histórico dos últimos 50 envios de relatórios automáticos
+          Histórico dos últimos 50 envios (manuais e automáticos)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -172,6 +173,7 @@ export function ReportHistoryTable() {
                 <TableHead>Data/Hora</TableHead>
                 <TableHead>Destinatário</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Origem</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Detalhes</TableHead>
               </TableRow>
@@ -192,7 +194,13 @@ export function ReportHistoryTable() {
                     <Badge variant="outline">
                       {log.report_type === 'daily' ? 'Diário' : 
                        log.report_type === 'weekly' ? 'Semanal' : 
-                       log.report_type === 'monthly' ? 'Mensal' : log.report_type}
+                       log.report_type === 'monthly' ? 'Mensal' :
+                       log.report_type === 'custom' ? 'Personalizado' : log.report_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={log.is_scheduled ? "secondary" : "default"}>
+                      {log.is_scheduled ? '🤖 Automático' : '👤 Manual'}
                     </Badge>
                   </TableCell>
                   <TableCell>

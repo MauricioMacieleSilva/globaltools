@@ -160,7 +160,9 @@ const handler = async (req: Request): Promise<Response> => {
             email: config.email,
             status: 'failed',
             error_message: error.message || 'Erro desconhecido',
-            report_date: now.toISOString().split('T')[0]
+            report_date: now.toISOString().split('T')[0],
+            report_type: config.frequency,
+            is_scheduled: true,
           });
 
           results.push({

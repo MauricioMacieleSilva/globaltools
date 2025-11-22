@@ -616,6 +616,9 @@ function generateReportHTML(
         .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; background: #ffffff; }
         .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: transform 0.2s; }
         .cta-button:hover { transform: translateY(-2px); }
+        @media (prefers-color-scheme: light) {
+          .cta-button { color: #2d3748 !important; background: #e2e8f0; }
+        }
         .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096 !important; }
         @media (max-width: 600px) {
           .content { padding: 18px 16px 20px 16px; }

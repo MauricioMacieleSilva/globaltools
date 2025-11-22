@@ -228,10 +228,11 @@ export const useUserPermissions = () => {
     )
 
     if (!pageEntry) {
-      // Se a rota não está mapeada, usar verificação por role antiga
+      // Se a rota não está mapeada, NEGAR acesso por padrão
+      // Apenas admins têm acesso a rotas não mapeadas
       return { 
-        canView: isAdmin || hasPermission(userProfile?.role || 'visitante', 'visitante'), 
-        canEdit: isAdmin || hasPermission(userProfile?.role || 'visitante', 'operacional') 
+        canView: isAdmin,
+        canEdit: isAdmin
       }
     }
 

@@ -34,6 +34,7 @@ interface ComercialData {
   faturamento_tipo: number;
   produto: string;
   obs: string;
+  perdido_motivo: string;
 }
 
 interface EmailKPIs {
@@ -228,6 +229,7 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
           faturamento_tipo: parseInt(row[43]) || 0, // Coluna AR
           produto: row[9] || '', // Coluna J (descricaomat)
           obs: row[10] || '', // Coluna K (observacao)
+          perdido_motivo: (row[36] || '').trim().replace(/\s+/g, ' '), // Coluna AK
         };
       })
       .filter((item: ComercialData) => {
@@ -297,7 +299,11 @@ function calculateKPIs(
   );
   console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos = R$ ${pedidosNaoFaturadosValor.toFixed(2)} (${pedidosNaoFaturadosData.length} linhas)`);
   
-  const perdidosData = filteredData.filter(item => item.situacao === 'Perdido');
+  const perdidosData = filteredData.filter(item => 
+    item.situacao === 'Perdido' && 
+    item.perdido_motivo && 
+    item.perdido_motivo !== 'Não informado'
+  );
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
   const perdidosQtd = new Set(
     perdidosData.map(item => item.numeropedido).filter(Boolean)

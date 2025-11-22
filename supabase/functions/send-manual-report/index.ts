@@ -861,7 +861,7 @@ function generateReportHTML(
         </div>
 
         <div class="cta-section">
-          <a href="https://globaltools.lovable.app" class="cta-button" style="color: #ffffff !important;">
+          <a href="https://globaltools.lovable.app" class="cta-button" style="color: #2d3748 !important; background-color: #e2e8f0;">
             🚀 Acessar Dashboard Completo
           </a>
         </div>

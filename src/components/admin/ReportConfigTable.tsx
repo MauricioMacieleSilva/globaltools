@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Clock, Mail, Send } from "lucide-react";
+import { Trash2, Clock, Mail, Send, Pencil } from "lucide-react";
 import { ReportConfigDialog } from './ReportConfigDialog';
 import { ReportPreviewDialog } from './ReportPreviewDialog';
 import { ReportDownloadButton } from './ReportDownloadButton';
@@ -30,6 +30,7 @@ export function ReportConfigTable() {
   const [configs, setConfigs] = useState<ReportConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [editingConfig, setEditingConfig] = useState<ReportConfig | null>(null);
   const { toast } = useToast();
 
   const loadConfigs = async () => {
@@ -240,8 +241,16 @@ export function ReportConfigTable() {
                       onCheckedChange={(checked) => handleToggleActive(config.id, checked)}
                     />
                   </TableCell>
-                  <TableCell>
+                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingConfig(config)}
+                        title="Editar configuração"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <ReportPreviewDialog 
                         configId={config.id}
                         disabled={!config.is_active}
@@ -277,6 +286,15 @@ export function ReportConfigTable() {
           </Table>
         )}
       </CardContent>
+      {editingConfig && (
+        <ReportConfigDialog 
+          editConfig={editingConfig}
+          onConfigAdded={() => {
+            setEditingConfig(null);
+            loadConfigs();
+          }}
+        />
+      )}
     </Card>
   );
 }

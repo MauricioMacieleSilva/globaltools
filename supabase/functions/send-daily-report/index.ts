@@ -324,6 +324,8 @@ function generateReportHTML(
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 30px; text-align: center; }
         .header h1 { margin: 0; font-size: 24px; color: #ffffff !important; }
         .header p { margin: 10px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff !important; }
+        .header-icon { font-size: 32px; margin-bottom: 8px; }
+        .header-subtitle { margin: 4px 0; font-size: 14px; opacity: 0.95; color: #ffffff !important; }
         .content { padding: 30px; background: #ffffff; }
         .section-title { font-size: 18px; font-weight: 600; color: #2d3748 !important; margin: 25px 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
         .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
@@ -361,8 +363,9 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <h1 style="color: #ffffff !important;">📊 Relatório Comercial Diário</h1>
-          <p style="color: #ffffff !important;"><strong>Ontem:</strong> ${reportDate}</p>
+          <div class="header-icon">📊</div>
+          <h1>Relatório Comercial</h1>
+          <p class="header-subtitle"><strong>Ontem:</strong> ${reportDate}</p>
         </div>
         
         <div class="content">

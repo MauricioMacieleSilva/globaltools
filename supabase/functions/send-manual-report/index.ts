@@ -230,7 +230,7 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
           faturamento_tipo: parseInt(row[43]) || 0, // Coluna AR
           produto: row[9] || '', // Coluna J (descricaomat)
           obs: row[10] || '', // Coluna K (observacao)
-          perdido_motivo: (row[36] || '').trim().replace(/\s+/g, ' '), // Coluna AK
+          perdido_motivo: (row[46] || '').trim().replace(/\s+/g, ' '), // Coluna AU (igual ao frontend)
         };
       })
       .filter((item: ComercialData) => {
@@ -300,33 +300,29 @@ function calculateKPIs(
   );
   console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos = R$ ${pedidosNaoFaturadosValor.toFixed(2)} (${pedidosNaoFaturadosData.length} linhas)`);
   
-  // Debug de perdidos
-  const todosPerdidos = allData.filter(item => item.situacao === 'Perdido');
-  console.log(`🔍 Total de perdidos na base: ${todosPerdidos.length}`);
-  
-  const perdidosComMotivo = todosPerdidos.filter(item => 
-    item.perdido_motivo && item.perdido_motivo !== 'Não informado'
-  );
-  console.log(`🔍 Perdidos com motivo válido: ${perdidosComMotivo.length}`);
-  
-  const perdidosComData = perdidosComMotivo.filter(item => {
-    const date = getDateField(item);
-    return date !== null;
+  // Calcular perdidos usando data_perdido (igual à aba Perdidos do dashboard)
+  const perdidosData = allData.filter(item => {
+    if (item.situacao !== 'Perdido') return false;
+    if (!item.perdido_motivo || item.perdido_motivo === 'Não informado') return false;
+
+    // Preferir data_perdido; se não tiver, cair para data_inicio ou data_emissao
+    const datePerdido = parseDate(item.data_perdido || '');
+    const fallbackDate =
+      datePerdido ||
+      parseDate(item.data_inicio || '') ||
+      parseDate(item.data_emissao || '');
+
+    return fallbackDate && fallbackDate >= startDate && fallbackDate <= endDate;
   });
-  console.log(`🔍 Perdidos com data válida: ${perdidosComData.length}`);
-  
-  const perdidosData = filteredData.filter(item => 
-    item.situacao === 'Perdido' && 
-    item.perdido_motivo && 
-    item.perdido_motivo !== 'Não informado'
-  );
-  console.log(`🔍 Perdidos no período: ${perdidosData.length}`);
-  
+
   const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
   const perdidosQtd = new Set(
     perdidosData.map(item => item.numeropedido).filter(Boolean)
   ).size;
-  console.log(`❌ Perdidos FINAL: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
+  
+  console.log(`📌 Perdidos no período (email): ${perdidosData.length} registros`);
+  console.log(`📌 Valor perdido total (email): R$ ${perdidosValor.toFixed(2)}`);
+  console.log(`📌 Pedidos perdidos distintos (email): ${perdidosQtd}`);
 
   const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
   const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;

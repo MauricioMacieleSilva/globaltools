@@ -193,7 +193,7 @@ export function AppSidebar() {
                   onClick={signOut}
                 >
                   <LogOut className="h-4 w-4" />
-                  <span>Sair</span>
+                  {state === "expanded" && <span>Sair</span>}
                 </Button>
               </SidebarMenuItem>
             </SidebarMenu>

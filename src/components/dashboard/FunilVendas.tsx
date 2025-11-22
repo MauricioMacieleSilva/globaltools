@@ -212,7 +212,11 @@ export const FunilVendas: React.FC = () => {
     // Filtrar por situação (incluindo perdidos na base do funil)
     const orcamentos = filteredData.filter(item => item.situacao === 'Orçamento');
     const pedidos = filteredData.filter(item => item.situacao === 'Pedido');
-    const perdidos = filteredData.filter(item => item.situacao === 'Perdido');
+    const perdidos = filteredData.filter(item => 
+      item.situacao === 'Perdido' && 
+      item.perdido_motivo && 
+      item.perdido_motivo !== 'Não informado'
+    );
     const faturados = filteredData.filter(item => item.situacao === 'Emitida' && item.faturamento_tipo === 1);
 
     // Contagem única de pedidos (numeropedido) - incluindo perdidos na base

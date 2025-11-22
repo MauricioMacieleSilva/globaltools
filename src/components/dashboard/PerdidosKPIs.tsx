@@ -8,7 +8,11 @@ export function PerdidosKPIs() {
 
   // Calcular KPIs baseado nos dados já filtrados pelo contexto
   const kpisPerdidos = React.useMemo(() => {
-    const dadosFiltrados = filteredData.filter(item => item.situacao === 'Perdido');
+    const dadosFiltrados = filteredData.filter(item => 
+      item.situacao === 'Perdido' && 
+      item.perdido_motivo && 
+      item.perdido_motivo !== 'Não informado'
+    );
 
     const valor = dadosFiltrados.reduce((acc, item) => acc + item.valor, 0);
     const peso = dadosFiltrados.reduce((acc, item) => acc + (item.peso || 0), 0);

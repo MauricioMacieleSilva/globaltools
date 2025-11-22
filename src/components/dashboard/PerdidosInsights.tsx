@@ -8,7 +8,11 @@ export function PerdidosInsights() {
   const { filteredData, kpis } = useComercial();
 
   const insights = useMemo(() => {
-    const perdidos = filteredData.filter(item => item.situacao === 'Perdido');
+    const perdidos = filteredData.filter(item => 
+      item.situacao === 'Perdido' && 
+      item.perdido_motivo && 
+      item.perdido_motivo !== 'Não informado'
+    );
     
     if (perdidos.length === 0) {
       return {

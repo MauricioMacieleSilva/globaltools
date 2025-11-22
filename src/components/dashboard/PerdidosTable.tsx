@@ -14,7 +14,11 @@ export function PerdidosTable() {
   const isMobile = useIsMobile();
 
   const groupedPerdidos = useMemo(() => {
-    const filtered = filteredData.filter(item => item.situacao === 'Perdido');
+    const filtered = filteredData.filter(item => 
+      item.situacao === 'Perdido' && 
+      item.perdido_motivo && 
+      item.perdido_motivo !== 'Não informado'
+    );
     
     // Group by numeropedido
     const grouped = filtered.reduce((acc, item) => {

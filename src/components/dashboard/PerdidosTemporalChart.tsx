@@ -39,7 +39,11 @@ export function PerdidosTemporalChart() {
 
   const perdidosTemporalData = useMemo(() => {
     // Usar dados já filtrados pelo contexto
-    const dadosPerdidos = filteredData.filter(item => item.situacao === 'Perdido');
+    const dadosPerdidos = filteredData.filter(item => 
+      item.situacao === 'Perdido' && 
+      item.perdido_motivo && 
+      item.perdido_motivo !== 'Não informado'
+    );
 
     if (drillDown.isMonthView) {
       // Visualização mensal

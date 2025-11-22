@@ -433,7 +433,9 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
     );
     
     const perdidos = filteredData.filter(item => 
-      item.situacao === 'Perdido'
+      item.situacao === 'Perdido' && 
+      item.perdido_motivo && 
+      item.perdido_motivo !== 'Não informado'
     );
     
     const cancelados = filteredData.filter(item => 

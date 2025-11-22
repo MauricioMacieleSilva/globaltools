@@ -39,12 +39,12 @@ function shouldSendReport(config: ReportConfig, now: Date): boolean {
   const [configHour, configMinute] = config.send_time.split(':').map(Number);
   const [currentHour, currentMinute] = currentTime.split(':').map(Number);
 
-  // Verificar se está dentro da janela de 1 hora do horário configurado
+  // Verificar se está dentro da janela de 10 minutos do horário configurado
   const configTimeInMinutes = configHour * 60 + configMinute;
   const currentTimeInMinutes = currentHour * 60 + currentMinute;
   const diffMinutes = Math.abs(currentTimeInMinutes - configTimeInMinutes);
 
-  if (diffMinutes > 60) {
+  if (diffMinutes > 10) {
     console.log(`⏰ Fora da janela de tempo. Config: ${config.send_time}, Atual: ${currentTime}`);
     return false;
   }

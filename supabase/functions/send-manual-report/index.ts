@@ -554,11 +554,11 @@ function generateReportHTML(
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #2d3748; }
         .container { max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 24px 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 22px; color: #ffffff !important; }
-        .header p { margin: 6px 0 0 0; opacity: 0.95; font-size: 13px; color: #ffffff !important; }
-        .header-icon { font-size: 32px; margin-bottom: 8px; }
-        .header-subtitle { margin: 4px 0; font-size: 14px; opacity: 0.95; color: #ffffff !important; }
+        .header { background: #1e40af !important; background-color: #1e40af !important; color: #ffffff !important; padding: 24px 30px; text-align: center; }
+        .header h1 { margin: 0 !important; font-size: 22px !important; color: #ffffff !important; }
+        .header p { margin: 6px 0 0 0 !important; opacity: 0.95 !important; font-size: 13px !important; color: #ffffff !important; }
+        .header-icon { font-size: 32px !important; margin-bottom: 8px !important; }
+        .header-subtitle { margin: 4px 0 !important; font-size: 14px !important; opacity: 0.95 !important; color: #ffffff !important; }
         .content { padding: 24px 30px 30px 30px; background: #ffffff; }
         .section-title { font-size: 16px; font-weight: 600; color: #2d3748 !important; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
         .section-title.no-border { border-bottom: none; }

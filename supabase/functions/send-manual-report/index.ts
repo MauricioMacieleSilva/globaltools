@@ -858,8 +858,8 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { configId } = await req.json();
-    console.log(`📧 [send-manual-report] Processando envio para config: ${configId}`);
+    const { configId, isScheduled } = await req.json();
+    console.log(`📧 [send-manual-report] Processando envio para config: ${configId} (${isScheduled ? 'automático' : 'manual'})`);
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -1043,6 +1043,8 @@ const handler = async (req: Request): Promise<Response> => {
       email: targetEmail,
       status: 'success',
       report_date: startDate.toISOString().split('T')[0],
+      report_type: config.frequency || 'custom',
+      is_scheduled: isScheduled || false,
     });
 
     const logMessage = isTestMode 

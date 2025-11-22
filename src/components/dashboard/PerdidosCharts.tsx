@@ -7,7 +7,11 @@ export function PerdidosCharts() {
   const { filteredData, isLoading } = useComercial();
 
   const chartData = useMemo(() => {
-    const perdidos = filteredData.filter(item => item.situacao === 'Perdido');
+    const perdidos = filteredData.filter(item => 
+      item.situacao === 'Perdido' && 
+      item.perdido_motivo && 
+      item.perdido_motivo !== 'Não informado'
+    );
 
     // Dados por motivo
     const motivoData = perdidos.reduce((acc, item) => {

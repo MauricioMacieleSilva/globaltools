@@ -409,8 +409,16 @@ function generateReportHTML(
                 <div class="meta-value">${formatCurrency(meta)}</div>
               </div>
               <div class="meta-item">
+                <div class="meta-label">Realizado</div>
+                <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
+              </div>
+              <div class="meta-item">
                 <div class="meta-label">Atingimento</div>
                 <div class="meta-value" style="color: ${corMeta};">${percentualMeta.toFixed(1)}% ${statusMeta}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Faltam</div>
+                <div class="meta-value" style="color: #ed8936;">${faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta atingida! 🎉'}</div>
               </div>
             </div>
           </div>

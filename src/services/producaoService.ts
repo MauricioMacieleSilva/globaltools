@@ -230,9 +230,16 @@ function calculateOrderStatus(prazo: string, ops: OperacaoData[]): string {
     return 'FINALIZADO';
   }
   
-  // If some OPs are finalized
+  // Check if order is delayed (past deadline)
+  const isDelayed = prazo && (() => {
+    const prazoDate = new Date(prazo);
+    const today = new Date();
+    return !isNaN(prazoDate.getTime()) && today > prazoDate;
+  })();
+  
+  // If some OPs are finalized but order is delayed, mark as ATRASO
   if (finalizadas.length > 0) {
-    return 'PARCIALMENTE_FINALIZADO';
+    return isDelayed ? 'ATRASO' : 'PARCIALMENTE_FINALIZADO';
   }
   
   // No OPs finalized - check deadline
@@ -525,7 +532,20 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const pedidoData = pedidosMap.get(pedido)!;
       
       // Convert quantity to kg for standardization
+      // IMPORTANT: QTD_VENDA from the sheet should be used directly without conversion
+      // as it already represents the actual quantity in the order
       const qtdKg = convertToKg(qtdVenda, un, descricaomat);
+      
+      // Debug weight calculation for specific orders
+      if (['11098', '11156', '11084'].includes(pedido)) {
+        console.log(`DEBUG ${pedido} OP ${numeroOp} weight calc:`, {
+          descricaomat,
+          qtdVenda,
+          un,
+          qtdKg,
+          conversionApplied: qtdKg !== qtdVenda
+        });
+      }
       
       // Create material data
       const materialData: MaterialData = {

@@ -536,6 +536,41 @@ export type Database = {
           },
         ]
       }
+      hidden_production_orders: {
+        Row: {
+          hidden_at: string
+          hidden_by: string | null
+          hidden_by_name: string | null
+          id: string
+          motivo: string | null
+          numero_pedido: string
+        }
+        Insert: {
+          hidden_at?: string
+          hidden_by?: string | null
+          hidden_by_name?: string | null
+          id?: string
+          motivo?: string | null
+          numero_pedido: string
+        }
+        Update: {
+          hidden_at?: string
+          hidden_by?: string | null
+          hidden_by_name?: string | null
+          id?: string
+          motivo?: string | null
+          numero_pedido?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hidden_production_orders_hidden_by_fkey"
+            columns: ["hidden_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_articles: {
         Row: {
           article_type: string | null

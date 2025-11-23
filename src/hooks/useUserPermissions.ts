@@ -258,6 +258,7 @@ export const useUserPermissions = () => {
   return {
     userPermissions,
     loading,
+    isAdmin,
     checkPageAccess,
     canAccessRoute,
     getAccessiblePages,

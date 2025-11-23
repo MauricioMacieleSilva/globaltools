@@ -453,7 +453,7 @@ function generateHistoricoChart(historico: HistoricoFaturamento[], mesAtual: str
         <td style="padding: 8px 10px; width: 100%;">
           <div style="position: relative; height: 32px;">
             <!-- Barra Ano Atual -->
-            <div style="position: absolute; top: 0; left: 0; height: 14px; width: ${widthAtual}%; background: ${isMesDestaque ? '#48bb78' : '#4299e1'}; border-radius: 3px;"></div>
+            <div style="position: absolute; top: 0; left: 0; height: 14px; width: ${widthAtual}%; background: #4299e1; border-radius: 3px;"></div>
             <!-- Barra Ano Anterior -->
             <div style="position: absolute; top: 18px; left: 0; height: 14px; width: ${widthAnterior}%; background: #cbd5e0; border-radius: 3px;"></div>
           </div>

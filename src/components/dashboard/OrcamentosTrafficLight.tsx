@@ -87,31 +87,32 @@ export function OrcamentosTrafficLight() {
       return true;
     });
 
-    // Agrupar por vendedor
-    const vendedoresMap: Record<string, { count: number; valor: number }> = {};
+    // Agrupar por vendedor contando pedidos únicos
+    const vendedoresMap: Record<string, { pedidos: Set<string>; valor: number }> = {};
     
     orcamentosAbertos.forEach(item => {
       const vendedor = item.vendedor || 'Sem Vendedor';
+      const numeroPedido = item.numeropedido || 'Sem Pedido';
       
       if (!vendedoresMap[vendedor]) {
-        vendedoresMap[vendedor] = { count: 0, valor: 0 };
+        vendedoresMap[vendedor] = { pedidos: new Set(), valor: 0 };
       }
       
-      vendedoresMap[vendedor].count += 1;
+      vendedoresMap[vendedor].pedidos.add(numeroPedido);
       vendedoresMap[vendedor].valor += item.valor || 0;
     });
 
     // Calcular total para percentuais
     const totalValor = Object.values(vendedoresMap).reduce((sum, v) => sum + v.valor, 0);
-    const totalCount = orcamentosAbertos.length;
+    const totalPedidos = Object.values(vendedoresMap).reduce((sum, v) => sum + v.pedidos.size, 0);
 
     // Converter para array e adicionar percentuais, depois ordenar por valor
     const vendedoresArray = Object.entries(vendedoresMap)
       .map(([vendedor, data]) => ({
         vendedor,
-        count: data.count,
+        count: data.pedidos.size,
         valor: data.valor,
-        percentual: totalCount > 0 ? (data.count / totalCount) * 100 : 0
+        percentual: totalPedidos > 0 ? (data.pedidos.size / totalPedidos) * 100 : 0
       }))
       .sort((a, b) => b.valor - a.valor); // Ordenar por valor decrescente
 

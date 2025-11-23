@@ -662,9 +662,9 @@ const handler = async (req: Request): Promise<Response> => {
     for (const recipient of recipients) {
       try {
         await resend.emails.send({
-          from: "Global Tools <noreply@globaltools.lovable.app>",
+          from: "Lovable <onboarding@resend.dev>",
           to: [recipient],
-          subject: `Relatório de Fechamento - ${monthName}/${year}`,
+          subject: `📊 Relatório de Fechamento - ${monthName}/${year}`,
           html: reportHTML,
         });
 

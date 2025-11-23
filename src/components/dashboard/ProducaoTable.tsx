@@ -17,16 +17,14 @@ import { useDebounceCallback } from '@/hooks/useDebounceCallback';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ProducaoTableMobile } from './ProducaoTableMobile';
-import { useHiddenProductionOrders } from '@/hooks/useHiddenProductionOrders';
 import { HideOrderDialog } from './HideOrderDialog';
 
 type SortField = 'numero_pedido' | 'cli_nomef' | 'prazo_pcp' | 'status' | 'dias_atraso' | 'percentual_concluido';
 type SortOrder = 'asc' | 'desc';
 
 export function ProducaoTable() {
-  const { filteredData, loading, selectedCliente, setSelectedCliente, selectedStatus, setSelectedStatus, productionOrders, refreshProductionOrders } = useProducao();
+  const { filteredData, loading, selectedCliente, setSelectedCliente, selectedStatus, setSelectedStatus, productionOrders, refreshProductionOrders, hideOrder } = useProducao();
   const { checkPageAccess, isAdmin } = useUserPermissions();
-  const { hideOrder } = useHiddenProductionOrders();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('dias_atraso');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');

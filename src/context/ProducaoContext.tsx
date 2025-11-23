@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { fetchProducaoData, ProducaoData, MaterialData } from '@/services/producaoService';
 import { loadProductionOrders, ProductionOrderData } from '@/services/productionOrdersService';
-import { useHiddenProductionOrders } from '@/hooks/useHiddenProductionOrders';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+export interface HiddenProductionOrder {
+  id: string;
+  numero_pedido: string;
+  hidden_by: string | null;
+  hidden_by_name: string | null;
+  hidden_at: string;
+  motivo: string | null;
+}
 
 interface ProducaoContextType {
   data: ProducaoData[];
@@ -21,6 +31,12 @@ interface ProducaoContextType {
   // Production Orders data
   productionOrders: Record<string, ProductionOrderData>;
   refreshProductionOrders: () => Promise<void>;
+  
+  // Hidden orders
+  hiddenOrders: HiddenProductionOrder[];
+  hideOrder: (numeroPedido: string, motivo?: string) => Promise<void>;
+  unhideOrder: (numeroPedido: string) => Promise<void>;
+  refreshHiddenOrders: () => Promise<void>;
   
   // KPIs
   totalPedidos: number;
@@ -45,7 +61,8 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
   const [selectedCliente, setSelectedCliente] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
   const [productionOrders, setProductionOrders] = useState<Record<string, ProductionOrderData>>({});
-  const { hiddenOrders } = useHiddenProductionOrders();
+  const [hiddenOrders, setHiddenOrders] = useState<HiddenProductionOrder[]>([]);
+  const { toast } = useToast();
 
   const fetchData = async () => {
     try {
@@ -72,9 +89,90 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
     }
   };
 
+  const refreshHiddenOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hidden_production_orders')
+        .select('*')
+        .order('hidden_at', { ascending: false });
+
+      if (error) throw error;
+      console.log('Pedidos ocultos carregados:', data);
+      setHiddenOrders(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar pedidos ocultos:', error);
+    }
+  };
+
+  const hideOrder = async (numeroPedido: string, motivo?: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      const { error } = await supabase
+        .from('hidden_production_orders')
+        .insert({
+          numero_pedido: numeroPedido,
+          hidden_by: user.id,
+          hidden_by_name: profile?.full_name || user.email,
+          motivo: motivo || null,
+        });
+
+      if (error) throw error;
+
+      console.log('Pedido ocultado:', numeroPedido);
+      toast({
+        title: 'Pedido ocultado',
+        description: `Pedido ${numeroPedido} foi ocultado com sucesso.`,
+      });
+
+      await refreshHiddenOrders();
+    } catch (error: any) {
+      console.error('Erro ao ocultar pedido:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível ocultar o pedido.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const unhideOrder = async (numeroPedido: string) => {
+    try {
+      const { error } = await supabase
+        .from('hidden_production_orders')
+        .delete()
+        .eq('numero_pedido', numeroPedido);
+
+      if (error) throw error;
+
+      console.log('Pedido reexibido:', numeroPedido);
+      toast({
+        title: 'Pedido reexibido',
+        description: `Pedido ${numeroPedido} voltará a ser exibido.`,
+      });
+
+      await refreshHiddenOrders();
+    } catch (error: any) {
+      console.error('Erro ao reexibir pedido:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível reexibir o pedido.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     fetchData();
     refreshProductionOrders();
+    refreshHiddenOrders();
   }, []);
 
   // Apply filters and sort
@@ -176,6 +274,10 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
     filteredData,
     productionOrders,
     refreshProductionOrders,
+    hiddenOrders,
+    hideOrder,
+    unhideOrder,
+    refreshHiddenOrders,
     totalPedidos,
     quantidadeTotal,
     noPrazo,

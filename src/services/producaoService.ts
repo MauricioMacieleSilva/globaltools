@@ -472,14 +472,16 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const qtdVenda = parseFloat(qtdVendaStr.replace(/\./g, '').replace(',', '.')) || 0;
 
       // Debug specific order after parsing
-      if (pedido === '10694' || pedido === '10707') {
-        console.log(`DEBUG ${pedido} OP ${numeroOp} after parse`, {
-          situacaoRaw: situacao,
-          situacaoNorm: normalizeStatus(situacao),
-          situacaoOpRaw: situacaoOp,
-          situacaoOpNorm: normalizeForCompare(situacaoOp),
+      if (pedido === '11084' || pedido === '11098' || pedido === '11156') {
+        console.log(`DEBUG ${pedido} OP ${numeroOp} PARSE:`, {
+          pedido,
+          numeroOp,
+          descricaomat,
+          qtdVendaRaw: qtdVendaStr,
           qtdVenda,
           un,
+          situacao,
+          situacaoOp,
           prazoPcpStr
         });
       }
@@ -532,18 +534,17 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const pedidoData = pedidosMap.get(pedido)!;
       
       // Convert quantity to kg for standardization
-      // IMPORTANT: QTD_VENDA from the sheet should be used directly without conversion
-      // as it already represents the actual quantity in the order
       const qtdKg = convertToKg(qtdVenda, un, descricaomat);
       
       // Debug weight calculation for specific orders
-      if (['11098', '11156', '11084'].includes(pedido)) {
-        console.log(`DEBUG ${pedido} OP ${numeroOp} weight calc:`, {
+      if (pedido === '11084' || pedido === '11098' || pedido === '11156') {
+        console.log(`DEBUG ${pedido} OP ${numeroOp} WEIGHT:`, {
           descricaomat,
-          qtdVenda,
+          qtdVendaOriginal: qtdVenda,
           un,
-          qtdKg,
-          conversionApplied: qtdKg !== qtdVenda
+          qtdKgCalculated: qtdKg,
+          ratio: qtdKg / qtdVenda,
+          conversionFunction: un === 'KG' ? 'direct' : (un === 'M' ? 'meters_to_kg' : (un === 'T' ? 'tons_to_kg' : 'unknown'))
         });
       }
       

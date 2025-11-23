@@ -11,234 +11,364 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Mesmos IDs da planilha usados no googleSheetsService.ts
+const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
+const GID = "2063157767";
+
+// Interface IGUAL ao ComercialData do frontend e do send-manual-report
 interface ComercialData {
+  numeropedido: string;
   situacao: string;
-  valor_total: number;
-  data_emissao?: string;
-  data_aprovacao?: string;
-  data_pedido?: string;
-  data_perdido?: string;
-  vendedor?: string;
-  numero_orcamento?: string;
-  cliente?: string;
-  temperatura?: string;
+  data_emissao: string;
+  data_inicio: string;
+  data_perdido: string;
+  data_pedido_pronto: string;
+  valor: number;
+  peso: number;
+  classe: string;
+  cli_nomefantasia: string;
+  cliente: string;
+  codigocliente: string;
+  uf: string;
+  vendedor: string;
+  faturamento_tipo: number;
+  produto: string;
+  obs: string;
+  perdido_motivo: string;
 }
 
 interface EmailKPIs {
-  totalOrcamentos: number;
-  valorTotalOrcamentos: number;
-  ticketMedio: number;
-  aprovados: number;
-  valorAprovados: number;
-  taxaConversao: number;
-  totalPerdidos: number;
-  valorPerdidos: number;
-  taxaPerda: number;
+  faturamento: number;
+  orcamentosValor: number;
+  orcamentosQtd: number;
+  pedidosNaoFaturados: number;
+  pedidosNaoFaturadosValor: number;
+  perdidosValor: number;
+  perdidosQtd: number;
+  diasUteis: number;
+  mediaDiaria: number;
 }
 
-// Funções auxiliares reutilizadas
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
+interface VendedorPerformance {
+  nome: string;
+  faturamento: number;
+  numPedidos: number;
+  ticketMedio: number;
+  percentualTotal: number;
+}
+
+// Parse CSV - IGUAL ao googleSheetsService.ts
+function parseCSV(csvText: string): string[][] {
+  const lines = csvText.split('\n');
+  const result: string[][] = [];
   
-  const formats = [
-    /^(\d{2})\/(\d{2})\/(\d{4})$/,
-    /^(\d{4})-(\d{2})-(\d{2})/,
-    /^(\d{2})-(\d{2})-(\d{4})$/
-  ];
-  
-  for (const format of formats) {
-    const match = dateStr.match(format);
-    if (match) {
-      if (format.source.startsWith('^(\\d{4})')) {
-        return new Date(`${match[1]}-${match[2]}-${match[3]}`);
+  for (const line of lines) {
+    const values: string[] = [];
+    let currentValue = '';
+    let insideQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        insideQuotes = !insideQuotes;
+      } else if (char === ',' && !insideQuotes) {
+        values.push(currentValue.trim());
+        currentValue = '';
       } else {
-        return new Date(`${match[3]}-${match[2]}-${match[1]}`);
+        currentValue += char;
       }
     }
+    
+    values.push(currentValue.trim());
+    result.push(values);
   }
   
-  const parsed = new Date(dateStr);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  return result;
 }
 
-function getDateField(item: ComercialData): Date | null {
-  const situacao = item.situacao?.toLowerCase() || '';
-  
-  if (situacao.includes('aprovado') && item.data_aprovacao) {
-    return parseDate(item.data_aprovacao);
+// Parse de data - IGUAL ao utils-comercial.ts
+function parseDate(dateString: string): Date | null {
+  if (!dateString || dateString === 'Invalid Date' || dateString === '') {
+    return null;
   }
-  if (situacao.includes('perdido') && item.data_perdido) {
-    return parseDate(item.data_perdido);
+
+  // Formato brasileiro dd/MM/yyyy (prioridade)
+  const brFormatMatch = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brFormatMatch) {
+    const [, day, month, year] = brFormatMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
   }
-  if (item.data_emissao) {
-    return parseDate(item.data_emissao);
+
+  // Formato brasileiro com traço dd-MM-yyyy
+  const brDashMatch = dateString.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (brDashMatch) {
+    const [, day, month, year] = brDashMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
   }
-  
+
+  // Formato ISO yyyy-MM-dd
+  const isoFormatMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoFormatMatch) {
+    const [, year, month, day] = isoFormatMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
+  }
+
+  // Fallback: tentar Date nativo
+  try {
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime()) && date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
+  } catch {
+    return null;
+  }
+
   return null;
 }
 
-async function loadComercialDataFromSheet(startDate: Date, endDate: Date): Promise<ComercialData[]> {
-  const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
-  const GID = "2063157767";
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
-  
-  console.log(`📊 Carregando dados do fechamento mensal...`);
-  console.log(`📅 Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
-  
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    throw new Error(`Erro ao buscar planilha: ${response.status}`);
+// Determinar qual campo de data usar - IGUAL ao ComercialContext (sessão 'dashboard')
+function getDateField(item: ComercialData): Date | null {
+  // Emitida/Faturado usa data_emissao
+  if (item.situacao === 'Emitida' || item.situacao === 'Faturado') {
+    return parseDate(item.data_emissao || '');
   }
-  
-  const csvText = await response.text();
-  const lines = csvText.split('\n');
-  
-  if (lines.length < 2) {
-    console.log("⚠️ Planilha vazia ou sem dados");
-    return [];
-  }
-  
-  // Parse header
-  const headerLine = lines[0];
-  const headerValues: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < headerLine.length; i++) {
-    const char = headerLine[i];
-    const nextChar = headerLine[i + 1];
-    
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      headerValues.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  headerValues.push(current.trim());
-  
-  const data: ComercialData[] = [];
-  let processedRows = 0;
-  let validRows = 0;
-  const maxRows = 50000; // Limite de segurança
-  
-  // Processar linhas com filtro imediato
-  for (let i = 1; i < lines.length && processedRows < maxRows; i++) {
-    const line = lines[i];
-    if (!line || line.trim().length === 0) continue;
-    
-    processedRows++;
-    
-    // Parse linha
-    const values: string[] = [];
-    current = '';
-    inQuotes = false;
-    
-    for (let j = 0; j < line.length; j++) {
-      const char = line[j];
-      const nextChar = line[j + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          current += '"';
-          j++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        values.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    values.push(current.trim());
-    
-    if (values.length < headerValues.length) continue;
-    
-    // Criar objeto
-    const item: any = {};
-    headerValues.forEach((header, idx) => {
-      item[header] = values[idx] || '';
-    });
-    
-    // Validar valor
-    const valorStr = item['VALOR TOTAL'] || '';
-    const valorTotal = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.') || '0');
-    
-    if (valorTotal <= 0) continue;
-    
-    // Criar item comercial
-    const comercialItem: ComercialData = {
-      situacao: item['SITUAÇÃO'] || '',
-      valor_total: valorTotal,
-      data_emissao: item['DATA EMISSÃO'],
-      data_aprovacao: item['DATA APROVAÇÃO'],
-      data_pedido: item['DATA PEDIDO'],
-      data_perdido: item['DATA PERDIDO'],
-      vendedor: item['VENDEDOR'],
-      numero_orcamento: item['NÚMERO ORÇAMENTO'],
-      cliente: item['CLIENTE'],
-      temperatura: item['TEMPERATURA']
-    };
-    
-    // FILTRAR IMEDIATAMENTE POR DATA
-    const itemDate = getDateField(comercialItem);
-    if (!itemDate) continue;
-    
-    if (itemDate >= startDate && itemDate <= endDate) {
-      data.push(comercialItem);
-      validRows++;
-    }
-    
-    // Log de progresso a cada 5000 linhas
-    if (processedRows % 5000 === 0) {
-      console.log(`📊 Processadas ${processedRows} linhas, ${validRows} válidas no período`);
-    }
-  }
-  
-  console.log(`✅ Total processado: ${processedRows} linhas`);
-  console.log(`✅ Dados do período: ${data.length} registros`);
-  
-  return data;
+  // Demais situações usam data_inicio
+  return parseDate(item.data_inicio || '');
 }
 
-function calculateKPIs(data: ComercialData[]): EmailKPIs {
-  const totalOrcamentos = data.length;
-  const valorTotalOrcamentos = data.reduce((sum, item) => sum + item.valor_total, 0);
-  const ticketMedio = totalOrcamentos > 0 ? valorTotalOrcamentos / totalOrcamentos : 0;
+// Calcula dias úteis (segunda a sexta) entre duas datas
+function calcularDiasUteis(startDate: Date, endDate: Date): number {
+  let diasUteis = 0;
+  const current = new Date(startDate);
   
-  const aprovados = data.filter(item => 
-    item.situacao?.toLowerCase().includes('aprovado')
+  while (current <= endDate) {
+    const diaSemana = current.getDay();
+    // 0 = domingo, 6 = sábado
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasUteis++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return diasUteis;
+}
+
+// Carregar dados da planilha - IGUAL ao googleSheetsService.ts
+async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+  console.log('📊 Buscando dados da planilha...');
+  
+  try {
+    const response = await fetch(CSV_URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0)',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const csvText = await response.text();
+    const rows = parseCSV(csvText);
+    
+    console.log(`✅ ${rows.length} linhas parseadas`);
+    
+    if (rows.length < 2) {
+      console.warn('⚠️ Planilha vazia ou só com header');
+      return [];
+    }
+    
+    // Processar linhas de dados (pular header) - ÍNDICES FIXOS como no Dashboard
+    const comercialData: ComercialData[] = rows
+      .slice(1)
+      .filter((row: string[]) => row.length > 30 && row[3]) // Filtrar linhas válidas
+      .map((row: string[]): ComercialData => {
+        return {
+          numeropedido: row[1] || '', // Coluna B
+          situacao: (row[3] || '').trim().replace(/\s+/g, ' '), // Coluna D
+          data_emissao: row[4] || '', // Coluna E
+          data_inicio: row[33] || '', // Coluna AH
+          data_perdido: row[35] || '', // Coluna AJ
+          data_pedido_pronto: row[34] || '', // Coluna AI
+          valor: parseFloat(row[14]?.replace(',', '.')) || 0, // Coluna O
+          peso: parseFloat(row[19]?.replace(',', '.')) || 0, // Coluna T
+          classe: (row[21] || '').trim().replace(/\s+/g, ' '), // Coluna V
+          cli_nomefantasia: row[29] || '', // Coluna AD
+          cliente: row[29] || '', // Coluna AD
+          codigocliente: row[28] || '', // Coluna AC
+          uf: (row[30] || '').trim().replace(/\s+/g, ' '), // Coluna AE
+          vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '), // Coluna AB
+          faturamento_tipo: parseInt(row[43]) || 0, // Coluna AR
+          produto: row[9] || '', // Coluna J
+          obs: row[10] || '', // Coluna K
+          perdido_motivo: (row[46] || '').trim().replace(/\s+/g, ' '), // Coluna AU
+        };
+      })
+      .filter((item: ComercialData) => {
+        // Filtrar registros válidos
+        if (!item.situacao || item.valor <= 0) return false;
+        
+        // Excluir clientes que contenham "GLOBAL AÇO" no nome
+        const nomeFantasia = item.cli_nomefantasia?.toUpperCase() || '';
+        if (nomeFantasia.includes('GLOBAL AÇO')) {
+          return false;
+        }
+        
+        return true;
+      });
+    
+    console.log(`✅ ${comercialData.length} registros carregados da planilha`);
+    return comercialData;
+    
+  } catch (error) {
+    console.error('❌ Erro ao buscar dados da planilha:', error);
+    throw error;
+  }
+}
+
+// Calcular KPIs - IGUAL ao send-manual-report
+function calculateKPIs(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date
+): EmailKPIs {
+  console.log(`📊 Calculando KPIs para período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
+  
+  const filteredData = allData.filter(item => {
+    const date = getDateField(item);
+    return date && date >= startDate && date <= endDate;
+  });
+  
+  console.log(`📋 Registros no período: ${filteredData.length} de ${allData.length} totais`);
+  
+  const faturados = filteredData.filter(item =>
+    (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+    item.faturamento_tipo === 1
   );
-  const valorAprovados = aprovados.reduce((sum, item) => sum + item.valor_total, 0);
-  const taxaConversao = totalOrcamentos > 0 ? (aprovados.length / totalOrcamentos) * 100 : 0;
+  const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
+  console.log(`💰 Faturamento: R$ ${faturado.toFixed(2)} (${faturados.length} registros)`);
   
-  const perdidos = data.filter(item => 
-    item.situacao?.toLowerCase().includes('perdido')
+  const orcamentos = filteredData.filter(item => item.situacao === 'Orçamento');
+  const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
+  const orcamentosQtd = new Set(orcamentos.map(item => item.numeropedido).filter(Boolean)).size;
+  console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentosQtd} pedidos distintos)`);
+  
+  const pedidosNaoFaturadosData = filteredData.filter(item =>
+    item.situacao === 'Pedido' && item.faturamento_tipo === 1
   );
-  const valorPerdidos = perdidos.reduce((sum, item) => sum + item.valor_total, 0);
-  const taxaPerda = totalOrcamentos > 0 ? (perdidos.length / totalOrcamentos) * 100 : 0;
+  const pedidosNaoFaturadosMap = new Map<string, ComercialData[]>();
+  pedidosNaoFaturadosData.forEach(p => {
+    if (!pedidosNaoFaturadosMap.has(p.numeropedido)) {
+      pedidosNaoFaturadosMap.set(p.numeropedido, []);
+    }
+    pedidosNaoFaturadosMap.get(p.numeropedido)!.push(p);
+  });
+  const pedidosNaoFaturados = pedidosNaoFaturadosMap.size;
+  const pedidosNaoFaturadosValor = Array.from(pedidosNaoFaturadosMap.values()).reduce(
+    (sum, items) => sum + items.reduce((s, item) => s + item.valor, 0),
+    0
+  );
   
+  // Calcular perdidos usando data_perdido
+  const perdidosData = allData.filter(item => {
+    if (item.situacao !== 'Perdido') return false;
+    if (!item.perdido_motivo || item.perdido_motivo === 'Não informado') return false;
+
+    const datePerdido = parseDate(item.data_perdido || '');
+    const fallbackDate =
+      datePerdido ||
+      parseDate(item.data_inicio || '') ||
+      parseDate(item.data_emissao || '');
+
+    return fallbackDate && fallbackDate >= startDate && fallbackDate <= endDate;
+  });
+
+  const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
+  const perdidosQtd = new Set(
+    perdidosData.map(item => item.numeropedido).filter(Boolean)
+  ).size;
+
+  const diasUteis = calcularDiasUteis(startDate, endDate);
+  const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
+
   return {
-    totalOrcamentos,
-    valorTotalOrcamentos,
-    ticketMedio,
-    aprovados: aprovados.length,
-    valorAprovados,
-    taxaConversao,
-    totalPerdidos: perdidos.length,
-    valorPerdidos,
-    taxaPerda
+    faturamento: faturado,
+    orcamentosValor,
+    orcamentosQtd,
+    pedidosNaoFaturados,
+    pedidosNaoFaturadosValor,
+    perdidosValor,
+    perdidosQtd,
+    diasUteis,
+    mediaDiaria,
   };
+}
+
+// Calcular Ranking de Vendedores - IGUAL ao send-manual-report
+function calcularRankingVendedores(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date
+): VendedorPerformance[] {
+  const faturadosNoPeriodo = allData.filter(item => {
+    const date = getDateField(item);
+    return (
+      date &&
+      date >= startDate &&
+      date <= endDate &&
+      (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+      item.faturamento_tipo === 1 &&
+      item.vendedor &&
+      item.vendedor !== 'VENDEDOR' &&
+      item.vendedor !== 'Não informado'
+    );
+  });
+
+  const vendedoresMap: Record<string, { faturamento: number; pedidos: Set<string> }> = {};
+
+  faturadosNoPeriodo.forEach(item => {
+    const vendedor = item.vendedor || 'Não informado';
+    if (!vendedoresMap[vendedor]) {
+      vendedoresMap[vendedor] = { faturamento: 0, pedidos: new Set() };
+    }
+    vendedoresMap[vendedor].faturamento += item.valor;
+    vendedoresMap[vendedor].pedidos.add(item.numeropedido);
+  });
+
+  const totalFaturamento = Object.values(vendedoresMap).reduce(
+    (sum, v) => sum + v.faturamento,
+    0
+  );
+
+  const ranking = Object.entries(vendedoresMap)
+    .map(([nome, dados]) => {
+      const numPedidos = dados.pedidos.size || 1;
+      return {
+        nome,
+        faturamento: dados.faturamento,
+        numPedidos,
+        ticketMedio: dados.faturamento / numPedidos,
+        percentualTotal:
+          totalFaturamento > 0
+            ? (dados.faturamento / totalFaturamento) * 100
+            : 0,
+      } as VendedorPerformance;
+    })
+    .sort((a, b) => b.faturamento - a.faturamento);
+
+  console.log('🏆 Ranking de vendedores:', ranking);
+  return ranking;
 }
 
 function formatCurrency(value: number): string {
@@ -253,10 +383,12 @@ function generateReportHTML(
   monthName: string,
   year: number,
   metaMensal: number | null,
-  periodo: string
+  periodo: string,
+  ranking: VendedorPerformance[]
 ): string {
-  const realizadoMes = kpis.valorAprovados;
+  const realizadoMes = kpis.faturamento;
   const percentualMeta = metaMensal ? (realizadoMes / metaMensal) * 100 : 0;
+  const faltaMeta = metaMensal ? metaMensal - realizadoMes : 0;
   
   let statusMeta = '✗';
   let corMeta = '#f56565';
@@ -267,8 +399,24 @@ function generateReportHTML(
     statusMeta = '⚠';
     corMeta = '#ed8936';
   }
-  
-  const faltaMeta = metaMensal ? metaMensal - realizadoMes : 0;
+
+  const rankingRows = ranking
+    .map((vendedor, index) => {
+      const posicao =
+        index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1;
+      const isTop3 = index < 3;
+      return `
+        <tr>
+          <td style="padding: 8px 10px; font-weight: ${isTop3 ? 'bold' : 'normal'};">${posicao}</td>
+          <td style="padding: 8px 10px; font-weight: ${isTop3 ? 'bold' : 'normal'};">${vendedor.nome}</td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: ${isTop3 ? 'bold' : 'normal'};">${formatCurrency(vendedor.faturamento)}</td>
+          <td style="padding: 8px 10px; text-align: center;">${vendedor.numPedidos}</td>
+          <td style="padding: 8px 10px; text-align: right;">${formatCurrency(vendedor.ticketMedio)}</td>
+          <td style="padding: 8px 10px; text-align: right;">${vendedor.percentualTotal.toFixed(1)}%</td>
+        </tr>
+      `;
+    })
+    .join('');
 
   return `
     <!DOCTYPE html>
@@ -301,6 +449,10 @@ function generateReportHTML(
         .meta-item { padding: 6px 0; }
         .meta-label { color: #718096 !important; font-size: 12px; margin-bottom: 2px; }
         .meta-value { color: #2d3748 !important; font-size: 18px; font-weight: bold; }
+        .ranking-table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 16px; background: #ffffff; }
+        .ranking-table th, .ranking-table td { border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #2d3748 !important; }
+        .ranking-table th { background: #f7fafc; padding: 8px 10px; text-align: left; color: #4a5568 !important; font-weight: 600; }
+        .ranking-table td { padding: 8px 10px; color: #2d3748 !important; }
         .analysis { background: #ffffff; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
         .analysis p { margin: 6px 0; color: #4a5568 !important; line-height: 1.6; font-size: 13px; }
         .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; background: #ffffff; }
@@ -328,25 +480,24 @@ function generateReportHTML(
           <!-- KPIs do Mês -->
           <h2 class="section-title no-border">📈 Resumo do Mês</h2>
           <div class="kpi-grid">
+            <div class="kpi-card success">
+              <div class="kpi-label">💰 FATURAMENTO</div>
+              <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
+            </div>
             <div class="kpi-card info">
               <div class="kpi-label">📋 ORÇAMENTOS</div>
-              <div class="kpi-value">${kpis.totalOrcamentos}</div>
-              <div class="kpi-subtitle">${formatCurrency(kpis.valorTotalOrcamentos)}</div>
-            </div>
-            <div class="kpi-card success">
-              <div class="kpi-label">✅ APROVADOS</div>
-              <div class="kpi-value">${kpis.aprovados}</div>
-              <div class="kpi-subtitle">${formatCurrency(kpis.valorAprovados)}</div>
+              <div class="kpi-value">${kpis.orcamentosQtd}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.orcamentosValor)}</div>
             </div>
             <div class="kpi-card warning">
-              <div class="kpi-label">💰 TAXA CONVERSÃO</div>
-              <div class="kpi-value">${kpis.taxaConversao.toFixed(1)}%</div>
-              <div class="kpi-subtitle">Ticket: ${formatCurrency(kpis.ticketMedio)}</div>
+              <div class="kpi-label">📦 PEDIDOS NÃO FATURADOS</div>
+              <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.pedidosNaoFaturadosValor)}</div>
             </div>
             <div class="kpi-card danger">
               <div class="kpi-label">❌ PERDIDOS</div>
-              <div class="kpi-value">${kpis.totalPerdidos}</div>
-              <div class="kpi-subtitle">${formatCurrency(kpis.valorPerdidos)}</div>
+              <div class="kpi-value">${kpis.perdidosQtd}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.perdidosValor)}</div>
             </div>
           </div>
 
@@ -381,18 +532,51 @@ function generateReportHTML(
           </div>
           ` : ''}
 
+          <!-- Ranking de Vendedores -->
+          <h2 class="section-title spaced no-border">🏆 Ranking de Vendedores</h2>
+          ${
+            ranking.length > 0
+              ? `
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th>Vendedor</th>
+                <th style="text-align:right;">Faturamento</th>
+                <th style="text-align:center;">Pedidos</th>
+                <th style="text-align:right;">Ticket Médio</th>
+                <th style="text-align:right;">% do Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rankingRows}
+            </tbody>
+          </table>
+          `
+              : `<p style="color:#718096; font-size: 13px;">Sem dados de faturamento para montar o ranking neste período.</p>`
+          }
+
           <!-- Análise Rápida -->
           <div class="analysis" style="margin-top: 16px;">
             <h3 class="section-title no-border" style="color: #2d3748 !important;">💡 Análise do Período</h3>
-            <p style="color: #4a5568 !important;">• Foram gerados <strong style="color: #2d3748 !important;">${kpis.totalOrcamentos}</strong> orçamentos no valor de ${formatCurrency(kpis.valorTotalOrcamentos)}</p>
-            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.aprovados}</strong> orçamentos foram aprovados (${kpis.taxaConversao.toFixed(1)}% de conversão)</p>
-            <p style="color: #4a5568 !important;">• Valor total aprovado: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.valorAprovados)}</strong></p>
-            <p style="color: #4a5568 !important;">• Ticket médio dos orçamentos: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.ticketMedio)}</strong></p>
-            ${kpis.totalPerdidos > 0 ? `
-            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.totalPerdidos}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.valorPerdidos)}</p>
-            ` : ''}
+            <p style="color: #4a5568 !important;">• Faturamento total do mês: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong></p>
+            <p style="color: #4a5568 !important;">• Foram gerados <strong style="color: #2d3748 !important;">${kpis.orcamentosQtd}</strong> orçamentos no valor de ${formatCurrency(kpis.orcamentosValor)}</p>
             ${metaMensal ? `
             <p style="color: #4a5568 !important;">• Atingimento da meta: <strong style="color: #2d3748 !important;">${percentualMeta.toFixed(1)}%</strong></p>
+            ${faltaMeta > 0 ? `
+            <p style="color: #4a5568 !important;">• Faltam <strong style="color: #2d3748 !important;">${formatCurrency(faltaMeta)}</strong> para atingir a meta</p>
+            ` : `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>
+            `}
+            ` : ''}
+            ${kpis.pedidosNaoFaturados > 0 ? `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento (${formatCurrency(kpis.pedidosNaoFaturadosValor)})</p>
+            ` : ''}
+            ${kpis.perdidosQtd > 0 ? `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.perdidosValor)}</p>
+            ` : ''}
+            ${ranking.length > 0 ? `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${ranking[0].nome}</strong> lidera o ranking com ${formatCurrency(ranking[0].faturamento)} (${ranking[0].percentualTotal.toFixed(1)}% do total)</p>
             ` : ''}
           </div>
         </div>
@@ -429,7 +613,6 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`📅 Gerando relatório de fechamento para ${month}/${year}`);
     console.log(`📧 Destinatários: ${recipients.length}`);
 
-    // Validar entrada
     if (!month || !year || !recipients || recipients.length === 0) {
       throw new Error("Parâmetros inválidos");
     }
@@ -440,105 +623,98 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📊 Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
 
-    // Carregar dados da planilha
-    const data = await loadComercialDataFromSheet(startDate, endDate);
+    // Carregar TODOS os dados da planilha
+    const allData = await loadComercialDataFromSheet();
 
-    if (data.length === 0) {
-      console.log("⚠️ Nenhum dado encontrado para o período");
+    if (allData.length === 0) {
+      throw new Error("Nenhum dado encontrado na planilha");
     }
 
-    // Calcular KPIs
-    const kpis = calculateKPIs(data);
+    // Calcular KPIs do mês
+    const kpis = calculateKPIs(allData, startDate, endDate);
+    console.log('📊 KPIs calculados:', kpis);
+
+    // Calcular ranking de vendedores
+    const ranking = calcularRankingVendedores(allData, startDate, endDate);
 
     // Buscar meta mensal
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const monthYear = `${year}-${month.toString().padStart(2, '0')}`;
+    const monthYear = `${String(month).padStart(2, '0')}/${year}`;
     
     const { data: metaData } = await supabase
       .from('admin_goals')
       .select('monthly_revenue_goal')
       .eq('month_year', monthYear)
-      .single();
+      .maybeSingle();
 
     const metaMensal = metaData?.monthly_revenue_goal || null;
+    console.log('🎯 Meta mensal:', metaMensal);
 
-    // Gerar HTML
+    // Gerar HTML do relatório
     const monthName = MONTH_NAMES[month - 1];
     const periodo = `${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`;
-    const html = generateReportHTML(kpis, monthName, year, metaMensal, periodo);
+    const reportHTML = generateReportHTML(kpis, monthName, year, metaMensal, periodo, ranking);
 
-    // Enviar para cada destinatário
-    const results = [];
-    for (const email of recipients) {
+    // Enviar emails
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const recipient of recipients) {
       try {
-        const { data: emailData, error: emailError } = await resend.emails.send({
-          from: "Global Aço <onboarding@resend.dev>",
-          to: [email],
-          subject: `📊 Relatório de Fechamento - ${monthName}/${year}`,
-          html: html,
+        await resend.emails.send({
+          from: "Global Tools <noreply@globaltools.lovable.app>",
+          to: [recipient],
+          subject: `Relatório de Fechamento - ${monthName}/${year}`,
+          html: reportHTML,
         });
 
-        if (emailError) {
-          console.error(`❌ Erro ao enviar para ${email}:`, emailError);
-          results.push({ email, status: 'failed', error: emailError.message });
-          
-          // Log no banco
-          await supabase.from('email_reports_log').insert({
-            config_id: '00000000-0000-0000-0000-000000000000',
-            email: email,
-            report_date: endDate.toISOString().split('T')[0],
-            report_type: 'monthly_closing',
-            reference_month: monthYear,
-            status: 'failed',
-            error_message: emailError.message,
-            is_scheduled: false
-          });
-        } else {
-          console.log(`✅ Email enviado para ${email}`);
-          results.push({ email, status: 'success' });
-          
-          // Log no banco
-          await supabase.from('email_reports_log').insert({
-            config_id: '00000000-0000-0000-0000-000000000000',
-            email: email,
-            report_date: endDate.toISOString().split('T')[0],
-            report_type: 'monthly_closing',
-            reference_month: monthYear,
-            status: 'success',
-            is_scheduled: false
-          });
-        }
-      } catch (error: any) {
-        console.error(`❌ Exceção ao enviar para ${email}:`, error);
-        results.push({ email, status: 'failed', error: error.message });
+        // Log no banco
+        await supabase.from('email_reports_log').insert({
+          config_id: '00000000-0000-0000-0000-000000000000',
+          email: recipient,
+          status: 'sent',
+          report_type: 'monthly_closing',
+          reference_month: monthYear,
+          is_scheduled: false,
+        });
+
+        successCount++;
+        console.log(`✅ Email enviado para ${recipient}`);
+      } catch (error) {
+        errorCount++;
+        console.error(`❌ Erro ao enviar para ${recipient}:`, error);
+
+        await supabase.from('email_reports_log').insert({
+          config_id: '00000000-0000-0000-0000-000000000000',
+          email: recipient,
+          status: 'failed',
+          error_message: error instanceof Error ? error.message : String(error),
+          report_type: 'monthly_closing',
+          reference_month: monthYear,
+          is_scheduled: false,
+        });
       }
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        results,
-        kpis,
-        period: {
-          month: monthName,
-          year,
-          startDate: startDate.toLocaleDateString('pt-BR'),
-          endDate: endDate.toLocaleDateString('pt-BR')
-        }
+      JSON.stringify({
+        success: true,
+        message: `Emails enviados: ${successCount} de ${recipients.length}`,
+        successCount,
+        errorCount,
       }),
-      { 
+      {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200 
       }
     );
-
   } catch (error: any) {
-    console.error("❌ Erro ao gerar relatório:", error);
+    console.error("❌ Erro no handler:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
+      {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500 
       }
     );
   }

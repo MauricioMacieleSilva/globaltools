@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MaterialDetailDialog } from "./MaterialDetailDialog";
+import { getClasseName } from "@/lib/utils-producao";
 
 type SortField = 'descricaomat' | 'classe' | 'quantidadeTotal' | 'numPedidos' | 'numPedidosAtrasados';
 type SortDirection = 'asc' | 'desc';
@@ -27,10 +28,11 @@ export function MateriaisPendentesSummary() {
 
   // Aplicar filtros
   let materiaisFiltrados = materiaisPendentes.filter((material) => {
+    const classeNome = getClasseName(material.classe);
     const matchFiltro = material.descricaomat
       .toLowerCase()
       .includes(filtro.toLowerCase()) || 
-      material.classe.toLowerCase().includes(filtro.toLowerCase());
+      classeNome.toLowerCase().includes(filtro.toLowerCase());
     const matchAtrasados = !mostrarApenasAtrasados || material.numPedidosAtrasados > 0;
     return matchFiltro && matchAtrasados;
   });
@@ -39,6 +41,12 @@ export function MateriaisPendentesSummary() {
   materiaisFiltrados = [...materiaisFiltrados].sort((a, b) => {
     let aValue = a[sortField];
     let bValue = b[sortField];
+    
+    // Para classe, usar o nome descritivo para ordenação
+    if (sortField === 'classe') {
+      aValue = getClasseName(a.classe);
+      bValue = getClasseName(b.classe);
+    }
     
     // Para strings, usar localeCompare
     if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -247,7 +255,7 @@ export function MateriaisPendentesSummary() {
                       </div>
                     </td>
                     <td className="p-2">
-                      <Badge variant="secondary">{material.classe}</Badge>
+                      <Badge variant="secondary">{getClasseName(material.classe)}</Badge>
                     </td>
                     <td className="text-right p-2">
                       {material.quantidadeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
@@ -293,7 +301,7 @@ export function MateriaisPendentesSummary() {
                   <div className="grid grid-cols-2 gap-2 text-sm mb-2">
                     <div className="col-span-2">
                       <span className="text-muted-foreground">Classe: </span>
-                      <Badge variant="secondary">{material.classe}</Badge>
+                      <Badge variant="secondary">{getClasseName(material.classe)}</Badge>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Quantidade: </span>

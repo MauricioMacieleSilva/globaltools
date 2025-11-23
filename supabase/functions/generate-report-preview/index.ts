@@ -174,7 +174,7 @@ function calcularDiasUteis(inicio: Date, fim: Date): number {
 }
 
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
-  console.log('📊 Buscando dados da planilha...');
+  console.log('📊 Buscando dados da planilha para preview (últimos 60 dias)...');
   console.log('📋 URL:', CSV_URL);
 
   try {
@@ -200,57 +200,65 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
       return [];
     }
 
-    const comercialData: ComercialData[] = rows
-      .slice(1)
-      .filter((row: string[]) => row.length > 30 && row[3])
-      .map((row: string[]): ComercialData => {
-        return {
-          numeropedido: row[1] || '', // Coluna B
-          situacao: (row[3] || '').trim().replace(/\s+/g, ' '), // Coluna D
-          data_emissao: row[4] || '', // Coluna E
-          data_inicio: row[33] || '', // Coluna AH
-          data_perdido: row[35] || '', // Coluna AJ
-          data_pedido_pronto: row[34] || '', // Coluna AI
-          valor: parseFloat(row[14]?.replace(',', '.')) || 0, // Coluna O
-          peso: parseFloat(row[19]?.replace(',', '.')) || 0, // Coluna T
-          classe: (row[21] || '').trim().replace(/\s+/g, ' '), // Coluna V
-          cli_nomefantasia: row[29] || '', // Coluna AD
-          cliente: row[29] || '', // Coluna AD
-          codigocliente: row[28] || '', // Coluna AC
-          uf: (row[30] || '').trim().replace(/\s+/g, ' '), // Coluna AE
-          vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '), // Coluna AB
-          faturamento_tipo: parseInt(row[43]) || 0, // Coluna AR
-          produto: row[9] || '', // Coluna J (descricaomat)
-          obs: row[10] || '', // Coluna K (observacao)
-          perdido_motivo: (row[36] || '').trim().replace(/\s+/g, ' '), // Coluna AK
-        };
-      })
-      .filter((item: ComercialData) => {
-        // Filtrar registros válidos
-        if (!item.situacao || item.valor <= 0) return false;
+    // Para preview, filtrar apenas últimos 60 dias para economizar memória
+    const sessentaDiasAtras = new Date();
+    sessentaDiasAtras.setDate(sessentaDiasAtras.getDate() - 60);
 
-        // Excluir clientes que contenham "GLOBAL AÇO" no nome
-        const nomeFantasia = item.cli_nomefantasia?.toUpperCase() || '';
-        if (nomeFantasia.includes('GLOBAL AÇO')) {
-          return false;
-        }
+    const comercialData: ComercialData[] = [];
+    let processados = 0;
+    const maxRows = 10000; // Limitar processamento para preview
 
-        return true;
-      });
+    for (let i = 1; i < rows.length && processados < maxRows; i++) {
+      const row = rows[i];
+      if (row.length <= 30 || !row[3]) continue;
 
-    console.log(`✅ ${comercialData.length} registros carregados da planilha`);
+      // Parse e filtra por data logo no início para economizar memória
+      const dataEmissao = row[4] || '';
+      const dataInicio = row[33] || '';
+      const dataPerdido = row[35] || '';
+      
+      let dataRelevante: Date | null = null;
+      if (dataInicio) dataRelevante = parseDate(dataInicio);
+      if (!dataRelevante && dataEmissao) dataRelevante = parseDate(dataEmissao);
+      if (!dataRelevante && dataPerdido) dataRelevante = parseDate(dataPerdido);
+      
+      // Pula se a data for muito antiga (economiza memória)
+      if (!dataRelevante || dataRelevante < sessentaDiasAtras) continue;
 
-    // Filtrar apenas os últimos 6 meses para reduzir memória
-    const seisMesesAtras = new Date();
-    seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 6);
+      const item: ComercialData = {
+        numeropedido: row[1] || '',
+        situacao: (row[3] || '').trim().replace(/\s+/g, ' '),
+        data_emissao: dataEmissao,
+        data_inicio: dataInicio,
+        data_perdido: dataPerdido,
+        data_pedido_pronto: row[34] || '',
+        valor: parseFloat(row[14]?.replace(',', '.')) || 0,
+        peso: parseFloat(row[19]?.replace(',', '.')) || 0,
+        classe: (row[21] || '').trim().replace(/\s+/g, ' '),
+        cli_nomefantasia: row[29] || '',
+        cliente: row[29] || '',
+        codigocliente: row[28] || '',
+        uf: (row[30] || '').trim().replace(/\s+/g, ' '),
+        vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '),
+        faturamento_tipo: parseInt(row[43]) || 0,
+        produto: row[9] || '',
+        obs: row[10] || '',
+        perdido_motivo: (row[36] || '').trim().replace(/\s+/g, ' '),
+      };
 
-    const dadosFiltrados = comercialData.filter(item => {
-      const d = getDateField(item);
-      return d && d >= seisMesesAtras;
-    });
+      // Filtrar registros válidos
+      if (!item.situacao || item.valor <= 0) continue;
 
-    console.log(`✅ ${dadosFiltrados.length} registros após filtro de 6 meses`);
-    return dadosFiltrados;
+      // Excluir clientes que contenham "GLOBAL AÇO" no nome
+      const nomeFantasia = item.cli_nomefantasia?.toUpperCase() || '';
+      if (nomeFantasia.includes('GLOBAL AÇO')) continue;
+
+      comercialData.push(item);
+      processados++;
+    }
+
+    console.log(`✅ ${comercialData.length} registros carregados (últimos 60 dias, máx ${maxRows} linhas)`);
+    return comercialData;
   } catch (error) {
     console.error('❌ Erro ao buscar dados da planilha:', error);
     throw error;

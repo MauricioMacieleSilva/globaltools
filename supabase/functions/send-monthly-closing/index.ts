@@ -37,36 +37,6 @@ interface EmailKPIs {
 }
 
 // Funções auxiliares reutilizadas
-function parseCSV(text: string): string[][] {
-  const lines = text.split('\n');
-  return lines.map(line => {
-    const values: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        values.push(current);
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    values.push(current);
-    return values;
-  });
-}
-
 function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   
@@ -112,29 +82,101 @@ async function loadComercialDataFromSheet(startDate: Date, endDate: Date): Promi
   const GID = "2063157767";
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
   
-  console.log(`📊 Carregando dados do mês completo (${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')})...`);
+  console.log(`📊 Carregando dados do fechamento mensal...`);
+  console.log(`📅 Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
   
   const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar planilha: ${response.status}`);
+  }
+  
   const csvText = await response.text();
-  const rows = parseCSV(csvText);
+  const lines = csvText.split('\n');
   
-  if (rows.length < 2) return [];
+  if (lines.length < 2) {
+    console.log("⚠️ Planilha vazia ou sem dados");
+    return [];
+  }
   
-  const headers = rows[0];
-  const data: ComercialData[] = [];
+  // Parse header
+  const headerLine = lines[0];
+  const headerValues: string[] = [];
+  let current = '';
+  let inQuotes = false;
   
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || row.length < headers.length) continue;
+  for (let i = 0; i < headerLine.length; i++) {
+    const char = headerLine[i];
+    const nextChar = headerLine[i + 1];
     
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      headerValues.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  headerValues.push(current.trim());
+  
+  const data: ComercialData[] = [];
+  let processedRows = 0;
+  let validRows = 0;
+  const maxRows = 50000; // Limite de segurança
+  
+  // Processar linhas com filtro imediato
+  for (let i = 1; i < lines.length && processedRows < maxRows; i++) {
+    const line = lines[i];
+    if (!line || line.trim().length === 0) continue;
+    
+    processedRows++;
+    
+    // Parse linha
+    const values: string[] = [];
+    current = '';
+    inQuotes = false;
+    
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      const nextChar = line[j + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          j++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    
+    if (values.length < headerValues.length) continue;
+    
+    // Criar objeto
     const item: any = {};
-    headers.forEach((header, idx) => {
-      item[header.trim()] = row[idx]?.trim() || '';
+    headerValues.forEach((header, idx) => {
+      item[header] = values[idx] || '';
     });
     
-    const valorTotal = parseFloat(item['VALOR TOTAL']?.replace(/[^\d,-]/g, '').replace(',', '.') || '0');
+    // Validar valor
+    const valorStr = item['VALOR TOTAL'] || '';
+    const valorTotal = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.') || '0');
+    
     if (valorTotal <= 0) continue;
     
+    // Criar item comercial
     const comercialItem: ComercialData = {
       situacao: item['SITUAÇÃO'] || '',
       valor_total: valorTotal,
@@ -148,13 +190,24 @@ async function loadComercialDataFromSheet(startDate: Date, endDate: Date): Promi
       temperatura: item['TEMPERATURA']
     };
     
+    // FILTRAR IMEDIATAMENTE POR DATA
     const itemDate = getDateField(comercialItem);
-    if (itemDate && itemDate >= startDate && itemDate <= endDate) {
+    if (!itemDate) continue;
+    
+    if (itemDate >= startDate && itemDate <= endDate) {
       data.push(comercialItem);
+      validRows++;
+    }
+    
+    // Log de progresso a cada 5000 linhas
+    if (processedRows % 5000 === 0) {
+      console.log(`📊 Processadas ${processedRows} linhas, ${validRows} válidas no período`);
     }
   }
   
-  console.log(`✅ ${data.length} registros carregados do período`);
+  console.log(`✅ Total processado: ${processedRows} linhas`);
+  console.log(`✅ Dados do período: ${data.length} registros`);
+  
   return data;
 }
 

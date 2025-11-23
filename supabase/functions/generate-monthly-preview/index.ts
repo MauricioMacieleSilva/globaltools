@@ -37,14 +37,20 @@ interface ComercialData {
 
 interface EmailKPIs {
   faturamento: number;
-  orcamentosValor: number;
-  orcamentosQtd: number;
-  pedidosNaoFaturados: number;
-  pedidosNaoFaturadosValor: number;
+  peso: number;
+  numClientes: number;
+  ticketMedio: number;
+  valorPorKg: number;
   perdidosValor: number;
   perdidosQtd: number;
   diasUteis: number;
   mediaDiaria: number;
+}
+
+interface HistoricoFaturamento {
+  mes: string;
+  anoAtual: number;
+  anoAnterior: number;
 }
 
 interface VendedorPerformance {
@@ -237,26 +243,15 @@ function calculateKPIs(
     item.faturamento_tipo === 1
   );
   const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
+  const peso = faturados.reduce((acc, item) => acc + item.peso, 0);
+  const clientesUnicos = new Set(faturados.map(item => item.codigocliente).filter(Boolean));
+  const numClientes = clientesUnicos.size;
+  const ticketMedio = numClientes > 0 ? faturado / numClientes : 0;
+  const valorPorKg = peso > 0 ? faturado / peso : 0;
   
-  const orcamentos = filteredData.filter(item => item.situacao === 'Orçamento');
-  const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
-  const orcamentosQtd = new Set(orcamentos.map(item => item.numeropedido).filter(Boolean)).size;
-  
-  const pedidosNaoFaturadosData = filteredData.filter(item =>
-    item.situacao === 'Pedido' && item.faturamento_tipo === 1
-  );
-  const pedidosNaoFaturadosMap = new Map<string, ComercialData[]>();
-  pedidosNaoFaturadosData.forEach(p => {
-    if (!pedidosNaoFaturadosMap.has(p.numeropedido)) {
-      pedidosNaoFaturadosMap.set(p.numeropedido, []);
-    }
-    pedidosNaoFaturadosMap.get(p.numeropedido)!.push(p);
-  });
-  const pedidosNaoFaturados = pedidosNaoFaturadosMap.size;
-  const pedidosNaoFaturadosValor = Array.from(pedidosNaoFaturadosMap.values()).reduce(
-    (sum, items) => sum + items.reduce((s, item) => s + item.valor, 0),
-    0
-  );
+  console.log(`💰 Faturamento: R$ ${faturado.toFixed(2)}`);
+  console.log(`⚖️ Peso: ${peso.toFixed(2)} kg`);
+  console.log(`👥 Clientes: ${numClientes}`);
   
   const perdidosData = allData.filter(item => {
     if (item.situacao !== 'Perdido') return false;
@@ -281,15 +276,74 @@ function calculateKPIs(
 
   return {
     faturamento: faturado,
-    orcamentosValor,
-    orcamentosQtd,
-    pedidosNaoFaturados,
-    pedidosNaoFaturadosValor,
+    peso,
+    numClientes,
+    ticketMedio,
+    valorPorKg,
     perdidosValor,
     perdidosQtd,
     diasUteis,
     mediaDiaria,
   };
+}
+
+// Calcular histórico de faturamento (últimos 12 meses + ano anterior)
+function calcularHistoricoFaturamento(
+  allData: ComercialData[],
+  targetMonth: number,
+  targetYear: number
+): HistoricoFaturamento[] {
+  const historico: HistoricoFaturamento[] = [];
+  const mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  
+  for (let i = 11; i >= 0; i--) {
+    const mes = targetMonth - i;
+    let ano = targetYear;
+    let mesIndex = mes - 1;
+    
+    if (mes <= 0) {
+      ano = targetYear - 1;
+      mesIndex = 12 + mes - 1;
+    }
+    
+    const startDate = new Date(ano, mesIndex, 1);
+    const endDate = new Date(ano, mesIndex + 1, 0);
+    const anoAnterior = ano - 1;
+    const startDateAnterior = new Date(anoAnterior, mesIndex, 1);
+    const endDateAnterior = new Date(anoAnterior, mesIndex + 1, 0);
+    
+    const faturadosAnoAtual = allData.filter(item => {
+      const date = getDateField(item);
+      return (
+        date &&
+        date >= startDate &&
+        date <= endDate &&
+        (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+        item.faturamento_tipo === 1
+      );
+    });
+    const faturamentoAnoAtual = faturadosAnoAtual.reduce((acc, item) => acc + item.valor, 0);
+    
+    const faturadosAnoAnterior = allData.filter(item => {
+      const date = getDateField(item);
+      return (
+        date &&
+        date >= startDateAnterior &&
+        date <= endDateAnterior &&
+        (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+        item.faturamento_tipo === 1
+      );
+    });
+    const faturamentoAnoAnterior = faturadosAnoAnterior.reduce((acc, item) => acc + item.valor, 0);
+    
+    historico.push({
+      mes: `${mesesNomes[mesIndex]}/${ano.toString().substring(2)}`,
+      anoAtual: faturamentoAnoAtual,
+      anoAnterior: faturamentoAnoAnterior,
+    });
+  }
+  
+  return historico;
 }
 
 function calcularRankingVendedores(
@@ -353,13 +407,70 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+// Gerar gráfico SVG de histórico de faturamento
+function generateHistoricoChart(historico: HistoricoFaturamento[], mesAtual: string, anoAtual: number): string {
+  const maxValue = Math.max(...historico.map(h => Math.max(h.anoAtual, h.anoAnterior)));
+  const chartHeight = 200;
+  const chartWidth = 700;
+  const barWidth = 25;
+  const gap = 8;
+  const groupWidth = (barWidth * 2) + gap;
+  const totalWidth = groupWidth * historico.length;
+  const startX = (chartWidth - totalWidth) / 2;
+  
+  const bars = historico.map((h, i) => {
+    const x = startX + (i * groupWidth);
+    const heightAtual = maxValue > 0 ? (h.anoAtual / maxValue) * (chartHeight - 40) : 0;
+    const heightAnterior = maxValue > 0 ? (h.anoAnterior / maxValue) * (chartHeight - 40) : 0;
+    const yAtual = chartHeight - heightAtual - 30;
+    const yAnterior = chartHeight - heightAnterior - 30;
+    
+    const isMesDestaque = h.mes.includes(`/${anoAtual.toString().substring(2)}`);
+    const corAtual = isMesDestaque ? '#48bb78' : '#4299e1';
+    const corAnterior = '#cbd5e0';
+    
+    return `
+      <g>
+        <rect x="${x}" y="${yAnterior}" width="${barWidth}" height="${heightAnterior}" 
+              fill="${corAnterior}" rx="3"/>
+        <rect x="${x + barWidth + gap}" y="${yAtual}" width="${barWidth}" height="${heightAtual}" 
+              fill="${corAtual}" rx="3"/>
+        <text x="${x + barWidth + gap/2}" y="${chartHeight - 10}" 
+              font-size="10" fill="#718096" text-anchor="middle">${h.mes}</text>
+        ${isMesDestaque ? `
+        <text x="${x + barWidth + gap/2}" y="${chartHeight - 5}" 
+              font-size="8" fill="#48bb78" font-weight="bold" text-anchor="middle">▲</text>
+        ` : ''}
+      </g>
+    `;
+  }).join('');
+  
+  return `
+    <div style="background: #f7fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+      <svg width="100%" height="${chartHeight}" viewBox="0 0 ${chartWidth} ${chartHeight}" style="max-width: 700px; margin: 0 auto; display: block;">
+        ${bars}
+        <g transform="translate(${chartWidth - 200}, 10)">
+          <rect x="0" y="0" width="15" height="15" fill="#4299e1" rx="2"/>
+          <text x="20" y="12" font-size="11" fill="#2d3748">${anoAtual}</text>
+          <rect x="80" y="0" width="15" height="15" fill="#cbd5e0" rx="2"/>
+          <text x="100" y="12" font-size="11" fill="#2d3748">${anoAtual - 1}</text>
+        </g>
+      </svg>
+      <p style="text-align: center; color: #718096; font-size: 11px; margin-top: 8px;">
+        Comparativo de faturamento mensal • Mês destacado em verde
+      </p>
+    </div>
+  `;
+}
+
 function generateReportHTML(
   kpis: EmailKPIs,
   monthName: string,
   year: number,
   metaMensal: number | null,
   periodo: string,
-  ranking: VendedorPerformance[]
+  ranking: VendedorPerformance[],
+  historico: HistoricoFaturamento[]
 ): string {
   const realizadoMes = kpis.faturamento;
   const percentualMeta = metaMensal ? (realizadoMes / metaMensal) * 100 : 0;
@@ -453,21 +564,28 @@ function generateReportHTML(
         
         <div class="content">
           <!-- KPIs do Mês -->
-          <h2 class="section-title no-border">📈 Resumo do Mês</h2>
+          <h2 class="section-title no-border">📈 Faturamento</h2>
           <div class="kpi-grid">
             <div class="kpi-card success">
-              <div class="kpi-label">💰 FATURAMENTO</div>
+              <div class="kpi-label">💰 FATURADO</div>
               <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
+              <div class="kpi-subtitle">${kpis.peso > 0 ? `${kpis.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t` : '0 t'}</div>
             </div>
             <div class="kpi-card info">
-              <div class="kpi-label">📋 ORÇAMENTOS</div>
-              <div class="kpi-value">${kpis.orcamentosQtd}</div>
-              <div class="kpi-subtitle">${formatCurrency(kpis.orcamentosValor)}</div>
+              <div class="kpi-label">⚖️ PESO</div>
+              <div class="kpi-value">${kpis.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} t</div>
             </div>
-            <div class="kpi-card warning">
-              <div class="kpi-label">📦 PEDIDOS NÃO FATURADOS</div>
-              <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
-              <div class="kpi-subtitle">${formatCurrency(kpis.pedidosNaoFaturadosValor)}</div>
+            <div class="kpi-card info">
+              <div class="kpi-label">👥 Nº CLIENTES</div>
+              <div class="kpi-value">${kpis.numClientes}</div>
+            </div>
+            <div class="kpi-card success">
+              <div class="kpi-label">🎫 TICKET MÉDIO</div>
+              <div class="kpi-value">${formatCurrency(kpis.ticketMedio)}</div>
+            </div>
+            <div class="kpi-card success">
+              <div class="kpi-label">💵 R$/KG</div>
+              <div class="kpi-value">${formatCurrency(kpis.valorPorKg)}</div>
             </div>
             <div class="kpi-card danger">
               <div class="kpi-label">❌ PERDIDOS</div>
@@ -475,6 +593,10 @@ function generateReportHTML(
               <div class="kpi-subtitle">${formatCurrency(kpis.perdidosValor)}</div>
             </div>
           </div>
+          
+          <!-- Gráfico de Histórico -->
+          <h2 class="section-title spaced">📊 Histórico de Faturamento (12 meses)</h2>
+          ${generateHistoricoChart(historico, monthName, year)}
 
           ${metaMensal ? `
           <!-- Meta do Mês -->
@@ -534,8 +656,8 @@ function generateReportHTML(
           <!-- Análise Rápida -->
           <div class="analysis" style="margin-top: 16px;">
             <h3 class="section-title no-border" style="color: #2d3748 !important;">💡 Análise do Período</h3>
-            <p style="color: #4a5568 !important;">• Faturamento total do mês: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong></p>
-            <p style="color: #4a5568 !important;">• Foram gerados <strong style="color: #2d3748 !important;">${kpis.orcamentosQtd}</strong> orçamentos no valor de ${formatCurrency(kpis.orcamentosValor)}</p>
+            <p style="color: #4a5568 !important;">• Faturamento total do mês: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong> (${kpis.peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} toneladas)</p>
+            <p style="color: #4a5568 !important;">• Ticket médio por cliente: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.ticketMedio)}</strong></p>
             ${metaMensal ? `
             <p style="color: #4a5568 !important;">• Atingimento da meta: <strong style="color: #2d3748 !important;">${percentualMeta.toFixed(1)}%</strong></p>
             ${faltaMeta > 0 ? `
@@ -543,9 +665,6 @@ function generateReportHTML(
             ` : `
             <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>
             `}
-            ` : ''}
-            ${kpis.pedidosNaoFaturados > 0 ? `
-            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento (${formatCurrency(kpis.pedidosNaoFaturadosValor)})</p>
             ` : ''}
             ${kpis.perdidosQtd > 0 ? `
             <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.perdidosValor)}</p>
@@ -624,10 +743,13 @@ const handler = async (req: Request): Promise<Response> => {
     const metaMensal = metaData?.monthly_revenue_goal || null;
     console.log('🎯 Meta mensal:', metaMensal);
 
+    // Calcular histórico de faturamento
+    const historico = calcularHistoricoFaturamento(allData, month, year);
+
     // Gerar HTML do relatório
     const monthName = MONTH_NAMES[month - 1];
     const periodo = `${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`;
-    const html = generateReportHTML(kpis, monthName, year, metaMensal, periodo, ranking);
+    const html = generateReportHTML(kpis, monthName, year, metaMensal, periodo, ranking, historico);
 
     return new Response(
       JSON.stringify({
@@ -636,6 +758,7 @@ const handler = async (req: Request): Promise<Response> => {
         kpis,
         metaMensal,
         ranking,
+        historico,
         period: {
           monthName,
           year,

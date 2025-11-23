@@ -9,8 +9,7 @@ interface OperacaoData {
   numero_op: string;
   situacao_op: string;
   materiais: MaterialData[];
-  peso_op: number;
-  unidade_peso: string; // Unidade predominante dos materiais
+  pesos_por_unidade: Record<string, number>; // Peso por unidade (ex: { "KG": 1000, "M": 500 })
 }
 
 interface ProducaoData {
@@ -21,10 +20,9 @@ interface ProducaoData {
   status: string;
   dias_atraso?: number;
   ops: OperacaoData[];
-  peso_total: number; // calculated field
-  peso_finalizado: number; // weight of finalized OPs
+  pesos_por_unidade: Record<string, number>; // Peso total por unidade
+  pesos_finalizados_por_unidade: Record<string, number>; // Peso finalizado por unidade
   percentual_concluido: number; // calculated field
-  unidade_peso: string; // Unidade predominante dos materiais
 }
 
 // Parse CSV text into 2D array
@@ -187,14 +185,12 @@ const mockProducaoData: ProducaoData[] = [
             numero_op: '12345'
           }
         ],
-        peso_op: 500,
-        unidade_peso: 'KG'
+        pesos_por_unidade: { 'KG': 500 }
       }
     ],
-    peso_total: 500,
-    peso_finalizado: 0,
-    percentual_concluido: 0,
-    unidade_peso: 'KG'
+    pesos_por_unidade: { 'KG': 500 },
+    pesos_finalizados_por_unidade: {},
+    percentual_concluido: 0
   },
   {
     numero_pedido: '001235',
@@ -215,14 +211,12 @@ const mockProducaoData: ProducaoData[] = [
             numero_op: '12346'
           }
         ],
-        peso_op: 250,
-        unidade_peso: 'KG'
+        pesos_por_unidade: { 'KG': 250 }
       }
     ],
-    peso_total: 250,
-    peso_finalizado: 250,
-    percentual_concluido: 100,
-    unidade_peso: 'KG'
+    pesos_por_unidade: { 'KG': 250 },
+    pesos_finalizados_por_unidade: { 'KG': 250 },
+    percentual_concluido: 100
   },
   {
     numero_pedido: '001236',
@@ -243,14 +237,12 @@ const mockProducaoData: ProducaoData[] = [
             numero_op: '12347'
           }
         ],
-        peso_op: 800,
-        unidade_peso: 'KG'
+        pesos_por_unidade: { 'KG': 800 }
       }
     ],
-    peso_total: 800,
-    peso_finalizado: 0,
-    percentual_concluido: 0,
-    unidade_peso: 'KG'
+    pesos_por_unidade: { 'KG': 800 },
+    pesos_finalizados_por_unidade: {},
+    percentual_concluido: 0
   }
 ];
 
@@ -441,15 +433,19 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
           numero_op: numeroOp || 'SEM OP',
           situacao_op: situacaoOp,
           materiais: [],
-          peso_op: 0,
-          unidade_peso: unidadeNormalizada
+          pesos_por_unidade: {}
         });
       }
       
       // Add material to the OP
       const opData = pedidoData.ops.get(opKey)!;
       opData.materiais.push(materialData);
-      opData.peso_op += qtdVenda; // Soma na unidade original
+      
+      // Acumular peso por unidade
+      if (!opData.pesos_por_unidade[unidadeNormalizada]) {
+        opData.pesos_por_unidade[unidadeNormalizada] = 0;
+      }
+      opData.pesos_por_unidade[unidadeNormalizada] += qtdVenda;
     }
     
     // Convert map to array and calculate totals
@@ -457,25 +453,32 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       // Convert ops map to array
       const ops = Array.from(pedidoData.ops.values());
       
-      // Determinar unidade predominante do pedido (a mais comum)
-      const unidadeContagem = ops.reduce((acc, op) => {
-        acc[op.unidade_peso] = (acc[op.unidade_peso] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      // Calcular pesos totais por unidade
+      const pesos_por_unidade: Record<string, number> = {};
+      const pesos_finalizados_por_unidade: Record<string, number> = {};
       
-      const unidade_predominante = Object.entries(unidadeContagem)
-        .sort(([, a], [, b]) => b - a)[0]?.[0] || 'KG';
+      for (const op of ops) {
+        const isFinalized = normalizeStatus(op.situacao_op).includes('FINALIZADA');
+        
+        for (const [unidade, peso] of Object.entries(op.pesos_por_unidade)) {
+          if (!pesos_por_unidade[unidade]) {
+            pesos_por_unidade[unidade] = 0;
+          }
+          pesos_por_unidade[unidade] += peso;
+          
+          if (isFinalized) {
+            if (!pesos_finalizados_por_unidade[unidade]) {
+              pesos_finalizados_por_unidade[unidade] = 0;
+            }
+            pesos_finalizados_por_unidade[unidade] += peso;
+          }
+        }
+      }
       
-      // Calculate totals (soma direta das quantidades nas unidades originais)
-      const peso_total = ops.reduce((sum, op) => sum + op.peso_op, 0);
-      
-      // Calculate weight of finalized OPs
-      const peso_finalizado = ops
-        .filter(op => normalizeStatus(op.situacao_op).includes('FINALIZADA'))
-        .reduce((sum, op) => sum + op.peso_op, 0);
-      
-      // Calculate percentage based on weight
-      const percentual_concluido = peso_total > 0 ? Math.round((peso_finalizado / peso_total) * 100) : 0;
+      // Calcular percentual baseado na primeira unidade (ou média ponderada)
+      const pesoTotalGeral = Object.values(pesos_por_unidade).reduce((sum, p) => sum + p, 0);
+      const pesoFinalizadoGeral = Object.values(pesos_finalizados_por_unidade).reduce((sum, p) => sum + p, 0);
+      const percentual_concluido = pesoTotalGeral > 0 ? Math.round((pesoFinalizadoGeral / pesoTotalGeral) * 100) : 0;
       
       // Calculate order status based on all OPs
       const status = calculateOrderStatus(pedidoData.prazo_pcp, ops);
@@ -489,10 +492,9 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         status,
         dias_atraso: diasAtraso,
         ops,
-        peso_total,
-        peso_finalizado,
-        percentual_concluido,
-        unidade_peso: unidade_predominante
+        pesos_por_unidade,
+        pesos_finalizados_por_unidade,
+        percentual_concluido
       });
     }
     

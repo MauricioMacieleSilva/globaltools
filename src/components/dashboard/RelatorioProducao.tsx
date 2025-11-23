@@ -214,7 +214,14 @@ export const RelatorioProducao = forwardRef<HTMLDivElement, RelatorioProducaoPro
                       {pedido.cli_nomef}
                     </td>
                     <td style={{ padding: '3px 6px', textAlign: 'right', fontSize: '9px', fontWeight: 'bold' }}>
-                      {formatWeight(pedido.peso_total)}
+                      {Object.entries(pedido.pesos_por_unidade)
+                        .map(([unidade, peso]) => 
+                          `${peso.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 1
+                          })}${unidade}`
+                        )
+                        .join(' / ')}
                     </td>
                     <td style={{ padding: '3px 6px', textAlign: 'center', fontSize: '9px' }}>
                       {formatDate(pedido.prazo_pcp)}

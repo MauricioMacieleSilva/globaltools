@@ -112,38 +112,48 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
     return a.numero_pedido.localeCompare(b.numero_pedido);
   });
 
-  // Calculate KPIs
+  // Calculate KPIs - usando apenas KG para somas
+  const getTotalWeight = (item: ProducaoData) => {
+    return Object.entries(item.pesos_por_unidade).reduce((sum, [unidade, peso]) => {
+      // Converter tudo para KG para cálculos de KPI
+      if (unidade === 'T') return sum + (peso * 1000);
+      if (unidade === 'KG') return sum + peso;
+      // M não entra no cálculo de peso total
+      return sum;
+    }, 0);
+  };
+  
   const totalPedidos = filteredData.length;
-  const quantidadeTotal = filteredData.reduce((sum, item) => sum + item.peso_total, 0);
+  const quantidadeTotal = filteredData.reduce((sum, item) => sum + getTotalWeight(item), 0);
   
   const finalizadoItems = filteredData.filter(item => item.status === 'FINALIZADO');
   const finalizado = {
     count: finalizadoItems.length,
-    peso: finalizadoItems.reduce((sum, item) => sum + item.peso_total, 0)
+    peso: finalizadoItems.reduce((sum, item) => sum + getTotalWeight(item), 0)
   };
 
   const parcialmenteFinalizadoItems = filteredData.filter(item => item.status === 'PARCIALMENTE_FINALIZADO');
   const parcialmenteFinalizado = {
     count: parcialmenteFinalizadoItems.length,
-    peso: parcialmenteFinalizadoItems.reduce((sum, item) => sum + item.peso_total, 0)
+    peso: parcialmenteFinalizadoItems.reduce((sum, item) => sum + getTotalWeight(item), 0)
   };
   
   const noPrazoItems = filteredData.filter(item => item.status === 'NO_PRAZO');
   const noPrazo = {
     count: noPrazoItems.length,
-    peso: noPrazoItems.reduce((sum, item) => sum + item.peso_total, 0)
+    peso: noPrazoItems.reduce((sum, item) => sum + getTotalWeight(item), 0)
   };
 
   const atrasadosItems = filteredData.filter(item => item.status === 'ATRASO');
   const atrasados = {
     count: atrasadosItems.length,
-    peso: atrasadosItems.reduce((sum, item) => sum + item.peso_total, 0)
+    peso: atrasadosItems.reduce((sum, item) => sum + getTotalWeight(item), 0)
   };
   
   const programarItems = filteredData.filter(item => item.status === 'PROGRAMAR');
   const programar = {
     count: programarItems.length,
-    peso: programarItems.reduce((sum, item) => sum + item.peso_total, 0)
+    peso: programarItems.reduce((sum, item) => sum + getTotalWeight(item), 0)
   };
 
   const value: ProducaoContextType = {

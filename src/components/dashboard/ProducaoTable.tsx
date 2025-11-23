@@ -18,7 +18,7 @@ import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ProducaoTableMobile } from './ProducaoTableMobile';
 
-type SortField = 'numero_pedido' | 'cli_nomef' | 'peso_total' | 'prazo_pcp' | 'status' | 'dias_atraso' | 'percentual_concluido';
+type SortField = 'numero_pedido' | 'cli_nomef' | 'prazo_pcp' | 'status' | 'dias_atraso' | 'percentual_concluido';
 type SortOrder = 'asc' | 'desc';
 
 export function ProducaoTable() {
@@ -142,10 +142,6 @@ export function ProducaoTable() {
         case 'cli_nomef':
           aValue = a.cli_nomef;
           bValue = b.cli_nomef;
-          break;
-        case 'peso_total':
-          aValue = a.peso_total;
-          bValue = b.peso_total;
           break;
         case 'prazo_pcp':
           aValue = new Date(a.prazo_pcp);
@@ -396,10 +392,7 @@ export function ProducaoTable() {
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('peso_total')} className="h-auto p-0 font-semibold">
-                    Peso
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
+                  Peso
                 </TableHead>
                 <TableHead>
                   <Button variant="ghost" onClick={() => handleSort('percentual_concluido')} className="h-auto p-0 font-semibold">
@@ -461,10 +454,14 @@ export function ProducaoTable() {
                         {item.cli_nomef}
                       </TableCell>
                       <TableCell>
-                        {item.peso_total.toLocaleString('pt-BR', { 
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 1
-                        })} {item.unidade_peso}
+                        {Object.entries(item.pesos_por_unidade)
+                          .map(([unidade, peso]) => 
+                            `${peso.toLocaleString('pt-BR', { 
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 1
+                            })}${unidade}`
+                          )
+                          .join(' / ')}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -550,10 +547,14 @@ export function ProducaoTable() {
                                     <span className="font-medium">OP {op.numero_op}</span>
                                     {getMaterialStatusBadge(op.situacao_op)}
                                     <span className="text-sm text-muted-foreground">
-                                      Peso: {op.peso_op.toLocaleString('pt-BR', {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 1
-                                      })} {op.unidade_peso}
+                                      Peso: {Object.entries(op.pesos_por_unidade)
+                                        .map(([unidade, peso]) => 
+                                          `${peso.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 1
+                                          })}${unidade}`
+                                        )
+                                        .join(' / ')}
                                     </span>
                                   </div>
                                 </div>

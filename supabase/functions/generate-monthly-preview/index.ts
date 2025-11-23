@@ -82,121 +82,133 @@ async function loadComercialDataFromSheet(startDate: Date, endDate: Date): Promi
   console.log(`📊 Carregando dados para preview...`);
   console.log(`📅 Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
   
-  const response = await fetch(url);
+  // Adicionar timeout agressivo
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
   
-  if (!response.ok) {
-    throw new Error(`Erro ao buscar planilha: ${response.status}`);
-  }
-  
-  const csvText = await response.text();
-  const lines = csvText.split('\n');
-  
-  if (lines.length < 2) {
-    console.log("⚠️ Planilha vazia ou sem dados");
-    return [];
-  }
-  
-  // Parse header
-  const headerLine = lines[0];
-  const headerValues: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < headerLine.length; i++) {
-    const char = headerLine[i];
-    const nextChar = headerLine[i + 1];
+  try {
+    const response = await fetch(url, { signal: controller.signal });
     
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      headerValues.push(current.trim());
-      current = '';
-    } else {
-      current += char;
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar planilha: ${response.status}`);
     }
-  }
-  headerValues.push(current.trim());
-  
-  const data: ComercialData[] = [];
-  let processedRows = 0;
-  let validRows = 0;
-  const maxRows = 50000;
-  
-  for (let i = 1; i < lines.length && processedRows < maxRows; i++) {
-    const line = lines[i];
-    if (!line || line.trim().length === 0) continue;
     
-    processedRows++;
+    const csvText = await response.text();
+    const lines = csvText.split('\n');
     
-    const values: string[] = [];
-    current = '';
-    inQuotes = false;
+    if (lines.length < 2) {
+      console.log("⚠️ Planilha vazia ou sem dados");
+      return [];
+    }
     
-    for (let j = 0; j < line.length; j++) {
-      const char = line[j];
-      const nextChar = line[j + 1];
+    // Parse header apenas
+    const headerLine = lines[0];
+    const headerValues: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < headerLine.length; i++) {
+      const char = headerLine[i];
+      const nextChar = headerLine[i + 1];
       
       if (char === '"') {
         if (inQuotes && nextChar === '"') {
           current += '"';
-          j++;
+          i++;
         } else {
           inQuotes = !inQuotes;
         }
       } else if (char === ',' && !inQuotes) {
-        values.push(current.trim());
+        headerValues.push(current.trim());
         current = '';
       } else {
         current += char;
       }
     }
-    values.push(current.trim());
+    headerValues.push(current.trim());
     
-    if (values.length < headerValues.length) continue;
+    const data: ComercialData[] = [];
+    let processedRows = 0;
+    let validRows = 0;
+    const maxRows = 10000; // Limite muito mais baixo para preview
     
-    const item: any = {};
-    headerValues.forEach((header, idx) => {
-      item[header] = values[idx] || '';
-    });
-    
-    const valorStr = item['VALOR TOTAL'] || '';
-    const valorTotal = parseFloat(valorStr.replace(/[^\\d,-]/g, '').replace(',', '.') || '0');
-    
-    if (valorTotal <= 0) continue;
-    
-    const comercialItem: ComercialData = {
-      situacao: item['SITUAÇÃO'] || '',
-      valor_total: valorTotal,
-      data_emissao: item['DATA EMISSÃO'],
-      data_aprovacao: item['DATA APROVAÇÃO'],
-      data_pedido: item['DATA PEDIDO'],
-      data_perdido: item['DATA PERDIDO'],
-      vendedor: item['VENDEDOR'],
-      numero_orcamento: item['NÚMERO ORÇAMENTO'],
-      cliente: item['CLIENTE'],
-      temperatura: item['TEMPERATURA']
-    };
-    
-    const itemDate = getDateField(comercialItem);
-    if (!itemDate) continue;
-    
-    if (itemDate >= startDate && itemDate <= endDate) {
-      data.push(comercialItem);
-      validRows++;
+    // Processar apenas linhas necessárias
+    for (let i = 1; i < Math.min(lines.length, maxRows) && validRows < 500; i++) {
+      const line = lines[i];
+      if (!line || line.trim().length === 0) continue;
+      
+      processedRows++;
+      
+      const values: string[] = [];
+      current = '';
+      inQuotes = false;
+      
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        const nextChar = line[j + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            current += '"';
+            j++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+      
+      if (values.length < headerValues.length) continue;
+      
+      const item: any = {};
+      headerValues.forEach((header, idx) => {
+        item[header] = values[idx] || '';
+      });
+      
+      const valorStr = item['VALOR TOTAL'] || '';
+      const valorTotal = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.') || '0');
+      
+      if (valorTotal <= 0) continue;
+      
+      const comercialItem: ComercialData = {
+        situacao: item['SITUAÇÃO'] || '',
+        valor_total: valorTotal,
+        data_emissao: item['DATA EMISSÃO'],
+        data_aprovacao: item['DATA APROVAÇÃO'],
+        data_pedido: item['DATA PEDIDO'],
+        data_perdido: item['DATA PERDIDO'],
+        vendedor: item['VENDEDOR'],
+        numero_orcamento: item['NÚMERO ORÇAMENTO'],
+        cliente: item['CLIENTE'],
+        temperatura: item['TEMPERATURA']
+      };
+      
+      const itemDate = getDateField(comercialItem);
+      if (!itemDate) continue;
+      
+      if (itemDate >= startDate && itemDate <= endDate) {
+        data.push(comercialItem);
+        validRows++;
+      }
+      
+      // Early exit se encontramos dados suficientes
+      if (validRows >= 500) {
+        console.log(`✅ Preview: limite de 500 registros atingido (amostra)`);
+        break;
+      }
     }
     
-    if (processedRows % 5000 === 0) {
-      console.log(`📊 Processadas ${processedRows} linhas, ${validRows} válidas no período`);
-    }
+    console.log(`✅ Preview: ${data.length} registros encontrados`);
+    return data;
+    
+  } finally {
+    clearTimeout(timeoutId);
   }
-  
-  console.log(`✅ Preview: ${data.length} registros encontrados`);
-  return data;
 }
 
 function calculateKPIs(data: ComercialData[]): EmailKPIs {

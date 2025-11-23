@@ -177,8 +177,13 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   console.log('📊 Buscando dados da planilha para preview (últimos 60 dias)...');
   console.log('📋 URL:', CSV_URL);
 
+  // Adicionar timeout agressivo
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
+
   try {
     const response = await fetch(CSV_URL, {
+      signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0)',
       },
@@ -191,28 +196,60 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
     }
 
     const csvText = await response.text();
-    const rows = parseCSV(csvText);
+    const lines = csvText.split('\n');
 
-    console.log(`✅ ${rows.length} linhas parseadas`);
+    console.log(`✅ ${lines.length} linhas recebidas`);
 
-    if (rows.length < 2) {
+    if (lines.length < 2) {
       console.warn('⚠️ Planilha vazia ou só com header');
       return [];
     }
 
-    // Para preview, filtrar apenas últimos 60 dias para economizar memória
+    // Para preview, filtrar apenas últimos 60 dias
     const sessentaDiasAtras = new Date();
     sessentaDiasAtras.setDate(sessentaDiasAtras.getDate() - 60);
 
     const comercialData: ComercialData[] = [];
     let processados = 0;
-    const maxRows = 10000; // Limitar processamento para preview
+    let validos = 0;
+    const maxRows = 5000; // Limite menor para preview
+    const maxValid = 300; // Parar quando tiver dados suficientes
 
-    for (let i = 1; i < rows.length && processados < maxRows; i++) {
-      const row = rows[i];
+    // Processar linha por linha sem parseCSV completo
+    for (let i = 1; i < Math.min(lines.length, maxRows) && validos < maxValid; i++) {
+      const line = lines[i];
+      if (!line || line.trim().length === 0) continue;
+      
+      processados++;
+
+      // Parse simples da linha
+      const row: string[] = [];
+      let currentField = '';
+      let insideQuotes = false;
+
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        const nextChar = line[j + 1];
+
+        if (char === '"') {
+          if (insideQuotes && nextChar === '"') {
+            currentField += '"';
+            j++;
+          } else {
+            insideQuotes = !insideQuotes;
+          }
+        } else if (char === ',' && !insideQuotes) {
+          row.push(currentField);
+          currentField = '';
+        } else {
+          currentField += char;
+        }
+      }
+      row.push(currentField);
+
       if (row.length <= 30 || !row[3]) continue;
 
-      // Parse e filtra por data logo no início para economizar memória
+      // Parse e filtra por data logo no início
       const dataEmissao = row[4] || '';
       const dataInicio = row[33] || '';
       const dataPerdido = row[35] || '';
@@ -222,7 +259,7 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
       if (!dataRelevante && dataEmissao) dataRelevante = parseDate(dataEmissao);
       if (!dataRelevante && dataPerdido) dataRelevante = parseDate(dataPerdido);
       
-      // Pula se a data for muito antiga (economiza memória)
+      // Pula se a data for muito antiga
       if (!dataRelevante || dataRelevante < sessentaDiasAtras) continue;
 
       const item: ComercialData = {
@@ -254,7 +291,12 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
       if (nomeFantasia.includes('GLOBAL AÇO')) continue;
 
       comercialData.push(item);
-      processados++;
+      validos++;
+      
+      // Log de progresso
+      if (processados % 1000 === 0) {
+        console.log(`📊 Processadas ${processados} linhas, ${validos} válidas`);
+      }
     }
 
     console.log(`✅ ${comercialData.length} registros carregados (últimos 60 dias, máx ${maxRows} linhas)`);
@@ -262,6 +304,8 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   } catch (error) {
     console.error('❌ Erro ao buscar dados da planilha:', error);
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

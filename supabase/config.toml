@@ -2,3 +2,6 @@ project_id = "xhkdwfpnmjvmfbmokvct"
 
 [functions.generate-report-preview]
 verify_jwt = false
+
+[functions.generate-monthly-preview]
+verify_jwt = false

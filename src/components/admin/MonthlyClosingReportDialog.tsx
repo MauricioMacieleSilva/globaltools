@@ -31,14 +31,17 @@ interface MonthlyClosingReportDialogProps {
 export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingReportDialogProps) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<string>("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
   
   // Definir ano padrão baseado no mês atual
   const now = new Date();
   const currentMonth = now.getMonth() + 1; // 1-12
   const currentYear = now.getFullYear();
   
-  // Se mês não selecionado ainda, usar ano do mês anterior como padrão
-  const [year, setYear] = useState<string>(currentYear.toString());
+  // Ano padrão: usar ano anterior se estamos em janeiro, senão ano atual
+  const defaultYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+  const [year, setYear] = useState<string>(defaultYear.toString());
   
   const [customEmails, setCustomEmails] = useState("");
   const [useRegistered, setUseRegistered] = useState(true);
@@ -61,6 +64,62 @@ export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingRepor
     const yearNum = parseInt(year);
     const lastDay = getLastDayOfMonth(yearNum, monthNum);
     return `01/${month.padStart(2, '0')}/${year} a ${lastDay}/${month.padStart(2, '0')}/${year}`;
+  };
+
+  const handlePreview = async () => {
+    if (!month || !year) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Selecione o mês e ano",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar que não é um mês futuro
+    const selectedDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    if (selectedDate >= currentMonthStart) {
+      toast({
+        title: "Data inválida",
+        description: "Selecione um mês anterior ao mês atual. O mês ainda não foi concluído.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-monthly-preview', {
+        body: {
+          month: parseInt(month),
+          year: parseInt(year)
+        }
+      });
+
+      if (error) throw error;
+
+      setPreviewHtml(data.html);
+      setShowPreview(true);
+      
+      toast({
+        title: "Prévia gerada!",
+        description: `Exibindo prévia do relatório de ${getMonthName(month)}/${year}`,
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao gerar prévia:', error);
+      toast({
+        title: "Erro ao gerar prévia",
+        description: error.message || "Erro inesperado",
+        variant: "destructive"
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -256,9 +315,13 @@ export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingRepor
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={sending}>
             Cancelar
+          </Button>
+          <Button variant="secondary" onClick={handlePreview} disabled={sending || !month || !year} className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Visualizar Prévia
           </Button>
           <Button onClick={handleSubmit} disabled={sending || !month || !year} className="gap-2">
             {sending ? (
@@ -274,6 +337,23 @@ export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingRepor
             )}
           </Button>
         </DialogFooter>
+        
+        {showPreview && (
+          <Dialog open={showPreview} onOpenChange={setShowPreview}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Prévia do Relatório - {getMonthName(month)}/{year}</DialogTitle>
+                <DialogDescription>
+                  Esta é uma visualização do email que será enviado
+                </DialogDescription>
+              </DialogHeader>
+              <div 
+                className="border rounded-lg p-4 bg-muted/50"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Search, ArrowUpDown, ChevronDown, ChevronRight, Calendar, Save, Check } from 'lucide-react';
+import { Search, ArrowUpDown, ChevronDown, ChevronRight, Calendar, Save, Check, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useProducao } from '@/context/ProducaoContext';
 import { MaterialData, OperacaoData } from '@/services/producaoService';
@@ -17,13 +17,16 @@ import { useDebounceCallback } from '@/hooks/useDebounceCallback';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ProducaoTableMobile } from './ProducaoTableMobile';
+import { useHiddenProductionOrders } from '@/hooks/useHiddenProductionOrders';
+import { HideOrderDialog } from './HideOrderDialog';
 
 type SortField = 'numero_pedido' | 'cli_nomef' | 'prazo_pcp' | 'status' | 'dias_atraso' | 'percentual_concluido';
 type SortOrder = 'asc' | 'desc';
 
 export function ProducaoTable() {
   const { filteredData, loading, selectedCliente, setSelectedCliente, selectedStatus, setSelectedStatus, productionOrders, refreshProductionOrders } = useProducao();
-  const { checkPageAccess } = useUserPermissions();
+  const { checkPageAccess, isAdmin } = useUserPermissions();
+  const { hideOrder } = useHiddenProductionOrders();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('dias_atraso');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -32,6 +35,8 @@ export function ProducaoTable() {
   const [situacoes, setSituacoes] = useState<Record<string, string>>({});
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [savedStates, setSavedStates] = useState<Record<string, boolean>>({});
+  const [hideDialogOpen, setHideDialogOpen] = useState(false);
+  const [orderToHide, setOrderToHide] = useState<string | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -180,6 +185,18 @@ export function ProducaoTable() {
     }
   };
 
+  const handleHideOrder = (numeroPedido: string) => {
+    setOrderToHide(numeroPedido);
+    setHideDialogOpen(true);
+  };
+
+  const confirmHideOrder = async (motivo?: string) => {
+    if (orderToHide) {
+      await hideOrder(orderToHide, motivo);
+      setOrderToHide(null);
+    }
+  };
+
   const toggleRowExpansion = (pedidoId: string) => {
     const newExpanded = new Set(expandedRows);
     if (newExpanded.has(pedidoId)) {
@@ -311,6 +328,7 @@ export function ProducaoTable() {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Pedidos em Produção</CardTitle>
@@ -370,9 +388,11 @@ export function ProducaoTable() {
             canEdit={canEdit}
             formatDate={formatDate}
             formatWeight={formatWeight}
-            getStatusBadge={getStatusBadge}
-            getMaterialStatusBadge={getMaterialStatusBadge}
-          />
+      getStatusBadge={getStatusBadge}
+      getMaterialStatusBadge={getMaterialStatusBadge}
+      isAdmin={isAdmin}
+      onHideOrder={handleHideOrder}
+    />
         ) : (
           <div className="rounded-md border overflow-x-auto">
             <Table>
@@ -424,6 +444,7 @@ export function ProducaoTable() {
                 <TableHead>
                   Situação
                 </TableHead>
+                {isAdmin && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -531,12 +552,24 @@ export function ProducaoTable() {
                           </span>
                         )}
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleHideOrder(item.numero_pedido)}
+                            title="Ocultar pedido"
+                          >
+                            <EyeOff className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
 
                     {/* Expanded content - show OPs details */}
                     {expandedRows.has(item.numero_pedido) && (
                       <TableRow>
-                        <TableCell colSpan={10}>
+                        <TableCell colSpan={isAdmin ? 11 : 10}>
                           <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                             <h4 className="font-semibold text-sm">Ordens de Produção:</h4>
                             
@@ -585,5 +618,15 @@ export function ProducaoTable() {
         )}
       </CardContent>
     </Card>
+    
+    {orderToHide && (
+      <HideOrderDialog
+        open={hideDialogOpen}
+        onOpenChange={setHideDialogOpen}
+        numeroPedido={orderToHide}
+        onConfirm={confirmHideOrder}
+      />
+    )}
+    </>
   );
 }

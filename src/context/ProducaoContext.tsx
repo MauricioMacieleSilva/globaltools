@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { fetchProducaoData, ProducaoData, MaterialData } from '@/services/producaoService';
 import { loadProductionOrders, ProductionOrderData } from '@/services/productionOrdersService';
+import { useHiddenProductionOrders } from '@/hooks/useHiddenProductionOrders';
 
 interface ProducaoContextType {
   data: ProducaoData[];
@@ -44,6 +45,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
   const [selectedCliente, setSelectedCliente] = useState<string>('todos');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
   const [productionOrders, setProductionOrders] = useState<Record<string, ProductionOrderData>>({});
+  const { hiddenOrders } = useHiddenProductionOrders();
 
   const fetchData = async () => {
     try {
@@ -77,6 +79,12 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
 
   // Apply filters and sort
   const filteredData = data.filter(item => {
+    // Filtrar pedidos ocultos
+    const hiddenOrderNumbers = new Set(hiddenOrders.map(o => o.numero_pedido));
+    if (hiddenOrderNumbers.has(item.numero_pedido)) {
+      return false;
+    }
+    
     if (selectedCliente !== 'todos' && item.cli_nomef !== selectedCliente) {
       return false;
     }

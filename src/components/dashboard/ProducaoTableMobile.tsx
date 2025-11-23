@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { ChevronDown, ChevronRight, Save, Check } from 'lucide-react';
+import { ChevronDown, ChevronRight, Save, Check, EyeOff } from 'lucide-react';
 import { MobileTableCard } from '@/components/ui/mobile-table-card';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,6 +24,8 @@ interface ProducaoTableMobileProps {
   formatWeight: (weight: number) => string;
   getStatusBadge: (status: string) => React.ReactNode;
   getMaterialStatusBadge: (status: string) => React.ReactNode;
+  isAdmin: boolean;
+  onHideOrder: (numeroPedido: string) => void;
 }
 
 export function ProducaoTableMobile({
@@ -40,7 +42,9 @@ export function ProducaoTableMobile({
   formatDate,
   formatWeight,
   getStatusBadge,
-  getMaterialStatusBadge
+  getMaterialStatusBadge,
+  isAdmin,
+  onHideOrder
 }: ProducaoTableMobileProps) {
   return (
     <div className="space-y-3">
@@ -142,27 +146,42 @@ export function ProducaoTableMobile({
               }
             ]}
             actions={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleRowExpansion(item.numero_pedido);
-                }}
-                className="w-full"
-              >
-                {expandedRows.has(item.numero_pedido) ? (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                    Ocultar OPs
-                  </>
-                ) : (
-                  <>
-                    <ChevronRight className="h-4 w-4 mr-2" />
-                    Ver OPs ({item.ops.length})
-                  </>
+              <div className="flex gap-2 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleRowExpansion(item.numero_pedido);
+                  }}
+                  className="flex-1"
+                >
+                  {expandedRows.has(item.numero_pedido) ? (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                      Ocultar OPs
+                    </>
+                  ) : (
+                    <>
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                      Ver OPs ({item.ops.length})
+                    </>
+                  )}
+                </Button>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onHideOrder(item.numero_pedido);
+                    }}
+                    title="Ocultar pedido"
+                  >
+                    <EyeOff className="h-4 w-4" />
+                  </Button>
                 )}
-              </Button>
+              </div>
             }
           />
 

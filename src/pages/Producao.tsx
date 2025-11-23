@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ProducaoKPIs } from '@/components/dashboard/ProducaoKPIs';
 import { ProducaoTable } from '@/components/dashboard/ProducaoTable';
@@ -6,13 +6,17 @@ import { RelatorioProducao } from '@/components/dashboard/RelatorioProducao';
 import { Button } from '@/components/ui/button';
 import { generatePDFFromElement } from '@/lib/pdf-utils';
 import { useToast } from '@/hooks/use-toast';
-import { FileDown } from 'lucide-react';
+import { FileDown, EyeOff } from 'lucide-react';
 import { useProducao } from '@/context/ProducaoContext';
+import { HiddenOrdersDialog } from '@/components/dashboard/HiddenOrdersDialog';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 
 export default function Producao() {
   const relatorioRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { filteredData, totalPedidos } = useProducao();
+  const { isAdmin } = useUserPermissions();
+  const [hiddenDialogOpen, setHiddenDialogOpen] = useState(false);
   
 
   // Debug: força refresh dos dados ao carregar a página
@@ -67,14 +71,26 @@ export default function Producao() {
     <ErrorBoundary>
       <div className="min-h-screen w-full bg-background">
         <div className="container mx-auto p-2 space-y-4">
-          {/* Header com botão de exportar */}
+          {/* Header com botões de exportar e pedidos ocultos */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">Produção</h1>
-            <Button onClick={exportarPDF} className="gap-2 w-full sm:w-auto">
-              <FileDown className="h-4 w-4" />
-              <span className="hidden sm:inline">Exportar Relatório PDF</span>
-              <span className="sm:hidden">Exportar PDF</span>
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {isAdmin && (
+                <Button
+                  onClick={() => setHiddenDialogOpen(true)}
+                  variant="outline"
+                  className="gap-2 flex-1 sm:flex-none"
+                >
+                  <EyeOff className="h-4 w-4" />
+                  <span className="hidden sm:inline">Pedidos Ocultos</span>
+                </Button>
+              )}
+              <Button onClick={exportarPDF} className="gap-2 flex-1 sm:flex-none">
+                <FileDown className="h-4 w-4" />
+                <span className="hidden sm:inline">Exportar Relatório PDF</span>
+                <span className="sm:hidden">Exportar PDF</span>
+              </Button>
+            </div>
           </div>
 
           {/* KPIs Produção */}
@@ -92,6 +108,14 @@ export default function Producao() {
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <RelatorioProducao ref={relatorioRef} />
         </div>
+        
+        {/* Diálogo de pedidos ocultos */}
+        {isAdmin && (
+          <HiddenOrdersDialog
+            open={hiddenDialogOpen}
+            onOpenChange={setHiddenDialogOpen}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );

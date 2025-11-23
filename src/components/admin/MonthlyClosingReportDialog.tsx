@@ -74,7 +74,7 @@ export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingRepor
     }
 
     // Validar que não é um mês futuro
-    const selectedDate = new Date(parseInt(year), parseInt(month), 1); // Primeiro dia do mês selecionado
+    const selectedDate = new Date(parseInt(year), parseInt(month) - 1, 1); // Primeiro dia do mês selecionado
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1); // Primeiro dia do mês atual
     

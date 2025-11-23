@@ -468,23 +468,12 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         continue;
       }
       
-      // Parse quantity from QTD_VENDA column
-      const qtdVenda = parseFloat(qtdVendaStr.replace(/\./g, '').replace(',', '.')) || 0;
-
-      // Debug specific order after parsing
-      if (pedido === '11084' || pedido === '11098' || pedido === '11156') {
-        console.log(`DEBUG ${pedido} OP ${numeroOp} PARSE:`, {
-          pedido,
-          numeroOp,
-          descricaomat,
-          qtdVendaRaw: qtdVendaStr,
-          qtdVenda,
-          un,
-          situacao,
-          situacaoOp,
-          prazoPcpStr
-        });
-      }
+      // Parse quantity - detect format and handle correctly
+      // If contains comma, it's Brazilian format (1.234,56) - remove dots, replace comma with dot
+      // If no comma, it's American format (1234.56) - use as is
+      const qtdVenda = qtdVendaStr.includes(',') 
+        ? parseFloat(qtdVendaStr.replace(/\./g, '').replace(',', '.')) || 0
+        : parseFloat(qtdVendaStr) || 0;
       
       // Parse deadline date
       let prazoPcp = '';
@@ -535,18 +524,6 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       
       // Convert quantity to kg for standardization
       const qtdKg = convertToKg(qtdVenda, un, descricaomat);
-      
-      // Debug weight calculation for specific orders
-      if (pedido === '11084' || pedido === '11098' || pedido === '11156') {
-        console.log(`DEBUG ${pedido} OP ${numeroOp} WEIGHT:`, {
-          descricaomat,
-          qtdVendaOriginal: qtdVenda,
-          un,
-          qtdKgCalculated: qtdKg,
-          ratio: qtdKg / qtdVenda,
-          conversionFunction: un === 'KG' ? 'direct' : (un === 'M' ? 'meters_to_kg' : (un === 'T' ? 'tons_to_kg' : 'unknown'))
-        });
-      }
       
       // Create material data
       const materialData: MaterialData = {

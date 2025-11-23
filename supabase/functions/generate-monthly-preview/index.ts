@@ -9,236 +9,341 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Mesmos IDs da planilha
+const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
+const GID = "2063157767";
+
+// Interface IGUAL ao send-monthly-closing
 interface ComercialData {
+  numeropedido: string;
   situacao: string;
-  valor_total: number;
-  data_emissao?: string;
-  data_aprovacao?: string;
-  data_pedido?: string;
-  data_perdido?: string;
-  vendedor?: string;
-  numero_orcamento?: string;
-  cliente?: string;
-  temperatura?: string;
+  data_emissao: string;
+  data_inicio: string;
+  data_perdido: string;
+  data_pedido_pronto: string;
+  valor: number;
+  peso: number;
+  classe: string;
+  cli_nomefantasia: string;
+  cliente: string;
+  codigocliente: string;
+  uf: string;
+  vendedor: string;
+  faturamento_tipo: number;
+  produto: string;
+  obs: string;
+  perdido_motivo: string;
 }
 
 interface EmailKPIs {
-  totalOrcamentos: number;
-  valorTotalOrcamentos: number;
-  ticketMedio: number;
-  aprovados: number;
-  valorAprovados: number;
-  taxaConversao: number;
-  totalPerdidos: number;
-  valorPerdidos: number;
-  taxaPerda: number;
+  faturamento: number;
+  orcamentosValor: number;
+  orcamentosQtd: number;
+  pedidosNaoFaturados: number;
+  pedidosNaoFaturadosValor: number;
+  perdidosValor: number;
+  perdidosQtd: number;
+  diasUteis: number;
+  mediaDiaria: number;
 }
 
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
+interface VendedorPerformance {
+  nome: string;
+  faturamento: number;
+  numPedidos: number;
+  ticketMedio: number;
+  percentualTotal: number;
+}
+
+// Parse CSV
+function parseCSV(csvText: string): string[][] {
+  const lines = csvText.split('\n');
+  const result: string[][] = [];
   
-  const formats = [
-    /^(\d{2})\/(\d{2})\/(\d{4})$/,
-    /^(\d{4})-(\d{2})-(\d{2})/,
-    /^(\d{2})-(\d{2})-(\d{4})$/
-  ];
-  
-  for (const format of formats) {
-    const match = dateStr.match(format);
-    if (match) {
-      if (format.source.startsWith('^(\d{4})')) {
-        return new Date(`${match[1]}-${match[2]}-${match[3]}`);
+  for (const line of lines) {
+    const values: string[] = [];
+    let currentValue = '';
+    let insideQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        insideQuotes = !insideQuotes;
+      } else if (char === ',' && !insideQuotes) {
+        values.push(currentValue.trim());
+        currentValue = '';
       } else {
-        return new Date(`${match[3]}-${match[2]}-${match[1]}`);
+        currentValue += char;
       }
     }
+    
+    values.push(currentValue.trim());
+    result.push(values);
   }
   
-  const parsed = new Date(dateStr);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  return result;
 }
 
-function getDateField(item: ComercialData): Date | null {
-  const situacao = item.situacao?.toLowerCase() || '';
-  
-  if (situacao.includes('aprovado') && item.data_aprovacao) {
-    return parseDate(item.data_aprovacao);
+// Parse de data
+function parseDate(dateString: string): Date | null {
+  if (!dateString || dateString === 'Invalid Date' || dateString === '') {
+    return null;
   }
-  if (situacao.includes('perdido') && item.data_perdido) {
-    return parseDate(item.data_perdido);
+
+  const brFormatMatch = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brFormatMatch) {
+    const [, day, month, year] = brFormatMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
   }
-  if (item.data_emissao) {
-    return parseDate(item.data_emissao);
+
+  const brDashMatch = dateString.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (brDashMatch) {
+    const [, day, month, year] = brDashMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
   }
-  
+
+  const isoFormatMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoFormatMatch) {
+    const [, year, month, day] = isoFormatMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
+  }
+
+  try {
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime()) && date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+      return date;
+    }
+  } catch {
+    return null;
+  }
+
   return null;
 }
 
-async function loadComercialDataFromSheet(startDate: Date, endDate: Date): Promise<ComercialData[]> {
-  const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
-  const GID = "2063157767";
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+function getDateField(item: ComercialData): Date | null {
+  if (item.situacao === 'Emitida' || item.situacao === 'Faturado') {
+    return parseDate(item.data_emissao || '');
+  }
+  return parseDate(item.data_inicio || '');
+}
+
+function calcularDiasUteis(startDate: Date, endDate: Date): number {
+  let diasUteis = 0;
+  const current = new Date(startDate);
   
-  console.log(`📊 Carregando dados para preview...`);
-  console.log(`📅 Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
+  while (current <= endDate) {
+    const diaSemana = current.getDay();
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasUteis++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
   
-  // Adicionar timeout agressivo
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
+  return diasUteis;
+}
+
+async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+  console.log('📊 Buscando dados da planilha (preview)...');
   
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(CSV_URL, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0)',
+      },
+    });
     
     if (!response.ok) {
-      throw new Error(`Erro ao buscar planilha: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const csvText = await response.text();
-    const lines = csvText.split('\n');
+    const rows = parseCSV(csvText);
     
-    if (lines.length < 2) {
-      console.log("⚠️ Planilha vazia ou sem dados");
+    console.log(`✅ ${rows.length} linhas parseadas`);
+    
+    if (rows.length < 2) {
+      console.warn('⚠️ Planilha vazia');
       return [];
     }
     
-    // Parse header apenas
-    const headerLine = lines[0];
-    const headerValues: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < headerLine.length; i++) {
-      const char = headerLine[i];
-      const nextChar = headerLine[i + 1];
-      
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
+    const comercialData: ComercialData[] = rows
+      .slice(1)
+      .filter((row: string[]) => row.length > 30 && row[3])
+      .map((row: string[]): ComercialData => {
+        return {
+          numeropedido: row[1] || '',
+          situacao: (row[3] || '').trim().replace(/\s+/g, ' '),
+          data_emissao: row[4] || '',
+          data_inicio: row[33] || '',
+          data_perdido: row[35] || '',
+          data_pedido_pronto: row[34] || '',
+          valor: parseFloat(row[14]?.replace(',', '.')) || 0,
+          peso: parseFloat(row[19]?.replace(',', '.')) || 0,
+          classe: (row[21] || '').trim().replace(/\s+/g, ' '),
+          cli_nomefantasia: row[29] || '',
+          cliente: row[29] || '',
+          codigocliente: row[28] || '',
+          uf: (row[30] || '').trim().replace(/\s+/g, ' '),
+          vendedor: (row[27] || 'Não informado').trim().replace(/\s+/g, ' '),
+          faturamento_tipo: parseInt(row[43]) || 0,
+          produto: row[9] || '',
+          obs: row[10] || '',
+          perdido_motivo: (row[46] || '').trim().replace(/\s+/g, ' '),
+        };
+      })
+      .filter((item: ComercialData) => {
+        if (!item.situacao || item.valor <= 0) return false;
+        const nomeFantasia = item.cli_nomefantasia?.toUpperCase() || '';
+        if (nomeFantasia.includes('GLOBAL AÇO')) {
+          return false;
         }
-      } else if (char === ',' && !inQuotes) {
-        headerValues.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    headerValues.push(current.trim());
-    
-    const data: ComercialData[] = [];
-    let processedRows = 0;
-    let validRows = 0;
-    const maxRows = 10000; // Limite muito mais baixo para preview
-    
-    // Processar apenas linhas necessárias
-    for (let i = 1; i < Math.min(lines.length, maxRows) && validRows < 500; i++) {
-      const line = lines[i];
-      if (!line || line.trim().length === 0) continue;
-      
-      processedRows++;
-      
-      const values: string[] = [];
-      current = '';
-      inQuotes = false;
-      
-      for (let j = 0; j < line.length; j++) {
-        const char = line[j];
-        const nextChar = line[j + 1];
-        
-        if (char === '"') {
-          if (inQuotes && nextChar === '"') {
-            current += '"';
-            j++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      values.push(current.trim());
-      
-      if (values.length < headerValues.length) continue;
-      
-      const item: any = {};
-      headerValues.forEach((header, idx) => {
-        item[header] = values[idx] || '';
+        return true;
       });
-      
-      const valorStr = item['VALOR TOTAL'] || '';
-      const valorTotal = parseFloat(valorStr.replace(/[^\d,-]/g, '').replace(',', '.') || '0');
-      
-      if (valorTotal <= 0) continue;
-      
-      const comercialItem: ComercialData = {
-        situacao: item['SITUAÇÃO'] || '',
-        valor_total: valorTotal,
-        data_emissao: item['DATA EMISSÃO'],
-        data_aprovacao: item['DATA APROVAÇÃO'],
-        data_pedido: item['DATA PEDIDO'],
-        data_perdido: item['DATA PERDIDO'],
-        vendedor: item['VENDEDOR'],
-        numero_orcamento: item['NÚMERO ORÇAMENTO'],
-        cliente: item['CLIENTE'],
-        temperatura: item['TEMPERATURA']
-      };
-      
-      const itemDate = getDateField(comercialItem);
-      if (!itemDate) continue;
-      
-      if (itemDate >= startDate && itemDate <= endDate) {
-        data.push(comercialItem);
-        validRows++;
-      }
-      
-      // Early exit se encontramos dados suficientes
-      if (validRows >= 500) {
-        console.log(`✅ Preview: limite de 500 registros atingido (amostra)`);
-        break;
-      }
-    }
     
-    console.log(`✅ Preview: ${data.length} registros encontrados`);
-    return data;
+    console.log(`✅ ${comercialData.length} registros carregados`);
+    return comercialData;
     
-  } finally {
-    clearTimeout(timeoutId);
+  } catch (error) {
+    console.error('❌ Erro ao buscar dados:', error);
+    throw error;
   }
 }
 
-function calculateKPIs(data: ComercialData[]): EmailKPIs {
-  const totalOrcamentos = data.length;
-  const valorTotalOrcamentos = data.reduce((sum, item) => sum + item.valor_total, 0);
-  const ticketMedio = totalOrcamentos > 0 ? valorTotalOrcamentos / totalOrcamentos : 0;
+function calculateKPIs(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date
+): EmailKPIs {
+  const filteredData = allData.filter(item => {
+    const date = getDateField(item);
+    return date && date >= startDate && date <= endDate;
+  });
   
-  const aprovados = data.filter(item => 
-    item.situacao?.toLowerCase().includes('aprovado')
+  console.log(`📋 Registros no período: ${filteredData.length}`);
+  
+  const faturados = filteredData.filter(item =>
+    (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+    item.faturamento_tipo === 1
   );
-  const valorAprovados = aprovados.reduce((sum, item) => sum + item.valor_total, 0);
-  const taxaConversao = totalOrcamentos > 0 ? (aprovados.length / totalOrcamentos) * 100 : 0;
+  const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
   
-  const perdidos = data.filter(item => 
-    item.situacao?.toLowerCase().includes('perdido')
+  const orcamentos = filteredData.filter(item => item.situacao === 'Orçamento');
+  const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
+  const orcamentosQtd = new Set(orcamentos.map(item => item.numeropedido).filter(Boolean)).size;
+  
+  const pedidosNaoFaturadosData = filteredData.filter(item =>
+    item.situacao === 'Pedido' && item.faturamento_tipo === 1
   );
-  const valorPerdidos = perdidos.reduce((sum, item) => sum + item.valor_total, 0);
-  const taxaPerda = totalOrcamentos > 0 ? (perdidos.length / totalOrcamentos) * 100 : 0;
+  const pedidosNaoFaturadosMap = new Map<string, ComercialData[]>();
+  pedidosNaoFaturadosData.forEach(p => {
+    if (!pedidosNaoFaturadosMap.has(p.numeropedido)) {
+      pedidosNaoFaturadosMap.set(p.numeropedido, []);
+    }
+    pedidosNaoFaturadosMap.get(p.numeropedido)!.push(p);
+  });
+  const pedidosNaoFaturados = pedidosNaoFaturadosMap.size;
+  const pedidosNaoFaturadosValor = Array.from(pedidosNaoFaturadosMap.values()).reduce(
+    (sum, items) => sum + items.reduce((s, item) => s + item.valor, 0),
+    0
+  );
   
+  const perdidosData = allData.filter(item => {
+    if (item.situacao !== 'Perdido') return false;
+    if (!item.perdido_motivo || item.perdido_motivo === 'Não informado') return false;
+
+    const datePerdido = parseDate(item.data_perdido || '');
+    const fallbackDate =
+      datePerdido ||
+      parseDate(item.data_inicio || '') ||
+      parseDate(item.data_emissao || '');
+
+    return fallbackDate && fallbackDate >= startDate && fallbackDate <= endDate;
+  });
+
+  const perdidosValor = perdidosData.reduce((acc, item) => acc + item.valor, 0);
+  const perdidosQtd = new Set(
+    perdidosData.map(item => item.numeropedido).filter(Boolean)
+  ).size;
+
+  const diasUteis = calcularDiasUteis(startDate, endDate);
+  const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
+
   return {
-    totalOrcamentos,
-    valorTotalOrcamentos,
-    ticketMedio,
-    aprovados: aprovados.length,
-    valorAprovados,
-    taxaConversao,
-    totalPerdidos: perdidos.length,
-    valorPerdidos,
-    taxaPerda
+    faturamento: faturado,
+    orcamentosValor,
+    orcamentosQtd,
+    pedidosNaoFaturados,
+    pedidosNaoFaturadosValor,
+    perdidosValor,
+    perdidosQtd,
+    diasUteis,
+    mediaDiaria,
   };
+}
+
+function calcularRankingVendedores(
+  allData: ComercialData[],
+  startDate: Date,
+  endDate: Date
+): VendedorPerformance[] {
+  const faturadosNoPeriodo = allData.filter(item => {
+    const date = getDateField(item);
+    return (
+      date &&
+      date >= startDate &&
+      date <= endDate &&
+      (item.situacao === 'Emitida' || item.situacao === 'Pedido') &&
+      item.faturamento_tipo === 1 &&
+      item.vendedor &&
+      item.vendedor !== 'VENDEDOR' &&
+      item.vendedor !== 'Não informado'
+    );
+  });
+
+  const vendedoresMap: Record<string, { faturamento: number; pedidos: Set<string> }> = {};
+
+  faturadosNoPeriodo.forEach(item => {
+    const vendedor = item.vendedor || 'Não informado';
+    if (!vendedoresMap[vendedor]) {
+      vendedoresMap[vendedor] = { faturamento: 0, pedidos: new Set() };
+    }
+    vendedoresMap[vendedor].faturamento += item.valor;
+    vendedoresMap[vendedor].pedidos.add(item.numeropedido);
+  });
+
+  const totalFaturamento = Object.values(vendedoresMap).reduce(
+    (sum, v) => sum + v.faturamento,
+    0
+  );
+
+  const ranking = Object.entries(vendedoresMap)
+    .map(([nome, dados]) => {
+      const numPedidos = dados.pedidos.size || 1;
+      return {
+        nome,
+        faturamento: dados.faturamento,
+        numPedidos,
+        ticketMedio: dados.faturamento / numPedidos,
+        percentualTotal:
+          totalFaturamento > 0
+            ? (dados.faturamento / totalFaturamento) * 100
+            : 0,
+      } as VendedorPerformance;
+    })
+    .sort((a, b) => b.faturamento - a.faturamento);
+
+  return ranking;
 }
 
 function formatCurrency(value: number): string {
@@ -248,170 +353,92 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function generateReportHTML(kpis: EmailKPIs, monthName: string, year: number, periodo: string, metaMensal?: number): string {
-  const percentualMeta = metaMensal ? (kpis.valorAprovados / metaMensal) * 100 : 0;
+function generateReportHTML(
+  kpis: EmailKPIs,
+  monthName: string,
+  year: number,
+  metaMensal: number | null,
+  periodo: string,
+  ranking: VendedorPerformance[]
+): string {
+  const realizadoMes = kpis.faturamento;
+  const percentualMeta = metaMensal ? (realizadoMes / metaMensal) * 100 : 0;
+  const faltaMeta = metaMensal ? metaMensal - realizadoMes : 0;
   
+  let statusMeta = '✗';
+  let corMeta = '#f56565';
+  if (percentualMeta >= 100) {
+    statusMeta = '✓';
+    corMeta = '#48bb78';
+  } else if (percentualMeta >= 80) {
+    statusMeta = '⚠';
+    corMeta = '#ed8936';
+  }
+
+  const rankingRows = ranking
+    .map((vendedor, index) => {
+      const posicao =
+        index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1;
+      const isTop3 = index < 3;
+      return `
+        <tr>
+          <td style="padding: 8px 10px; font-weight: ${isTop3 ? 'bold' : 'normal'};">${posicao}</td>
+          <td style="padding: 8px 10px; font-weight: ${isTop3 ? 'bold' : 'normal'};">${vendedor.nome}</td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: ${isTop3 ? 'bold' : 'normal'};">${formatCurrency(vendedor.faturamento)}</td>
+          <td style="padding: 8px 10px; text-align: center;">${vendedor.numPedidos}</td>
+          <td style="padding: 8px 10px; text-align: right;">${formatCurrency(vendedor.ticketMedio)}</td>
+          <td style="padding: 8px 10px; text-align: right;">${vendedor.percentualTotal.toFixed(1)}%</td>
+        </tr>
+      `;
+    })
+    .join('');
+
   return `
     <!DOCTYPE html>
-    <html lang="pt-BR">
+    <html>
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Relatório de Fechamento - ${monthName}/${year}</title>
       <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          line-height: 1.6;
-          color: #2d3748;
-          background-color: #f7fafc;
-          margin: 0;
-          padding: 0;
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #2d3748; }
+        .container { max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: #1e40af !important; background-color: #1e40af !important; color: #ffffff !important; padding: 24px 30px; text-align: center; }
+        .header h1 { margin: 0 !important; font-size: 22px !important; color: #ffffff !important; }
+        .header p { margin: 6px 0 0 0 !important; opacity: 0.95 !important; font-size: 13px !important; color: #ffffff !important; }
+        .header-icon { font-size: 32px !important; margin-bottom: 8px !important; }
+        .header-subtitle { margin: 4px 0 !important; font-size: 14px !important; opacity: 0.95 !important; color: #ffffff !important; }
+        .content { padding: 24px 30px 30px 30px; background: #ffffff; }
+        .section-title { font-size: 16px; font-weight: 600; color: #2d3748 !important; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+        .section-title.no-border { border-bottom: none; }
+        .section-title.spaced { margin-top: 16px; }
+        .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+        .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 16px 18px; border-left: 3px solid #667eea; }
+        .kpi-card.success { border-left-color: #48bb78; }
+        .kpi-card.warning { border-left-color: #ed8936; }
+        .kpi-card.danger { border-left-color: #f56565; }
+        .kpi-card.info { border-left-color: #4299e1; }
+        .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096 !important; font-weight: 600; margin-bottom: 6px; }
+        .kpi-value { font-size: 20px; font-weight: 700; color: #2d3748 !important; }
+        .kpi-subtitle { font-size: 12px; color: #718096 !important; margin-top: 3px; }
+        .meta-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .meta-item { padding: 6px 0; }
+        .meta-label { color: #718096 !important; font-size: 12px; margin-bottom: 2px; }
+        .meta-value { color: #2d3748 !important; font-size: 18px; font-weight: bold; }
+        .ranking-table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 16px; background: #ffffff; }
+        .ranking-table th, .ranking-table td { border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #2d3748 !important; }
+        .ranking-table th { background: #f7fafc; padding: 8px 10px; text-align: left; color: #4a5568 !important; font-weight: 600; }
+        .ranking-table td { padding: 8px 10px; color: #2d3748 !important; }
+        .analysis { background: #ffffff; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
+        .analysis p { margin: 6px 0; color: #4a5568 !important; line-height: 1.6; font-size: 13px; }
+        .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; background: #ffffff; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: transform 0.2s; }
+        .cta-button:hover { transform: translateY(-2px); }
+        @media (prefers-color-scheme: light) {
+          .cta-button { color: #2d3748 !important; background: #e2e8f0; }
         }
-        .container {
-          max-width: 700px;
-          margin: 40px auto;
-          background: white;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 48px 32px;
-          text-align: center;
-        }
-        .header-icon {
-          font-size: 64px;
-          margin-bottom: 16px;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 32px;
-          font-weight: 700;
-        }
-        .header-subtitle {
-          margin: 8px 0 0 0;
-          font-size: 18px;
-          opacity: 0.95;
-        }
-        .header-period {
-          margin: 4px 0 0 0;
-          font-size: 14px;
-          opacity: 0.85;
-        }
-        .content {
-          padding: 40px 32px;
-        }
-        .section-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #2d3748;
-          margin: 0 0 24px 0;
-          padding-bottom: 12px;
-          border-bottom: 3px solid #e2e8f0;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .section-title.no-border {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-        .kpis-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-          margin-bottom: 32px;
-        }
-        .kpi-card {
-          background: #f7fafc;
-          border-radius: 12px;
-          padding: 20px;
-          border-left: 4px solid #667eea;
-        }
-        .kpi-card.success {
-          border-left-color: #48bb78;
-        }
-        .kpi-card.warning {
-          border-left-color: #ed8936;
-        }
-        .kpi-card.danger {
-          border-left-color: #f56565;
-        }
-        .kpi-label {
-          font-size: 13px;
-          color: #718096;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          font-weight: 600;
-        }
-        .kpi-value {
-          font-size: 28px;
-          font-weight: 700;
-          color: #2d3748;
-          margin: 0;
-        }
-        .kpi-subvalue {
-          font-size: 14px;
-          color: #718096;
-          margin-top: 4px;
-        }
-        .analysis {
-          background: #f7fafc;
-          border-radius: 12px;
-          padding: 24px;
-          margin-top: 24px;
-        }
-        .analysis p {
-          margin: 12px 0;
-          font-size: 15px;
-          color: #4a5568;
-        }
-        .cta-section {
-          padding: 32px;
-          background: #f7fafc;
-          text-align: center;
-          margin-top: 32px;
-        }
-        .cta-button {
-          display: inline-block;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 16px 32px;
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 16px;
-          transition: transform 0.2s;
-        }
-        .cta-button:hover {
-          transform: translateY(-2px);
-        }
-        .footer {
-          padding: 24px 32px;
-          text-align: center;
-          color: #718096;
-          font-size: 13px;
-          border-top: 1px solid #e2e8f0;
-        }
-        .footer p {
-          margin: 4px 0;
-        }
+        .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096 !important; }
         @media (max-width: 600px) {
-          .kpis-grid {
-            grid-template-columns: 1fr;
-          }
-          .container {
-            margin: 20px;
-          }
-          .header {
-            padding: 32px 20px;
-          }
-          .content {
-            padding: 24px 20px;
-          }
+          .content { padding: 18px 16px 20px 16px; }
         }
       </style>
     </head>
@@ -420,77 +447,124 @@ function generateReportHTML(kpis: EmailKPIs, monthName: string, year: number, pe
         <div class="header">
           <div class="header-icon">📊</div>
           <h1>Relatório de Fechamento</h1>
-          <p class="header-subtitle">${monthName}/${year}</p>
-          <p class="header-period">Período: ${periodo}</p>
+          <p class="header-subtitle"><strong>${monthName}/${year}</strong></p>
+          <p class="header-subtitle">Período: ${periodo}</p>
         </div>
-
+        
         <div class="content">
-          <!-- Resumo do Mês -->
-          <h2 class="section-title">📈 Resumo do Mês</h2>
-          
-          <div class="kpis-grid">
-            <div class="kpi-card">
-              <div class="kpi-label">📋 ORÇAMENTOS</div>
-              <div class="kpi-value">${kpis.totalOrcamentos}</div>
-              <div class="kpi-subvalue">${formatCurrency(kpis.valorTotalOrcamentos)}</div>
-            </div>
-
+          <!-- KPIs do Mês -->
+          <h2 class="section-title no-border">📈 Resumo do Mês</h2>
+          <div class="kpi-grid">
             <div class="kpi-card success">
-              <div class="kpi-label">✅ APROVADOS</div>
-              <div class="kpi-value">${kpis.aprovados}</div>
-              <div class="kpi-subvalue">${formatCurrency(kpis.valorAprovados)}</div>
+              <div class="kpi-label">💰 FATURAMENTO</div>
+              <div class="kpi-value">${formatCurrency(kpis.faturamento)}</div>
             </div>
-
+            <div class="kpi-card info">
+              <div class="kpi-label">📋 ORÇAMENTOS</div>
+              <div class="kpi-value">${kpis.orcamentosQtd}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.orcamentosValor)}</div>
+            </div>
             <div class="kpi-card warning">
-              <div class="kpi-label">🎯 TAXA CONVERSÃO</div>
-              <div class="kpi-value">${kpis.taxaConversao.toFixed(1)}%</div>
-              <div class="kpi-subvalue">Ticket: ${formatCurrency(kpis.ticketMedio)}</div>
+              <div class="kpi-label">📦 PEDIDOS NÃO FATURADOS</div>
+              <div class="kpi-value">${kpis.pedidosNaoFaturados}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.pedidosNaoFaturadosValor)}</div>
             </div>
-
-            ${kpis.totalPerdidos > 0 ? `
             <div class="kpi-card danger">
               <div class="kpi-label">❌ PERDIDOS</div>
-              <div class="kpi-value">${kpis.totalPerdidos}</div>
-              <div class="kpi-subvalue">${formatCurrency(kpis.valorPerdidos)}</div>
+              <div class="kpi-value">${kpis.perdidosQtd}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.perdidosValor)}</div>
             </div>
-            ` : ''}
           </div>
 
           ${metaMensal ? `
-          <div class="kpis-grid">
-            <div class="kpi-card ${percentualMeta >= 100 ? 'success' : percentualMeta >= 70 ? 'warning' : 'danger'}">
-              <div class="kpi-label">🎯 META MENSAL</div>
-              <div class="kpi-value">${percentualMeta.toFixed(1)}%</div>
-              <div class="kpi-subvalue">Meta: ${formatCurrency(metaMensal)}</div>
+          <!-- Meta do Mês -->
+          <h2 class="section-title spaced">🎯 Meta do Mês</h2>
+          <div class="meta-section" style="border-left: 4px solid ${corMeta};">
+            <div class="meta-grid">
+              <div class="meta-item">
+                <div class="meta-label">Meta Mensal</div>
+                <div class="meta-value">${formatCurrency(metaMensal)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Realizado</div>
+                <div class="meta-value" style="color: ${corMeta};">${formatCurrency(realizadoMes)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Atingimento</div>
+                <div class="meta-value" style="color: ${corMeta}; font-size: 22px;">${percentualMeta.toFixed(1)}% ${statusMeta}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Faltam</div>
+                <div class="meta-value" style="color: ${faltaMeta > 0 ? '#ed8936' : '#48bb78'};">
+                  ${faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'}
+                </div>
+              </div>
+            </div>
+            <!-- Barra de progresso visual -->
+            <div style="margin-top: 12px; background: #e2e8f0; border-radius: 6px; height: 10px; overflow: hidden;">
+              <div style="width: ${Math.min(percentualMeta, 100)}%; height: 100%; background: ${corMeta}; transition: width 0.3s;"></div>
             </div>
           </div>
           ` : ''}
 
+          <!-- Ranking de Vendedores -->
+          <h2 class="section-title spaced no-border">🏆 Ranking de Vendedores</h2>
+          ${
+            ranking.length > 0
+              ? `
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th>Vendedor</th>
+                <th style="text-align:right;">Faturamento</th>
+                <th style="text-align:center;">Pedidos</th>
+                <th style="text-align:right;">Ticket Médio</th>
+                <th style="text-align:right;">% do Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rankingRows}
+            </tbody>
+          </table>
+          `
+              : `<p style="color:#718096; font-size: 13px;">Sem dados de faturamento para montar o ranking neste período.</p>`
+          }
+
           <!-- Análise Rápida -->
-          <div class="analysis">
-            <h3 class="section-title no-border">💡 Análise do Período</h3>
-            <p>• Foram gerados <strong>${kpis.totalOrcamentos}</strong> orçamentos no valor de ${formatCurrency(kpis.valorTotalOrcamentos)}</p>
-            <p>• <strong>${kpis.aprovados}</strong> orçamentos foram aprovados (${kpis.taxaConversao.toFixed(1)}% de conversão)</p>
-            <p>• Valor total aprovado: <strong>${formatCurrency(kpis.valorAprovados)}</strong></p>
-            <p>• Ticket médio dos orçamentos: <strong>${formatCurrency(kpis.ticketMedio)}</strong></p>
-            ${kpis.totalPerdidos > 0 ? `
-            <p>• <strong>${kpis.totalPerdidos}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.valorPerdidos)}</p>
-            ` : ''}
+          <div class="analysis" style="margin-top: 16px;">
+            <h3 class="section-title no-border" style="color: #2d3748 !important;">💡 Análise do Período</h3>
+            <p style="color: #4a5568 !important;">• Faturamento total do mês: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong></p>
+            <p style="color: #4a5568 !important;">• Foram gerados <strong style="color: #2d3748 !important;">${kpis.orcamentosQtd}</strong> orçamentos no valor de ${formatCurrency(kpis.orcamentosValor)}</p>
             ${metaMensal ? `
-            <p>• Atingimento da meta: <strong>${percentualMeta.toFixed(1)}%</strong> (${formatCurrency(kpis.valorAprovados)} de ${formatCurrency(metaMensal)})</p>
+            <p style="color: #4a5568 !important;">• Atingimento da meta: <strong style="color: #2d3748 !important;">${percentualMeta.toFixed(1)}%</strong></p>
+            ${faltaMeta > 0 ? `
+            <p style="color: #4a5568 !important;">• Faltam <strong style="color: #2d3748 !important;">${formatCurrency(faltaMeta)}</strong> para atingir a meta</p>
+            ` : `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>
+            `}
+            ` : ''}
+            ${kpis.pedidosNaoFaturados > 0 ? `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento (${formatCurrency(kpis.pedidosNaoFaturadosValor)})</p>
+            ` : ''}
+            ${kpis.perdidosQtd > 0 ? `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.perdidosQtd}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.perdidosValor)}</p>
+            ` : ''}
+            ${ranking.length > 0 ? `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${ranking[0].nome}</strong> lidera o ranking com ${formatCurrency(ranking[0].faturamento)} (${ranking[0].percentualTotal.toFixed(1)}% do total)</p>
             ` : ''}
           </div>
         </div>
 
         <div class="cta-section">
-          <a href="https://globaltools.lovable.app" class="cta-button">
+          <a href="https://globaltools.lovable.app" class="cta-button" style="color: #2d3748 !important; background-color: #e2e8f0;">
             🚀 Acessar Dashboard Completo
           </a>
         </div>
 
         <div class="footer">
-          <p>Relatório de fechamento gerado automaticamente • ${new Date().toLocaleDateString('pt-BR')}</p>
-          <p>Acesse o Dashboard para visualizar análises detalhadas.</p>
+          <p style="color: #718096 !important;">Relatório de fechamento gerado automaticamente • ${new Date().toLocaleDateString('pt-BR')}</p>
+          <p style="color: #718096 !important;">Acesse o Dashboard para visualizar análises detalhadas.</p>
         </div>
       </div>
     </body>
@@ -511,7 +585,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { month, year } = await req.json();
 
-    console.log(`📊 Gerando preview para ${month}/${year}`);
+    console.log(`📅 Gerando preview do fechamento para ${month}/${year}`);
 
     if (!month || !year) {
       throw new Error("Parâmetros inválidos");
@@ -520,58 +594,66 @@ const handler = async (req: Request): Promise<Response> => {
     // Calcular período completo do mês
     const startDate = new Date(year, month - 1, 1, 0, 0, 0);
     const endDate = new Date(year, month, 0, 23, 59, 59);
-    const periodo = `${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`;
 
-    console.log(`📅 Período: ${periodo}`);
+    console.log(`📊 Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
 
-    // Carregar dados da planilha
-    const data = await loadComercialDataFromSheet(startDate, endDate);
+    // Carregar TODOS os dados da planilha
+    const allData = await loadComercialDataFromSheet();
 
-    // Calcular KPIs
-    const kpis = calculateKPIs(data);
+    if (allData.length === 0) {
+      throw new Error("Nenhum dado encontrado na planilha");
+    }
 
-    // Buscar meta mensal do Supabase
+    // Calcular KPIs do mês
+    const kpis = calculateKPIs(allData, startDate, endDate);
+    console.log('📊 KPIs calculados:', kpis);
+
+    // Calcular ranking de vendedores
+    const ranking = calcularRankingVendedores(allData, startDate, endDate);
+
+    // Buscar meta mensal
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const monthYear = `${year}-${String(month).padStart(2, '0')}`;
+    const monthYear = `${String(month).padStart(2, '0')}/${year}`;
     
     const { data: metaData } = await supabase
       .from('admin_goals')
       .select('monthly_revenue_goal')
       .eq('month_year', monthYear)
-      .single();
+      .maybeSingle();
 
-    const metaMensal = metaData?.monthly_revenue_goal || undefined;
+    const metaMensal = metaData?.monthly_revenue_goal || null;
+    console.log('🎯 Meta mensal:', metaMensal);
 
-    // Gerar HTML
+    // Gerar HTML do relatório
     const monthName = MONTH_NAMES[month - 1];
-    const html = generateReportHTML(kpis, monthName, year, periodo, metaMensal);
+    const periodo = `${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`;
+    const html = generateReportHTML(kpis, monthName, year, metaMensal, periodo, ranking);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         html,
         kpis,
         metaMensal,
+        ranking,
         period: {
-          month: monthName,
+          monthName,
           year,
-          startDate: startDate.toLocaleDateString('pt-BR'),
-          endDate: endDate.toLocaleDateString('pt-BR')
-        }
+          periodo,
+        },
       }),
-      { 
+      {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200 
       }
     );
-
   } catch (error: any) {
-    console.error("❌ Erro ao gerar preview:", error);
+    console.error("❌ Erro no handler:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
+      {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500 
       }
     );
   }

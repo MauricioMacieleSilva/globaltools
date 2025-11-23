@@ -1472,6 +1472,39 @@ export type Database = {
         }
         Relationships: []
       }
+      production_orders: {
+        Row: {
+          created_at: string
+          id: string
+          novo_prazo: string | null
+          numero_pedido: string
+          situacao: string | null
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          novo_prazo?: string | null
+          numero_pedido: string
+          situacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          novo_prazo?: string | null
+          numero_pedido?: string
+          situacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           ativo: boolean

@@ -3,6 +3,7 @@ interface MaterialData {
   qtd_pendente: number;
   un: string;
   numero_op: string;
+  classe: string; // Classe do material (Column J)
 }
 
 interface OperacaoData {
@@ -182,7 +183,8 @@ const mockProducaoData: ProducaoData[] = [
             descricaomat: 'CHAPA AÇO 1020 - 3MM',
             qtd_pendente: 500,
             un: 'KG',
-            numero_op: '12345'
+            numero_op: '12345',
+            classe: 'CHAPA'
           }
         ],
         pesos_por_unidade: { 'KG': 500 }
@@ -208,7 +210,8 @@ const mockProducaoData: ProducaoData[] = [
             descricaomat: 'PERFIL U 100MM',
             qtd_pendente: 250,
             un: 'KG',
-            numero_op: '12346'
+            numero_op: '12346',
+            classe: 'PERFIL'
           }
         ],
         pesos_por_unidade: { 'KG': 250 }
@@ -234,7 +237,8 @@ const mockProducaoData: ProducaoData[] = [
             descricaomat: 'TUBO QUADRADO 50X50',
             qtd_pendente: 800,
             un: 'KG',
-            numero_op: '12347'
+            numero_op: '12347',
+            classe: 'TUBO'
           }
         ],
         pesos_por_unidade: { 'KG': 800 }
@@ -288,6 +292,7 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     // PEDIDO (Column C) = index 2
     // SITUACAO (Column E) = index 4  
     // CLI_NOMEF (Column H) = index 7
+    // CLASSE (Column J) = index 9 - Classe do material
     // DESCRICAOMAT (Column K) = index 10
     // QTD_VENDA (Column M) = index 12
     // UN (Column N) = index 13
@@ -300,6 +305,7 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       pedido: 2,           // Column C
       situacao: 4,         // Column E  
       cli_nomef: 7,        // Column H
+      classe: 9,           // Column J - Classe do material
       descricaomat: 10,    // Column K
       qtd_venda: 12,       // Column M (nova coluna a usar)
       un: 13,              // Column N
@@ -329,6 +335,7 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const situacao = normalizeField(row[columnIndexes.situacao] ?? '');
       const situacaoOp = normalizeField(row[columnIndexes.situacao_op] ?? '');
       const cliNomef = normalizeField(row[columnIndexes.cli_nomef] ?? '');
+      const classe = normalizeField(row[columnIndexes.classe] ?? '');
       const descricaomat = normalizeField(row[columnIndexes.descricaomat] ?? '');
       const qtdVendaStr = normalizeField(row[columnIndexes.qtd_venda] ?? '');
       const un = normalizeField(row[columnIndexes.un] ?? '');
@@ -423,7 +430,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         descricaomat,
         qtd_pendente: qtdVenda, // Quantidade na unidade original
         un: unidadeNormalizada, // Unidade normalizada
-        numero_op: numeroOp || 'SEM OP'
+        numero_op: numeroOp || 'SEM OP',
+        classe: classe || 'SEM CLASSE'
       };
       
       // Group by OP within pedido (use placeholder for materials without OP)

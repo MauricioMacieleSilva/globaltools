@@ -15,11 +15,16 @@ export interface HiddenProductionOrder {
 
 export interface MaterialAgregado {
   descricaomat: string;
+  classe: string;
   quantidadeTotal: number;
   unidade: string;
   numPedidos: number;
   numPedidosAtrasados: number;
-  pedidos: string[];
+  pedidos: Array<{
+    numero_pedido: string;
+    cliente: string;
+    atrasado: boolean;
+  }>;
 }
 
 interface ProducaoContextType {
@@ -288,11 +293,12 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
         
         // Para cada material da OP
         op.materiais?.forEach((material) => {
-          const key = `${material.descricaomat}_${material.un}`;
+          const key = `${material.descricaomat}_${material.un}_${material.classe}`;
           
           if (!materiaisMap.has(key)) {
             materiaisMap.set(key, {
               descricaomat: material.descricaomat,
+              classe: material.classe || 'SEM CLASSE',
               quantidadeTotal: 0,
               unidade: material.un,
               numPedidos: 0,
@@ -305,8 +311,16 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
           materialAgregado.quantidadeTotal += material.qtd_pendente || 0;
           
           // Adicionar pedido se ainda não estiver na lista
-          if (!materialAgregado.pedidos.includes(pedido.numero_pedido)) {
-            materialAgregado.pedidos.push(pedido.numero_pedido);
+          const pedidoExistente = materialAgregado.pedidos.find(
+            p => p.numero_pedido === pedido.numero_pedido
+          );
+          
+          if (!pedidoExistente) {
+            materialAgregado.pedidos.push({
+              numero_pedido: pedido.numero_pedido,
+              cliente: pedido.cli_nomef,
+              atrasado: isPedidoAtrasado,
+            });
             materialAgregado.numPedidos++;
             if (isPedidoAtrasado) {
               materialAgregado.numPedidosAtrasados++;

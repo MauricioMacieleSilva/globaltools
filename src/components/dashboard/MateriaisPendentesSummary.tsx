@@ -1,15 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, AlertTriangle, Weight } from "lucide-react";
-import { useProducao } from "@/context/ProducaoContext";
+import { Package, AlertTriangle, Weight, ArrowUpDown } from "lucide-react";
+import { useProducao, MaterialAgregado } from "@/context/ProducaoContext";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { MaterialDetailDialog } from "./MaterialDetailDialog";
+
+type SortField = 'descricaomat' | 'classe' | 'quantidadeTotal' | 'numPedidos' | 'numPedidosAtrasados';
+type SortDirection = 'asc' | 'desc';
 
 export function MateriaisPendentesSummary() {
   const { getMateriaisPendentesAgregados, loading } = useProducao();
   const [filtro, setFiltro] = useState("");
   const [mostrarApenasAtrasados, setMostrarApenasAtrasados] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<MaterialAgregado | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('numPedidosAtrasados');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   if (loading) {
     return null;
@@ -18,13 +26,47 @@ export function MateriaisPendentesSummary() {
   const materiaisPendentes = getMateriaisPendentesAgregados();
 
   // Aplicar filtros
-  const materiaisFiltrados = materiaisPendentes.filter((material) => {
+  let materiaisFiltrados = materiaisPendentes.filter((material) => {
     const matchFiltro = material.descricaomat
       .toLowerCase()
-      .includes(filtro.toLowerCase());
+      .includes(filtro.toLowerCase()) || 
+      material.classe.toLowerCase().includes(filtro.toLowerCase());
     const matchAtrasados = !mostrarApenasAtrasados || material.numPedidosAtrasados > 0;
     return matchFiltro && matchAtrasados;
   });
+
+  // Aplicar ordenação
+  materiaisFiltrados = [...materiaisFiltrados].sort((a, b) => {
+    let aValue = a[sortField];
+    let bValue = b[sortField];
+    
+    // Para strings, usar localeCompare
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const comparison = aValue.localeCompare(bValue);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+    
+    // Para números
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+    
+    return 0;
+  });
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const handleMaterialClick = (material: MaterialAgregado) => {
+    setSelectedMaterial(material);
+    setDialogOpen(true);
+  };
 
   // KPIs
   const totalMateriaisDistintos = materiaisPendentes.length;
@@ -109,7 +151,7 @@ export function MateriaisPendentesSummary() {
           {/* Filtros */}
           <div className="flex flex-col sm:flex-row gap-2">
             <Input
-              placeholder="Buscar material..."
+              placeholder="Buscar por material ou classe..."
               value={filtro}
               onChange={(e) => setFiltro(e.target.value)}
               className="flex-1"
@@ -129,20 +171,72 @@ export function MateriaisPendentesSummary() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-2 font-semibold">Material</th>
-                  <th className="text-right p-2 font-semibold">Quantidade</th>
+                  <th className="text-left p-2 font-semibold">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1 hover:bg-transparent"
+                      onClick={() => handleSort('descricaomat')}
+                    >
+                      Material
+                      <ArrowUpDown className="h-3 w-3" />
+                    </Button>
+                  </th>
+                  <th className="text-left p-2 font-semibold">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1 hover:bg-transparent"
+                      onClick={() => handleSort('classe')}
+                    >
+                      Classe
+                      <ArrowUpDown className="h-3 w-3" />
+                    </Button>
+                  </th>
+                  <th className="text-right p-2 font-semibold">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1 hover:bg-transparent"
+                      onClick={() => handleSort('quantidadeTotal')}
+                    >
+                      Quantidade
+                      <ArrowUpDown className="h-3 w-3" />
+                    </Button>
+                  </th>
                   <th className="text-center p-2 font-semibold">Un</th>
-                  <th className="text-center p-2 font-semibold">Pedidos</th>
-                  <th className="text-center p-2 font-semibold">Atrasados</th>
+                  <th className="text-center p-2 font-semibold">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1 hover:bg-transparent"
+                      onClick={() => handleSort('numPedidos')}
+                    >
+                      Pedidos
+                      <ArrowUpDown className="h-3 w-3" />
+                    </Button>
+                  </th>
+                  <th className="text-center p-2 font-semibold">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1 hover:bg-transparent"
+                      onClick={() => handleSort('numPedidosAtrasados')}
+                    >
+                      Atrasados
+                      <ArrowUpDown className="h-3 w-3" />
+                    </Button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {materiaisFiltrados.map((material, index) => (
                   <tr
                     key={index}
-                    className={`border-b ${
+                    className={`border-b cursor-pointer hover:bg-muted/50 transition-colors ${
                       material.numPedidosAtrasados > 0 ? "bg-destructive/5" : ""
                     }`}
+                    onClick={() => handleMaterialClick(material)}
                   >
                     <td className="p-2">
                       <div className="flex items-center gap-2">
@@ -151,6 +245,9 @@ export function MateriaisPendentesSummary() {
                         )}
                         <span className="font-medium">{material.descricaomat}</span>
                       </div>
+                    </td>
+                    <td className="p-2">
+                      <Badge variant="secondary">{material.classe}</Badge>
                     </td>
                     <td className="text-right p-2">
                       {material.quantidadeTotal.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
@@ -179,7 +276,10 @@ export function MateriaisPendentesSummary() {
             {materiaisFiltrados.map((material, index) => (
               <Card
                 key={index}
-                className={material.numPedidosAtrasados > 0 ? "border-destructive" : ""}
+                className={`cursor-pointer hover:bg-muted/50 transition-colors ${
+                  material.numPedidosAtrasados > 0 ? "border-destructive" : ""
+                }`}
+                onClick={() => handleMaterialClick(material)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
@@ -190,7 +290,11 @@ export function MateriaisPendentesSummary() {
                       <span className="font-semibold">{material.descricaomat}</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Classe: </span>
+                      <Badge variant="secondary">{material.classe}</Badge>
+                    </div>
                     <div>
                       <span className="text-muted-foreground">Quantidade: </span>
                       <span className="font-medium">
@@ -208,6 +312,7 @@ export function MateriaisPendentesSummary() {
                       </div>
                     )}
                   </div>
+                  <p className="text-xs text-muted-foreground">Toque para ver detalhes</p>
                 </CardContent>
               </Card>
             ))}
@@ -220,6 +325,13 @@ export function MateriaisPendentesSummary() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de detalhes do material */}
+      <MaterialDetailDialog
+        material={selectedMaterial}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

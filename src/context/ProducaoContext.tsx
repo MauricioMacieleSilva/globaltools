@@ -24,6 +24,7 @@ export interface MaterialAgregado {
     numero_pedido: string;
     cliente: string;
     atrasado: boolean;
+    quantidade: number;
   }>;
 }
 
@@ -308,9 +309,10 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
           }
           
           const materialAgregado = materiaisMap.get(key)!;
-          materialAgregado.quantidadeTotal += material.qtd_pendente || 0;
+          const qtdMaterial = material.qtd_pendente || 0;
+          materialAgregado.quantidadeTotal += qtdMaterial;
           
-          // Adicionar pedido se ainda não estiver na lista
+          // Adicionar pedido se ainda não estiver na lista, ou atualizar quantidade
           const pedidoExistente = materialAgregado.pedidos.find(
             p => p.numero_pedido === pedido.numero_pedido
           );
@@ -320,11 +322,15 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
               numero_pedido: pedido.numero_pedido,
               cliente: pedido.cli_nomef,
               atrasado: isPedidoAtrasado,
+              quantidade: qtdMaterial,
             });
             materialAgregado.numPedidos++;
             if (isPedidoAtrasado) {
               materialAgregado.numPedidosAtrasados++;
             }
+          } else {
+            // Somar quantidade se o pedido já existe (múltiplas OPs)
+            pedidoExistente.quantidade += qtdMaterial;
           }
         });
       });

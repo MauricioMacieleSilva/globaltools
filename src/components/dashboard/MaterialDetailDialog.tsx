@@ -96,6 +96,9 @@ export function MaterialDetailDialog({
                         <p className="text-sm text-muted-foreground truncate">
                           Cliente: {pedido.cliente}
                         </p>
+                        <p className="text-sm font-medium mt-1">
+                          Quantidade: {pedido.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} {material.unidade}
+                        </p>
                       </div>
                       <div className="flex-shrink-0">
                         {pedido.atrasado ? (

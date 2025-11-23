@@ -407,57 +407,57 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-// Gerar gráfico SVG de histórico de faturamento
+// Gerar gráfico de histórico de faturamento em HTML
 function generateHistoricoChart(historico: HistoricoFaturamento[], mesAtual: string, anoAtual: number): string {
   const maxValue = Math.max(...historico.map(h => Math.max(h.anoAtual, h.anoAnterior)));
-  const chartHeight = 200;
-  const chartWidth = 700;
-  const barWidth = 25;
-  const gap = 8;
-  const groupWidth = (barWidth * 2) + gap;
-  const totalWidth = groupWidth * historico.length;
-  const startX = (chartWidth - totalWidth) / 2;
   
-  const bars = historico.map((h, i) => {
-    const x = startX + (i * groupWidth);
-    const heightAtual = maxValue > 0 ? (h.anoAtual / maxValue) * (chartHeight - 40) : 0;
-    const heightAnterior = maxValue > 0 ? (h.anoAnterior / maxValue) * (chartHeight - 40) : 0;
-    const yAtual = chartHeight - heightAtual - 30;
-    const yAnterior = chartHeight - heightAnterior - 30;
-    
+  const rows = historico.map((h) => {
+    const widthAtual = maxValue > 0 ? (h.anoAtual / maxValue) * 100 : 0;
+    const widthAnterior = maxValue > 0 ? (h.anoAnterior / maxValue) * 100 : 0;
     const isMesDestaque = h.mes.includes(`/${anoAtual.toString().substring(2)}`);
-    const corAtual = isMesDestaque ? '#48bb78' : '#4299e1';
-    const corAnterior = '#cbd5e0';
     
     return `
-      <g>
-        <rect x="${x}" y="${yAnterior}" width="${barWidth}" height="${heightAnterior}" 
-              fill="${corAnterior}" rx="3"/>
-        <rect x="${x + barWidth + gap}" y="${yAtual}" width="${barWidth}" height="${heightAtual}" 
-              fill="${corAtual}" rx="3"/>
-        <text x="${x + barWidth + gap/2}" y="${chartHeight - 10}" 
-              font-size="10" fill="#718096" text-anchor="middle">${h.mes}</text>
-        ${isMesDestaque ? `
-        <text x="${x + barWidth + gap/2}" y="${chartHeight - 5}" 
-              font-size="8" fill="#48bb78" font-weight="bold" text-anchor="middle">▲</text>
-        ` : ''}
-      </g>
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 8px 10px; font-size: 11px; color: #4a5568; white-space: nowrap; font-weight: ${isMesDestaque ? 'bold' : 'normal'};">
+          ${isMesDestaque ? '▶ ' : ''}${h.mes}
+        </td>
+        <td style="padding: 8px 10px; width: 100%;">
+          <div style="position: relative; height: 32px;">
+            <!-- Barra Ano Anterior -->
+            <div style="position: absolute; top: 0; left: 0; height: 14px; width: ${widthAnterior}%; background: #cbd5e0; border-radius: 3px;"></div>
+            <!-- Barra Ano Atual -->
+            <div style="position: absolute; top: 18px; left: 0; height: 14px; width: ${widthAtual}%; background: ${isMesDestaque ? '#48bb78' : '#4299e1'}; border-radius: 3px;"></div>
+          </div>
+        </td>
+        <td style="padding: 8px 10px; text-align: right; font-size: 10px; color: #718096; white-space: nowrap;">
+          <div style="margin-bottom: 2px;">${formatCurrency(h.anoAtual)}</div>
+          <div style="color: #a0aec0;">${formatCurrency(h.anoAnterior)}</div>
+        </td>
+      </tr>
     `;
   }).join('');
   
   return `
-    <div style="background: #f7fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-      <svg width="100%" height="${chartHeight}" viewBox="0 0 ${chartWidth} ${chartHeight}" style="max-width: 700px; margin: 0 auto; display: block;">
-        ${bars}
-        <g transform="translate(${chartWidth - 200}, 10)">
-          <rect x="0" y="0" width="15" height="15" fill="#4299e1" rx="2"/>
-          <text x="20" y="12" font-size="11" fill="#2d3748">${anoAtual}</text>
-          <rect x="80" y="0" width="15" height="15" fill="#cbd5e0" rx="2"/>
-          <text x="100" y="12" font-size="11" fill="#2d3748">${anoAtual - 1}</text>
-        </g>
-      </svg>
-      <p style="text-align: center; color: #718096; font-size: 11px; margin-top: 8px;">
-        Comparativo de faturamento mensal • Mês destacado em verde
+    <div style="background: #f7fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px; overflow-x: auto;">
+      <!-- Legenda -->
+      <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 12px; font-size: 11px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 20px; height: 12px; background: #4299e1; border-radius: 2px;"></div>
+          <span style="color: #2d3748;">${anoAtual}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="width: 20px; height: 12px; background: #cbd5e0; border-radius: 2px;"></div>
+          <span style="color: #2d3748;">${anoAtual - 1}</span>
+        </div>
+      </div>
+      
+      <!-- Tabela com barras -->
+      <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden;">
+        ${rows}
+      </table>
+      
+      <p style="text-align: center; color: #718096; font-size: 10px; margin: 12px 0 0 0;">
+        Comparativo de faturamento mensal • Mês em destaque: ▶ ${mesAtual}/${anoAtual}
       </p>
     </div>
   `;

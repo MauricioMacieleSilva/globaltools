@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Eye, Loader2 } from 'lucide-react';
-import { useHiddenProductionOrders } from '@/hooks/useHiddenProductionOrders';
+import { useProducao } from '@/context/ProducaoContext';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -17,7 +17,7 @@ interface HiddenOrdersDialogProps {
 }
 
 export function HiddenOrdersDialog({ open, onOpenChange }: HiddenOrdersDialogProps) {
-  const { hiddenOrders, loading, unhideOrder } = useHiddenProductionOrders();
+  const { hiddenOrders, unhideOrder } = useProducao();
 
   const handleUnhide = async (numeroPedido: string) => {
     await unhideOrder(numeroPedido);
@@ -33,11 +33,7 @@ export function HiddenOrdersDialog({ open, onOpenChange }: HiddenOrdersDialogPro
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : hiddenOrders.length === 0 ? (
+        {hiddenOrders.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum pedido oculto
           </div>

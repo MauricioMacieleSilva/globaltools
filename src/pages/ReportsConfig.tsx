@@ -1,9 +1,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportConfigTable } from "@/components/admin/ReportConfigTable";
 import { ReportHistoryTable } from "@/components/admin/ReportHistoryTable";
 import { SampleDataGenerator } from "@/components/admin/SampleDataGenerator";
-import { Mail, History, Info } from "lucide-react";
+import { MonthlyClosingReportDialog } from "@/components/admin/MonthlyClosingReportDialog";
+import { Mail, History, Info, Calendar } from "lucide-react";
 
 export default function ReportsConfig() {
   return (
@@ -21,6 +23,22 @@ export default function ReportsConfig() {
           Configure destinatários e gerencie o envio automático de relatórios comerciais por email.
         </AlertDescription>
       </Alert>
+
+      {/* Seção de Fechamento Mensal */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Relatório de Fechamento Mensal
+          </CardTitle>
+          <CardDescription>
+            Gere relatórios completos de meses anteriores para fechamento contábil
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MonthlyClosingReportDialog />
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="config" className="space-y-4">
         <TabsList>

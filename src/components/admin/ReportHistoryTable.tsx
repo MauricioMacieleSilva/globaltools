@@ -16,6 +16,7 @@ interface ReportLog {
   error_message?: string;
   sent_at: string;
   is_scheduled: boolean;
+  reference_month?: string;
 }
 
 export function ReportHistoryTable() {
@@ -184,16 +185,21 @@ export function ReportHistoryTable() {
                     <div className="space-y-1">
                       <div className="text-sm">{formatDate(log.sent_at)}</div>
                       <div className="text-xs text-muted-foreground">
-                        Data do relatório: {new Date(log.report_date).toLocaleDateString('pt-BR')}
+                        {log.report_type === 'monthly_closing' && log.reference_month ? (
+                          <>Fechamento: {log.reference_month}</>
+                        ) : (
+                          <>Data do relatório: {new Date(log.report_date).toLocaleDateString('pt-BR')}</>
+                        )}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>{log.email}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">
+                    <Badge variant={log.report_type === 'monthly_closing' ? 'default' : 'outline'}>
                       {log.report_type === 'daily' ? 'Diário' : 
                        log.report_type === 'weekly' ? 'Semanal' : 
                        log.report_type === 'monthly' ? 'Mensal' :
+                       log.report_type === 'monthly_closing' ? '📅 Fechamento Mensal' :
                        log.report_type === 'custom' ? 'Personalizado' : log.report_type}
                     </Badge>
                   </TableCell>

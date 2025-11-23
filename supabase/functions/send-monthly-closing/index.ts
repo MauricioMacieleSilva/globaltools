@@ -252,130 +252,162 @@ function generateReportHTML(
   kpis: EmailKPIs,
   monthName: string,
   year: number,
-  metaMensal: number | null
+  metaMensal: number | null,
+  periodo: string
 ): string {
   const realizadoMes = kpis.valorAprovados;
   const percentualMeta = metaMensal ? (realizadoMes / metaMensal) * 100 : 0;
-  const statusMeta = percentualMeta >= 100 ? '🎉' : percentualMeta >= 80 ? '📈' : '⚠️';
+  
+  let statusMeta = '✗';
+  let corMeta = '#f56565';
+  if (percentualMeta >= 100) {
+    statusMeta = '✓';
+    corMeta = '#48bb78';
+  } else if (percentualMeta >= 80) {
+    statusMeta = '⚠';
+    corMeta = '#ed8936';
+  }
+  
+  const faltaMeta = metaMensal ? metaMensal - realizadoMes : 0;
 
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Relatório de Fechamento - ${monthName}/${year}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #2d3748; }
+        .container { max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header { background: #1e40af !important; background-color: #1e40af !important; color: #ffffff !important; padding: 24px 30px; text-align: center; }
+        .header h1 { margin: 0 !important; font-size: 22px !important; color: #ffffff !important; }
+        .header p { margin: 6px 0 0 0 !important; opacity: 0.95 !important; font-size: 13px !important; color: #ffffff !important; }
+        .header-icon { font-size: 32px !important; margin-bottom: 8px !important; }
+        .header-subtitle { margin: 4px 0 !important; font-size: 14px !important; opacity: 0.95 !important; color: #ffffff !important; }
+        .content { padding: 24px 30px 30px 30px; background: #ffffff; }
+        .section-title { font-size: 16px; font-weight: 600; color: #2d3748 !important; margin: 0 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+        .section-title.no-border { border-bottom: none; }
+        .section-title.spaced { margin-top: 16px; }
+        .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+        .kpi-card { background: #f8f9fa; border-radius: 8px; padding: 16px 18px; border-left: 3px solid #667eea; }
+        .kpi-card.success { border-left-color: #48bb78; }
+        .kpi-card.warning { border-left-color: #ed8936; }
+        .kpi-card.danger { border-left-color: #f56565; }
+        .kpi-card.info { border-left-color: #4299e1; }
+        .kpi-label { font-size: 11px; text-transform: uppercase; color: #718096 !important; font-weight: 600; margin-bottom: 6px; }
+        .kpi-value { font-size: 20px; font-weight: 700; color: #2d3748 !important; }
+        .kpi-subtitle { font-size: 12px; color: #718096 !important; margin-top: 3px; }
+        .meta-section { background: #f7fafc; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .meta-item { padding: 6px 0; }
+        .meta-label { color: #718096 !important; font-size: 12px; margin-bottom: 2px; }
+        .meta-value { color: #2d3748 !important; font-size: 18px; font-weight: bold; }
+        .analysis { background: #ffffff; padding: 16px 18px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 18px; }
+        .analysis p { margin: 6px 0; color: #4a5568 !important; line-height: 1.6; font-size: 13px; }
+        .cta-section { text-align: center; margin: 24px 0 8px 0; padding: 20px 16px; background: #ffffff; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: transform 0.2s; }
+        .cta-button:hover { transform: translateY(-2px); }
+        @media (prefers-color-scheme: light) {
+          .cta-button { color: #2d3748 !important; background: #e2e8f0; }
+        }
+        .footer { background: #f7fafc; padding: 16px 20px; text-align: center; font-size: 12px; color: #718096 !important; }
+        @media (max-width: 600px) {
+          .content { padding: 18px 16px 20px 16px; }
+        }
+      </style>
     </head>
-    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
-        <tr>
-          <td align="center" style="padding: 40px 20px;">
-            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              
-              <!-- Header -->
-              <tr>
-                <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; border-radius: 8px 8px 0 0; text-align: center;">
-                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
-                    📊 Relatório de Fechamento
-                  </h1>
-                  <p style="margin: 10px 0 0 0; color: #e0e7ff; font-size: 18px;">
-                    ${monthName}/${year}
-                  </p>
-                </td>
-              </tr>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="header-icon">📊</div>
+          <h1>Relatório de Fechamento</h1>
+          <p class="header-subtitle"><strong>${monthName}/${year}</strong></p>
+          <p class="header-subtitle">Período: ${periodo}</p>
+        </div>
+        
+        <div class="content">
+          <!-- KPIs do Mês -->
+          <h2 class="section-title no-border">📈 Resumo do Mês</h2>
+          <div class="kpi-grid">
+            <div class="kpi-card info">
+              <div class="kpi-label">📋 ORÇAMENTOS</div>
+              <div class="kpi-value">${kpis.totalOrcamentos}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.valorTotalOrcamentos)}</div>
+            </div>
+            <div class="kpi-card success">
+              <div class="kpi-label">✅ APROVADOS</div>
+              <div class="kpi-value">${kpis.aprovados}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.valorAprovados)}</div>
+            </div>
+            <div class="kpi-card warning">
+              <div class="kpi-label">💰 TAXA CONVERSÃO</div>
+              <div class="kpi-value">${kpis.taxaConversao.toFixed(1)}%</div>
+              <div class="kpi-subtitle">Ticket: ${formatCurrency(kpis.ticketMedio)}</div>
+            </div>
+            <div class="kpi-card danger">
+              <div class="kpi-label">❌ PERDIDOS</div>
+              <div class="kpi-value">${kpis.totalPerdidos}</div>
+              <div class="kpi-subtitle">${formatCurrency(kpis.valorPerdidos)}</div>
+            </div>
+          </div>
 
-              <!-- Resumo Meta -->
-              ${metaMensal ? `
-              <tr>
-                <td style="padding: 30px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px;">
-                    <tr>
-                      <td style="text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">${statusMeta}</div>
-                        <h2 style="margin: 0 0 10px 0; color: #1f2937; font-size: 20px;">Meta do Mês</h2>
-                        <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">
-                          <strong>Meta:</strong> ${formatCurrency(metaMensal)}
-                        </p>
-                        <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">
-                          <strong>Realizado:</strong> ${formatCurrency(realizadoMes)}
-                        </p>
-                        <div style="margin-top: 15px; padding: 12px; background-color: ${percentualMeta >= 100 ? '#dcfce7' : percentualMeta >= 80 ? '#fef3c7' : '#fee2e2'}; border-radius: 6px;">
-                          <strong style="font-size: 24px; color: ${percentualMeta >= 100 ? '#166534' : percentualMeta >= 80 ? '#92400e' : '#991b1b'};">
-                            ${percentualMeta.toFixed(1)}%
-                          </strong>
-                          <span style="color: #6b7280; font-size: 14px;"> da meta atingida</span>
-                        </div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              ` : ''}
+          ${metaMensal ? `
+          <!-- Meta do Mês -->
+          <h2 class="section-title spaced">🎯 Meta do Mês</h2>
+          <div class="meta-section" style="border-left: 4px solid ${corMeta};">
+            <div class="meta-grid">
+              <div class="meta-item">
+                <div class="meta-label">Meta Mensal</div>
+                <div class="meta-value">${formatCurrency(metaMensal)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Realizado</div>
+                <div class="meta-value" style="color: ${corMeta};">${formatCurrency(realizadoMes)}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Atingimento</div>
+                <div class="meta-value" style="color: ${corMeta}; font-size: 22px;">${percentualMeta.toFixed(1)}% ${statusMeta}</div>
+              </div>
+              <div class="meta-item">
+                <div class="meta-label">Faltam</div>
+                <div class="meta-value" style="color: ${faltaMeta > 0 ? '#ed8936' : '#48bb78'};">
+                  ${faltaMeta > 0 ? formatCurrency(faltaMeta) : 'Meta Atingida!'}
+                </div>
+              </div>
+            </div>
+            <!-- Barra de progresso visual -->
+            <div style="margin-top: 12px; background: #e2e8f0; border-radius: 6px; height: 10px; overflow: hidden;">
+              <div style="width: ${Math.min(percentualMeta, 100)}%; height: 100%; background: ${corMeta}; transition: width 0.3s;"></div>
+            </div>
+          </div>
+          ` : ''}
 
-              <!-- KPIs Grid -->
-              <tr>
-                <td style="padding: 0 30px 30px 30px;">
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td width="50%" style="padding-right: 10px;">
-                        <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 6px;">
-                          <div style="color: #1e40af; font-size: 14px; font-weight: 600; margin-bottom: 8px;">ORÇAMENTOS</div>
-                          <div style="color: #1f2937; font-size: 28px; font-weight: 700;">${kpis.totalOrcamentos}</div>
-                          <div style="color: #6b7280; font-size: 12px; margin-top: 5px;">${formatCurrency(kpis.valorTotalOrcamentos)}</div>
-                        </div>
-                      </td>
-                      <td width="50%" style="padding-left: 10px;">
-                        <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; border-radius: 6px;">
-                          <div style="color: #065f46; font-size: 14px; font-weight: 600; margin-bottom: 8px;">APROVADOS</div>
-                          <div style="color: #1f2937; font-size: 28px; font-weight: 700;">${kpis.aprovados}</div>
-                          <div style="color: #6b7280; font-size: 12px; margin-top: 5px;">${formatCurrency(kpis.valorAprovados)}</div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr><td colspan="2" style="height: 20px;"></td></tr>
-                    <tr>
-                      <td width="50%" style="padding-right: 10px;">
-                        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 6px;">
-                          <div style="color: #92400e; font-size: 14px; font-weight: 600; margin-bottom: 8px;">TAXA CONVERSÃO</div>
-                          <div style="color: #1f2937; font-size: 28px; font-weight: 700;">${kpis.taxaConversao.toFixed(1)}%</div>
-                          <div style="color: #6b7280; font-size: 12px; margin-top: 5px;">Ticket: ${formatCurrency(kpis.ticketMedio)}</div>
-                        </div>
-                      </td>
-                      <td width="50%" style="padding-left: 10px;">
-                        <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 20px; border-radius: 6px;">
-                          <div style="color: #991b1b; font-size: 14px; font-weight: 600; margin-bottom: 8px;">PERDIDOS</div>
-                          <div style="color: #1f2937; font-size: 28px; font-weight: 700;">${kpis.totalPerdidos}</div>
-                          <div style="color: #6b7280; font-size: 12px; margin-top: 5px;">${formatCurrency(kpis.valorPerdidos)}</div>
-                        </div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
+          <!-- Análise Rápida -->
+          <div class="analysis" style="margin-top: 16px;">
+            <h3 class="section-title no-border" style="color: #2d3748 !important;">💡 Análise do Período</h3>
+            <p style="color: #4a5568 !important;">• Foram gerados <strong style="color: #2d3748 !important;">${kpis.totalOrcamentos}</strong> orçamentos no valor de ${formatCurrency(kpis.valorTotalOrcamentos)}</p>
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.aprovados}</strong> orçamentos foram aprovados (${kpis.taxaConversao.toFixed(1)}% de conversão)</p>
+            <p style="color: #4a5568 !important;">• Valor total aprovado: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.valorAprovados)}</strong></p>
+            <p style="color: #4a5568 !important;">• Ticket médio dos orçamentos: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.ticketMedio)}</strong></p>
+            ${kpis.totalPerdidos > 0 ? `
+            <p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.totalPerdidos}</strong> oportunidades perdidas no valor de ${formatCurrency(kpis.valorPerdidos)}</p>
+            ` : ''}
+            ${metaMensal ? `
+            <p style="color: #4a5568 !important;">• Atingimento da meta: <strong style="color: #2d3748 !important;">${percentualMeta.toFixed(1)}%</strong></p>
+            ` : ''}
+          </div>
+        </div>
 
-              <!-- CTA -->
-              <tr>
-                <td style="padding: 0 30px 40px 30px; text-align: center;">
-                  <a href="${supabaseUrl.replace('https://', 'https://').replace('.supabase.co', '')}" 
-                     style="display: inline-block; padding: 14px 32px; background-color: #667eea; color: #2d3748 !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                    Acessar Dashboard Completo
-                  </a>
-                </td>
-              </tr>
+        <div class="cta-section">
+          <a href="https://globaltools.lovable.app" class="cta-button" style="color: #2d3748 !important; background-color: #e2e8f0;">
+            🚀 Acessar Dashboard Completo
+          </a>
+        </div>
 
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 20px 30px; background-color: #f9fafb; border-radius: 0 0 8px 8px; text-align: center;">
-                  <p style="margin: 0; color: #6b7280; font-size: 12px;">
-                    Relatório gerado automaticamente • ${new Date().toLocaleDateString('pt-BR')}
-                  </p>
-                </td>
-              </tr>
-
-            </table>
-          </td>
-        </tr>
-      </table>
+        <div class="footer">
+          <p style="color: #718096 !important;">Relatório de fechamento gerado automaticamente • ${new Date().toLocaleDateString('pt-BR')}</p>
+          <p style="color: #718096 !important;">Acesse o Dashboard para visualizar análises detalhadas.</p>
+        </div>
+      </div>
     </body>
     </html>
   `;
@@ -432,7 +464,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Gerar HTML
     const monthName = MONTH_NAMES[month - 1];
-    const html = generateReportHTML(kpis, monthName, year, metaMensal);
+    const periodo = `${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`;
+    const html = generateReportHTML(kpis, monthName, year, metaMensal, periodo);
 
     // Enviar para cada destinatário
     const results = [];

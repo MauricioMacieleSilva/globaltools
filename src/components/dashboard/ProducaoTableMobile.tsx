@@ -53,7 +53,10 @@ export function ProducaoTableMobile({
             fields={[
               {
                 label: 'Peso',
-                value: formatWeight(item.peso_total)
+                value: `${item.peso_total.toLocaleString('pt-BR', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 1
+                })} ${item.unidade_peso}`
               },
               {
                 label: '% Concluído',

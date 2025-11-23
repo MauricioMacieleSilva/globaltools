@@ -460,7 +460,12 @@ export function ProducaoTable() {
                       <TableCell className="font-medium">
                         {item.cli_nomef}
                       </TableCell>
-                      <TableCell>{formatWeight(item.peso_total)}</TableCell>
+                      <TableCell>
+                        {item.peso_total.toLocaleString('pt-BR', { 
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 1
+                        })} {item.unidade_peso}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Progress value={item.percentual_concluido} className="w-16 h-2" />
@@ -545,7 +550,10 @@ export function ProducaoTable() {
                                     <span className="font-medium">OP {op.numero_op}</span>
                                     {getMaterialStatusBadge(op.situacao_op)}
                                     <span className="text-sm text-muted-foreground">
-                                      Peso: {formatWeight(op.peso_op)}
+                                      Peso: {op.peso_op.toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 1
+                                      })} {op.unidade_peso}
                                     </span>
                                   </div>
                                 </div>
@@ -557,7 +565,6 @@ export function ProducaoTable() {
                                       <span className="flex-1">{material.descricaomat}</span>
                                       <div className="flex items-center gap-4 text-muted-foreground">
                                         <span>{material.qtd_pendente} {material.un}</span>
-                                        <span>{formatWeight(material.peso_individual)}</span>
                                       </div>
                                     </div>
                                   ))}

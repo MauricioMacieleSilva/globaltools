@@ -65,10 +65,10 @@ export const RelatorioProducao = forwardRef<HTMLDivElement, RelatorioProducaoPro
     // Filtrar materiais válidos antes de calcular
     const materialMaisComum = sortedData
       .flatMap(p => p.ops.flatMap(op => op.materiais))
-      .filter(mat => mat.peso_individual > 0) // Filtrar materiais com peso válido
+      .filter(mat => mat.qtd_pendente > 0) // Filtrar materiais com quantidade válida
       .reduce((acc, mat) => {
         const key = mat.descricaomat;
-        acc[key] = (acc[key] || 0) + mat.peso_individual;
+        acc[key] = (acc[key] || 0) + mat.qtd_pendente;
         return acc;
       }, {} as Record<string, number>);
 

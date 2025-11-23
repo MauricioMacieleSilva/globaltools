@@ -2,7 +2,6 @@ interface MaterialData {
   descricaomat: string;
   qtd_pendente: number;
   un: string;
-  peso_individual: number;
   numero_op: string;
 }
 
@@ -11,6 +10,7 @@ interface OperacaoData {
   situacao_op: string;
   materiais: MaterialData[];
   peso_op: number;
+  unidade_peso: string; // Unidade predominante dos materiais
 }
 
 interface ProducaoData {
@@ -24,6 +24,7 @@ interface ProducaoData {
   peso_total: number; // calculated field
   peso_finalizado: number; // weight of finalized OPs
   percentual_concluido: number; // calculated field
+  unidade_peso: string; // Unidade predominante dos materiais
 }
 
 // Parse CSV text into 2D array
@@ -99,103 +100,15 @@ function isSituacaoPedido(value: string): boolean {
   return s.includes('PEDIDO');
 }
 
-// Densidade do aço em kg/m³ (mesma usada na política comercial)
-const DENSIDADE_ACO = 7850;
-
-// Função para converter unidades para kg
-function convertToKg(quantidade: number, unidade: string, descricaoMaterial: string): number {
-  const un = unidade.toUpperCase().trim();
-  
-  switch (un) {
-    case 'T':
-      // Toneladas para kg
-      return quantidade * 1000;
-    
-    case 'M':
-      // Metros para kg - calcular com base na descrição do material
-      return calculateMetersToKg(quantidade, descricaoMaterial);
-    
-    case 'KG':
-    default:
-      // Já está em kg
-      return quantidade;
-  }
-}
-
-// Função para calcular peso de metros de material
-function calculateMetersToKg(metros: number, descricao: string): number {
-  // Tentar extrair dimensões da descrição
-  const desc = descricao.toUpperCase();
-  
-  // Padrões para extrair dimensões
-  const patterns = [
-    // PERFIL U 50x180x50x6000mm - U50x180x50
-    /U\s*(\d+(?:,\d+)?)\s*[Xx]\s*(\d+(?:,\d+)?)\s*[Xx]\s*(\d+(?:,\d+)?)/,
-    // PERFIL CH #3,00MM - espessura 3mm
-    /CH\s*#(\d+(?:,\d+)?)\s*MM/,
-    // TELHA TP40 0,43mm - espessura 0.43mm
-    /TP\d+\s+(\d+(?:,\d+)?)\s*MM/,
-    // CHAPA dimensões (assumir espessura padrão)
-    /CHAPA.*?(\d+(?:,\d+)?)\s*MM/
-  ];
-  
-  // Pesos médios por metro para diferentes tipos (kg/m)
-  const avgWeights: { [key: string]: number } = {
-    'PERFIL U': 12.5,  // Perfil U médio
-    'PERFIL CH': 8.0,  // Perfil cartola médio
-    'PERFIL L': 6.5,   // Perfil L médio
-    'TELHA': 4.5,      // Telha média por m²
-    'CHAPA': 15.0,     // Chapa média
-    'TUBO': 10.0,      // Tubo médio
-    'BARRA': 8.0,      // Barra média
-    'DEFAULT': 10.0    // Peso padrão
-  };
-  
-  // Tentar calcular peso específico baseado na descrição
-  for (const pattern of patterns) {
-    const match = desc.match(pattern);
-    if (match) {
-      const espessura = parseFloat(match[1].replace(',', '.'));
-      
-      if (desc.includes('PERFIL U') && match.length >= 4) {
-        // Para perfil U com dimensões completas: largura x altura x espessura
-        const largura = parseFloat(match[1].replace(',', '.'));
-        const altura = parseFloat(match[2].replace(',', '.'));
-        const esp = parseFloat(match[3].replace(',', '.'));
-        
-        // Calcular área da seção transversal em mm²
-        const area = (largura * esp * 2) + (altura * esp); // aproximação simples
-        const areaM2 = area / 1000000; // converter mm² para m²
-        const pesoM = areaM2 * DENSIDADE_ACO; // kg/m
-        return metros * pesoM;
-      }
-      
-      if (desc.includes('TELHA') && espessura > 0) {
-        // Para telhas: espessura x largura padrão (assumir 1m de largura)
-        const areaM2 = 1 * (espessura / 1000); // m² por metro linear
-        const pesoM = areaM2 * DENSIDADE_ACO;
-        return metros * pesoM;
-      }
-      
-      if (desc.includes('CHAPA') && espessura > 0) {
-        // Para chapas: espessura x largura padrão (assumir 1.2m de largura)
-        const largura = 1.2; // metros
-        const areaM2 = largura * (espessura / 1000);
-        const pesoM = areaM2 * DENSIDADE_ACO;
-        return metros * pesoM;
-      }
-    }
-  }
-  
-  // Se não conseguiu calcular, usar peso médio baseado no tipo
-  for (const [tipo, peso] of Object.entries(avgWeights)) {
-    if (desc.includes(tipo)) {
-      return metros * peso;
-    }
-  }
-  
-  // Peso padrão
-  return metros * avgWeights.DEFAULT;
+// Função para normalizar unidades (remover espaços e colocar em maiúsculo)
+function normalizeUnit(unit: string): string {
+  const normalized = unit.trim().toUpperCase();
+  // Padronizar variações comuns
+  if (normalized === 'KG' || normalized === 'KILO' || normalized === 'QUILOS') return 'KG';
+  if (normalized === 'T' || normalized === 'TON' || normalized === 'TONELADA') return 'T';
+  if (normalized === 'M' || normalized === 'METRO' || normalized === 'METROS') return 'M';
+  if (normalized === 'PC' || normalized === 'PÇ' || normalized === 'PCS' || normalized === 'PEÇA') return 'PC';
+  return normalized;
 }
 
 // Calculate days delay
@@ -271,16 +184,17 @@ const mockProducaoData: ProducaoData[] = [
             descricaomat: 'CHAPA AÇO 1020 - 3MM',
             qtd_pendente: 500,
             un: 'KG',
-            peso_individual: 500,
             numero_op: '12345'
           }
         ],
-        peso_op: 500
+        peso_op: 500,
+        unidade_peso: 'KG'
       }
     ],
     peso_total: 500,
     peso_finalizado: 0,
-    percentual_concluido: 0
+    percentual_concluido: 0,
+    unidade_peso: 'KG'
   },
   {
     numero_pedido: '001235',
@@ -298,16 +212,17 @@ const mockProducaoData: ProducaoData[] = [
             descricaomat: 'PERFIL U 100MM',
             qtd_pendente: 250,
             un: 'KG',
-            peso_individual: 250,
             numero_op: '12346'
           }
         ],
-        peso_op: 250
+        peso_op: 250,
+        unidade_peso: 'KG'
       }
     ],
     peso_total: 250,
     peso_finalizado: 250,
-    percentual_concluido: 100
+    percentual_concluido: 100,
+    unidade_peso: 'KG'
   },
   {
     numero_pedido: '001236',
@@ -325,16 +240,17 @@ const mockProducaoData: ProducaoData[] = [
             descricaomat: 'TUBO QUADRADO 50X50',
             qtd_pendente: 800,
             un: 'KG',
-            peso_individual: 800,
             numero_op: '12347'
           }
         ],
-        peso_op: 800
+        peso_op: 800,
+        unidade_peso: 'KG'
       }
     ],
     peso_total: 800,
     peso_finalizado: 0,
-    percentual_concluido: 0
+    percentual_concluido: 0,
+    unidade_peso: 'KG'
   }
 ];
 
@@ -434,18 +350,6 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const situacaoOpNorm = normalizeForCompare(situacaoOp);
       const situacaoNorm = normalizeForCompare(situacao);
 
-      if (pedido === '11024') {
-        console.log(`DEBUG pedido 11024 RAW:`, {
-          pedido,
-          numeroOp,
-          descricaomat,
-          qtdVendaStr,
-          un,
-          situacao,
-          situacaoOp
-        });
-      }
-
       // Aceitar SITUACAO_OP = "PROGRAMACAO", "FINALIZADA", "A PROGRAMAR" ou vazio
       if (
         situacaoOpNorm !== 'PROGRAMACAO' &&
@@ -472,15 +376,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         ? parseFloat(qtdVendaStr.replace(/\./g, '').replace(',', '.')) || 0
         : parseFloat(qtdVendaStr) || 0;
       
-      // Debug pedido 11024 após parse
-      if (pedido === '11024') {
-        console.log(`DEBUG pedido 11024 PARSED:`, {
-          qtdVendaStr,
-          qtdVenda,
-          un,
-          descricaomat
-        });
-      }
+      // Normalize unit
+      const unidadeNormalizada = normalizeUnit(un);
       
       // Parse deadline date
       let prazoPcp = '';
@@ -529,26 +426,11 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       // Get pedido data
       const pedidoData = pedidosMap.get(pedido)!;
       
-      // Convert quantity to kg for standardization
-      const qtdKg = convertToKg(qtdVenda, un, descricaomat);
-      
-      // Debug pedido 11024 conversão de peso
-      if (pedido === '11024') {
-        console.log(`DEBUG pedido 11024 WEIGHT:`, {
-          descricaomat,
-          qtdVenda,
-          un,
-          qtdKg,
-          ratio: qtdKg / qtdVenda
-        });
-      }
-      
-      // Create material data
+      // Create material data - mantém unidade original
       const materialData: MaterialData = {
         descricaomat,
-        qtd_pendente: qtdVenda, // Keep original quantity from QTD_VENDA
-        un,
-        peso_individual: qtdKg, // Always in kg
+        qtd_pendente: qtdVenda, // Quantidade na unidade original
+        un: unidadeNormalizada, // Unidade normalizada
         numero_op: numeroOp || 'SEM OP'
       };
       
@@ -559,14 +441,15 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
           numero_op: numeroOp || 'SEM OP',
           situacao_op: situacaoOp,
           materiais: [],
-          peso_op: 0
+          peso_op: 0,
+          unidade_peso: unidadeNormalizada
         });
       }
       
       // Add material to the OP
       const opData = pedidoData.ops.get(opKey)!;
       opData.materiais.push(materialData);
-      opData.peso_op += qtdKg;
+      opData.peso_op += qtdVenda; // Soma na unidade original
     }
     
     // Convert map to array and calculate totals
@@ -574,7 +457,16 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       // Convert ops map to array
       const ops = Array.from(pedidoData.ops.values());
       
-      // Calculate totals
+      // Determinar unidade predominante do pedido (a mais comum)
+      const unidadeContagem = ops.reduce((acc, op) => {
+        acc[op.unidade_peso] = (acc[op.unidade_peso] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const unidade_predominante = Object.entries(unidadeContagem)
+        .sort(([, a], [, b]) => b - a)[0]?.[0] || 'KG';
+      
+      // Calculate totals (soma direta das quantidades nas unidades originais)
       const peso_total = ops.reduce((sum, op) => sum + op.peso_op, 0);
       
       // Calculate weight of finalized OPs
@@ -589,22 +481,6 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const status = calculateOrderStatus(pedidoData.prazo_pcp, ops);
       const diasAtraso = (status === 'ATRASO') ? calculateDiasAtraso(pedidoData.prazo_pcp) : 0;
       
-      // Debug specific orders
-      if (pedidoData.numero_pedido === '10694') {
-        console.log(`DEBUG Pedido 10694 calculation:`, {
-          ops: ops.map(op => ({ 
-            numero_op: op.numero_op, 
-            situacao_op: op.situacao_op, 
-            peso_op: op.peso_op,
-            is_finalizada: normalizeStatus(op.situacao_op).includes('FINALIZADA')
-          })),
-          peso_total,
-          peso_finalizado,
-          percentual_concluido,
-          status
-        });
-      }
-      
       producaoData.push({
         numero_pedido: pedidoData.numero_pedido,
         situacao: pedidoData.situacao,
@@ -615,7 +491,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         ops,
         peso_total,
         peso_finalizado,
-        percentual_concluido
+        percentual_concluido,
+        unidade_peso: unidade_predominante
       });
     }
     

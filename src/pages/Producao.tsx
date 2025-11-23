@@ -5,9 +5,10 @@ import { MateriaisPendentesSummary } from '@/components/dashboard/MateriaisPende
 import { ProducaoTable } from '@/components/dashboard/ProducaoTable';
 import { RelatorioProducao } from '@/components/dashboard/RelatorioProducao';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generatePDFFromElement } from '@/lib/pdf-utils';
 import { useToast } from '@/hooks/use-toast';
-import { FileDown, EyeOff } from 'lucide-react';
+import { FileDown, EyeOff, ClipboardList, Package } from 'lucide-react';
 import { useProducao } from '@/context/ProducaoContext';
 import { HiddenOrdersDialog } from '@/components/dashboard/HiddenOrdersDialog';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
@@ -94,20 +95,38 @@ export default function Producao() {
             </div>
           </div>
 
-          {/* KPIs Produção */}
-          <ErrorBoundary>
-            <ProducaoKPIs />
-          </ErrorBoundary>
+          {/* Tabs para separar Produção e Materiais */}
+          <Tabs defaultValue="producao" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="producao" className="gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Produção
+              </TabsTrigger>
+              <TabsTrigger value="materiais" className="gap-2">
+                <Package className="h-4 w-4" />
+                Materiais Pendentes
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Resumo de Materiais Pendentes */}
-          <ErrorBoundary>
-            <MateriaisPendentesSummary />
-          </ErrorBoundary>
+            <TabsContent value="producao" className="space-y-4 mt-4">
+              {/* KPIs Produção */}
+              <ErrorBoundary>
+                <ProducaoKPIs />
+              </ErrorBoundary>
 
-          {/* Tabela Detalhada de Produção */}
-          <ErrorBoundary>
-            <ProducaoTable />
-          </ErrorBoundary>
+              {/* Tabela Detalhada de Produção */}
+              <ErrorBoundary>
+                <ProducaoTable />
+              </ErrorBoundary>
+            </TabsContent>
+
+            <TabsContent value="materiais" className="space-y-4 mt-4">
+              {/* Resumo de Materiais Pendentes */}
+              <ErrorBoundary>
+                <MateriaisPendentesSummary />
+              </ErrorBoundary>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Relatório oculto para geração de PDF */}

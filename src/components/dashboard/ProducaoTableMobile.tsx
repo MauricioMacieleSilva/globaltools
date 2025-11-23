@@ -53,10 +53,16 @@ export function ProducaoTableMobile({
             fields={[
               {
                 label: 'Peso',
-                value: `${item.peso_total.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 1
-                })} ${item.unidade_peso}`
+                value: Object.entries(item.pesos_por_unidade)
+                  .map(([unidade, peso]) => {
+                    const pesoNum = Number(peso);
+                    const pesoFormatado = pesoNum.toLocaleString('pt-BR', {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 1
+                    });
+                    return `${pesoFormatado}${unidade}`;
+                  })
+                  .join(' / ')
               },
               {
                 label: '% Concluído',

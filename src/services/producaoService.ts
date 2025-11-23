@@ -434,19 +434,16 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const situacaoOpNorm = normalizeForCompare(situacaoOp);
       const situacaoNorm = normalizeForCompare(situacao);
 
-      // Debug pedidos específicos antes de filtrar
-      if (['10694', '10836', '10837', '10838', '10857', '10763'].includes(pedido)) {
-        const debug = {
+      if (pedido === '11024') {
+        console.log(`DEBUG pedido 11024 RAW:`, {
           pedido,
           numeroOp,
-          situacaoRaw: situacao,
-          situacaoNorm,
-          situacaoOpRaw: situacaoOp,
-          situacaoOpNorm,
-          validSituacaoOp: situacaoOpNorm === 'PROGRAMACAO' || situacaoOpNorm === 'FINALIZADA' || situacaoOpNorm === '' || situacaoOpNorm === 'A PROGRAMAR',
-          validSituacao: situacaoNorm === 'EMITIDA' || situacaoNorm === 'PEDIDO',
-        };
-        console.log(`DEBUG pedido ${pedido} OP ${numeroOp} before filter:`, debug);
+          descricaomat,
+          qtdVendaStr,
+          un,
+          situacao,
+          situacaoOp
+        });
       }
 
       // Aceitar SITUACAO_OP = "PROGRAMACAO", "FINALIZADA", "A PROGRAMAR" ou vazio
@@ -474,6 +471,16 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const qtdVenda = qtdVendaStr.includes(',') 
         ? parseFloat(qtdVendaStr.replace(/\./g, '').replace(',', '.')) || 0
         : parseFloat(qtdVendaStr) || 0;
+      
+      // Debug pedido 11024 após parse
+      if (pedido === '11024') {
+        console.log(`DEBUG pedido 11024 PARSED:`, {
+          qtdVendaStr,
+          qtdVenda,
+          un,
+          descricaomat
+        });
+      }
       
       // Parse deadline date
       let prazoPcp = '';
@@ -524,6 +531,17 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       
       // Convert quantity to kg for standardization
       const qtdKg = convertToKg(qtdVenda, un, descricaomat);
+      
+      // Debug pedido 11024 conversão de peso
+      if (pedido === '11024') {
+        console.log(`DEBUG pedido 11024 WEIGHT:`, {
+          descricaomat,
+          qtdVenda,
+          un,
+          qtdKg,
+          ratio: qtdKg / qtdVenda
+        });
+      }
       
       // Create material data
       const materialData: MaterialData = {

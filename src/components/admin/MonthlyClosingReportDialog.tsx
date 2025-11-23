@@ -31,13 +31,20 @@ interface MonthlyClosingReportDialogProps {
 export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingReportDialogProps) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState<string>("");
-  const [year, setYear] = useState<string>(new Date().getFullYear().toString());
+  
+  // Definir ano padrão baseado no mês atual
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1; // 1-12
+  const currentYear = now.getFullYear();
+  
+  // Se mês não selecionado ainda, usar ano do mês anterior como padrão
+  const [year, setYear] = useState<string>(currentYear.toString());
+  
   const [customEmails, setCustomEmails] = useState("");
   const [useRegistered, setUseRegistered] = useState(true);
   const [sending, setSending] = useState(false);
   const { toast } = useToast();
 
-  const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   const getMonthName = (monthValue: string) => {
@@ -67,12 +74,14 @@ export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingRepor
     }
 
     // Validar que não é um mês futuro
-    const selectedDate = new Date(parseInt(year), parseInt(month) - 1);
+    const selectedDate = new Date(parseInt(year), parseInt(month), 1); // Primeiro dia do mês selecionado
     const now = new Date();
-    if (selectedDate > now) {
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1); // Primeiro dia do mês atual
+    
+    if (selectedDate >= currentMonthStart) {
       toast({
         title: "Data inválida",
-        description: "Não é possível gerar relatório de meses futuros",
+        description: "Selecione um mês anterior ao mês atual. O mês ainda não foi concluído.",
         variant: "destructive"
       });
       return;

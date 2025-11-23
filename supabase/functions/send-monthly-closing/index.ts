@@ -452,10 +452,10 @@ function generateHistoricoChart(historico: HistoricoFaturamento[], mesAtual: str
         </td>
         <td style="padding: 8px 10px; width: 100%;">
           <div style="position: relative; height: 32px;">
-            <!-- Barra Ano Anterior -->
-            <div style="position: absolute; top: 0; left: 0; height: 14px; width: ${widthAnterior}%; background: #cbd5e0; border-radius: 3px;"></div>
             <!-- Barra Ano Atual -->
-            <div style="position: absolute; top: 18px; left: 0; height: 14px; width: ${widthAtual}%; background: ${isMesDestaque ? '#48bb78' : '#4299e1'}; border-radius: 3px;"></div>
+            <div style="position: absolute; top: 0; left: 0; height: 14px; width: ${widthAtual}%; background: ${isMesDestaque ? '#48bb78' : '#4299e1'}; border-radius: 3px;"></div>
+            <!-- Barra Ano Anterior -->
+            <div style="position: absolute; top: 18px; left: 0; height: 14px; width: ${widthAnterior}%; background: #cbd5e0; border-radius: 3px;"></div>
           </div>
         </td>
         <td style="padding: 8px 10px; text-align: right; font-size: 10px; color: #718096; white-space: nowrap;">
@@ -472,11 +472,11 @@ function generateHistoricoChart(historico: HistoricoFaturamento[], mesAtual: str
       <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 12px; font-size: 11px;">
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 20px; height: 12px; background: #4299e1; border-radius: 2px;"></div>
-          <span style="color: #2d3748;">${anoAtual}</span>
+          <span style="color: #2d3748;">Ano Atual</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
           <div style="width: 20px; height: 12px; background: #cbd5e0; border-radius: 2px;"></div>
-          <span style="color: #2d3748;">${anoAtual - 1}</span>
+          <span style="color: #2d3748;">Ano Anterior</span>
         </div>
       </div>
       

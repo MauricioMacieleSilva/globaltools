@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ProducaoKPIs } from '@/components/dashboard/ProducaoKPIs';
+import { MateriaisPendentesSummary } from '@/components/dashboard/MateriaisPendentesSummary';
 import { ProducaoTable } from '@/components/dashboard/ProducaoTable';
 import { RelatorioProducao } from '@/components/dashboard/RelatorioProducao';
 import { Button } from '@/components/ui/button';
@@ -96,6 +97,11 @@ export default function Producao() {
           {/* KPIs Produção */}
           <ErrorBoundary>
             <ProducaoKPIs />
+          </ErrorBoundary>
+
+          {/* Resumo de Materiais Pendentes */}
+          <ErrorBoundary>
+            <MateriaisPendentesSummary />
           </ErrorBoundary>
 
           {/* Tabela Detalhada de Produção */}

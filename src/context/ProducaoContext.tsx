@@ -13,6 +13,15 @@ export interface HiddenProductionOrder {
   motivo: string | null;
 }
 
+export interface MaterialAgregado {
+  descricaomat: string;
+  quantidadeTotal: number;
+  unidade: string;
+  numPedidos: number;
+  numPedidosAtrasados: number;
+  pedidos: string[];
+}
+
 interface ProducaoContextType {
   data: ProducaoData[];
   loading: boolean;
@@ -37,6 +46,9 @@ interface ProducaoContextType {
   hideOrder: (numeroPedido: string, motivo?: string) => Promise<void>;
   unhideOrder: (numeroPedido: string) => Promise<void>;
   refreshHiddenOrders: () => Promise<void>;
+  
+  // Material agregado
+  getMateriaisPendentesAgregados: () => MaterialAgregado[];
   
   // KPIs
   totalPedidos: number;
@@ -262,6 +274,59 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
     peso: programarItems.reduce((sum, item) => sum + getTotalWeight(item), 0)
   };
 
+  const getMateriaisPendentesAgregados = (): MaterialAgregado[] => {
+    const materiaisMap = new Map<string, MaterialAgregado>();
+    
+    // Iterar sobre pedidos não finalizados
+    filteredData.forEach((pedido) => {
+      const isPedidoAtrasado = pedido.status === 'ATRASO';
+      
+      // Para cada OP do pedido
+      pedido.ops?.forEach((op) => {
+        // Ignorar OPs finalizadas
+        if (op.situacao_op === 'FINALIZADO') return;
+        
+        // Para cada material da OP
+        op.materiais?.forEach((material) => {
+          const key = `${material.descricaomat}_${material.un}`;
+          
+          if (!materiaisMap.has(key)) {
+            materiaisMap.set(key, {
+              descricaomat: material.descricaomat,
+              quantidadeTotal: 0,
+              unidade: material.un,
+              numPedidos: 0,
+              numPedidosAtrasados: 0,
+              pedidos: [],
+            });
+          }
+          
+          const materialAgregado = materiaisMap.get(key)!;
+          materialAgregado.quantidadeTotal += material.qtd_pendente || 0;
+          
+          // Adicionar pedido se ainda não estiver na lista
+          if (!materialAgregado.pedidos.includes(pedido.numero_pedido)) {
+            materialAgregado.pedidos.push(pedido.numero_pedido);
+            materialAgregado.numPedidos++;
+            if (isPedidoAtrasado) {
+              materialAgregado.numPedidosAtrasados++;
+            }
+          }
+        });
+      });
+    });
+    
+    // Converter map para array e ordenar por prioridade
+    return Array.from(materiaisMap.values()).sort((a, b) => {
+      // Priorizar materiais com pedidos atrasados
+      if (a.numPedidosAtrasados !== b.numPedidosAtrasados) {
+        return b.numPedidosAtrasados - a.numPedidosAtrasados;
+      }
+      // Depois por quantidade total
+      return b.quantidadeTotal - a.quantidadeTotal;
+    });
+  };
+
   const value: ProducaoContextType = {
     data,
     loading,
@@ -278,6 +343,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
     hideOrder,
     unhideOrder,
     refreshHiddenOrders,
+    getMateriaisPendentesAgregados,
     totalPedidos,
     quantidadeTotal,
     noPrazo,

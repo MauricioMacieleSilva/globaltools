@@ -140,7 +140,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
       
       if (result?.error) {
         console.log('❌ Erro de login:', result.error)
-        setError('Erro: ' + result.error)
+        // Evitar duplicação de "Erro:" no começo da mensagem
+        const errorMsg = result.error.startsWith('Erro') 
+          ? result.error 
+          : 'Erro: ' + result.error
+        setError(errorMsg)
       } else {
         console.log('✅ Login bem-sucedido, aguardando redirecionamento...')
         // Não fazer nada, deixar o AuthContext gerenciar

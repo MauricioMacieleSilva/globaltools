@@ -289,9 +289,8 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
       
       // Para cada OP do pedido
       pedido.ops?.forEach((op) => {
-        // Ignorar OPs finalizadas ou concluídas
-        const situacaoOp = op.situacao_op?.toUpperCase() || '';
-        if (situacaoOp === 'FINALIZADO' || situacaoOp === 'CONCLUÍDO' || situacaoOp === 'CONCLUIDO') return;
+        // Ignorar OPs finalizadas
+        if (op.situacao_op === 'FINALIZADO') return;
         
         // Para cada material da OP
         op.materiais?.forEach((material) => {
@@ -313,25 +312,24 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
           const qtdMaterial = material.qtd_pendente || 0;
           materialAgregado.quantidadeTotal += qtdMaterial;
           
-          // Verificar se já contamos este pedido (independente da OP)
+          // Adicionar pedido se ainda não estiver na lista, ou atualizar quantidade
           const pedidoExistente = materialAgregado.pedidos.find(
             p => p.numero_pedido === pedido.numero_pedido
           );
           
           if (!pedidoExistente) {
-            // Pedido ainda não foi contado para este material
             materialAgregado.pedidos.push({
               numero_pedido: pedido.numero_pedido,
               cliente: pedido.cli_nomef,
               atrasado: isPedidoAtrasado,
               quantidade: qtdMaterial,
             });
-            materialAgregado.numPedidos++; // Conta apenas pedidos únicos
+            materialAgregado.numPedidos++;
             if (isPedidoAtrasado) {
               materialAgregado.numPedidosAtrasados++;
             }
           } else {
-            // Pedido já existe, apenas somar quantidade (múltiplas OPs ou linhas)
+            // Somar quantidade se o pedido já existe (múltiplas OPs)
             pedidoExistente.quantidade += qtdMaterial;
           }
         });

@@ -3,7 +3,7 @@ interface MaterialData {
   qtd_pendente: number;
   un: string;
   numero_op: string;
-  classe: string; // Classe do material (Column J)
+  classe: string; // Classe do material (Column V)
 }
 
 interface OperacaoData {
@@ -292,26 +292,26 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     // PEDIDO (Column C) = index 2
     // SITUACAO (Column E) = index 4  
     // CLI_NOMEF (Column H) = index 7
-    // CLASSE (Column J) = index 9 - Classe do material
     // DESCRICAOMAT (Column K) = index 10
     // QTD_VENDA (Column M) = index 12
     // UN (Column N) = index 13
     // QTD_PENDENTE (Column P) = index 15 (não usado mais)
+    // CODOP (Column T) = index 19 - Número da OP
     // SITUACAO_OP (Column U) = index 20
+    // CLASSE (Column V) = index 21 - Classe do material
     // PRAZOCOMERCIAL (Column B) = index 1
-    // CODOP (Column T) = index 19  - Número da OP
     
     const columnIndexes = {
       pedido: 2,           // Column C
       situacao: 4,         // Column E  
       cli_nomef: 7,        // Column H
-      classe: 9,           // Column J - Classe do material
       descricaomat: 10,    // Column K
       qtd_venda: 12,       // Column M (nova coluna a usar)
       un: 13,              // Column N
-      situacao_op: 20,     // Column U
-      prazocomercial: 1,   // Column B
       numero_op: 19,       // Column T - CODOP
+      situacao_op: 20,     // Column U
+      classe: 21,          // Column V - Classe do material
+      prazocomercial: 1,   // Column B
     };
     
     console.log('Using column indexes:', columnIndexes);

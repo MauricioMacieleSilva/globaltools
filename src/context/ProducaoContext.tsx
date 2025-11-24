@@ -289,8 +289,9 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
       
       // Para cada OP do pedido
       pedido.ops?.forEach((op) => {
-        // Ignorar OPs finalizadas
-        if (op.situacao_op === 'FINALIZADO') return;
+        // Ignorar OPs finalizadas ou concluídas
+        const situacaoOp = op.situacao_op?.toUpperCase() || '';
+        if (situacaoOp === 'FINALIZADO' || situacaoOp === 'CONCLUÍDO' || situacaoOp === 'CONCLUIDO') return;
         
         // Para cada material da OP
         op.materiais?.forEach((material) => {

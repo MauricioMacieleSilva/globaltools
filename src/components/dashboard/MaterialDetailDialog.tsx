@@ -2,7 +2,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { MaterialAgregado } from "@/context/ProducaoContext";
 import { AlertTriangle, Package, User } from "lucide-react";
-import { getClasseName } from "@/lib/utils-producao";
 
 interface MaterialDetailDialogProps {
   material: MaterialAgregado | null;
@@ -38,7 +37,7 @@ export function MaterialDetailDialog({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <span className="text-sm text-muted-foreground">Classe:</span>
-                <p className="font-medium">{getClasseName(material.classe)}</p>
+                <p className="font-medium">{material.classe}</p>
               </div>
               
               <div>

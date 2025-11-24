@@ -287,6 +287,14 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     
     const header = rows[0];
     console.log('Header row:', header);
+    console.log('Total columns in header:', header.length);
+    
+    // Log column headers to find the correct classe column
+    header.forEach((col, idx) => {
+      if (col && (col.toLowerCase().includes('classe') || col.toLowerCase().includes('class'))) {
+        console.log(`Found column with "classe" at index ${idx}: "${col}"`);
+      }
+    });
     
     // Column mappings based on user specifications:
     // PEDIDO (Column C) = index 2
@@ -405,9 +413,17 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
           situacaoOp,
           cliNomef,
           descricaomat,
+          classe,
           qtdVenda,
           un,
           prazoPcp
+        });
+        console.log(`Row ${i} raw columns 19-23:`, {
+          col19: row[19],
+          col20: row[20],
+          col21: row[21],
+          col22: row[22],
+          col23: row[23]
         });
       }
       

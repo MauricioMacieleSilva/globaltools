@@ -37,8 +37,8 @@ export function MateriaisPendentesSummary() {
 
   // Aplicar ordenação
   materiaisFiltrados = [...materiaisFiltrados].sort((a, b) => {
-    let aValue = a[sortField];
-    let bValue = b[sortField];
+    const aValue = a[sortField];
+    const bValue = b[sortField];
     
     // Para strings, usar localeCompare
     if (typeof aValue === 'string' && typeof bValue === 'string') {

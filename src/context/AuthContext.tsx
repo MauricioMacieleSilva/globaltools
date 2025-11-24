@@ -345,75 +345,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     console.log('🔥 INICIANDO signIn function')
     
-    const maxRetries = 3
-    let lastError = ''
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`🔄 Tentativa ${attempt} de ${maxRetries}`)
-        
-        if (attempt === 1) {
-          console.log('🧹 Limpando estado...')
-          cleanupAuthState()
-        }
-        
-        console.log('📤 Chamando supabase.auth.signInWithPassword...')
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
+    try {
+      console.log('🧹 Limpando estado...')
+      cleanupAuthState()
+      
+      console.log('📤 Chamando supabase.auth.signInWithPassword...')
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-        console.log('📥 Resposta do Supabase:', { data: !!data, error: error?.message })
+      console.log('📥 Resposta do Supabase:', { data: !!data, error: error?.message })
 
-        if (error) {
-          console.log('❌ Erro de login:', error.message)
-          
-          // Erros que não devem ser retentados
-          if (error.message.includes('Invalid login credentials') || 
-              error.message.includes('User not found') ||
-              error.message.includes('Email not confirmed')) {
-            return { error: error.message }
-          }
-          
-          lastError = error.message
-          
-          // Para outros erros, tentar novamente
-          if (attempt < maxRetries) {
-            console.log(`⏳ Aguardando ${attempt}s antes da próxima tentativa...`)
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
-            continue
-          }
-          
-          return { error: 'Erro ao conectar. Verifique sua internet e tente novamente.' }
-        }
-
-        console.log('✅ Login Supabase bem-sucedido!')
-        console.log('👤 Dados do usuário:', data.user?.id, data.user?.email)
-        
-        return {}
-        
-      } catch (error) {
-        console.error(`💥 Erro capturado na tentativa ${attempt}:`, error)
-        lastError = error instanceof Error ? error.message : 'Erro desconhecido'
-        
-        // Se for erro de fetch/rede, tentar novamente
-        if (attempt < maxRetries && lastError.toLowerCase().includes('fetch')) {
-          console.log(`⏳ Erro de rede. Aguardando ${attempt}s antes da próxima tentativa...`)
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
-          continue
-        }
-        
-        if (attempt >= maxRetries) {
-          break
-        }
+      if (error) {
+        console.log('❌ Erro de login:', error.message)
+        return { error: error.message }
       }
-    }
-    
-    console.log('🏁 Fim da função signIn após todas as tentativas')
-    return { 
-      error: lastError.toLowerCase().includes('fetch')
-        ? 'Erro de conexão. Verifique sua internet e tente novamente.'
-        : 'Erro ao conectar com o servidor. Tente novamente.' 
+
+      console.log('✅ Login Supabase bem-sucedido!')
+      console.log('👤 Dados do usuário:', data.user?.id, data.user?.email)
+      
+      return {}
+    } catch (error) {
+      console.error('💥 Erro capturado no signIn:', error)
+      return { error: 'Erro inesperado durante o login' }
+    } finally {
+      console.log('🏁 Fim da função signIn')
     }
   }
 

@@ -181,13 +181,16 @@ function calcularDiasUteis(startDate: Date, endDate: Date): number {
 
 // Carregar dados da planilha - IGUAL ao googleSheetsService.ts
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
+  const CSV_URL_WITH_TIMESTAMP = `${CSV_URL}&timestamp=${Date.now()}`;
   console.log('📊 Buscando dados da planilha...');
-  console.log('📋 URL:', CSV_URL);
+  console.log('📋 URL:', CSV_URL_WITH_TIMESTAMP);
   
   try {
-    const response = await fetch(CSV_URL, {
+    const response = await fetch(CSV_URL_WITH_TIMESTAMP, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0)',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
       },
     });
     
@@ -246,7 +249,15 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
         return true;
       });
     
+    const latestDate = comercialData.reduce((latest, item) => {
+      const itemDate = getDateField(item);
+      return itemDate && itemDate > latest ? itemDate : latest;
+    }, new Date(0));
+
     console.log(`✅ ${comercialData.length} registros carregados da planilha`);
+    console.log(`📅 Data mais recente nos dados: ${latestDate.toLocaleDateString('pt-BR')}`);
+    console.log(`🕐 Timestamp da extração: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+    
     return comercialData;
     
   } catch (error) {
@@ -495,7 +506,8 @@ function generateReportHTML(
   mesAnterior: ComparativoMes | null,
   melhorMes: ComparativoMes | null,
   ranking: VendedorPerformance[],
-  orcamentosQuentes: OrcamentoQuente[]
+  orcamentosQuentes: OrcamentoQuente[],
+  allDataLength: number
 ): string {
   const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
   const faltaMeta = meta - kpis.faturamento;
@@ -867,7 +879,10 @@ function generateReportHTML(
         </div>
 
         <div class="footer">
-          <p style="color: #718096 !important;">Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
+          <p style="margin: 5px 0; color: #718096 !important;">📅 Dados extraídos em: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
+          <p style="margin: 5px 0; color: #718096 !important;">📊 Total de ${allDataLength} registros processados</p>
+          <p style="font-size: 11px; color: #999; margin: 10px 0 0 0;">Este relatório foi gerado automaticamente com dados atualizados da planilha comercial.</p>
+          <p style="margin-top: 10px; color: #718096 !important;">Este relatório usa a mesma fonte de dados do Dashboard Comercial.</p>
           <p style="color: #718096 !important;">Acesse o Dashboard para visualizar análises detalhadas.</p>
         </div>
       </div>
@@ -1030,7 +1045,8 @@ const handler = async (req: Request): Promise<Response> => {
       mesAnterior,
       melhorMes,
       ranking,
-      orcamentosQuentes
+      orcamentosQuentes,
+      allData.length
     );
 
     // 8. Enviar email via Resend

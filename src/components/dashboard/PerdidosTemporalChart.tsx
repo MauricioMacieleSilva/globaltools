@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useComercial } from '@/context/ComercialContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useExcludedOrders } from '@/hooks/useExcludedOrders';
 
 interface ChartDataItem {
   periodo: string;
@@ -36,13 +37,15 @@ function parseDate(dateString: string): Date | null {
 
 export function PerdidosTemporalChart() {
   const { filteredData, drillDown, setDrillDown } = useComercial();
+  const { isOrderExcluded } = useExcludedOrders();
 
   const perdidosTemporalData = useMemo(() => {
-    // Usar dados já filtrados pelo contexto
+    // Usar dados já filtrados pelo contexto, excluindo pedidos ocultos
     const dadosPerdidos = filteredData.filter(item => 
       item.situacao === 'Perdido' && 
       item.perdido_motivo && 
-      item.perdido_motivo !== 'Não informado'
+      item.perdido_motivo !== 'Não informado' &&
+      !isOrderExcluded(item.numeropedido)
     );
 
     if (drillDown.isMonthView) {
@@ -114,7 +117,7 @@ export function PerdidosTemporalChart() {
         };
       });
     }
-  }, [filteredData, drillDown]);
+  }, [filteredData, drillDown, isOrderExcluded]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

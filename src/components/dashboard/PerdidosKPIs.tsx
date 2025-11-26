@@ -2,16 +2,19 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingDown, Users, Package, DollarSign } from 'lucide-react';
 import { useComercial } from '@/context/ComercialContext';
+import { useExcludedOrders } from '@/hooks/useExcludedOrders';
 
 export function PerdidosKPIs() {
   const { filteredData, isLoading } = useComercial();
+  const { isOrderExcluded } = useExcludedOrders();
 
-  // Calcular KPIs baseado nos dados já filtrados pelo contexto
+  // Calcular KPIs baseado nos dados já filtrados pelo contexto, excluindo pedidos ocultos
   const kpisPerdidos = React.useMemo(() => {
     const dadosFiltrados = filteredData.filter(item => 
       item.situacao === 'Perdido' && 
       item.perdido_motivo && 
-      item.perdido_motivo !== 'Não informado'
+      item.perdido_motivo !== 'Não informado' &&
+      !isOrderExcluded(item.numeropedido)
     );
 
     const valor = dadosFiltrados.reduce((acc, item) => acc + item.valor, 0);
@@ -29,7 +32,7 @@ export function PerdidosKPIs() {
       numPedidos,
       numClientes
     };
-  }, [filteredData]);
+  }, [filteredData, isOrderExcluded]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

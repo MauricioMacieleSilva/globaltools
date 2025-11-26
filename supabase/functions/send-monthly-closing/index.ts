@@ -13,7 +13,7 @@ const corsHeaders = {
 
 // Mesmos IDs da planilha usados no googleSheetsService.ts
 const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
-const GID = "2063157767";
+const GID = "1086211541";
 
 // Interface IGUAL ao ComercialData do frontend e do send-manual-report
 interface ComercialData {

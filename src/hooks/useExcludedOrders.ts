@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ExcludedOrder {
   id: string;
@@ -14,8 +15,21 @@ export function useExcludedOrders() {
   const [isLoading, setIsLoading] = useState(false);
 
   const loadExcludedOrders = async () => {
-    // Sem banco de dados, não há pedidos excluídos
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('excluded_orders')
+        .select('numero_pedido');
+
+      if (error) throw error;
+
+      const orderNumbers = new Set((data || []).map(o => o.numero_pedido));
+      setExcludedOrders(orderNumbers);
+    } catch (error) {
+      console.error('Erro ao carregar pedidos excluídos:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {

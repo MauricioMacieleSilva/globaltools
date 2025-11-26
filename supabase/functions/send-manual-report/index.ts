@@ -271,6 +271,7 @@ function calculateKPIs(
   allData: ComercialData[],
   startDate: Date,
   endDate: Date,
+  excludedOrders: Set<string> = new Set(),
   calcularDias: boolean = true
 ): EmailKPIs {
   console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
@@ -312,9 +313,11 @@ function calculateKPIs(
   console.log(`📦 Pedidos não faturados: ${pedidosNaoFaturados} pedidos distintos = R$ ${pedidosNaoFaturadosValor.toFixed(2)} (${pedidosNaoFaturadosData.length} linhas)`);
   
   // Calcular perdidos usando data_perdido (igual à aba Perdidos do dashboard)
+  // FILTRANDO pedidos excluídos
   const perdidosData = allData.filter(item => {
     if (item.situacao !== 'Perdido') return false;
     if (!item.perdido_motivo || item.perdido_motivo === 'Não informado') return false;
+    if (excludedOrders.has(item.numeropedido)) return false; // NOVO: Filtrar pedidos excluídos
 
     // Preferir data_perdido; se não tiver, cair para data_inicio ou data_emissao
     const datePerdido = parseDate(item.data_perdido || '');
@@ -930,6 +933,14 @@ const handler = async (req: Request): Promise<Response> => {
     // 2. Carregar dados da planilha
     const allData = await loadComercialDataFromSheet();
     
+    // 2.5 Buscar pedidos excluídos
+    console.log('🚫 Buscando pedidos excluídos...');
+    const { data: excludedOrdersData } = await supabaseAdmin
+      .from('excluded_orders')
+      .select('numero_pedido');
+    const excludedOrders = new Set((excludedOrdersData || []).map(o => o.numero_pedido));
+    console.log(`🚫 ${excludedOrders.size} pedidos excluídos dos indicadores`);
+    
     // 3. Buscar meta mensal do banco de dados (admin_goals)
     console.log('🎯 Buscando meta mensal...');
     const ano = startDate.getFullYear();
@@ -959,7 +970,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 4. Calcular KPIs do período solicitado
     console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
-    const kpis = calculateKPIs(allData, startDate, endDate);
+    const kpis = calculateKPIs(allData, startDate, endDate, excludedOrders);
 
     // 5. Calcular ranking de vendedores no período
     const ranking = calcularRankingVendedores(allData, startDate, endDate);
@@ -974,7 +985,7 @@ const handler = async (req: Request): Promise<Response> => {
       const ultimoDiaMesAnterior = new Date(ano, mes - 1, 0);
       
       console.log(`📊 Calculando KPIs do mês anterior: ${mesAnteriorDate.toISOString()} a ${ultimoDiaMesAnterior.toISOString()}`);
-      const kpisMesAnterior = calculateKPIs(allData, mesAnteriorDate, ultimoDiaMesAnterior, false);
+      const kpisMesAnterior = calculateKPIs(allData, mesAnteriorDate, ultimoDiaMesAnterior, excludedOrders, false);
       
       if (kpisMesAnterior.faturamento > 0) {
         const variacao = kpisMesAnterior.faturamento > 0 
@@ -1005,7 +1016,7 @@ const handler = async (req: Request): Promise<Response> => {
         const mesAnalise = new Date(ano, mes - i, 1);
         const ultimoDiaMesAnalise = new Date(ano, mes - i + 1, 0);
         
-        const kpisMes = calculateKPIs(allData, mesAnalise, ultimoDiaMesAnalise, false);
+        const kpisMes = calculateKPIs(allData, mesAnalise, ultimoDiaMesAnalise, excludedOrders, false);
         
         if (kpisMes.faturamento > maiorFaturamento) {
           maiorFaturamento = kpisMes.faturamento;

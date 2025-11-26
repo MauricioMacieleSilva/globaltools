@@ -3,15 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, EyeOff, Eye } from 'lucide-react';
 import { useComercial } from '@/context/ComercialContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PerdidosTableMobile } from './PerdidosTableMobile';
+import { ExcludedOrdersDialog } from '@/components/admin/ExcludedOrdersDialog';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function PerdidosTable() {
-  const { filteredData } = useComercial();
+  const { filteredData, refreshData } = useComercial();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [showExcludedDialog, setShowExcludedDialog] = useState(false);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const groupedPerdidos = useMemo(() => {
     const filtered = filteredData.filter(item => 
@@ -59,6 +64,37 @@ export function PerdidosTable() {
       newExpanded.add(orderNumber);
     }
     setExpandedOrders(newExpanded);
+  };
+
+  const handleExcludeOrder = async (numeroPedido: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('excluded_orders')
+        .insert({
+          numero_pedido: numeroPedido,
+          motivo: 'Excluído da aba de perdidos',
+          created_by: user?.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Pedido excluído dos indicadores de perdidos"
+      });
+
+      refreshData();
+    } catch (error: any) {
+      console.error('Erro ao excluir pedido:', error);
+      toast({
+        title: "Erro",
+        description: error.message?.includes('duplicate key') 
+          ? "Este pedido já está excluído" 
+          : "Erro ao excluir pedido",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -123,11 +159,20 @@ export function PerdidosTable() {
   };
 
   return (
+    <>
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-destructive">
           Detalhamento dos Perdidos ({groupedPerdidos.length} pedidos)
         </CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowExcludedDialog(true)}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          Ver Pedidos Excluídos
+        </Button>
       </CardHeader>
       <CardContent>
         {isMobile ? (
@@ -154,6 +199,7 @@ export function PerdidosTable() {
                 <TableHead>Motivo</TableHead>
                 <TableHead>Data Perdido</TableHead>
                 <TableHead>Vendedor</TableHead>
+                <TableHead className="w-20">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -201,6 +247,19 @@ export function PerdidosTable() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">{order.vendedor}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExcludeOrder(order.numeropedido);
+                        }}
+                        title="Excluir dos indicadores"
+                      >
+                        <EyeOff className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                   
@@ -257,5 +316,14 @@ export function PerdidosTable() {
         )}
       </CardContent>
     </Card>
+    
+    <ExcludedOrdersDialog
+      isOpen={showExcludedDialog}
+      onClose={() => {
+        setShowExcludedDialog(false);
+        refreshData();
+      }}
+    />
+    </>
   );
 }

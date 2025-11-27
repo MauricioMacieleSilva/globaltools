@@ -723,14 +723,7 @@ function generateReportHTML(
 
         <div class="footer">
           <p style="margin: 5px 0; color: #718096 !important;">📅 Dados extraídos em: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
-          <p style="margin: 5px 0; color: #718096 !important;">📊 Total de ${allDataLength} registros processados</p>
-          <p style="font-size: 11px; color: #999; margin: 10px 0 0 0;">Este relatório foi gerado automaticamente com dados atualizados da planilha comercial.</p>
-        <div class="footer">
-          <p style="margin: 5px 0; color: #718096 !important;">📅 Dados extraídos em: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
-          <p style="margin: 5px 0; color: #718096 !important;">📊 Total de ${allDataLength} registros processados</p>
-          <p style="font-size: 11px; color: #999; margin: 10px 0 0 0;">Este relatório foi gerado automaticamente com dados atualizados da planilha comercial.</p>
-          <p style="margin-top: 10px; color: #718096 !important;">Relatório de fechamento gerado automaticamente • ${new Date().toLocaleDateString('pt-BR')}</p>
-          <p style="color: #718096 !important;">Acesse o Dashboard para visualizar análises detalhadas.</p>
+          <p style="margin: 5px 0; color: #718096 !important;">Fonte de dados: TID</p>
         </div>
       </div>
     </body>

@@ -620,7 +620,7 @@ const handler = async (req: Request): Promise<Response> => {
         const authorizedTestEmail = "mauricio.maciel@globalaco.com.br";
 
         const emailPayload = {
-          from: "Lovable <onboarding@resend.dev>",
+          from: "Vendas Global Aço <onboarding@resend.dev>",
           to: isTestMode ? [authorizedTestEmail] : [config.email],
           subject: isTestMode 
             ? `📊 Relatório Comercial Diário - ${reportDate} [TESTE]`

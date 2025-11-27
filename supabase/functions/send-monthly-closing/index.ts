@@ -799,7 +799,7 @@ const handler = async (req: Request): Promise<Response> => {
     for (const recipient of recipients) {
       try {
         await resend.emails.send({
-          from: "Lovable <onboarding@resend.dev>",
+          from: "Vendas Global Aço <onboarding@resend.dev>",
           to: [recipient],
           subject: `📊 Relatório de Fechamento - ${monthName}/${year}`,
           html: reportHTML,

@@ -1064,7 +1064,7 @@ const handler = async (req: Request): Promise<Response> => {
     const targetEmail = isTestMode ? verifiedEmail : config.email;
     
     const emailPayload = {
-      from: "Lovable <onboarding@resend.dev>",
+      from: "Vendas Global Aço <onboarding@resend.dev>",
       to: [targetEmail],
       subject: `📊 Relatório Comercial - ${reportDate}`,
       html: reportHTML,

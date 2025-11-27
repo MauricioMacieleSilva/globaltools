@@ -381,7 +381,7 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <div class="header-icon">📊</div>
+          <img src="https://xhkdwfpnmjvmfbmokvct.supabase.co/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 60px; margin-bottom: 12px;" />
           <h1>Relatório Comercial</h1>
           <p class="header-subtitle"><strong>Ontem:</strong> ${reportDate}</p>
         </div>

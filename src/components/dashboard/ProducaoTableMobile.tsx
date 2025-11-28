@@ -198,7 +198,7 @@ export function ProducaoTableMobile({
                           <span className="text-muted-foreground truncate flex-1">
                             {mat.descricaomat}
                             {mat.observacao && (
-                              <span className="ml-1">{mat.observacao}</span>
+                              <span> - {mat.observacao}</span>
                             )}
                           </span>
                           <div className="flex-shrink-0 ml-2">

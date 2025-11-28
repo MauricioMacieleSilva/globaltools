@@ -197,6 +197,9 @@ export function ProducaoTableMobile({
                         <div key={`mat-${matIndex}`} className="flex justify-between items-center py-1">
                           <span className="text-muted-foreground truncate flex-1">
                             {mat.descricaomat}
+                            {mat.observacao && (
+                              <span className="ml-1">{mat.observacao}</span>
+                            )}
                           </span>
                           <div className="flex-shrink-0 ml-2">
                             {getMaterialStatusBadge(mat.status_item)}

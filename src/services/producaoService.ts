@@ -1,5 +1,6 @@
 interface MaterialData {
   descricaomat: string;
+  observacao: string; // Descrição detalhada (Column K)
   qtd_pendente: number;
   un: string;
   numero_op: string;
@@ -181,6 +182,7 @@ const mockProducaoData: ProducaoData[] = [
         materiais: [
           {
             descricaomat: 'CHAPA AÇO 1020 - 3MM',
+            observacao: '500kg 1000x2000mm',
             qtd_pendente: 500,
             un: 'KG',
             numero_op: '12345',
@@ -208,6 +210,7 @@ const mockProducaoData: ProducaoData[] = [
         materiais: [
           {
             descricaomat: 'PERFIL U 100MM',
+            observacao: '250pçs PERFIL U 100x50x100 6000mm',
             qtd_pendente: 250,
             un: 'KG',
             numero_op: '12346',
@@ -235,6 +238,7 @@ const mockProducaoData: ProducaoData[] = [
         materiais: [
           {
             descricaomat: 'TUBO QUADRADO 50X50',
+            observacao: '800pçs TUBO QUADRADO 50x50x2 6000mm',
             qtd_pendente: 800,
             un: 'KG',
             numero_op: '12347',
@@ -300,7 +304,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     // PEDIDO (Column C) = index 2
     // SITUACAO (Column E) = index 4  
     // CLI_NOMEF (Column H) = index 7
-    // DESCRICAOMAT (Column K) = index 10
+    // DESCRICAOMAT (Column J) = index 9 - Nome do material
+    // OBSERVACAO (Column K) = index 10 - Descrição detalhada (ex: 385pçs PERFIL U 40x207x40 6000mm)
     // QTD_VENDA (Column M) = index 12
     // UN (Column N) = index 13
     // QTD_PENDENTE (Column P) = index 15 (não usado mais)
@@ -313,7 +318,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       pedido: 2,           // Column C
       situacao: 4,         // Column E  
       cli_nomef: 7,        // Column H
-      descricaomat: 10,    // Column K
+      descricaomat: 9,     // Column J - Nome do material
+      observacao: 10,      // Column K - Descrição detalhada
       qtd_venda: 12,       // Column M (nova coluna a usar)
       un: 13,              // Column N
       numero_op: 19,       // Column T - CODOP
@@ -345,6 +351,7 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const cliNomef = normalizeField(row[columnIndexes.cli_nomef] ?? '');
       const classe = normalizeField(row[columnIndexes.classe] ?? '');
       const descricaomat = normalizeField(row[columnIndexes.descricaomat] ?? '');
+      const observacao = normalizeField(row[columnIndexes.observacao] ?? '');
       const qtdVendaStr = normalizeField(row[columnIndexes.qtd_venda] ?? '');
       const un = normalizeField(row[columnIndexes.un] ?? '');
       const prazoPcpStr = normalizeField(row[columnIndexes.prazocomercial] ?? '');
@@ -444,6 +451,7 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       // Create material data - mantém unidade original
       const materialData: MaterialData = {
         descricaomat,
+        observacao, // Descrição detalhada (ex: 385pçs PERFIL U 40x207x40 6000mm)
         qtd_pendente: qtdVenda, // Quantidade na unidade original
         un: unidadeNormalizada, // Unidade normalizada
         numero_op: numeroOp || 'SEM OP',

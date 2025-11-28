@@ -597,7 +597,7 @@ export function ProducaoTable() {
                                       <span className="flex-1">
                                         {material.descricaomat}
                                         {material.observacao && (
-                                          <span className="text-muted-foreground ml-2">{material.observacao}</span>
+                                          <span className="text-muted-foreground"> - {material.observacao}</span>
                                         )}
                                       </span>
                                       <div className="flex items-center gap-4 text-muted-foreground">

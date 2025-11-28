@@ -293,12 +293,22 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     console.log('Header row:', header);
     console.log('Total columns in header:', header.length);
     
-    // Log column headers to find the correct classe column
+    // Log column headers to find the correct columns
     header.forEach((col, idx) => {
-      if (col && (col.toLowerCase().includes('classe') || col.toLowerCase().includes('class'))) {
-        console.log(`Found column with "classe" at index ${idx}: "${col}"`);
+      const colLower = (col || '').toLowerCase();
+      if (colLower.includes('classe') || colLower.includes('class') || 
+          colLower.includes('descricao') || colLower.includes('observa')) {
+        console.log(`Found relevant column at index ${idx}: "${col}"`);
       }
     });
+    
+    // Debug: Log columns 8-12 specifically
+    console.log('=== COLUMNS 8-12 ===');
+    console.log('Col 8:', header[8]);
+    console.log('Col 9:', header[9]);
+    console.log('Col 10:', header[10]);
+    console.log('Col 11:', header[11]);
+    console.log('Col 12:', header[12]);
     
     // Column mappings based on user specifications:
     // PEDIDO (Column C) = index 2
@@ -341,6 +351,15 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
+      
+      // Debug first 5 rows to see raw column data
+      if (i <= 5) {
+        console.log(`=== RAW ROW ${i} COLUMNS 8-12 ===`);
+        console.log('Col 8 (I):', row[8]);
+        console.log('Col 9 (J - descricaomat):', row[9]);
+        console.log('Col 10 (K - observacao):', row[10]);
+        console.log('Col 11 (L):', row[11]);
+      }
       
       // Access columns defensively; some trailing columns may be missing
       // Do not skip rows solely due to length; we'll default missing fields to empty
@@ -420,17 +439,16 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
           situacaoOp,
           cliNomef,
           descricaomat,
+          observacao,
           classe,
           qtdVenda,
           un,
           prazoPcp
         });
-        console.log(`Row ${i} raw columns 19-23:`, {
-          col19: row[19],
-          col20: row[20],
-          col21: row[21],
-          col22: row[22],
-          col23: row[23]
+        console.log(`Row ${i} raw columns 9-11 (descricaomat/observacao):`, {
+          col9: row[9],
+          col10: row[10],
+          col11: row[11]
         });
       }
       

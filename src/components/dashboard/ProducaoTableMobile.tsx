@@ -199,7 +199,8 @@ export function ProducaoTableMobile({
                             {mat.descricaomat}
                           </span>
                           {mat.observacao && (
-                            <span className="text-muted-foreground ml-1">
+                            <span className="text-muted-foreground">
+                              <span className="mx-1">-</span>
                               {mat.observacao}
                             </span>
                           )}

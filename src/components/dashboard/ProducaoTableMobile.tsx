@@ -194,16 +194,13 @@ export function ProducaoTableMobile({
                     <div className="font-medium text-sm mb-2">OP {op.numero_op}</div>
                     <div className="space-y-1 text-xs">
                       {op.materiais.map((mat: any, matIndex: number) => (
-                        <div key={`mat-${matIndex}`} className="flex justify-between items-center py-1">
-                          <span className="text-muted-foreground truncate flex-1">
+                        <div key={`mat-${matIndex}`} className="grid grid-cols-2 gap-2 py-1">
+                          <span className="text-primary font-medium">
                             {mat.descricaomat}
-                            {mat.observacao && (
-                              <span> - {mat.observacao}</span>
-                            )}
                           </span>
-                          <div className="flex-shrink-0 ml-2">
-                            {getMaterialStatusBadge(mat.status_item)}
-                          </div>
+                          <span className="text-muted-foreground">
+                            {mat.observacao || '-'}
+                          </span>
                         </div>
                       ))}
                     </div>

@@ -593,13 +593,15 @@ export function ProducaoTable() {
                                 <div className="space-y-2">
                                   <h5 className="text-sm font-medium">Materiais:</h5>
                                   {op.materiais.map((material, matIndex) => (
-                                    <div key={matIndex} className="grid grid-cols-2 gap-4 items-center py-1 px-2 bg-muted/30 rounded text-sm">
+                                    <div key={matIndex} className="py-1 px-2 bg-muted/30 rounded text-sm">
                                       <span className="text-primary font-medium">
                                         {material.descricaomat}
                                       </span>
-                                      <span className="text-muted-foreground">
-                                        {material.observacao || '-'}
-                                      </span>
+                                      {material.observacao && (
+                                        <span className="text-muted-foreground ml-2">
+                                          {material.observacao}
+                                        </span>
+                                      )}
                                     </div>
                                   ))}
                                 </div>

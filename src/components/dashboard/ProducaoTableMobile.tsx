@@ -194,13 +194,15 @@ export function ProducaoTableMobile({
                     <div className="font-medium text-sm mb-2">OP {op.numero_op}</div>
                     <div className="space-y-1 text-xs">
                       {op.materiais.map((mat: any, matIndex: number) => (
-                        <div key={`mat-${matIndex}`} className="grid grid-cols-2 gap-2 py-1">
+                        <div key={`mat-${matIndex}`} className="py-1">
                           <span className="text-primary font-medium">
                             {mat.descricaomat}
                           </span>
-                          <span className="text-muted-foreground">
-                            {mat.observacao || '-'}
-                          </span>
+                          {mat.observacao && (
+                            <span className="text-muted-foreground ml-1">
+                              {mat.observacao}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>

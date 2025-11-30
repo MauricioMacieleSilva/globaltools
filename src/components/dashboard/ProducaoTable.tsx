@@ -598,7 +598,8 @@ export function ProducaoTable() {
                                         {material.descricaomat}
                                       </span>
                                       {material.observacao && (
-                                        <span className="text-muted-foreground ml-2">
+                                        <span className="text-muted-foreground">
+                                          <span className="mx-2">-</span>
                                           {material.observacao}
                                         </span>
                                       )}

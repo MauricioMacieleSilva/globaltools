@@ -166,6 +166,45 @@ function calculateOrderStatus(prazo: string, ops: OperacaoData[]): string {
   return today > prazoDate ? 'ATRASO' : 'NO_PRAZO';
 }
 
+// Derivar classe do material baseado no nome (descricaomat)
+function deriveClasseFromMaterial(descricaomat: string): string {
+  const desc = descricaomat.toUpperCase();
+  
+  // PERFIS - perfis, chapas, telhas
+  if (desc.includes('PERFIL') || desc.includes('CHAPA') || desc.includes('CH #') || desc.includes('CH#')) {
+    return 'PERFIS';
+  }
+  
+  // TELHAS
+  if (desc.includes('TELHA')) {
+    return 'TELHAS';
+  }
+  
+  // VERGALHÕES
+  if (desc.includes('VERGALH')) {
+    return 'VERGALHÕES';
+  }
+  
+  // ARAMES
+  if (desc.includes('ARAME') || desc.includes('FIO')) {
+    return 'ARAMES';
+  }
+  
+  // TUBOS
+  if (desc.includes('TUBO')) {
+    return 'TUBOS';
+  }
+  
+  // ACESSÓRIOS - parafusos, pregos, etc
+  if (desc.includes('PARAFUSO') || desc.includes('PREGO') || desc.includes('ARRUELAS') || 
+      desc.includes('PORCA') || desc.includes('REBITE') || desc.includes('ACESSORIO')) {
+    return 'ACESSÓRIOS';
+  }
+  
+  // Default
+  return 'OUTROS';
+}
+
 // Mock data for development/fallback
 const mockProducaoData: ProducaoData[] = [
   {
@@ -473,7 +512,7 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         qtd_pendente: qtdVenda, // Quantidade na unidade original
         un: unidadeNormalizada, // Unidade normalizada
         numero_op: numeroOp || 'SEM OP',
-        classe: classe || 'SEM CLASSE'
+        classe: deriveClasseFromMaterial(descricaomat) // Derivar classe do nome do material
       };
       
       // Group by OP within pedido (use placeholder for materials without OP)

@@ -77,14 +77,15 @@ export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingRepor
     }
 
     // Validar que não é um mês futuro
+    // Permitir o mês atual se estivermos nos últimos 5 dias do mês
     const selectedDate = new Date(parseInt(year), parseInt(month) - 1, 1);
     const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     
-    if (selectedDate >= currentMonthStart) {
+    if (selectedDate >= nextMonthStart) {
       toast({
         title: "Data inválida",
-        description: "Selecione um mês anterior ao mês atual. O mês ainda não foi concluído.",
+        description: "Selecione um mês atual ou anterior. Não é possível gerar prévia de meses futuros.",
         variant: "destructive"
       });
       return;
@@ -133,14 +134,17 @@ export function MonthlyClosingReportDialog({ onReportSent }: MonthlyClosingRepor
     }
 
     // Validar que não é um mês futuro
+    // Permitir o mês atual se estivermos nos últimos 5 dias do mês
     const selectedDate = new Date(parseInt(year), parseInt(month) - 1, 1); // Primeiro dia do mês selecionado
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1); // Primeiro dia do mês atual
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1); // Primeiro dia do próximo mês
     
-    if (selectedDate >= currentMonthStart) {
+    // Verificar se o mês selecionado é futuro (não permite meses após o atual)
+    if (selectedDate >= nextMonthStart) {
       toast({
         title: "Data inválida",
-        description: "Selecione um mês anterior ao mês atual. O mês ainda não foi concluído.",
+        description: "Selecione um mês atual ou anterior. Não é possível gerar relatório de meses futuros.",
         variant: "destructive"
       });
       return;

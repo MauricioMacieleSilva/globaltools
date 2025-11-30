@@ -314,8 +314,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     // PEDIDO (Column C) = index 2
     // SITUACAO (Column E) = index 4  
     // CLI_NOMEF (Column H) = index 7
-    // DESCRICAOMAT (Column J) = index 9 - Nome do material
-    // OBSERVACAO (Column K) = index 10 - Descrição detalhada (ex: 385pçs PERFIL U 40x207x40 6000mm)
+    // DESCRICAOMAT (Column K) = index 10 - Nome do material (ex: PERFIL CH #2,25MM)
+    // OBSERVACAO (Column L) = index 11 - Descrição detalhada (ex: 65pçs PERFIL U 40x75x40x6000mm)
     // QTD_VENDA (Column M) = index 12
     // UN (Column N) = index 13
     // QTD_PENDENTE (Column P) = index 15 (não usado mais)
@@ -328,8 +328,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       pedido: 2,           // Column C
       situacao: 4,         // Column E  
       cli_nomef: 7,        // Column H
-      descricaomat: 9,     // Column J - Nome do material
-      observacao: 10,      // Column K - Descrição detalhada
+      descricaomat: 10,    // Column K - Nome do material
+      observacao: 11,      // Column L - Descrição detalhada
       qtd_venda: 12,       // Column M (nova coluna a usar)
       un: 13,              // Column N
       numero_op: 19,       // Column T - CODOP

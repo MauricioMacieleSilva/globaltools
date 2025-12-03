@@ -186,3 +186,21 @@ All colors MUST be HSL.
     -moz-appearance: textfield;
   }
 }
+
+/* Dashboard Fullscreen Mode */
+.dashboard-fullscreen-mode {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 50 !important;
+  overflow: auto !important;
+}
+
+body:has(.dashboard-fullscreen-mode) [data-sidebar="sidebar"],
+body:has(.dashboard-fullscreen-mode) header,
+body:has(.dashboard-fullscreen-mode) .sidebar-wrapper,
+body:has(.dashboard-fullscreen-mode) aside {
+  display: none !important;
+}

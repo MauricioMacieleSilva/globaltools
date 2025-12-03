@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays, Maximize2, Minimize2 } from 'lucide-react';
 import { SessionFilters } from '@/components/dashboard/SessionFilters';
+import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ComercialKPIs } from '@/components/dashboard/ComercialKPIs';
 import { ComercialCharts } from '@/components/dashboard/ComercialCharts';
@@ -26,7 +28,7 @@ import { useOrcamentosData } from '@/hooks/useOrcamentosData';
 export default function DashboardComercial() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Initialize active tab from localStorage, URL params, or default to "dashboard"
   const [activeTab, setActiveTab] = useState(() => {
@@ -156,29 +158,62 @@ export default function DashboardComercial() {
 
   return (
     <ErrorBoundary>
-        <div className="min-h-screen w-full bg-background">
+        <div className={cn(
+          "min-h-screen w-full bg-background",
+          isFullscreen && "dashboard-fullscreen-mode"
+        )}>
+          {/* Botão flutuante para sair do modo tela cheia */}
+          {isFullscreen && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="fixed top-4 right-4 z-[60] shadow-lg"
+              onClick={() => setIsFullscreen(false)}
+              title="Sair do modo tela cheia"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+          )}
+          
           <div className="container mx-auto p-2 space-y-2">
             {/* Navegação por Abas */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 gap-1">
-                <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Dashboard</span>
-                </TabsTrigger>
-                <TabsTrigger value="perdidos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                  <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Perdidos</span>
-                </TabsTrigger>
-                <TabsTrigger value="orcamentos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Orçamentos</span>
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex items-center gap-2">
+                <TabsList className="grid flex-1 grid-cols-3 gap-1">
+                  <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="perdidos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Perdidos</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="orcamentos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                    <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Orçamentos</span>
+                  </TabsTrigger>
+                </TabsList>
+                
+                {/* Botão Tela Cheia */}
+                {!isFullscreen && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsFullscreen(true)}
+                    title="Modo tela cheia"
+                    className="shrink-0"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
 
-              {/* Filtros - Abaixo das abas */}
-              <ErrorBoundary>
-                <SessionFilters />
-              </ErrorBoundary>
+              {/* Filtros - Abaixo das abas (escondidos em tela cheia) */}
+              {!isFullscreen && (
+                <ErrorBoundary>
+                  <SessionFilters />
+                </ErrorBoundary>
+              )}
 
               {/* Aba Dashboard */}
               <TabsContent value="dashboard" className="space-y-2">

@@ -79,25 +79,37 @@ export function ComercialCharts() {
         if (data && data.getMonth() === month && data.getFullYear() === year) {
           const dia = format(data, 'dd');
           if (!acc[dia]) {
-            acc[dia] = { valor: 0, pedidos: 0, clientes: new Set(), peso: 0 };
+            acc[dia] = { 
+              valor: 0, 
+              pedidos: 0, 
+              clientes: new Set(), 
+              peso: 0,
+              detalhes: [] as Array<{numeropedido: string, cliente: string, valor: number}>
+            };
           }
           acc[dia].valor += item.valor;
           acc[dia].pedidos += 1;
           acc[dia].clientes.add(item.cliente);
           acc[dia].peso += item.peso || 0;
+          acc[dia].detalhes.push({
+            numeropedido: item.numeropedido,
+            cliente: item.cliente,
+            valor: item.valor
+          });
         }
         return acc;
-      }, {} as Record<string, { valor: number; pedidos: number; clientes: Set<string>; peso: number }>);
+      }, {} as Record<string, { valor: number; pedidos: number; clientes: Set<string>; peso: number; detalhes: Array<{numeropedido: string, cliente: string, valor: number}> }>);
 
       return allDays.map(day => {
         const dia = format(day, 'dd');
-        const data = agrupado[dia] || { valor: 0, pedidos: 0, clientes: new Set(), peso: 0 };
+        const data = agrupado[dia] || { valor: 0, pedidos: 0, clientes: new Set(), peso: 0, detalhes: [] };
         return { 
           periodo: dia, 
           valor: data.valor,
           pedidos: data.pedidos,
           clientes: data.clientes.size,
           peso: data.peso,
+          detalhes: data.detalhes,
           color: data.valor >= metaAtual ? '#10b981' : 'hsl(var(--primary))'
         };
       });
@@ -267,6 +279,74 @@ export function ComercialCharts() {
     return null;
   };
 
+  const CustomTooltipDaily = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const detalhes = data.detalhes || [];
+      
+      // Agrupar por cliente
+      const clientesAgrupados = detalhes.reduce((acc: Record<string, {pedidos: string[], valor: number}>, item: {numeropedido: string, cliente: string, valor: number}) => {
+        if (!acc[item.cliente]) {
+          acc[item.cliente] = { pedidos: [], valor: 0 };
+        }
+        acc[item.cliente].pedidos.push(item.numeropedido);
+        acc[item.cliente].valor += item.valor;
+        return acc;
+      }, {});
+
+      const clientesList = Object.entries(clientesAgrupados)
+        .map(([cliente, info]) => ({ cliente, ...(info as {pedidos: string[], valor: number}) }))
+        .sort((a, b) => b.valor - a.valor)
+        .slice(0, 5);
+
+      const clientesRestantes = Object.keys(clientesAgrupados).length - 5;
+
+      return (
+        <div className="bg-background border border-border rounded-lg p-3 shadow-lg max-w-xs">
+          <p className="font-medium text-sm mb-2">Dia {label}</p>
+          <div className="space-y-1 text-xs border-b border-border pb-2 mb-2">
+            <p className="text-green-600">
+              <span className="font-medium">Faturamento:</span> {formatCurrency(data.valor)}
+            </p>
+            <p className="text-blue-600">
+              <span className="font-medium">Nº Pedidos:</span> {data.pedidos}
+            </p>
+            <p className="text-orange-600">
+              <span className="font-medium">Nº Clientes:</span> {data.clientes}
+            </p>
+            <p className="text-purple-600">
+              <span className="font-medium">Peso:</span> {formatPeso(data.peso)}
+            </p>
+          </div>
+          
+          {clientesList.length > 0 && (
+            <div className="space-y-2">
+              <p className="font-medium text-xs text-muted-foreground">Detalhes por Cliente:</p>
+              {clientesList.map((item, idx) => {
+                const pedidosDisplay = item.pedidos.length > 3 
+                  ? `${item.pedidos.slice(0, 3).join(', ')} +${item.pedidos.length - 3}`
+                  : item.pedidos.join(', ');
+                return (
+                  <div key={idx} className="text-xs bg-muted/50 rounded p-1.5">
+                    <p className="font-medium truncate text-foreground" title={item.cliente}>
+                      {item.cliente.length > 25 ? item.cliente.substring(0, 25) + '...' : item.cliente}
+                    </p>
+                    <p className="text-muted-foreground">Pedidos: {pedidosDisplay}</p>
+                    <p className="text-green-600 font-medium">{formatCurrency(item.valor)}</p>
+                  </div>
+                );
+              })}
+              {clientesRestantes > 0 && (
+                <p className="text-xs text-muted-foreground italic">e mais {clientesRestantes} cliente(s)...</p>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
   const handleBackToMonthView = () => {
     setDrillDown({ isMonthView: true });
   };
@@ -352,7 +432,7 @@ export function ComercialCharts() {
                     return Math.max(Math.ceil(dataMax * 1.15), Math.ceil(metaAtual * 1.1));
                   }]}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={drillDown.isMonthView ? <CustomTooltip /> : <CustomTooltipDaily />} />
                 <Bar 
                   dataKey="valor" 
                   fill="hsl(var(--primary))"

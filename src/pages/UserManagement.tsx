@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, UserPlus, Filter, Search, RefreshCw, Settings } from 'lucide-react'
+import { Users, UserPlus, Filter, Search, RefreshCw, Settings, Shield } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { UserProfile, UserRole } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
@@ -16,6 +16,7 @@ import { UserStats } from '@/components/admin/UserStats'
 import { SessionResetDialog } from '@/components/admin/SessionResetDialog'
 import { LeadQualificationConfig } from '@/components/admin/LeadQualificationConfig'
 import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog'
+import { DefaultPermissionsConfig } from '@/components/admin/DefaultPermissionsConfig'
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -174,14 +175,18 @@ export const UserManagement: React.FC = () => {
         <UserStats users={users} />
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Usuários
             </TabsTrigger>
+            <TabsTrigger value="default-permissions" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Permissões Padrão
+            </TabsTrigger>
             <TabsTrigger value="lead-config" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Configuração de Leads
+              Config. de Leads
             </TabsTrigger>
           </TabsList>
 
@@ -255,6 +260,10 @@ export const UserManagement: React.FC = () => {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="default-permissions" className="mt-4">
+            <DefaultPermissionsConfig />
           </TabsContent>
 
           <TabsContent value="lead-config" className="mt-4">

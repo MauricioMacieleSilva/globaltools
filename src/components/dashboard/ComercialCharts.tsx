@@ -284,18 +284,18 @@ export function ComercialCharts() {
       const data = payload[0].payload;
       const detalhes = data.detalhes || [];
       
-      // Agrupar por cliente
-      const clientesAgrupados = detalhes.reduce((acc: Record<string, {pedidos: string[], valor: number}>, item: {numeropedido: string, cliente: string, valor: number}) => {
+      // Agrupar por cliente com pedidos únicos
+      const clientesAgrupados = detalhes.reduce((acc: Record<string, {pedidos: Set<string>, valor: number}>, item: {numeropedido: string, cliente: string, valor: number}) => {
         if (!acc[item.cliente]) {
-          acc[item.cliente] = { pedidos: [], valor: 0 };
+          acc[item.cliente] = { pedidos: new Set(), valor: 0 };
         }
-        acc[item.cliente].pedidos.push(item.numeropedido);
+        acc[item.cliente].pedidos.add(item.numeropedido);
         acc[item.cliente].valor += item.valor;
         return acc;
       }, {});
 
       const clientesList = Object.entries(clientesAgrupados)
-        .map(([cliente, info]) => ({ cliente, ...(info as {pedidos: string[], valor: number}) }))
+        .map(([cliente, info]) => ({ cliente, pedidos: Array.from((info as {pedidos: Set<string>, valor: number}).pedidos), valor: (info as {pedidos: Set<string>, valor: number}).valor }))
         .sort((a, b) => b.valor - a.valor)
         .slice(0, 5);
 

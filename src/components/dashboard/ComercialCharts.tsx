@@ -81,35 +81,53 @@ export function ComercialCharts() {
           if (!acc[dia]) {
             acc[dia] = { 
               valor: 0, 
-              pedidos: 0, 
-              clientes: new Set(), 
+              pedidos: new Set<string>(), 
+              clientes: new Set<string>(), 
               peso: 0,
-              detalhes: [] as Array<{numeropedido: string, cliente: string, valor: number}>
+              detalhesMap: new Map<string, {numeropedido: string, cliente: string, valor: number}>()
             };
           }
           acc[dia].valor += item.valor;
-          acc[dia].pedidos += 1;
+          acc[dia].pedidos.add(item.numeropedido);
           acc[dia].clientes.add(item.cliente);
           acc[dia].peso += item.peso || 0;
-          acc[dia].detalhes.push({
-            numeropedido: item.numeropedido,
-            cliente: item.cliente,
-            valor: item.valor
-          });
+          
+          // Agregar por número do pedido para evitar duplicatas
+          const existing = acc[dia].detalhesMap.get(item.numeropedido);
+          if (existing) {
+            existing.valor += item.valor;
+          } else {
+            acc[dia].detalhesMap.set(item.numeropedido, {
+              numeropedido: item.numeropedido,
+              cliente: item.cliente,
+              valor: item.valor
+            });
+          }
         }
         return acc;
-      }, {} as Record<string, { valor: number; pedidos: number; clientes: Set<string>; peso: number; detalhes: Array<{numeropedido: string, cliente: string, valor: number}> }>);
+      }, {} as Record<string, { valor: number; pedidos: Set<string>; clientes: Set<string>; peso: number; detalhesMap: Map<string, {numeropedido: string, cliente: string, valor: number}> }>);
 
       return allDays.map(day => {
         const dia = format(day, 'dd');
-        const data = agrupado[dia] || { valor: 0, pedidos: 0, clientes: new Set(), peso: 0, detalhes: [] };
+        const data = agrupado[dia];
+        if (!data) {
+          return { 
+            periodo: dia, 
+            valor: 0,
+            pedidos: 0,
+            clientes: 0,
+            peso: 0,
+            detalhes: [],
+            color: 'hsl(var(--primary))'
+          };
+        }
         return { 
           periodo: dia, 
           valor: data.valor,
-          pedidos: data.pedidos,
+          pedidos: data.pedidos.size,
           clientes: data.clientes.size,
           peso: data.peso,
-          detalhes: data.detalhes,
+          detalhes: Array.from(data.detalhesMap.values()),
           color: data.valor >= metaAtual ? '#10b981' : 'hsl(var(--primary))'
         };
       });

@@ -298,6 +298,39 @@ export type Database = {
           },
         ]
       }
+      default_role_permissions: {
+        Row: {
+          access_type: Database["public"]["Enums"]["access_type"]
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          page_key: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          access_type: Database["public"]["Enums"]["access_type"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          page_key: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          access_type?: Database["public"]["Enums"]["access_type"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          page_key?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       devolucoes: {
         Row: {
           cliente_id: string | null

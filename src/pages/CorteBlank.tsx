@@ -13,24 +13,27 @@ function CorteBlankContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light to-background">
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-8">
         <Tabs value={abaSelecionada} onValueChange={setAbaSelecionada} className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-card p-1 rounded-lg h-auto">
-            <TabsTrigger value="configuracao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-              <Settings className="h-4 w-4 mr-1" />
-              Configuração
+            <TabsTrigger value="configuracao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] sm:text-sm p-1.5 sm:p-3 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+              <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Configuração</span>
+              <span className="sm:hidden">Config.</span>
             </TabsTrigger>
-            <TabsTrigger value="pecas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-              <Package className="h-4 w-4 mr-1" />
+            <TabsTrigger value="pecas" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] sm:text-sm p-1.5 sm:p-3 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Peças
             </TabsTrigger>
-            <TabsTrigger value="visualizacao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-              <Eye className="h-4 w-4 mr-1" />
-              Visualização
+            <TabsTrigger value="visualizacao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] sm:text-sm p-1.5 sm:p-3 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Visualização</span>
+              <span className="sm:hidden">Visual</span>
             </TabsTrigger>
-            <TabsTrigger value="relatorio" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-              <FileText className="h-4 w-4 mr-1" />
-              Relatório
+            <TabsTrigger value="relatorio" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] sm:text-sm p-1.5 sm:p-3 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
+              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Relatório</span>
+              <span className="sm:hidden">Relat.</span>
             </TabsTrigger>
           </TabsList>
 

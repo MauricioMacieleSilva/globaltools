@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,20 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, Play } from 'lucide-react';
 import { useCorteBlanks, Peca } from '@/context/CorteBlanksContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { ListaPecasMobile } from './ListaPecasMobile';
 
 export function ListaPecas() {
+  const isMobile = useIsMobile();
+  
+  if (isMobile) {
+    return <ListaPecasMobile />;
+  }
+  
+  return <ListaPecasDesktop />;
+}
+
+function ListaPecasDesktop() {
   const { pecas, adicionarPeca, removerPeca, atualizarPeca, executarOtimizacao } = useCorteBlanks();
   const [novaPeca, setNovaPeca] = useState<Omit<Peca, 'id'>>({
     nome: '',

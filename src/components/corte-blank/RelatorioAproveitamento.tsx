@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,20 @@ import { FileDown, Calculator, AlertTriangle } from 'lucide-react';
 import { useCorteBlanks } from '@/context/CorteBlanksContext';
 import { generatePDFFromElement } from '@/lib/pdf-utils';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { RelatorioAproveitamentoMobile } from './RelatorioAproveitamentoMobile';
 
 export function RelatorioAproveitamento() {
+  const isMobile = useIsMobile();
+  
+  if (isMobile) {
+    return <RelatorioAproveitamentoMobile />;
+  }
+  
+  return <RelatorioAproveitamentoDesktop />;
+}
+
+function RelatorioAproveitamentoDesktop() {
   const { resultado, chapa, calcularPesoChapa } = useCorteBlanks();
   const { toast } = useToast();
   const relatorioRef = useRef<HTMLDivElement>(null);

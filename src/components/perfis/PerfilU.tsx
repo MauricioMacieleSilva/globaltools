@@ -10,8 +10,20 @@ import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoChapaTiras } from './VisualizacaoChapaTiras';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { PerfilUMobile } from './PerfilUMobile';
 
 export function PerfilU() {
+  const isMobile = useIsMobile();
+  
+  if (isMobile) {
+    return <PerfilUMobile />;
+  }
+  
+  return <PerfilUDesktop />;
+}
+
+function PerfilUDesktop() {
   const {
     atualizarCalculo,
     removerCalculo,

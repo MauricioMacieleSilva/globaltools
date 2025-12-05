@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { MapPin, Users, Calendar, TrendingUp, ArrowLeft, Building2, UserPlus } from "lucide-react";
 import { useComercial } from "@/context/ComercialContext";
 import { isFaturado, formatCurrency } from "@/lib/utils-comercial";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ClienteUF {
   uf: string;
@@ -36,6 +37,7 @@ interface ClientePerfil {
 export function AnaliseClientes() {
   const { data } = useComercial();
   const [drillDownState, setDrillDownState] = useState<{ mode: 'uf' | 'cidade'; selectedUF?: string }>({ mode: 'uf' });
+  const isMobile = useIsMobile();
 
   const analiseUF = useMemo(() => {
     if (!data) return [];
@@ -249,10 +251,10 @@ export function AnaliseClientes() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Navegação */}
       {drillDownState.mode === 'cidade' && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
           <Button variant="ghost" size="sm" onClick={handleBackToUF} className="p-1 h-auto">
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -263,68 +265,73 @@ export function AnaliseClientes() {
       )}
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
         {drillDownState.mode === 'uf' ? (
           <>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  UFs Atendidas
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">UFs Atendidas</span>
+                  <span className="sm:hidden">UFs</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{estatisticas.totalUFs}</div>
+              <CardContent className="p-3 pt-0">
+                <div className="text-xl sm:text-2xl font-bold">{estatisticas.totalUFs}</div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  UF Mais Clientes
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">UF Mais Clientes</span>
+                  <span className="sm:hidden">+ Clientes</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="p-3 pt-0">
+                <div className="text-xl sm:text-2xl font-bold">
                   {estatisticas.ufMaisClientes?.uf || 'N/A'}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   {estatisticas.ufMaisClientes?.qtdClientes || 0} clientes
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  UF Maior Faturamento
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">UF Maior Faturamento</span>
+                  <span className="sm:hidden">+ Fatur.</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="p-3 pt-0">
+                <div className="text-xl sm:text-2xl font-bold">
                   {estatisticas.ufMaiorFaturamento?.uf || 'N/A'}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs sm:text-sm text-muted-foreground truncate">
                   {formatCurrency(estatisticas.ufMaiorFaturamento?.faturamento || 0)}
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Clientes Novos
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Clientes Novos</span>
+                  <span className="sm:hidden">Novos</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+              <CardContent className="p-3 pt-0">
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
                   {estatisticas.percentualNovos?.toFixed(1)}%
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Últimos 12 meses
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  <span className="hidden sm:inline">Últimos 12 meses</span>
+                  <span className="sm:hidden">12 meses</span>
                 </div>
               </CardContent>
             </Card>
@@ -332,66 +339,70 @@ export function AnaliseClientes() {
         ) : (
           <>
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Cidades Atendidas
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Cidades Atendidas</span>
+                  <span className="sm:hidden">Cidades</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{estatisticas.totalCidades}</div>
-                <div className="text-sm text-muted-foreground">
+              <CardContent className="p-3 pt-0">
+                <div className="text-xl sm:text-2xl font-bold">{estatisticas.totalCidades}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   em {estatisticas.selectedUF || 'N/A'}
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Cidade Mais Clientes
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Cidade Mais Clientes</span>
+                  <span className="sm:hidden">+ Clientes</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg sm:text-2xl font-bold truncate">
                   {estatisticas.cidadeMaisClientes?.cidade || 'N/A'}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   {estatisticas.cidadeMaisClientes?.qtdClientes || 0} clientes
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Mais Abertura de Novos
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <UserPlus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Mais Abertura de Novos</span>
+                  <span className="sm:hidden">+ Novos</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="p-3 pt-0">
+                <div className="text-lg sm:text-2xl font-bold truncate">
                   {estatisticas.cidadeMaisNovos?.cidade || 'N/A'}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   {estatisticas.cidadeMaisNovos?.percentualNovos?.toFixed(1) || 0}% novos
                 </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Total Clientes Novos
+              <CardHeader className="p-3 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Total Clientes Novos</span>
+                  <span className="sm:hidden">Tot. Novos</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+              <CardContent className="p-3 pt-0">
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
                   {analiseCidade.reduce((sum, cidade) => sum + cidade.qtdClientesNovos, 0)}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs sm:text-sm text-muted-foreground">
                   na {estatisticas.selectedUF || 'N/A'}
                 </div>
               </CardContent>
@@ -401,24 +412,31 @@ export function AnaliseClientes() {
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">
               {drillDownState.mode === 'uf' 
-                ? 'Clientes por UF (Top 10)' 
-                : `Cidades em ${drillDownState.selectedUF || 'N/A'} (Top 10)`
+                ? (isMobile ? 'Por UF (Top 10)' : 'Clientes por UF (Top 10)')
+                : (isMobile ? `${drillDownState.selectedUF || 'N/A'} (Top 10)` : `Cidades em ${drillDownState.selectedUF || 'N/A'} (Top 10)`)
               }
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
               <BarChart 
                 data={chartData}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey={drillDownState.mode === 'uf' ? 'uf' : 'cidade'} />
-                <YAxis />
+                <XAxis 
+                  dataKey={drillDownState.mode === 'uf' ? 'uf' : 'cidade'} 
+                  tick={{ fontSize: isMobile ? 10 : 12 }}
+                  interval={0}
+                  angle={isMobile ? -45 : 0}
+                  textAnchor={isMobile ? "end" : "middle"}
+                  height={isMobile ? 50 : 30}
+                />
+                <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
                 <Tooltip 
                   formatter={(value, name) => [
                     name === 'qtdClientes' ? `${value} clientes` : formatCurrency(value as number),
@@ -436,7 +454,7 @@ export function AnaliseClientes() {
                     }
                   } : undefined}
                 >
-                  <LabelList dataKey="qtdClientes" position="top" fontSize={12} />
+                  {!isMobile && <LabelList dataKey="qtdClientes" position="top" fontSize={12} />}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -444,19 +462,19 @@ export function AnaliseClientes() {
         </Card>
         
         <Card>
-          <CardHeader>
-            <CardTitle>Perfil dos Clientes</CardTitle>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Perfil dos Clientes</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
               <PieChart>
                 <Pie
                   data={analisePerfil}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ tipo, percentual }) => `${tipo}: ${percentual.toFixed(1)}%`}
-                  outerRadius={80}
+                  label={({ tipo, percentual }) => isMobile ? `${percentual.toFixed(0)}%` : `${tipo}: ${percentual.toFixed(1)}%`}
+                  outerRadius={isMobile ? 60 : 80}
                   fill="#8884d8"
                   dataKey="qtd"
                 >
@@ -469,86 +487,85 @@ export function AnaliseClientes() {
                 />
               </PieChart>
             </ResponsiveContainer>
+            {isMobile && (
+              <div className="flex justify-center gap-4 mt-2">
+                {analisePerfil.map((entry) => (
+                  <div key={entry.tipo} className="flex items-center gap-1 text-xs">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                    <span>{entry.tipo}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabelas Detalhadas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {drillDownState.mode === 'uf' ? 'Detalhes por UF' : `Detalhes das Cidades - ${drillDownState.selectedUF || 'N/A'}`}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{drillDownState.mode === 'uf' ? 'UF' : 'Cidade'}</TableHead>
-                  <TableHead>Clientes</TableHead>
-                  <TableHead>Faturamento</TableHead>
-                  <TableHead>%</TableHead>
-                  {drillDownState.mode === 'cidade' && <TableHead>% Novos</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {drillDownState.mode === 'uf' 
-                  ? analiseUF.slice(0, 10).map((uf) => (
-                      <TableRow key={uf.uf} className="cursor-pointer hover:bg-muted/50" onClick={() => handleBarClick(uf)}>
-                        <TableCell className="font-medium">{uf.uf}</TableCell>
-                        <TableCell>{uf.qtdClientes}</TableCell>
-                        <TableCell>{formatCurrency(uf.faturamento)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {uf.percentual.toFixed(1)}%
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : analiseCidade.slice(0, 10).map((cidade) => (
-                      <TableRow key={cidade.cidade}>
-                        <TableCell className="font-medium">{cidade.cidade}</TableCell>
-                        <TableCell>{cidade.qtdClientes}</TableCell>
-                        <TableCell>{formatCurrency(cidade.faturamento)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {cidade.percentual.toFixed(1)}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {cidade.percentualNovos.toFixed(1)}%
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                }
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Perfil Detalhado</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analisePerfil.map((perfil) => (
-                <div key={perfil.tipo} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium">Clientes {perfil.tipo}s</h4>
-                    <Badge 
-                      style={{ backgroundColor: perfil.color, color: 'white' }}
+      {/* Tabelas Detalhadas - Esconder em mobile e mostrar cards */}
+      {/* Mobile: Cards view */}
+      {isMobile ? (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="p-3">
+              <CardTitle className="text-sm">
+                {drillDownState.mode === 'uf' ? 'Top UFs' : `${drillDownState.selectedUF || 'N/A'}`}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-2">
+              {drillDownState.mode === 'uf' 
+                ? analiseUF.slice(0, 5).map((uf) => (
+                    <div 
+                      key={uf.uf} 
+                      className="p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleBarClick(uf)}
                     >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">{uf.uf}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {uf.percentual.toFixed(1)}%
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{uf.qtdClientes} clientes</span>
+                        <span>{formatCurrency(uf.faturamento)}</span>
+                      </div>
+                    </div>
+                  ))
+                : analiseCidade.slice(0, 5).map((cidade) => (
+                    <div key={cidade.cidade} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm truncate max-w-[150px]">{cidade.cidade}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {cidade.percentual.toFixed(1)}%
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{cidade.qtdClientes} cli.</span>
+                        <span>{cidade.percentualNovos.toFixed(1)}% novos</span>
+                      </div>
+                    </div>
+                  ))
+              }
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="p-3">
+              <CardTitle className="text-sm">Perfil Detalhado</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 space-y-2">
+              {analisePerfil.map((perfil) => (
+                <div key={perfil.tipo} className="p-3 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">Clientes {perfil.tipo}s</span>
+                    <Badge style={{ backgroundColor: perfil.color, color: 'white' }} className="text-xs">
                       {perfil.percentual.toFixed(1)}%
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <div className="text-muted-foreground">Quantidade</div>
-                      <div className="font-medium">{perfil.qtd} clientes</div>
+                      <div className="font-medium">{perfil.qtd}</div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Faturamento</div>
@@ -557,10 +574,99 @@ export function AnaliseClientes() {
                   </div>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        /* Desktop: Tables view */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {drillDownState.mode === 'uf' ? 'Detalhes por UF' : `Detalhes das Cidades - ${drillDownState.selectedUF || 'N/A'}`}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{drillDownState.mode === 'uf' ? 'UF' : 'Cidade'}</TableHead>
+                    <TableHead>Clientes</TableHead>
+                    <TableHead>Faturamento</TableHead>
+                    <TableHead>%</TableHead>
+                    {drillDownState.mode === 'cidade' && <TableHead>% Novos</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {drillDownState.mode === 'uf' 
+                    ? analiseUF.slice(0, 10).map((uf) => (
+                        <TableRow key={uf.uf} className="cursor-pointer hover:bg-muted/50" onClick={() => handleBarClick(uf)}>
+                          <TableCell className="font-medium">{uf.uf}</TableCell>
+                          <TableCell>{uf.qtdClientes}</TableCell>
+                          <TableCell>{formatCurrency(uf.faturamento)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {uf.percentual.toFixed(1)}%
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : analiseCidade.slice(0, 10).map((cidade) => (
+                        <TableRow key={cidade.cidade}>
+                          <TableCell className="font-medium">{cidade.cidade}</TableCell>
+                          <TableCell>{cidade.qtdClientes}</TableCell>
+                          <TableCell>{formatCurrency(cidade.faturamento)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {cidade.percentual.toFixed(1)}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {cidade.percentualNovos.toFixed(1)}%
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  }
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Perfil Detalhado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {analisePerfil.map((perfil) => (
+                  <div key={perfil.tipo} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">Clientes {perfil.tipo}s</h4>
+                      <Badge 
+                        style={{ backgroundColor: perfil.color, color: 'white' }}
+                      >
+                        {perfil.percentual.toFixed(1)}%
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="text-muted-foreground">Quantidade</div>
+                        <div className="font-medium">{perfil.qtd} clientes</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Faturamento</div>
+                        <div className="font-medium">{formatCurrency(perfil.faturamento)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

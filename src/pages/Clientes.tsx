@@ -2,16 +2,11 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
-import { useComercial } from "@/context/ComercialContext";
 import { BaseClientesTable } from "@/components/clientes/BaseClientesTable";
-import { BaseClientesTableMobile } from "@/components/clientes/BaseClientesTableMobile";
 import { AnaliseClientes } from "@/components/clientes/AnaliseClientes";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Clientes() {
-  const { data } = useComercial();
   const [activeTab, setActiveTab] = useState("base");
-  const isMobile = useIsMobile();
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
@@ -43,7 +38,7 @@ export default function Clientes() {
             </TabsList>
 
             <TabsContent value="base" className="mt-4 sm:mt-6">
-              {isMobile ? <BaseClientesTableMobile /> : <BaseClientesTable />}
+              <BaseClientesTable />
             </TabsContent>
 
             <TabsContent value="analise" className="mt-4 sm:mt-6">

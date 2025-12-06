@@ -169,6 +169,27 @@ function calcularDiasUteis(startDate: Date, endDate: Date): number {
   return diasUteis;
 }
 
+// Buscar dias úteis configurados do banco
+async function buscarDiasUteisConfigurados(supabaseClient: any, monthYear: string): Promise<number | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('admin_goals')
+      .select('business_days')
+      .eq('month_year', monthYear)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('❌ Erro ao buscar dias úteis configurados:', error);
+      return null;
+    }
+    
+    return data?.business_days || null;
+  } catch (error) {
+    console.error('❌ Erro ao buscar dias úteis:', error);
+    return null;
+  }
+}
+
 // Carregar dados da planilha - IGUAL ao googleSheetsService.ts
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}&timestamp=${Date.now()}`;
@@ -257,7 +278,8 @@ async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
 function calculateKPIs(
   allData: ComercialData[],
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  diasUteisConfigurados: number | null = null
 ): EmailKPIs {
   console.log(`📊 Calculando KPIs para período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
   
@@ -305,8 +327,11 @@ function calculateKPIs(
     perdidosData.map(item => item.numeropedido).filter(Boolean)
   ).size;
 
-  const diasUteis = calcularDiasUteis(startDate, endDate);
+  // Usar dias úteis configurados se disponível, senão calcular automaticamente
+  const diasUteis = diasUteisConfigurados || calcularDiasUteis(startDate, endDate);
   const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
+  
+  console.log(`📊 Dias úteis: ${diasUteis} (${diasUteisConfigurados ? 'configurado' : 'calculado automaticamente'})`);
 
   return {
     faturamento: faturado,
@@ -764,25 +789,27 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Nenhum dado encontrado na planilha");
     }
 
+    // Buscar meta mensal e dias úteis configurados
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const monthYear = `${year}-${String(month).padStart(2, '0')}`;
+    
+    const { data: goalsData } = await supabase
+      .from('admin_goals')
+      .select('monthly_revenue_goal, business_days')
+      .eq('month_year', monthYear)
+      .maybeSingle();
+
+    const metaMensal = goalsData?.monthly_revenue_goal || null;
+    const diasUteisConfigurados = goalsData?.business_days || null;
+    console.log('🎯 Meta mensal:', metaMensal);
+    console.log(`📅 Dias úteis: ${diasUteisConfigurados ? diasUteisConfigurados + ' (configurado)' : 'não configurado, será calculado automaticamente'}`);
+
     // Calcular KPIs do mês
-    const kpis = calculateKPIs(allData, startDate, endDate);
+    const kpis = calculateKPIs(allData, startDate, endDate, diasUteisConfigurados);
     console.log('📊 KPIs calculados:', kpis);
 
     // Calcular ranking de vendedores
     const ranking = calcularRankingVendedores(allData, startDate, endDate);
-
-    // Buscar meta mensal
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const monthYear = `${String(month).padStart(2, '0')}/${year}`;
-    
-    const { data: metaData } = await supabase
-      .from('admin_goals')
-      .select('monthly_revenue_goal')
-      .eq('month_year', monthYear)
-      .maybeSingle();
-
-    const metaMensal = metaData?.monthly_revenue_goal || null;
-    console.log('🎯 Meta mensal:', metaMensal);
 
     // Calcular histórico de faturamento
     const historico = calcularHistoricoFaturamento(allData, month, year);

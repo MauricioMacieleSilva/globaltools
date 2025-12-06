@@ -173,6 +173,27 @@ function calcularDiasUteis(inicio: Date, fim: Date): number {
   return count;
 }
 
+// Buscar dias úteis configurados do banco
+async function buscarDiasUteisConfigurados(supabaseClient: any, monthYear: string): Promise<number | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('admin_goals')
+      .select('business_days')
+      .eq('month_year', monthYear)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('❌ Erro ao buscar dias úteis configurados:', error);
+      return null;
+    }
+    
+    return data?.business_days || null;
+  } catch (error) {
+    console.error('❌ Erro ao buscar dias úteis:', error);
+    return null;
+  }
+}
+
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   console.log('📊 Buscando dados da planilha para preview (últimos 60 dias)...');
   console.log('📋 URL:', CSV_URL);
@@ -313,7 +334,8 @@ function calculateKPIs(
   allData: ComercialData[],
   startDate: Date,
   endDate: Date,
-  calcularDias: boolean = true
+  calcularDias: boolean = true,
+  diasUteisConfigurados: number | null = null
 ): EmailKPIs {
   console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
 
@@ -366,9 +388,12 @@ function calculateKPIs(
   ).size;
   console.log(`❌ Perdidos: R$ ${perdidosValor.toFixed(2)} (${perdidosQtd} pedidos distintos)`);
 
-  const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
+  // Usar dias úteis configurados se disponível, senão calcular automaticamente
+  const diasUteis = calcularDias 
+    ? (diasUteisConfigurados || calcularDiasUteis(startDate, endDate))
+    : 1;
   const mediaDiaria = diasUteis > 0 ? faturamento / diasUteis : 0;
-  console.log(`📊 Dias úteis no período: ${diasUteis}`);
+  console.log(`📊 Dias úteis no período: ${diasUteis} (${diasUteisConfigurados ? 'configurado' : 'calculado automaticamente'})`);
   console.log(`📊 Média diária: R$ ${mediaDiaria.toFixed(2)}`);
 
   return {

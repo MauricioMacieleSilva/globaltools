@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       admin_goals: {
         Row: {
+          business_days: number | null
           conversion_goal_percent: number | null
           created_at: string
           daily_contacts_goal: number | null
@@ -30,6 +31,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_days?: number | null
           conversion_goal_percent?: number | null
           created_at?: string
           daily_contacts_goal?: number | null
@@ -44,6 +46,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_days?: number | null
           conversion_goal_percent?: number | null
           created_at?: string
           daily_contacts_goal?: number | null

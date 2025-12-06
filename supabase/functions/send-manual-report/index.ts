@@ -179,6 +179,27 @@ function calcularDiasUteis(startDate: Date, endDate: Date): number {
   return diasUteis;
 }
 
+// Buscar dias úteis configurados do banco
+async function buscarDiasUteisConfigurados(supabaseClient: any, monthYear: string): Promise<number | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('admin_goals')
+      .select('business_days')
+      .eq('month_year', monthYear)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('❌ Erro ao buscar dias úteis configurados:', error);
+      return null;
+    }
+    
+    return data?.business_days || null;
+  } catch (error) {
+    console.error('❌ Erro ao buscar dias úteis:', error);
+    return null;
+  }
+}
+
 // Carregar dados da planilha - IGUAL ao googleSheetsService.ts
 async function loadComercialDataFromSheet(): Promise<ComercialData[]> {
   const CSV_URL_WITH_TIMESTAMP = `${CSV_URL}&timestamp=${Date.now()}`;
@@ -272,7 +293,8 @@ function calculateKPIs(
   startDate: Date,
   endDate: Date,
   excludedOrders: Set<string> = new Set(),
-  calcularDias: boolean = true
+  calcularDias: boolean = true,
+  diasUteisConfigurados: number | null = null
 ): EmailKPIs {
   console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
   
@@ -338,10 +360,13 @@ function calculateKPIs(
   console.log(`📌 Valor perdido total (email): R$ ${perdidosValor.toFixed(2)}`);
   console.log(`📌 Pedidos perdidos distintos (email): ${perdidosQtd}`);
 
-  const diasUteis = calcularDias ? calcularDiasUteis(startDate, endDate) : 1;
+  // Usar dias úteis configurados se disponível, senão calcular automaticamente
+  const diasUteis = calcularDias 
+    ? (diasUteisConfigurados || calcularDiasUteis(startDate, endDate))
+    : 1;
   const mediaDiaria = diasUteis > 0 ? faturado / diasUteis : 0;
   
-  console.log(`📊 Dias úteis no período: ${diasUteis}`);
+  console.log(`📊 Dias úteis no período: ${diasUteis} (${diasUteisConfigurados ? 'configurado' : 'calculado automaticamente'})`);
   console.log(`📊 Média diária: R$ ${mediaDiaria.toFixed(2)}`);
 
   return {
@@ -965,9 +990,14 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('⚠️ Erro ao buscar meta, usando valor padrão:', error);
     }
 
-    // 4. Calcular KPIs do período solicitado
+    // 4. Buscar dias úteis configurados
+    console.log('📅 Buscando dias úteis configurados...');
+    const diasUteisConfigurados = await buscarDiasUteisConfigurados(supabaseAdmin, monthYear);
+    console.log(`📅 Dias úteis: ${diasUteisConfigurados ? diasUteisConfigurados + ' (configurado)' : 'não configurado, será calculado automaticamente'}`);
+
+    // 5. Calcular KPIs do período solicitado
     console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
-    const kpis = calculateKPIs(allData, startDate, endDate, excludedOrders);
+    const kpis = calculateKPIs(allData, startDate, endDate, excludedOrders, true, diasUteisConfigurados);
 
     // 5. Calcular ranking de vendedores no período
     const ranking = calcularRankingVendedores(allData, startDate, endDate);

@@ -93,8 +93,18 @@ export function MetasDialog({ isOpen, onClose, onSave, metaAtual }: MetasDialogP
 
   useEffect(() => {
     setMetaMensal(metaAtual.metaMensal.toString());
-    setMetaDiaria(metaAtual.metaDiaria.toString());
   }, [metaAtual]);
+
+  // Calcular meta diária automaticamente quando meta mensal ou dias úteis mudam
+  useEffect(() => {
+    const metaMensalNum = parseFloat(metaMensal) || 0;
+    const diasUteisNum = parseInt(diasUteis) || 0;
+    
+    if (metaMensalNum > 0 && diasUteisNum > 0) {
+      const metaDiariaCalculada = Math.round(metaMensalNum / diasUteisNum);
+      setMetaDiaria(metaDiariaCalculada.toString());
+    }
+  }, [metaMensal, diasUteis]);
 
   const handleSave = async () => {
     const metaMensalNum = parseFloat(metaMensal) || 2000000;
@@ -196,10 +206,6 @@ export function MetasDialog({ isOpen, onClose, onSave, metaAtual }: MetasDialogP
     setMetaMensal(numericValue);
   };
 
-  const handleMetaDiariaChange = (value: string) => {
-    const numericValue = value.replace(/[^\d]/g, '');
-    setMetaDiaria(numericValue);
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -226,14 +232,17 @@ export function MetasDialog({ isOpen, onClose, onSave, metaAtual }: MetasDialogP
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="meta-diaria">Meta Diária</Label>
+            <Label htmlFor="meta-diaria">Meta Diária (calculada automaticamente)</Label>
             <Input
               id="meta-diaria"
               placeholder="100.000"
               value={formatCurrency(metaDiaria)}
-              onChange={(e) => handleMetaDiariaChange(e.target.value)}
-              disabled={!isAdmin}
+              disabled
+              className="bg-muted"
             />
+            <p className="text-xs text-muted-foreground">
+              Meta Mensal ÷ Dias Úteis = Meta Diária
+            </p>
           </div>
 
           <div className="space-y-2">

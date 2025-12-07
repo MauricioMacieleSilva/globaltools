@@ -185,30 +185,39 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
     metaDiaria: 100000
   });
 
-  // Carregar metas do banco de dados
-  useEffect(() => {
-    const loadMetas = async () => {
-      try {
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const { data, error } = await supabase
-          .from('admin_goals')
-          .select('monthly_revenue_goal, daily_revenue_goal')
-          .eq('month_year', currentMonth)
-          .maybeSingle();
+  // Função para carregar metas baseada no mês/ano selecionado
+  const loadMetasFromAdminGoals = useCallback(async (year: string, month: string) => {
+    try {
+      const monthYear = `${year}-${month.padStart(2, '0')}`;
+      const { data, error } = await supabase
+        .from('admin_goals')
+        .select('monthly_revenue_goal, daily_revenue_goal')
+        .eq('month_year', monthYear)
+        .maybeSingle();
 
-        if (!error && data) {
-          setMetasState({
-            metaMensal: data.monthly_revenue_goal || 2000000,
-            metaDiaria: data.daily_revenue_goal || 100000
-          });
-        }
-      } catch (error) {
-        console.error('Erro ao carregar metas:', error);
+      if (!error && data) {
+        setMetasState({
+          metaMensal: data.monthly_revenue_goal || 2000000,
+          metaDiaria: data.daily_revenue_goal || 100000
+        });
+      } else {
+        // Se não existir meta para o mês, usar valores padrão
+        setMetasState({
+          metaMensal: 2000000,
+          metaDiaria: 100000
+        });
       }
-    };
-
-    loadMetas();
+    } catch (error) {
+      console.error('Erro ao carregar metas:', error);
+    }
   }, []);
+
+  // Carregar metas quando mudar mês/ano nos filtros
+  useEffect(() => {
+    const year = sessionFilters[activeSession]?.ano || currentYear;
+    const month = sessionFilters[activeSession]?.mes || currentMonth;
+    loadMetasFromAdminGoals(year, month);
+  }, [activeSession, sessionFilters, currentMonth, currentYear, loadMetasFromAdminGoals]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -245,105 +254,9 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
     setDrillDownState(prev => ({ ...prev, ...newState }));
   };
 
-  // Função para carregar metas do banco de dados
-  const loadRevenueMetas = useCallback(async (year: number, month: string) => {
-    try {
-      const monthYear = `${year}-${month.padStart(2, '0')}`;
-      
-      const { data, error } = await supabase
-        .from('metas_vendas')
-        .select('*')
-        .eq('ano', parseInt(year.toString()))
-        .eq('mes', parseInt(month))
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao carregar metas:', error);
-        return;
-      }
-
-      if (data) {
-        setMetasState({
-          metaMensal: data.meta_mensal,
-          metaDiaria: data.meta_diaria || 0
-        });
-      } else {
-        // Se não existir, usar valores padrão
-        setMetasState({
-          metaMensal: 2000000,
-          metaDiaria: 100000
-        });
-      }
-    } catch (e) {
-      console.error('Erro ao carregar metas de faturamento:', e);
-    }
-  }, []);
-
-  // Carregar metas quando mudar mês/ano
-  useEffect(() => {
-    const year = sessionFilters[activeSession]?.ano || currentYear;
-    const month = sessionFilters[activeSession]?.mes || currentMonth;
-    loadRevenueMetas(parseInt(year), month);
-  }, [activeSession, sessionFilters, currentMonth, currentYear, loadRevenueMetas]);
-
   const setMetas = async (newMetas: Partial<MetasState>) => {
     const updated = { ...metas, ...newMetas };
     setMetasState(updated);
-    
-    try {
-      const year = drillDown.selectedYear || sessionFilters[activeSession]?.ano || currentYear;
-      const month = drillDown.selectedMonth || sessionFilters[activeSession]?.mes || currentMonth;
-      const monthYear = `${year}-${month.padStart(2, '0')}`;
-
-      // Verificar se já existe registro para este mês
-      const { data: existing } = await supabase
-        .from('metas_vendas')
-        .select('id')
-        .eq('ano', parseInt(year))
-        .eq('mes', parseInt(month))
-        .maybeSingle();
-
-      if (existing) {
-        // Atualizar registro existente
-        const { error } = await supabase
-          .from('metas_vendas')
-          .update({
-            meta_mensal: updated.metaMensal,
-            meta_diaria: updated.metaDiaria,
-            updated_at: new Date().toISOString()
-          })
-          .eq('ano', parseInt(year))
-          .eq('mes', parseInt(month));
-
-        if (error) throw error;
-      } else {
-        // Criar novo registro
-        const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
-          .from('metas_vendas')
-          .insert({
-            ano: parseInt(year),
-            mes: parseInt(month),
-            meta_mensal: updated.metaMensal,
-            meta_diaria: updated.metaDiaria,
-            created_by: user?.id
-          });
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: "Metas salvas com sucesso!",
-        description: "As metas de faturamento foram atualizadas para todos os usuários.",
-      });
-    } catch (e) {
-      console.error('Erro ao salvar metas:', e);
-      toast({
-        title: "Erro ao salvar metas",
-        description: "Não foi possível salvar as metas. Tente novamente.",
-        variant: "destructive"
-      });
-    }
   };
 
   // Helper function to parse dates

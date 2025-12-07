@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, UserPlus, Filter, Search, RefreshCw, Settings, Shield } from 'lucide-react'
+import { Users, UserPlus, Filter, Search, RefreshCw, Settings, Shield, Target } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { UserProfile, UserRole } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
@@ -17,6 +17,7 @@ import { SessionResetDialog } from '@/components/admin/SessionResetDialog'
 import { LeadQualificationConfig } from '@/components/admin/LeadQualificationConfig'
 import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog'
 import { DefaultPermissionsConfig } from '@/components/admin/DefaultPermissionsConfig'
+import { GoalsManagement } from '@/components/admin/GoalsManagement'
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -175,10 +176,14 @@ export const UserManagement: React.FC = () => {
         <UserStats users={users} />
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Usuários
+            </TabsTrigger>
+            <TabsTrigger value="goals" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Metas
             </TabsTrigger>
             <TabsTrigger value="default-permissions" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -260,6 +265,10 @@ export const UserManagement: React.FC = () => {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="goals" className="mt-4">
+            <GoalsManagement />
           </TabsContent>
 
           <TabsContent value="default-permissions" className="mt-4">

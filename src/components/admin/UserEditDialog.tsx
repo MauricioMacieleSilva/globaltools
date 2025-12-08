@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { supabase } from '@/integrations/supabase/client'
 import { UserProfile, UserRole } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { UserPermissionsTab } from './UserPermissionsTab'
-import { Save, X, User, Lock } from 'lucide-react'
+import { Save, X, User, Lock, Camera, Loader2 } from 'lucide-react'
 
 interface UserEditDialogProps {
   user: UserProfile | null
@@ -30,9 +30,12 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
     full_name: '',
     email: '',
     role: 'visitante' as UserRole,
-    department: ''
+    department: '',
+    avatar_url: ''
   })
   const [loading, setLoading] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -41,10 +44,92 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
         full_name: user.full_name,
         email: user.email,
         role: user.role,
-        department: user.department || ''
+        department: user.department || '',
+        avatar_url: user.avatar_url || ''
       })
     }
   }, [user])
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !user) return
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, selecione uma imagem válida',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validar tamanho (máximo 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'Erro',
+        description: 'A imagem deve ter no máximo 2MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/avatar.${fileExt}`
+
+      // Upload para o storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName)
+
+      // Adicionar timestamp para forçar refresh do cache
+      const avatarUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`
+
+      // Atualizar perfil do usuário
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ avatar_url: avatarUrlWithTimestamp })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+
+      setFormData(prev => ({ ...prev, avatar_url: avatarUrlWithTimestamp }))
+      
+      toast({
+        title: 'Foto atualizada',
+        description: 'A foto do usuário foi atualizada com sucesso',
+      })
+
+      onUserUpdated()
+    } catch (error) {
+      console.error('Erro ao fazer upload da foto:', error)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível fazer upload da foto',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -166,6 +251,45 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
 
           <TabsContent value="profile" className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Avatar Upload */}
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={formData.avatar_url} alt={formData.full_name} />
+                <AvatarFallback className="text-lg bg-primary text-primary-foreground">
+                  {getInitials(formData.full_name || 'U')}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Camera className="h-3 w-3" />
+                )}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+            </div>
+            <div className="flex-1">
+              <Label>Foto do Usuário</Label>
+              <p className="text-xs text-muted-foreground">
+                Clique no ícone da câmera para alterar a foto. Máximo 2MB.
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="full_name">Nome Completo</Label>
             <Input

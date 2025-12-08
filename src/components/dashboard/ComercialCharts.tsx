@@ -8,11 +8,41 @@ import { parseDate } from '@/lib/utils-comercial';
 import { Settings, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetasDialog } from './MetasDialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
 
 // Force rebuild - component positions swapped
 export function ComercialCharts() {
   const { filteredData, isLoading, drillDown, setDrillDown, setFilters, metas, setMetas } = useComercial();
   const [isMetasDialogOpen, setIsMetasDialogOpen] = useState(false);
+  const [vendedorAvatars, setVendedorAvatars] = useState<Record<string, string>>({});
+
+  // Carregar avatares dos vendedores
+  useEffect(() => {
+    const loadVendorAvatars = async () => {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('full_name, avatar_url')
+        .not('avatar_url', 'is', null);
+      
+      if (profiles) {
+        const avatarMap: Record<string, string> = {};
+        profiles.forEach(profile => {
+          // Normalizar nome para comparação
+          const nomeNormalizado = profile.full_name
+            .toLowerCase()
+            .split(' ')
+            .map((palavra: string) => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+            .join(' ');
+          if (profile.avatar_url) {
+            avatarMap[nomeNormalizado] = profile.avatar_url;
+          }
+        });
+        setVendedorAvatars(avatarMap);
+      }
+    };
+    loadVendorAvatars();
+  }, []);
 
   const saveMetas = (newMetas: { metaMensal: number; metaDiaria: number }) => {
     setMetas(newMetas);
@@ -211,6 +241,15 @@ export function ComercialCharts() {
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
   }, [filteredData]);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -494,7 +533,7 @@ export function ComercialCharts() {
               {rankingVendedores.map((item, index) => (
                 <div key={item.vendedor} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
                       index === 0 ? 'bg-yellow-500 text-white' :
                       index === 1 ? 'bg-gray-400 text-white' :
                       index === 2 ? 'bg-orange-600 text-white' :
@@ -502,7 +541,13 @@ export function ComercialCharts() {
                     }`}>
                       {index + 1}
                     </span>
-                    <span className="font-medium truncate max-w-[100px]" title={item.vendedor}>
+                    <Avatar className="h-6 w-6 flex-shrink-0">
+                      <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} />
+                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                        {getInitials(item.vendedor)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium truncate max-w-[80px]" title={item.vendedor}>
                       {item.vendedor}
                     </span>
                   </div>

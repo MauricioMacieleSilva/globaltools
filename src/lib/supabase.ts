@@ -10,6 +10,7 @@ export interface UserProfile {
   invited_by?: string
   created_at: string
   last_login?: string
+  avatar_url?: string
 }
 
 // Função para verificar se o email é do domínio Global Aço

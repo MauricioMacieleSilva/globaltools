@@ -40,8 +40,9 @@ export const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onDelete }) =>
       <CardContent className="p-4">
         <div className="flex items-start space-x-3">
           <Avatar className="h-10 w-10 flex-shrink-0">
+            <AvatarImage src={user.avatar_url} alt={user.full_name} />
             <AvatarFallback>
-              <User className="h-4 w-4" />
+              {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           

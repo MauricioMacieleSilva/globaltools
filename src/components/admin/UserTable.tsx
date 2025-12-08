@@ -2,7 +2,7 @@ import React from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Edit, Trash2, Calendar } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase'
@@ -96,6 +96,7 @@ export const UserTable: React.FC<UserTableProps> = ({ users, loading, onEditUser
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatar_url} alt={user.full_name} />
                     <AvatarFallback className="text-xs">
                       {user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </AvatarFallback>

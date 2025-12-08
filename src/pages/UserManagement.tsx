@@ -41,23 +41,39 @@ export const UserManagement: React.FC = () => {
     setLoading(true)
     try {
       console.log('📡 Fazendo consulta ao Supabase...')
-      const { data, error } = await supabase
+      // Buscar perfis de usuários
+      const { data: profiles, error: profilesError } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('id, email, full_name, department, is_external, invited_by, created_at, last_login, avatar_url')
         .order('created_at', { ascending: false })
 
-      console.log('📊 Resposta do Supabase:', { data, error, count: data?.length })
-      
-      if (error) {
-        console.error('❌ Erro na consulta:', error)
-        throw error
+      if (profilesError) {
+        console.error('❌ Erro ao buscar perfis:', profilesError)
+        throw profilesError
       }
-      
-      const userProfiles = (data || []) as any[]
+
+      // Buscar roles dos usuários
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+
+      if (rolesError) {
+        console.error('❌ Erro ao buscar roles:', rolesError)
+        throw rolesError
+      }
+
+      // Combinar perfis com roles
+      const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || [])
+      const userProfiles = (profiles || []).map(profile => ({
+        ...profile,
+        role: rolesMap.get(profile.id) || 'visitante'
+      })) as UserProfile[]
+
       console.log('👥 Usuários carregados:', userProfiles.map(u => ({ 
         name: u.full_name, 
         email: u.email, 
         role: u.role,
+        avatar_url: u.avatar_url,
         is_external: u.is_external 
       })))
       

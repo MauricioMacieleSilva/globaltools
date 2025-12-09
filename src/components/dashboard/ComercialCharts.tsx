@@ -5,12 +5,13 @@ import { useComercial } from '@/context/ComercialContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDate } from '@/lib/utils-comercial';
-import { Settings, Trophy, Camera } from 'lucide-react';
+import { Settings, Trophy, Camera, Package, Users, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetasDialog } from './MetasDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { VendorAvatarDialog } from './VendorAvatarDialog';
+import { Tooltip as TooltipUI, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Force rebuild - component positions swapped
 export function ComercialCharts() {
@@ -238,13 +239,13 @@ export function ComercialCharts() {
       .sort((a, b) => b.valor - a.valor);
   }, [filteredData]);
 
-  // Calcular ranking de vendedores
+  // Calcular ranking de vendedores com detalhes completos
   const rankingVendedores = useMemo(() => {
     const dadosFaturados = filteredData.filter(
       item => (item.situacao === 'Emitida' || item.situacao === 'Pedido') && item.faturamento_tipo === 1 && item.vendedor !== 'VENDEDOR'
     );
     
-    const vendedoresFaturamento = dadosFaturados.reduce((acc, item) => {
+    const vendedoresData = dadosFaturados.reduce((acc, item) => {
       // Normalizar nome do vendedor
       const nomeNormalizado = item.vendedor
         .toLowerCase()
@@ -252,15 +253,69 @@ export function ComercialCharts() {
         .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
         .join(' ');
       
-      acc[nomeNormalizado] = (acc[nomeNormalizado] || 0) + item.valor;
+      if (!acc[nomeNormalizado]) {
+        acc[nomeNormalizado] = {
+          valor: 0,
+          pedidos: new Set<string>(),
+          clientes: new Set<string>(),
+          vendas: [] as Array<{ cliente: string; numeroPedido: string; valor: number; data: string }>
+        };
+      }
+      
+      acc[nomeNormalizado].valor += item.valor;
+      acc[nomeNormalizado].pedidos.add(item.numeropedido);
+      acc[nomeNormalizado].clientes.add(item.cliente);
+      acc[nomeNormalizado].vendas.push({
+        cliente: item.cliente,
+        numeroPedido: item.numeropedido,
+        valor: item.valor,
+        data: item.data_emissao
+      });
+      
       return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, { valor: number; pedidos: Set<string>; clientes: Set<string>; vendas: Array<{ cliente: string; numeroPedido: string; valor: number; data: string }> }>);
 
-    return Object.entries(vendedoresFaturamento)
-      .map(([vendedor, valor]) => ({ vendedor, valor }))
+    return Object.entries(vendedoresData)
+      .map(([vendedor, data]) => ({ 
+        vendedor, 
+        valor: data.valor,
+        totalPedidos: data.pedidos.size,
+        totalClientes: data.clientes.size,
+        ultimasVendas: data.vendas
+          .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+          .slice(0, 5)
+      }))
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
   }, [filteredData]);
+
+  // Função para obter estilos do avatar baseado na posição
+  const getAvatarRingStyle = (index: number) => {
+    switch (index) {
+      case 0: // Ouro
+        return 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/40';
+      case 1: // Prata
+        return 'ring-3 ring-gray-300 shadow-md shadow-gray-300/30';
+      case 2: // Bronze
+        return 'ring-3 ring-orange-400 shadow-md shadow-orange-400/30';
+      default:
+        return 'ring-2 ring-muted';
+    }
+  };
+
+  // Função para obter cor do badge de posição
+  const getPositionBadgeStyle = (index: number) => {
+    switch (index) {
+      case 0:
+        return 'bg-yellow-500 text-white';
+      case 1:
+        return 'bg-gray-400 text-white';
+      case 2:
+        return 'bg-orange-500 text-white';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -542,54 +597,143 @@ export function ComercialCharts() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        {/* Card Ranking Vendedores */}
+        {/* Card Ranking Vendedores - Redesenhado */}
         <Card className="p-4 h-56">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-0 pt-0">
-            <CardTitle className="text-sm font-medium text-orange-600">Top 5 Vendedores</CardTitle>
-            <Trophy className="h-4 w-4 text-orange-600" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+            <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Top 5 Vendedores
+            </CardTitle>
           </CardHeader>
-          <CardContent className="px-0 pb-0">
-            <div className="space-y-2">
-              {rankingVendedores.map((item, index) => (
-                <div key={item.vendedor} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
-                      index === 0 ? 'bg-yellow-500 text-white' :
-                      index === 1 ? 'bg-gray-400 text-white' :
-                      index === 2 ? 'bg-orange-600 text-white' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <button
-                      onClick={() => setSelectedVendor({ 
-                        name: item.vendedor, 
-                        avatarUrl: vendedorAvatars[item.vendedor] 
-                      })}
-                      className="relative group"
-                      title="Clique para adicionar/alterar foto"
-                    >
-                      <Avatar className="h-6 w-6 flex-shrink-0 transition-opacity group-hover:opacity-80">
-                        <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} />
-                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                          {getInitials(item.vendedor)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="h-3 w-3 text-primary" />
+          <CardContent className="px-0 pb-0 overflow-hidden">
+            <TooltipProvider delayDuration={200}>
+              <div className="space-y-1.5">
+                {rankingVendedores.map((item, index) => (
+                  <TooltipUI key={item.vendedor}>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50 transition-all cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Avatar com borda colorida e badge de posição */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedVendor({ 
+                                name: item.vendedor, 
+                                avatarUrl: vendedorAvatars[item.vendedor] 
+                              });
+                            }}
+                            className="relative"
+                            title="Clique para adicionar/alterar foto"
+                          >
+                            <Avatar className={`h-10 w-10 flex-shrink-0 transition-all ${getAvatarRingStyle(index)} group-hover:scale-105`}>
+                              <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} className="object-cover" />
+                              <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                                {getInitials(item.vendedor)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {/* Badge de posição no canto */}
+                            <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${getPositionBadgeStyle(index)} shadow-sm`}>
+                              {index + 1}
+                            </span>
+                            {/* Ícone de câmera no hover */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
+                              <Camera className="h-4 w-4 text-white" />
+                            </div>
+                          </button>
+                          
+                          {/* Nome do vendedor */}
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-sm truncate max-w-[100px]" title={item.vendedor}>
+                              {item.vendedor}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {item.totalPedidos} pedidos • {item.totalClientes} clientes
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Valor total */}
+                        <span className="font-semibold text-sm text-green-600">
+                          {formatCurrency(item.valor)}
+                        </span>
                       </div>
-                    </button>
-                    <span className="font-medium truncate max-w-[80px]" title={item.vendedor}>
-                      {item.vendedor}
-                    </span>
-                  </div>
-                  <span className="font-medium">{formatCurrency(item.valor)}</span>
-                </div>
-              ))}
-              {rankingVendedores.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhum dado disponível</p>
-              )}
-            </div>
+                    </TooltipTrigger>
+                    
+                    {/* Tooltip com detalhes das vendas */}
+                    <TooltipContent side="right" align="start" className="w-80 p-0 overflow-hidden">
+                      <div className="bg-background border-0">
+                        {/* Cabeçalho do tooltip */}
+                        <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-white">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-12 w-12 ring-2 ring-white/30">
+                              <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} />
+                              <AvatarFallback className="text-sm bg-white/20 text-white">
+                                {getInitials(item.vendedor)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-semibold text-base">{item.vendedor}</p>
+                              <p className="text-white/80 text-xs">
+                                {index === 0 ? '🥇 1º lugar' : index === 1 ? '🥈 2º lugar' : index === 2 ? '🥉 3º lugar' : `${index + 1}º lugar`}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Estatísticas */}
+                        <div className="grid grid-cols-3 gap-2 p-3 border-b bg-muted/30">
+                          <div className="text-center">
+                            <TrendingUp className="h-4 w-4 mx-auto text-green-600 mb-1" />
+                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="font-semibold text-sm text-green-600">{formatCurrency(item.valor)}</p>
+                          </div>
+                          <div className="text-center">
+                            <Package className="h-4 w-4 mx-auto text-blue-600 mb-1" />
+                            <p className="text-xs text-muted-foreground">Pedidos</p>
+                            <p className="font-semibold text-sm">{item.totalPedidos}</p>
+                          </div>
+                          <div className="text-center">
+                            <Users className="h-4 w-4 mx-auto text-purple-600 mb-1" />
+                            <p className="text-xs text-muted-foreground">Clientes</p>
+                            <p className="font-semibold text-sm">{item.totalClientes}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Últimas vendas */}
+                        <div className="p-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Últimas vendas</p>
+                          <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                            {item.ultimasVendas.map((venda, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-xs bg-muted/50 rounded px-2 py-1.5">
+                                <div className="min-w-0 flex-1 mr-2">
+                                  <p className="font-medium truncate" title={venda.cliente}>
+                                    {venda.cliente.length > 20 ? venda.cliente.substring(0, 20) + '...' : venda.cliente}
+                                  </p>
+                                  <p className="text-muted-foreground text-[10px]">
+                                    Pedido: {venda.numeroPedido}
+                                  </p>
+                                </div>
+                                <span className="text-green-600 font-medium whitespace-nowrap">
+                                  {formatCurrency(venda.valor)}
+                                </span>
+                              </div>
+                            ))}
+                            {item.ultimasVendas.length === 0 && (
+                              <p className="text-xs text-muted-foreground italic">Sem vendas registradas</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </TooltipUI>
+                ))}
+                {rankingVendedores.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhum dado disponível</p>
+                )}
+              </div>
+            </TooltipProvider>
           </CardContent>
         </Card>
 

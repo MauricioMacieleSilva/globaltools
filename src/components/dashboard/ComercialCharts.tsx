@@ -1,48 +1,68 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine, Cell } from 'recharts';
 import { useComercial } from '@/context/ComercialContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDate } from '@/lib/utils-comercial';
-import { Settings, Trophy } from 'lucide-react';
+import { Settings, Trophy, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetasDialog } from './MetasDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
+import { VendorAvatarDialog } from './VendorAvatarDialog';
 
 // Force rebuild - component positions swapped
 export function ComercialCharts() {
   const { filteredData, isLoading, drillDown, setDrillDown, setFilters, metas, setMetas } = useComercial();
   const [isMetasDialogOpen, setIsMetasDialogOpen] = useState(false);
   const [vendedorAvatars, setVendedorAvatars] = useState<Record<string, string>>({});
+  const [selectedVendor, setSelectedVendor] = useState<{ name: string; avatarUrl?: string } | null>(null);
 
-  // Carregar avatares dos vendedores
-  useEffect(() => {
-    const loadVendorAvatars = async () => {
-      const { data: profiles } = await supabase
-        .from('user_profiles')
-        .select('full_name, avatar_url')
-        .not('avatar_url', 'is', null);
-      
-      if (profiles) {
-        const avatarMap: Record<string, string> = {};
-        profiles.forEach(profile => {
-          // Normalizar nome para comparação
-          const nomeNormalizado = profile.full_name
-            .toLowerCase()
-            .split(' ')
-            .map((palavra: string) => palavra.charAt(0).toUpperCase() + palavra.slice(1))
-            .join(' ');
-          if (profile.avatar_url) {
-            avatarMap[nomeNormalizado] = profile.avatar_url;
-          }
-        });
-        setVendedorAvatars(avatarMap);
-      }
-    };
-    loadVendorAvatars();
+  // Carregar avatares dos vendedores (user_profiles + vendor_avatars)
+  const loadVendorAvatars = useCallback(async () => {
+    const avatarMap: Record<string, string> = {};
+
+    // Buscar da tabela vendor_avatars (prioridade)
+    const { data: vendorAvatars } = await supabase
+      .from('vendor_avatars')
+      .select('vendor_name, avatar_url')
+      .not('avatar_url', 'is', null);
+    
+    if (vendorAvatars) {
+      vendorAvatars.forEach(vendor => {
+        if (vendor.avatar_url) {
+          avatarMap[vendor.vendor_name] = vendor.avatar_url;
+        }
+      });
+    }
+
+    // Buscar da tabela user_profiles (fallback)
+    const { data: profiles } = await supabase
+      .from('user_profiles')
+      .select('full_name, avatar_url')
+      .not('avatar_url', 'is', null);
+    
+    if (profiles) {
+      profiles.forEach(profile => {
+        const nomeNormalizado = profile.full_name
+          .toLowerCase()
+          .split(' ')
+          .map((palavra: string) => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+          .join(' ');
+        // Só adiciona se não existir já (vendor_avatars tem prioridade)
+        if (profile.avatar_url && !avatarMap[nomeNormalizado]) {
+          avatarMap[nomeNormalizado] = profile.avatar_url;
+        }
+      });
+    }
+
+    setVendedorAvatars(avatarMap);
   }, []);
+
+  useEffect(() => {
+    loadVendorAvatars();
+  }, [loadVendorAvatars]);
 
   const saveMetas = (newMetas: { metaMensal: number; metaDiaria: number }) => {
     setMetas(newMetas);
@@ -541,12 +561,24 @@ export function ComercialCharts() {
                     }`}>
                       {index + 1}
                     </span>
-                    <Avatar className="h-6 w-6 flex-shrink-0">
-                      <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} />
-                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
-                        {getInitials(item.vendedor)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <button
+                      onClick={() => setSelectedVendor({ 
+                        name: item.vendedor, 
+                        avatarUrl: vendedorAvatars[item.vendedor] 
+                      })}
+                      className="relative group"
+                      title="Clique para adicionar/alterar foto"
+                    >
+                      <Avatar className="h-6 w-6 flex-shrink-0 transition-opacity group-hover:opacity-80">
+                        <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} />
+                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                          {getInitials(item.vendedor)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="h-3 w-3 text-primary" />
+                      </div>
+                    </button>
                     <span className="font-medium truncate max-w-[80px]" title={item.vendedor}>
                       {item.vendedor}
                     </span>
@@ -601,6 +633,16 @@ export function ComercialCharts() {
         onSave={saveMetas}
         metaAtual={metas}
       />
+
+      {selectedVendor && (
+        <VendorAvatarDialog
+          isOpen={!!selectedVendor}
+          onClose={() => setSelectedVendor(null)}
+          vendorName={selectedVendor.name}
+          currentAvatarUrl={selectedVendor.avatarUrl}
+          onAvatarUpdated={loadVendorAvatars}
+        />
+      )}
     </div>
   );
 }

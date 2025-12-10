@@ -167,6 +167,41 @@ export function PerfilUSemiEnrijecido() {
     atualizarLinhaUSemiEnrijecido([...linhasUSemiEnrijecido, novaLinha]);
   };
 
+  const limparLinha = (id: string) => {
+    const updatedLinhas = linhasUSemiEnrijecido.map(l => {
+      if (l.id === id) {
+        return {
+          ...l,
+          espessura: '',
+          enrij1: '',
+          aba1: '',
+          base: '',
+          aba2: '',
+          comprimento: '6000',
+          largura: '1200',
+          quantidade: '',
+          percentualPerda: '101',
+          assimetrico: false,
+          orientacaoUZ: 'U' as const
+        };
+      }
+      return l;
+    });
+    atualizarLinhaUSemiEnrijecido(updatedLinhas);
+    removerCalculo(id);
+    
+    // Limpar erros de validação da linha
+    setErrosValidacao(prev => {
+      const newErrors = {...prev};
+      Object.keys(newErrors).forEach(key => {
+        if (key.startsWith(id)) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
+  };
+
   const removerLinha = (id: string) => {
     if (linhasUSemiEnrijecido.length > 3) {
       if (confirm('Tem certeza que deseja remover esta linha?')) {
@@ -200,7 +235,7 @@ export function PerfilUSemiEnrijecido() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-16 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-17 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">U/Z</div>
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
@@ -217,12 +252,13 @@ export function PerfilUSemiEnrijecido() {
         <div className="text-center">kg/Pç</div>
         <div className="text-center">P.T</div>
         <div className="text-center">P.P</div>
+        <div className="text-center">Ações</div>
       </div>
 
       <div className="space-y-4">
         {linhasUSemiEnrijecido.map(linha => {
         const calculo = calcularPerfil(linha);
-        return <div key={linha.id} className="grid grid-cols-16 gap-2 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-17 gap-2 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                   <SelectTrigger className="w-12 h-8 text-xs">
@@ -351,6 +387,12 @@ export function PerfilUSemiEnrijecido() {
               
               <div className="text-center font-medium text-destructive text-xs">
                 {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
+              </div>
+              
+              <div className="flex justify-center">
+                <Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
               </div>
             </div>;
       })}

@@ -60,6 +60,12 @@ export const SYSTEM_PAGES = {
     supportsEdit: false,
     route: '/assistente-global'
   },
+  centralprecos: { 
+    label: 'Central de Preços', 
+    category: 'Principais',
+    supportsEdit: false,
+    route: '/central-precos'
+  },
   
   // Páginas administrativas
   usuarios: { 

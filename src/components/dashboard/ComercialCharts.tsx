@@ -276,15 +276,37 @@ export function ComercialCharts() {
     }, {} as Record<string, { valor: number; pedidos: Set<string>; clientes: Set<string>; vendas: Array<{ cliente: string; numeroPedido: string; valor: number; data: string }> }>);
 
     return Object.entries(vendedoresData)
-      .map(([vendedor, data]) => ({ 
-        vendedor, 
-        valor: data.valor,
-        totalPedidos: data.pedidos.size,
-        totalClientes: data.clientes.size,
-        ultimasVendas: data.vendas
+      .map(([vendedor, data]) => {
+        // Agrupar vendas por número do pedido para evitar duplicatas
+        const vendasAgrupadas = data.vendas.reduce((acc, venda) => {
+          if (!acc[venda.numeroPedido]) {
+            acc[venda.numeroPedido] = {
+              cliente: venda.cliente,
+              numeroPedido: venda.numeroPedido,
+              valor: 0,
+              data: venda.data
+            };
+          }
+          acc[venda.numeroPedido].valor += venda.valor;
+          // Manter a data mais recente
+          if (new Date(venda.data).getTime() > new Date(acc[venda.numeroPedido].data).getTime()) {
+            acc[venda.numeroPedido].data = venda.data;
+          }
+          return acc;
+        }, {} as Record<string, { cliente: string; numeroPedido: string; valor: number; data: string }>);
+
+        const ultimasVendas = Object.values(vendasAgrupadas)
           .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
-          .slice(0, 5)
-      }))
+          .slice(0, 5);
+
+        return { 
+          vendedor, 
+          valor: data.valor,
+          totalPedidos: data.pedidos.size,
+          totalClientes: data.clientes.size,
+          ultimasVendas
+        };
+      })
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
   }, [filteredData]);
@@ -665,7 +687,7 @@ export function ComercialCharts() {
                     <TooltipContent side="right" align="start" className="w-80 p-0 overflow-hidden">
                       <div className="bg-background border-0">
                         {/* Cabeçalho do tooltip */}
-                        <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-white">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-12 w-12 ring-2 ring-white/30">
                               <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} />

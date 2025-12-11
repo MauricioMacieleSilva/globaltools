@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut, DollarSign } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { UpdateNotification } from './UpdateNotification';
@@ -77,6 +77,13 @@ const menuItems = [
     url: '/assistente-global',
     icon: Monitor,
     pageKey: 'assistente',
+  },
+  {
+    title: 'Central de Preços',
+    url: 'https://central-de-pre-os-437535537334.us-west1.run.app/',
+    icon: DollarSign,
+    pageKey: 'centralprecos',
+    external: true,
   },
 ]
 
@@ -149,11 +156,18 @@ export function AppSidebar() {
             <SidebarMenu>
               {(loading ? menuItems : menuItems.filter(item => checkPageAccess(item.pageKey as PageKey).canView)).map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
+                  <SidebarMenuButton asChild isActive={!item.external && isActive(item.url)}>
+                    {item.external ? (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </a>
+                    ) : (
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

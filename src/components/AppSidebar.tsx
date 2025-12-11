@@ -17,7 +17,6 @@ import {
 import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut, DollarSign } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
-import { UpdateNotification } from './UpdateNotification';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/context/AuthContext';
 import { useUserPermissions, type PageKey } from '@/hooks/useUserPermissions';
@@ -200,7 +199,6 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <UpdateNotification />
               <SidebarMenuItem>
                 <Button
                   variant="ghost"

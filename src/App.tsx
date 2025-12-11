@@ -9,7 +9,7 @@ import { PerfilProvider } from "./context/PerfilContext";
 import { ComercialProvider } from "./context/ComercialContext";
 import { PreVendasProvider } from "./context/PreVendasContext";
 import { ProducaoProvider } from "./context/ProducaoContext";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
@@ -28,6 +28,7 @@ import NotFound from "./pages/NotFound";
 import { Pipeline } from "./pages/Pipeline";
 import Producao from "./pages/Producao";
 import Auth from "./pages/Auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ function AppContent() {
   const location = useLocation();
   const currentPath = location.pathname;
   const isMobile = useIsMobile();
+  const { userProfile } = useAuth();
 
   const getPageTitle = () => {
     switch (currentPath) {
@@ -132,6 +134,17 @@ function AppContent() {
                                   <p className="text-xs text-muted-foreground truncate hidden sm:block">{getPageSubtitle()}</p>
                                 </div>
                               </div>
+                              {userProfile && (
+                                <div className="flex items-center gap-2 ml-auto">
+                                  <span className="text-sm font-medium text-foreground hidden sm:block">{userProfile.full_name}</span>
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={userProfile.avatar_url || undefined} alt={userProfile.full_name} />
+                                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                                      {userProfile.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </div>
+                              )}
                             </header>
                             <main className="flex-1">
                               <Routes>

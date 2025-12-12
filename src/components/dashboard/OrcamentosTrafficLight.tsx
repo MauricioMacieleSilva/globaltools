@@ -1,17 +1,74 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { useComercial } from '@/context/ComercialContext';
 import { parseDate } from '@/lib/utils-comercial';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
+
+// Helper para obter iniciais do nome
+const getInitials = (name: string) => {
+  const parts = name.split(' ').filter(p => p.length > 0);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
 
 export function OrcamentosTrafficLight() {
   const { data, isLoading } = useComercial();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
+  const [vendedorAvatars, setVendedorAvatars] = useState<Record<string, string>>({});
+
+  // Carregar avatares dos vendedores (mesmo padrão do Top 5 vendedores)
+  const loadVendorAvatars = useCallback(async () => {
+    const avatarMap: Record<string, string> = {};
+
+    // Buscar da tabela vendor_avatars (prioridade)
+    const { data: vendorAvatars } = await supabase
+      .from('vendor_avatars')
+      .select('vendor_name, avatar_url')
+      .not('avatar_url', 'is', null);
+    
+    if (vendorAvatars) {
+      vendorAvatars.forEach(vendor => {
+        if (vendor.avatar_url) {
+          avatarMap[vendor.vendor_name] = vendor.avatar_url;
+        }
+      });
+    }
+
+    // Buscar da tabela user_profiles (fallback)
+    const { data: profiles } = await supabase
+      .from('user_profiles')
+      .select('full_name, avatar_url')
+      .not('avatar_url', 'is', null);
+    
+    if (profiles) {
+      profiles.forEach(profile => {
+        const nomeNormalizado = profile.full_name
+          .toLowerCase()
+          .split(' ')
+          .map((palavra: string) => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+          .join(' ');
+        // Só adiciona se não existir já (vendor_avatars tem prioridade)
+        if (profile.avatar_url && !avatarMap[nomeNormalizado]) {
+          avatarMap[nomeNormalizado] = profile.avatar_url;
+        }
+      });
+    }
+
+    setVendedorAvatars(avatarMap);
+  }, []);
+
+  useEffect(() => {
+    loadVendorAvatars();
+  }, [loadVendorAvatars]);
 
   // Função para agrupar orçamentos por vendedor
   const getGroupedOrcamentosPorVendedor = (vendedor: string) => {
@@ -178,64 +235,66 @@ export function OrcamentosTrafficLight() {
 
   return (
     <>
-      <Card className="h-56 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200/50 dark:border-amber-800/30">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <span className="text-amber-700 dark:text-amber-400">Orçamentos em Aberto</span>
+      <Card className="p-4 h-56">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+          <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Orçamentos em Aberto
           </CardTitle>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
-              {vendedoresData.reduce((acc, v) => acc + v.count, 0)} orç.
-            </p>
+            <span className="text-lg font-bold text-blue-600">
+              {vendedoresData.reduce((acc, v) => acc + v.count, 0)}
+            </span>
+            <span className="text-xs text-muted-foreground ml-1">orç.</span>
           </div>
         </CardHeader>
-        <CardContent className="px-4 pb-4 pt-0">
-          <ScrollArea className="h-[140px]">
-            <div className="flex flex-col gap-2 pr-2">
-              {vendedoresData.length > 0 ? (
-                vendedoresData.map((vendedor, index) => (
-                  <div 
-                    key={vendedor.vendedor}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-white/70 dark:bg-background/50 border border-amber-200/50 dark:border-amber-700/30 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 hover:border-amber-300 dark:hover:border-amber-600 transition-all shadow-sm hover:shadow-md group"
-                    onClick={() => handleVendedorClick(vendedor.vendedor)}
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white text-xs font-bold shadow-sm">
+        <CardContent className="px-0 pb-0 overflow-hidden">
+          <div className="space-y-1.5">
+            {vendedoresData.length > 0 ? (
+              vendedoresData.slice(0, 5).map((vendedor, index) => (
+                <div 
+                  key={vendedor.vendedor}
+                  className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50 transition-all cursor-pointer group"
+                  onClick={() => handleVendedorClick(vendedor.vendedor)}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Avatar com badge de posição */}
+                    <div className="relative">
+                      <Avatar className="h-8 w-8 flex-shrink-0 transition-all ring-2 ring-blue-200 dark:ring-blue-800 group-hover:scale-105">
+                        <AvatarImage src={vendedorAvatars[vendedor.vendedor]} alt={vendedor.vendedor} className="object-cover" />
+                        <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-semibold">
+                          {getInitials(vendedor.vendedor)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Badge de posição */}
+                      <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white shadow-sm">
                         {index + 1}
-                      </div>
-                      <span className="text-sm font-medium text-foreground truncate group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
-                        {vendedor.vendedor}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 ml-2">
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{vendedor.count}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({vendedor.percentual.toFixed(1)}%)
-                          </span>
-                        </div>
-                        <span className="text-xs text-muted-foreground font-medium">
-                          {formatCurrency(vendedor.valor)}
-                        </span>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
+                    {/* Nome do vendedor */}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium text-sm truncate max-w-[90px]" title={vendedor.vendedor}>
+                        {vendedor.vendedor}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {vendedor.count} orç. • {vendedor.percentual.toFixed(0)}%
+                      </span>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">Nenhum orçamento em aberto</p>
+                  
+                  {/* Valor total */}
+                  <span className="font-semibold text-sm text-blue-600">
+                    {formatCurrency(vendedor.valor)}
+                  </span>
                 </div>
-              )}
-            </div>
-          </ScrollArea>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p className="text-sm">Nenhum orçamento em aberto</p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

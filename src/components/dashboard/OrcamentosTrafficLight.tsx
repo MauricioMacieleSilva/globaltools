@@ -178,35 +178,54 @@ export function OrcamentosTrafficLight() {
 
   return (
     <>
-      <Card className="p-4 h-56">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
-          <CardTitle className="text-sm font-medium text-blue-600">Orçamentos em Aberto por Vendedor</CardTitle>
+      <Card className="h-56 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200/50 dark:border-amber-800/30">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <span className="text-amber-700 dark:text-amber-400">Orçamentos em Aberto</span>
+          </CardTitle>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
+              {vendedoresData.reduce((acc, v) => acc + v.count, 0)} orç.
+            </p>
+          </div>
         </CardHeader>
-        <CardContent className="px-0 pb-0">
-          <ScrollArea className="h-44">
-            <div className="flex flex-col space-y-1.5 pr-4">
+        <CardContent className="px-4 pb-4 pt-0">
+          <ScrollArea className="h-[140px]">
+            <div className="flex flex-col gap-2 pr-2">
               {vendedoresData.length > 0 ? (
-                vendedoresData.map((vendedor) => (
+                vendedoresData.map((vendedor, index) => (
                   <div 
                     key={vendedor.vendedor}
-                    className="flex items-center justify-between p-2 rounded-lg bg-blue-50 border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-white/70 dark:bg-background/50 border border-amber-200/50 dark:border-amber-700/30 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 hover:border-amber-300 dark:hover:border-amber-600 transition-all shadow-sm hover:shadow-md group"
                     onClick={() => handleVendedorClick(vendedor.vendedor)}
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-xs font-medium text-blue-700 truncate">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white text-xs font-bold shadow-sm">
+                        {index + 1}
+                      </div>
+                      <span className="text-sm font-medium text-foreground truncate group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
                         {vendedor.vendedor}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 ml-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-blue-700">{vendedor.count}</span>
-                        <span className="text-xs text-blue-600">
-                          ({vendedor.percentual.toFixed(1)}%)
+                    <div className="flex items-center gap-4 ml-2">
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{vendedor.count}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({vendedor.percentual.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {formatCurrency(vendedor.valor)}
                         </span>
                       </div>
-                      <span className="text-xs text-blue-600 font-medium whitespace-nowrap">
-                        {formatCurrency(vendedor.valor)}
-                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </div>
                 ))

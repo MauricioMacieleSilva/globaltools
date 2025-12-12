@@ -456,42 +456,46 @@ export function ComercialCharts() {
       const clientesRestantes = Object.keys(clientesAgrupados).length - 5;
 
       return (
-        <div className="bg-background border border-border rounded-lg p-3 shadow-lg max-w-xs">
-          <p className="font-medium text-sm mb-2">Dia {label}</p>
-          <div className="space-y-1 text-xs border-b border-border pb-2 mb-2">
-            <p className="text-green-600">
-              <span className="font-medium">Faturamento:</span> {formatCurrency(data.valor)}
-            </p>
-            <p className="text-blue-600">
-              <span className="font-medium">Nº Pedidos:</span> {data.pedidos}
-            </p>
-            <p className="text-orange-600">
-              <span className="font-medium">Nº Clientes:</span> {data.clientes}
-            </p>
-            <p className="text-purple-600">
-              <span className="font-medium">Peso:</span> {formatPeso(data.peso)}
-            </p>
+        <div className="bg-background border border-border rounded-lg shadow-lg w-72 max-h-80 flex flex-col">
+          <div className="p-3 border-b border-border flex-shrink-0">
+            <p className="font-medium text-sm mb-2">Dia {label}</p>
+            <div className="space-y-1 text-xs">
+              <p className="text-green-600">
+                <span className="font-medium">Faturamento:</span> {formatCurrency(data.valor)}
+              </p>
+              <p className="text-blue-600">
+                <span className="font-medium">Nº Pedidos:</span> {data.pedidos}
+              </p>
+              <p className="text-orange-600">
+                <span className="font-medium">Nº Clientes:</span> {data.clientes}
+              </p>
+              <p className="text-purple-600">
+                <span className="font-medium">Peso:</span> {formatPeso(data.peso)}
+              </p>
+            </div>
           </div>
           
           {clientesList.length > 0 && (
-            <div className="space-y-2">
-              <p className="font-medium text-xs text-muted-foreground">Detalhes por Cliente:</p>
-              {clientesList.map((item, idx) => {
-                const pedidosDisplay = item.pedidos.length > 3 
-                  ? `${item.pedidos.slice(0, 3).join(', ')} +${item.pedidos.length - 3}`
-                  : item.pedidos.join(', ');
-                return (
-                  <div key={idx} className="text-xs bg-muted/50 rounded p-1.5">
-                    <p className="font-medium truncate text-foreground" title={item.cliente}>
-                      {item.cliente.length > 25 ? item.cliente.substring(0, 25) + '...' : item.cliente}
-                    </p>
-                    <p className="text-muted-foreground">Pedidos: {pedidosDisplay}</p>
-                    <p className="text-green-600 font-medium">{formatCurrency(item.valor)}</p>
-                  </div>
-                );
-              })}
+            <div className="flex-1 overflow-y-auto p-3">
+              <p className="font-medium text-xs text-muted-foreground mb-2">Detalhes por Cliente:</p>
+              <div className="space-y-2">
+                {clientesList.map((item, idx) => {
+                  const pedidosDisplay = item.pedidos.length > 3 
+                    ? `${item.pedidos.slice(0, 3).join(', ')} +${item.pedidos.length - 3}`
+                    : item.pedidos.join(', ');
+                  return (
+                    <div key={idx} className="text-xs bg-muted/50 rounded p-1.5">
+                      <p className="font-medium truncate text-foreground" title={item.cliente}>
+                        {item.cliente.length > 25 ? item.cliente.substring(0, 25) + '...' : item.cliente}
+                      </p>
+                      <p className="text-muted-foreground">Pedidos: {pedidosDisplay}</p>
+                      <p className="text-green-600 font-medium">{formatCurrency(item.valor)}</p>
+                    </div>
+                  );
+                })}
+              </div>
               {clientesRestantes > 0 && (
-                <p className="text-xs text-muted-foreground italic">e mais {clientesRestantes} cliente(s)...</p>
+                <p className="text-xs text-muted-foreground italic mt-2">e mais {clientesRestantes} cliente(s)...</p>
               )}
             </div>
           )}

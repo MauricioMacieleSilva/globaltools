@@ -73,43 +73,54 @@ export function MaterialDetailDialog({
             <div className="space-y-2">
               {material.pedidos
                 .sort((a, b) => {
-                  // Atrasados primeiro
-                  if (a.atrasado && !b.atrasado) return -1;
-                  if (!a.atrasado && b.atrasado) return 1;
+                  // Concluídos por último, atrasados primeiro
+                  const aStatus = (a as any).concluido ? 2 : a.atrasado ? 0 : 1;
+                  const bStatus = (b as any).concluido ? 2 : b.atrasado ? 0 : 1;
+                  if (aStatus !== bStatus) return aStatus - bStatus;
                   return a.numero_pedido.localeCompare(b.numero_pedido);
                 })
-                .map((pedido, index) => (
-                  <div
-                    key={index}
-                    className={`p-3 rounded-lg border ${
-                      pedido.atrasado ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {pedido.atrasado && (
-                            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-                          )}
-                          <span className="font-semibold">Pedido: {pedido.numero_pedido}</span>
+                .map((pedido, index) => {
+                  const isConcluido = (pedido as any).concluido === true;
+                  
+                  return (
+                    <div
+                      key={index}
+                      className={`p-3 rounded-lg border ${
+                        isConcluido 
+                          ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800/30'
+                          : pedido.atrasado 
+                            ? 'bg-destructive/5 border-destructive/20' 
+                            : 'bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {!isConcluido && pedido.atrasado && (
+                              <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+                            )}
+                            <span className="font-semibold">Pedido: {pedido.numero_pedido}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            Cliente: {pedido.cliente}
+                          </p>
+                          <p className="text-sm font-medium mt-1">
+                            Quantidade: {pedido.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} {material.unidade}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          Cliente: {pedido.cliente}
-                        </p>
-                        <p className="text-sm font-medium mt-1">
-                          Quantidade: {pedido.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} {material.unidade}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0">
-                        {pedido.atrasado ? (
-                          <Badge variant="destructive" className="text-xs">Atrasado</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">No Prazo</Badge>
-                        )}
+                        <div className="flex-shrink-0">
+                          {isConcluido ? (
+                            <Badge className="text-xs bg-green-500 hover:bg-green-600 text-white">Concluído</Badge>
+                          ) : pedido.atrasado ? (
+                            <Badge variant="destructive" className="text-xs">Atrasado</Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">No Prazo</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
         </div>

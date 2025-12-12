@@ -25,6 +25,7 @@ export interface MaterialAgregado {
     cliente: string;
     atrasado: boolean;
     quantidade: number;
+    concluido?: boolean;
   }>;
 }
 
@@ -283,15 +284,15 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
   const getMateriaisPendentesAgregados = (): MaterialAgregado[] => {
     const materiaisMap = new Map<string, MaterialAgregado>();
     
-    // Iterar sobre pedidos não finalizados
+    // Iterar sobre todos os pedidos (incluindo finalizados para mostrar status concluído)
     filteredData.forEach((pedido) => {
       const isPedidoAtrasado = pedido.status === 'ATRASO';
+      const isPedidoConcluido = pedido.status === 'FINALIZADO';
       
       // Para cada OP do pedido
       pedido.ops?.forEach((op) => {
-        // Ignorar OPs finalizadas ou concluídas
         const situacaoOp = op.situacao_op?.toUpperCase() || '';
-        if (situacaoOp === 'FINALIZADO' || situacaoOp === 'CONCLUÍDO' || situacaoOp === 'CONCLUIDO') return;
+        const isOpConcluida = situacaoOp === 'FINALIZADA' || situacaoOp === 'CONCLUÍDO' || situacaoOp === 'CONCLUIDO';
         
         // Para cada material da OP
         op.materiais?.forEach((material) => {
@@ -311,7 +312,11 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
           
           const materialAgregado = materiaisMap.get(key)!;
           const qtdMaterial = material.qtd_pendente || 0;
-          materialAgregado.quantidadeTotal += qtdMaterial;
+          
+          // Só soma quantidade se não estiver concluído
+          if (!isOpConcluida && !isPedidoConcluido) {
+            materialAgregado.quantidadeTotal += qtdMaterial;
+          }
           
           // Verificar se já contamos este pedido (independente da OP)
           const pedidoExistente = materialAgregado.pedidos.find(
@@ -325,14 +330,21 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
               cliente: pedido.cli_nomef,
               atrasado: isPedidoAtrasado,
               quantidade: qtdMaterial,
+              concluido: isOpConcluida || isPedidoConcluido,
             });
             materialAgregado.numPedidos++; // Conta apenas pedidos únicos
-            if (isPedidoAtrasado) {
+            if (isPedidoAtrasado && !isOpConcluida && !isPedidoConcluido) {
               materialAgregado.numPedidosAtrasados++;
             }
           } else {
             // Pedido já existe, apenas somar quantidade (múltiplas OPs ou linhas)
-            pedidoExistente.quantidade += qtdMaterial;
+            if (!isOpConcluida && !isPedidoConcluido) {
+              pedidoExistente.quantidade += qtdMaterial;
+            }
+            // Atualiza para concluído se alguma OP está concluída
+            if (isOpConcluida || isPedidoConcluido) {
+              pedidoExistente.concluido = true;
+            }
           }
         });
       });

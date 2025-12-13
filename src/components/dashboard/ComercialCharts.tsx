@@ -277,7 +277,7 @@ export function ComercialCharts() {
 
     return Object.entries(vendedoresData)
       .map(([vendedor, data]) => {
-        // Agrupar vendas por número do pedido para evitar duplicatas
+        // Agrupar vendas por número do pedido para evitar duplicatas e contar clientes únicos
         const vendasAgrupadas = data.vendas.reduce((acc, venda) => {
           if (!acc[venda.numeroPedido]) {
             acc[venda.numeroPedido] = {
@@ -295,15 +295,19 @@ export function ComercialCharts() {
           return acc;
         }, {} as Record<string, { cliente: string; numeroPedido: string; valor: number; data: string }>);
 
-        const ultimasVendas = Object.values(vendasAgrupadas)
+        const vendasLista = Object.values(vendasAgrupadas);
+        const ultimasVendas = vendasLista
           .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
           .slice(0, 5);
+
+        // Contar clientes únicos nas vendas agrupadas (para consistência com tooltip)
+        const clientesUnicos = new Set(vendasLista.map(v => v.cliente));
 
         return { 
           vendedor, 
           valor: data.valor,
-          totalPedidos: data.pedidos.size,
-          totalClientes: data.clientes.size,
+          totalPedidos: vendasLista.length, // Total de pedidos únicos
+          totalClientes: clientesUnicos.size, // Total de clientes únicos
           ultimasVendas
         };
       })
@@ -456,7 +460,10 @@ export function ComercialCharts() {
       const clientesRestantes = Object.keys(clientesAgrupados).length - 5;
 
       return (
-        <div className="bg-background border border-border rounded-lg shadow-lg w-72 max-h-80 flex flex-col">
+        <div 
+          className="bg-background border border-border rounded-lg shadow-xl w-72 max-h-80 flex flex-col pointer-events-auto"
+          style={{ zIndex: 9999 }}
+        >
           <div className="p-3 border-b border-border flex-shrink-0">
             <p className="font-medium text-sm mb-2">Dia {label}</p>
             <div className="space-y-1 text-xs">
@@ -590,7 +597,11 @@ export function ComercialCharts() {
                     return Math.max(Math.ceil(dataMax * 1.15), Math.ceil(metaAtual * 1.1));
                   }]}
                 />
-                <Tooltip content={drillDown.isMonthView ? <CustomTooltip /> : <CustomTooltipDaily />} />
+                <Tooltip 
+                  content={drillDown.isMonthView ? <CustomTooltip /> : <CustomTooltipDaily />} 
+                  wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
+                  allowEscapeViewBox={{ x: true, y: true }}
+                />
                 <Bar 
                   dataKey="valor" 
                   fill="hsl(var(--primary))"

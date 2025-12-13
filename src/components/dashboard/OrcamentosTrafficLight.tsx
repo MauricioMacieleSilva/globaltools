@@ -235,8 +235,8 @@ export function OrcamentosTrafficLight() {
 
   return (
     <>
-      <Card className="p-4 h-56">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+      <Card className="p-4 h-56 flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0 flex-shrink-0">
           <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Orçamentos em Aberto
@@ -248,53 +248,68 @@ export function OrcamentosTrafficLight() {
             <span className="text-xs text-muted-foreground ml-1">orç.</span>
           </div>
         </CardHeader>
-        <CardContent className="px-0 pb-0 overflow-hidden">
-          <div className="space-y-1.5">
-            {vendedoresData.length > 0 ? (
-              vendedoresData.slice(0, 5).map((vendedor, index) => (
-                <div 
-                  key={vendedor.vendedor}
-                  className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50 transition-all cursor-pointer group"
-                  onClick={() => handleVendedorClick(vendedor.vendedor)}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Avatar com badge de posição */}
-                    <div className="relative">
-                      <Avatar className="h-8 w-8 flex-shrink-0 transition-all ring-2 ring-blue-200 dark:ring-blue-800 group-hover:scale-105">
-                        <AvatarImage src={vendedorAvatars[vendedor.vendedor]} alt={vendedor.vendedor} className="object-cover" />
-                        <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-semibold">
-                          {getInitials(vendedor.vendedor)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {/* Badge de posição */}
-                      <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white shadow-sm">
-                        {index + 1}
-                      </span>
-                    </div>
-                    
-                    {/* Nome do vendedor */}
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-medium text-sm truncate max-w-[90px]" title={vendedor.vendedor}>
-                        {vendedor.vendedor}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {vendedor.count} orç. • {vendedor.percentual.toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
+        <CardContent className="px-0 pb-0 overflow-hidden flex-1">
+          <ScrollArea className="h-full">
+            <div className="space-y-1.5 pr-2">
+              {vendedoresData.length > 0 ? (
+                vendedoresData.map((vendedor, index) => {
+                  // Normalizar nome para buscar avatar
+                  const nomeNormalizado = vendedor.vendedor
+                    .toLowerCase()
+                    .split(' ')
+                    .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1))
+                    .join(' ');
                   
-                  {/* Valor total */}
-                  <span className="font-semibold text-sm text-blue-600">
-                    {formatCurrency(vendedor.valor)}
-                  </span>
+                  return (
+                    <div 
+                      key={vendedor.vendedor}
+                      className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50 transition-all cursor-pointer group"
+                      onClick={() => handleVendedorClick(vendedor.vendedor)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Avatar com badge de posição */}
+                        <div className="relative">
+                          <Avatar className="h-8 w-8 flex-shrink-0 transition-all ring-2 ring-blue-200 dark:ring-blue-800 group-hover:scale-105">
+                            <AvatarImage 
+                              src={vendedorAvatars[vendedor.vendedor] || vendedorAvatars[nomeNormalizado]} 
+                              alt={nomeNormalizado} 
+                              className="object-cover" 
+                            />
+                            <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-semibold">
+                              {getInitials(vendedor.vendedor)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {/* Badge de posição */}
+                          <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold bg-blue-500 text-white shadow-sm">
+                            {index + 1}
+                          </span>
+                        </div>
+                        
+                        {/* Nome do vendedor - normalizado */}
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-medium text-sm truncate max-w-[90px]" title={nomeNormalizado}>
+                            {nomeNormalizado}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {vendedor.count} orç. • {vendedor.percentual.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Valor total */}
+                      <span className="font-semibold text-sm text-blue-600">
+                        {formatCurrency(vendedor.valor)}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">Nenhum orçamento em aberto</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="text-sm">Nenhum orçamento em aberto</p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
 

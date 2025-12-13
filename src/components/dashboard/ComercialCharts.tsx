@@ -11,7 +11,8 @@ import { MetasDialog } from './MetasDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { VendorAvatarDialog } from './VendorAvatarDialog';
-import { Tooltip as TooltipUI, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Force rebuild - component positions swapped
 export function ComercialCharts() {
@@ -635,19 +636,19 @@ export function ComercialCharts() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {/* Card Ranking Vendedores - Redesenhado */}
-        <Card className="p-4 h-56">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0">
+        <Card className="p-4 h-56 flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0 flex-shrink-0">
             <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
               <Trophy className="h-4 w-4" />
               Top 5 Vendedores
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-0 pb-0 overflow-hidden">
-            <TooltipProvider delayDuration={200}>
-              <div className="space-y-1.5">
+          <CardContent className="px-0 pb-0 overflow-hidden flex-1">
+            <ScrollArea className="h-full">
+              <div className="space-y-1.5 pr-2">
                 {rankingVendedores.map((item, index) => (
-                  <TooltipUI key={item.vendedor}>
-                    <TooltipTrigger asChild>
+                  <HoverCard key={item.vendedor} openDelay={200} closeDelay={300}>
+                    <HoverCardTrigger asChild>
                       <div 
                         className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50 transition-all cursor-pointer group"
                       >
@@ -696,10 +697,10 @@ export function ComercialCharts() {
                           {formatCurrency(item.valor)}
                         </span>
                       </div>
-                    </TooltipTrigger>
+                    </HoverCardTrigger>
                     
-                    {/* Tooltip com detalhes das vendas */}
-                    <TooltipContent side="right" align="start" className="w-80 p-0 overflow-hidden">
+                    {/* HoverCard com detalhes das vendas - permite interação */}
+                    <HoverCardContent side="right" align="start" className="w-80 p-0 overflow-hidden z-50">
                       <div className="bg-background border-0">
                         {/* Cabeçalho do tooltip */}
                         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white">
@@ -763,14 +764,14 @@ export function ComercialCharts() {
                           </div>
                         </div>
                       </div>
-                    </TooltipContent>
-                  </TooltipUI>
+                    </HoverCardContent>
+                  </HoverCard>
                 ))}
                 {rankingVendedores.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-4">Nenhum dado disponível</p>
                 )}
               </div>
-            </TooltipProvider>
+            </ScrollArea>
           </CardContent>
         </Card>
 

@@ -20,6 +20,7 @@ export function ComercialCharts() {
   const [isMetasDialogOpen, setIsMetasDialogOpen] = useState(false);
   const [vendedorAvatars, setVendedorAvatars] = useState<Record<string, string>>({});
   const [selectedVendor, setSelectedVendor] = useState<{ name: string; avatarUrl?: string } | null>(null);
+  const [tooltipPortal, setTooltipPortal] = useState<HTMLElement | null>(null);
 
   // Carregar avatares dos vendedores (user_profiles + vendor_avatars)
   const loadVendorAvatars = useCallback(async () => {
@@ -65,6 +66,10 @@ export function ComercialCharts() {
   useEffect(() => {
     loadVendorAvatars();
   }, [loadVendorAvatars]);
+
+  useEffect(() => {
+    setTooltipPortal(document.body);
+  }, []);
 
   const saveMetas = (newMetas: { metaMensal: number; metaDiaria: number }) => {
     setMetas(newMetas);
@@ -599,14 +604,16 @@ export function ComercialCharts() {
                   }]}
                 />
                 <Tooltip 
-                  content={drillDown.isMonthView ? <CustomTooltip /> : <CustomTooltipDaily />} 
-                  wrapperStyle={{ zIndex: 9999, pointerEvents: 'auto' }}
+                  content={drillDown.isMonthView ? <CustomTooltip /> : <CustomTooltipDaily />}
+                  active={drillDown.isMonthView ? undefined : true}
+                  wrapperStyle={{ zIndex: 9999, pointerEvents: drillDown.isMonthView ? 'none' : 'auto' }}
                   allowEscapeViewBox={{ x: true, y: true }}
+                  portal={tooltipPortal}
                 />
                 <Bar 
                   dataKey="valor" 
                   fill="hsl(var(--primary))"
-                  cursor={drillDown.isMonthView ? "pointer" : "default"}
+                  cursor="pointer"
                   onClick={handleBarClick}
                 >
                   {faturamentoTemporalData.map((entry, index) => (
@@ -634,17 +641,17 @@ export function ComercialCharts() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        {/* Card Ranking Vendedores - Redesenhado */}
-        <Card className="p-4 h-56 flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0 flex-shrink-0">
-            <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
-              <Trophy className="h-4 w-4" />
-              Top 5 Vendedores
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 pb-0 overflow-hidden flex-1">
-            <ScrollArea className="h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          {/* Card Ranking Vendedores - Redesenhado */}
+          <Card className="p-4 h-56 flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0 flex-shrink-0">
+              <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                Top 5 Vendedores
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-0 pb-0 overflow-hidden flex-1 min-h-0">
+              <ScrollArea className="h-full min-h-0">
               <div className="space-y-1.5 pr-2">
                 {rankingVendedores.map((item, index) => (
                   <HoverCard key={item.vendedor} openDelay={200} closeDelay={300}>

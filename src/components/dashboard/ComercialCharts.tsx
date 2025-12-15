@@ -5,7 +5,7 @@ import { useComercial } from '@/context/ComercialContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isValid, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDate } from '@/lib/utils-comercial';
-import { Settings, Trophy, Camera, Package, Users, TrendingUp } from 'lucide-react';
+import { Settings, Trophy, Camera, Package, Users, TrendingUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MetasDialog } from './MetasDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +20,7 @@ export function ComercialCharts() {
   const [isMetasDialogOpen, setIsMetasDialogOpen] = useState(false);
   const [vendedorAvatars, setVendedorAvatars] = useState<Record<string, string>>({});
   const [selectedVendor, setSelectedVendor] = useState<{ name: string; avatarUrl?: string } | null>(null);
+  const [pinnedTooltip, setPinnedTooltip] = useState<{ data: any; position: { x: number; y: number } } | null>(null);
   
 
   // Carregar avatares dos vendedores (user_profiles + vendor_avatars)
@@ -368,7 +369,7 @@ export function ComercialCharts() {
     return new Intl.NumberFormat('pt-BR').format(Math.round(value));
   };
 
-  const handleBarClick = (data: any, index: number) => {
+  const handleBarClick = (data: any, index: number, event?: any) => {
     if (drillDown.isMonthView && faturamentoTemporalData[index]) {
       const clickedData = faturamentoTemporalData[index];
       // Parse do período MMM/yy para extrair mês e ano
@@ -386,7 +387,21 @@ export function ComercialCharts() {
         mes: mesIndex.toString().padStart(2, '0'),
         ano: anoCompleto
       });
+    } else if (!drillDown.isMonthView && data) {
+      // Na visão diária, fixar o tooltip
+      const rect = event?.target?.getBoundingClientRect?.();
+      setPinnedTooltip({
+        data: data,
+        position: {
+          x: rect ? rect.left + rect.width / 2 : 0,
+          y: rect ? rect.top : 0
+        }
+      });
     }
+  };
+
+  const closePinnedTooltip = () => {
+    setPinnedTooltip(null);
   };
 
   const formatLabel = (value: number) => {
@@ -608,7 +623,7 @@ export function ComercialCharts() {
                   dataKey="valor" 
                   fill="hsl(var(--primary))"
                   cursor="pointer"
-                  onClick={handleBarClick}
+                  onClick={(data, index, event) => handleBarClick(data, index, event)}
                 >
                   {faturamentoTemporalData.map((entry, index) => (
                     <Cell 
@@ -632,6 +647,85 @@ export function ComercialCharts() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          
+          {/* Tooltip Fixo */}
+          {pinnedTooltip && !drillDown.isMonthView && (
+            <div 
+              className="fixed bg-background border border-border rounded-lg shadow-2xl w-80 max-h-96 flex flex-col"
+              style={{ 
+                zIndex: 10000,
+                left: Math.min(pinnedTooltip.position.x, window.innerWidth - 340),
+                top: Math.max(pinnedTooltip.position.y - 200, 10)
+              }}
+            >
+              <div className="p-3 border-b border-border flex-shrink-0 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm mb-2">Dia {pinnedTooltip.data.periodo}</p>
+                  <div className="space-y-1 text-xs">
+                    <p className="text-green-600">
+                      <span className="font-medium">Faturamento:</span> {formatCurrency(pinnedTooltip.data.valor)}
+                    </p>
+                    <p className="text-blue-600">
+                      <span className="font-medium">Nº Pedidos:</span> {pinnedTooltip.data.pedidos}
+                    </p>
+                    <p className="text-orange-600">
+                      <span className="font-medium">Nº Clientes:</span> {pinnedTooltip.data.clientes}
+                    </p>
+                    <p className="text-purple-600">
+                      <span className="font-medium">Peso:</span> {formatPeso(pinnedTooltip.data.peso)}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closePinnedTooltip}
+                  className="h-6 w-6 p-0 flex-shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {pinnedTooltip.data.detalhes && pinnedTooltip.data.detalhes.length > 0 && (
+                <ScrollArea className="flex-1 max-h-60">
+                  <div className="p-3">
+                    <p className="font-medium text-xs text-muted-foreground mb-2">Detalhes por Cliente:</p>
+                    <div className="space-y-2">
+                      {(() => {
+                        const clientesAgrupados = pinnedTooltip.data.detalhes.reduce((acc: Record<string, {pedidos: Set<string>, valor: number}>, item: {numeropedido: string, cliente: string, valor: number}) => {
+                          if (!acc[item.cliente]) {
+                            acc[item.cliente] = { pedidos: new Set(), valor: 0 };
+                          }
+                          acc[item.cliente].pedidos.add(item.numeropedido);
+                          acc[item.cliente].valor += item.valor;
+                          return acc;
+                        }, {});
+
+                        const clientesList = Object.entries(clientesAgrupados)
+                          .map(([cliente, info]) => ({ cliente, pedidos: Array.from((info as {pedidos: Set<string>, valor: number}).pedidos), valor: (info as {pedidos: Set<string>, valor: number}).valor }))
+                          .sort((a, b) => b.valor - a.valor);
+
+                        return clientesList.map((item, idx) => {
+                          const pedidosDisplay = item.pedidos.length > 3 
+                            ? `${item.pedidos.slice(0, 3).join(', ')} +${item.pedidos.length - 3}`
+                            : item.pedidos.join(', ');
+                          return (
+                            <div key={idx} className="text-xs bg-muted/50 rounded p-1.5">
+                              <p className="font-medium truncate text-foreground" title={item.cliente}>
+                                {item.cliente.length > 30 ? item.cliente.substring(0, 30) + '...' : item.cliente}
+                              </p>
+                              <p className="text-muted-foreground">Pedidos: {pedidosDisplay}</p>
+                              <p className="text-green-600 font-medium">{formatCurrency(item.valor)}</p>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

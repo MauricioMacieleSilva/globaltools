@@ -20,7 +20,7 @@ export function ComercialCharts() {
   const [isMetasDialogOpen, setIsMetasDialogOpen] = useState(false);
   const [vendedorAvatars, setVendedorAvatars] = useState<Record<string, string>>({});
   const [selectedVendor, setSelectedVendor] = useState<{ name: string; avatarUrl?: string } | null>(null);
-  const [tooltipPortal, setTooltipPortal] = useState<HTMLElement | null>(null);
+  
 
   // Carregar avatares dos vendedores (user_profiles + vendor_avatars)
   const loadVendorAvatars = useCallback(async () => {
@@ -67,9 +67,6 @@ export function ComercialCharts() {
     loadVendorAvatars();
   }, [loadVendorAvatars]);
 
-  useEffect(() => {
-    setTooltipPortal(document.body);
-  }, []);
 
   const saveMetas = (newMetas: { metaMensal: number; metaDiaria: number }) => {
     setMetas(newMetas);
@@ -605,10 +602,7 @@ export function ComercialCharts() {
                 />
                 <Tooltip 
                   content={drillDown.isMonthView ? <CustomTooltip /> : <CustomTooltipDaily />}
-                  active={drillDown.isMonthView ? undefined : true}
-                  wrapperStyle={{ zIndex: 9999, pointerEvents: drillDown.isMonthView ? 'none' : 'auto' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
-                  portal={tooltipPortal}
+                  wrapperStyle={{ zIndex: 9999 }}
                 />
                 <Bar 
                   dataKey="valor" 

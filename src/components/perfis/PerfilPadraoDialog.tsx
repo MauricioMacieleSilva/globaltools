@@ -10,27 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-// Dados do Perfil Padrão U
-const perfilPadraoU = [
-  { h: 50, B: 25, espessuras: [2.00, 2.25, 2.65, 3.00] },
-  { h: 75, B: 38, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
-  { h: 100, B: 40, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
-  { h: 100, B: 50, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
-  { h: 127, B: 50, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
-  { h: 150, B: 50, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
-  { h: 200, B: 50, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
-];
-
-// Dados do Perfil Padrão UE (Enrijecido)
-const perfilPadraoUE = [
-  { h: 50, B: 25, d: 10, espessuras: [2.00, 2.25, 2.65, 3.00] },
-  { h: 75, B: 40, d: 15, espessuras: [2.00, 2.25, 2.65, 3.00] },
-  { h: 100, B: 50, d: 17, espessuras: [2.00, 2.25, 2.65, 3.00] },
-  { h: 127, B: 50, d: 17, espessuras: [2.00, 2.25, 2.65, 3.00] },
-  { h: 150, B: 60, d: 20, espessuras: [2.00, 2.25, 2.65, 3.00] },
-  { h: 200, B: 60, d: 20, espessuras: [2.00, 2.25, 2.65, 3.00] },
-];
+import { perfilPadraoU, perfilPadraoUE } from '@/lib/perfil-padrao-utils';
 
 export function PerfilPadraoDialog() {
   const [open, setOpen] = useState(false);

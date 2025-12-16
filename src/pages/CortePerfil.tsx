@@ -98,29 +98,29 @@ function CortePerfliContent() {
             </div>
             
             <Tabs defaultValue="perfil-u" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 bg-card p-1 rounded-lg h-auto">
-                <TabsTrigger value="perfil-u" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-                  Perfil U/Z
+              <TabsList className="flex flex-wrap w-full bg-card p-1 rounded-lg h-auto gap-1">
+                <TabsTrigger value="perfil-u" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
+                  U/Z
                 </TabsTrigger>
-                <TabsTrigger value="perfil-l" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-                  Perfil L
+                <TabsTrigger value="perfil-l" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
+                  L
                 </TabsTrigger>
-                <TabsTrigger value="perfil-u-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-                  U/Z Enrijecido
+                <TabsTrigger value="perfil-u-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
+                  U/Z Enrij.
                 </TabsTrigger>
-                <TabsTrigger value="perfil-u-semi-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-                  U/Z Semi-Enrijecido
+                <TabsTrigger value="perfil-u-semi-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
+                  U/Z Semi-Enrij.
                 </TabsTrigger>
-                <TabsTrigger value="perfil-cartola" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
+                <TabsTrigger value="perfil-cartola" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
                   Cartola
                 </TabsTrigger>
-                <TabsTrigger value="perfil-cartola-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-                  Cartola Enrijecido
+                <TabsTrigger value="perfil-cartola-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
+                  Cart. Enrij.
                 </TabsTrigger>
-                <TabsTrigger value="perfil-cartola-semi-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
-                  Cartola Semi-Enrijecido
+                <TabsTrigger value="perfil-cartola-semi-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
+                  Cart. Semi-Enrij.
                 </TabsTrigger>
-                <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">
+                <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
                   Resumo
                 </TabsTrigger>
               </TabsList>

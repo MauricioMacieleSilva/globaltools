@@ -13,6 +13,7 @@ import { PerfilUSemiEnrijecido } from '@/components/perfis/PerfilUSemiEnrijecido
 import { PerfilCartolaSemiEnrijecido } from '@/components/perfis/PerfilCartolaSemiEnrijecido';
 import { ResumoGeral } from '@/components/ResumoGeral';
 import { usePerfilContext, PerfilProvider } from '@/context/PerfilContext';
+import { PerfilPadraoDialog } from '@/components/perfis/PerfilPadraoDialog';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
@@ -92,6 +93,10 @@ function CortePerfliContent() {
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {/* Main Content */}
           <div>
+            <div className="flex justify-end mb-4">
+              <PerfilPadraoDialog />
+            </div>
+            
             <Tabs defaultValue="perfil-u" className="w-full">
               <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 bg-card p-1 rounded-lg h-auto">
                 <TabsTrigger value="perfil-u" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm p-2 sm:p-3">

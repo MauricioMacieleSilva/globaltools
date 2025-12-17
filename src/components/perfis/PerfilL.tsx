@@ -64,6 +64,7 @@ export function PerfilL() {
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
     const pesoPerda = pesoTotal * (percentualPerda / 100);
+    const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
 
     return {
       id: linha.id,
@@ -80,7 +81,8 @@ export function PerfilL() {
       tiraPerda,
       pesoPorPeca,
       pesoTotal,
-      pesoPerda
+      pesoPerda,
+      pesoPerdaPorPeca
     };
   };
 
@@ -193,14 +195,14 @@ export function PerfilL() {
 
   const totalPerda = linhasL.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + (calculo?.pesoPerda || 0);
+    return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
   }, 0);
 
   const calculosPerfilL = Object.values(calculos).filter(calc => calc.tipo === 'L');
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-13 gap-4 text-sm font-medium text-muted-foreground border-b pb-2">
+      <div className="grid grid-cols-14 gap-4 text-sm font-medium text-muted-foreground border-b pb-2">
         <div className="text-center">Espessura</div>
         <div className="text-center">Aba</div>
         <div className="text-center">Base</div>
@@ -211,8 +213,9 @@ export function PerfilL() {
         <div className="text-center">Tira</div>
         <div className="text-center">Tira Perda</div>
         <div className="text-center">kg/Pç</div>
+        <div className="text-center">kg/Perda</div>
         <div className="text-center">Peso Tira</div>
-        <div className="text-center">Peso Perda</div>
+        <div className="text-center">Peso +</div>
         <div className="text-center">Ações</div>
       </div>
 
@@ -220,7 +223,7 @@ export function PerfilL() {
         {linhasL.map(linha => {
           const calculo = calcularPerfil(linha);
           return (
-            <div key={linha.id} className="grid grid-cols-13 gap-4 items-center p-4 bg-background rounded-lg border">
+            <div key={linha.id} className="grid grid-cols-14 gap-4 items-center p-4 bg-background rounded-lg border">
               <Input type="number" step="0.01" placeholder="0.00" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center" />
               
               <TooltipProvider>
@@ -281,6 +284,10 @@ export function PerfilL() {
               
               <div className="text-center font-medium text-muted-foreground">
                 {calculo ? formatarNumero(calculo.pesoPorPeca) : '0.00'}
+              </div>
+              
+              <div className="text-center font-medium text-muted-foreground">
+                {calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '0.00'}
               </div>
               
               <div className="text-center font-medium text-primary">

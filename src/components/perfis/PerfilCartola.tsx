@@ -65,6 +65,7 @@ export function PerfilCartola() {
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
     const pesoPerda = pesoTotal * (percentualPerda / 100);
+    const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
     
     return {
       id: linha.id,
@@ -84,7 +85,8 @@ export function PerfilCartola() {
       tiraPerda,
       pesoPorPeca,
       pesoTotal,
-      pesoPerda
+      pesoPerda,
+      pesoPerdaPorPeca
     };
   };
   const validarCampo = (id: string, campo: 'aba1' | 'aba2' | 'base' | 'enrij1' | 'enrij3', valor: string) => {
@@ -215,10 +217,10 @@ export function PerfilCartola() {
   }, 0);
   const totalPerda = linhasCartola.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + (calculo?.pesoPerda || 0);
+    return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
   }, 0);
   return <div className="space-y-6">
-      <div className="grid grid-cols-17 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-18 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
         <div className="text-center">Enrij1</div>
@@ -233,15 +235,16 @@ export function PerfilCartola() {
         <div className="text-center">Tira</div>
         <div className="text-center">T.Perda</div>
         <div className="text-center">kg/Pç</div>
+        <div className="text-center">kg/Perda</div>
         <div className="text-center">P.T</div>
-        <div className="text-center">P.P</div>
+        <div className="text-center">P.+</div>
         <div className="text-center">Ações</div>
       </div>
 
       <div className="space-y-4">
         {linhasCartola.map(linha => {
         const calculo = calcularPerfil(linha);
-        return <div key={linha.id} className="grid grid-cols-17 gap-1 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-18 gap-1 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Checkbox 
                   checked={!linha.assimetrico} 
@@ -371,6 +374,10 @@ export function PerfilCartola() {
               
               <div className="text-center font-medium text-muted-foreground text-xs">
                 {calculo ? formatarNumero(calculo.pesoPorPeca) : '0.00'}
+              </div>
+              
+              <div className="text-center font-medium text-muted-foreground text-xs">
+                {calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '0.00'}
               </div>
               
               <div className="text-center font-medium text-primary text-xs">

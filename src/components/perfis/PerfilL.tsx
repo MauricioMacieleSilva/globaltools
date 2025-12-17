@@ -146,13 +146,35 @@ export function PerfilL() {
     atualizarLinhaL([...linhasL, novaLinha]);
   };
 
-  const removerLinha = (id: string) => {
-    if (linhasL.length > 3) {
-      if (confirm('Tem certeza que deseja remover esta linha?')) {
-        atualizarLinhaL(linhasL.filter(linha => linha.id !== id));
-        removerCalculo(id);
+  const limparLinha = (id: string) => {
+    const updatedLinhas = linhasL.map(l => {
+      if (l.id === id) {
+        return {
+          ...l,
+          espessura: '',
+          aba: '',
+          base: '',
+          comprimento: '6000',
+          largura: '1200',
+          quantidade: '',
+          percentualPerda: '101'
+        };
       }
-    }
+      return l;
+    });
+    atualizarLinhaL(updatedLinhas);
+    removerCalculo(id);
+    
+    // Limpar erros de validação da linha
+    setErrosValidacao(prev => {
+      const newErrors = {...prev};
+      Object.keys(newErrors).forEach(key => {
+        if (key.startsWith(id)) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
   };
 
   useEffect(() => {
@@ -270,8 +292,8 @@ export function PerfilL() {
               </div>
               
               <div className="flex justify-center">
-                <Button variant="outline" size="sm" onClick={() => removerLinha(linha.id)} disabled={linhasL.length <= 3} className="h-8 w-8 p-0">
-                  <Trash2 className="h-4 w-4" />
+                <Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
             </div>

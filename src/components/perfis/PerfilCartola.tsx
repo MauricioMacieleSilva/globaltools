@@ -167,13 +167,39 @@ export function PerfilCartola() {
     };
     atualizarLinhaCartola([...linhasCartola, novaLinha]);
   };
-  const removerLinha = (id: string) => {
-    if (linhasCartola.length > 3) {
-      if (confirm('Tem certeza que deseja remover esta linha?')) {
-        atualizarLinhaCartola(linhasCartola.filter(linha => linha.id !== id));
-        removerCalculo(id);
+  const limparLinha = (id: string) => {
+    const updatedLinhas = linhasCartola.map(l => {
+      if (l.id === id) {
+        return {
+          ...l,
+          espessura: '',
+          enrij1: '',
+          aba1: '',
+          base: '',
+          aba2: '',
+          enrij3: '',
+          comprimento: '6000',
+          largura: '1200',
+          quantidade: '',
+          percentualPerda: '101',
+          assimetrico: false
+        };
       }
-    }
+      return l;
+    });
+    atualizarLinhaCartola(updatedLinhas);
+    removerCalculo(id);
+    
+    // Limpar erros de validação da linha
+    setErrosValidacao(prev => {
+      const newErrors = {...prev};
+      Object.keys(newErrors).forEach(key => {
+        if (key.startsWith(id)) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
   };
   useEffect(() => {
     linhasCartola.forEach(linha => {
@@ -356,7 +382,7 @@ export function PerfilCartola() {
               </div>
               
               <div className="flex justify-center">
-                  <Button variant="outline" size="sm" onClick={() => removerLinha(linha.id)} disabled={linhasCartola.length <= 3} className="h-6 w-6 p-0">
+                <Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>

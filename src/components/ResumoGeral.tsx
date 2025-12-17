@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { usePerfilContext } from '@/context/PerfilContext';
 import { formatarNumero } from '@/lib/utils-perfil';
@@ -7,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { verificarPerfilUPadrao, verificarPerfilUEPadrao } from '@/lib/perfil-padrao-utils';
+import { IndicadorPerfilPadrao } from '@/components/perfis/IndicadorPerfilPadrao';
 
 export function ResumoGeral() {
   const {
@@ -129,6 +130,7 @@ export function ResumoGeral() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-1 sm:p-3 font-medium text-xs sm:text-sm">Tipo</th>
+                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Padrão</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Esp.</th>
                       <th className="text-left p-1 sm:p-3 font-medium text-xs sm:text-sm">Descrição</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Tira</th>
@@ -143,10 +145,27 @@ export function ResumoGeral() {
                     {calculosValidos.map(calc => {
                     const pesoPorPeca = calc.quantidade > 0 ? calc.pesoTotal / calc.quantidade : 0;
                     const descricaoCompleta = gerarDescricaoCompleta(calc);
+                    
+                    // Verificar se é perfil padrão
+                    let isPadrao = false;
+                    let temDadosParaVerificacao = false;
+                    
+                    if (calc.tipo === 'U' && calc.base && calc.aba1) {
+                      temDadosParaVerificacao = true;
+                      const verificacao = verificarPerfilUPadrao(calc.espessura, calc.base, calc.aba1);
+                      isPadrao = verificacao.isPadrao;
+                    } else if (calc.tipo === 'U_ENRIJECIDO' && calc.base && calc.aba1 && calc.enrij1) {
+                      temDadosParaVerificacao = true;
+                      const verificacao = verificarPerfilUEPadrao(calc.espessura, calc.base, calc.aba1, calc.enrij1);
+                      isPadrao = verificacao.isPadrao;
+                    }
 
                     return <tr key={calc.id} className="border-b hover:bg-muted/50">
                           <td className="p-1 sm:p-3">
                             <Badge variant="secondary" className="text-xs">{obterNomeTipo(calc.tipo, calc.orientacaoUZ)}</Badge>
+                          </td>
+                          <td className="p-1 sm:p-3">
+                            <IndicadorPerfilPadrao isPadrao={isPadrao} temDados={temDadosParaVerificacao} />
                           </td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">{calc.espessura.toFixed(2)}</td>
                           <td className="p-1 sm:p-3 text-xs sm:text-sm">

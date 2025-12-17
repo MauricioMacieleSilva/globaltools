@@ -24,7 +24,6 @@ export interface CalculoItem {
   pesoPorPeca: number;
   pesoTotal: number;
   pesoPerda: number;
-  pesoPerdaPorPeca: number; // kg/perda - peso da tira perdida por peça
 }
 
 export interface LinhaPerfilU {

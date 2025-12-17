@@ -71,7 +71,6 @@ export function PerfilCartolaSemiEnrijecido() {
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
     const pesoPerda = pesoTotal * (percentualPerda / 100);
-    const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
 
     return {
       id: linha.id,
@@ -92,8 +91,7 @@ export function PerfilCartolaSemiEnrijecido() {
       tiraPerda,
       pesoPorPeca,
       pesoTotal,
-      pesoPerda,
-      pesoPerdaPorPeca
+      pesoPerda
     };
   };
 
@@ -236,7 +234,7 @@ export function PerfilCartolaSemiEnrijecido() {
 
   const totalPerda = linhasCartolaSemiEnrijecido.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
+    return sum + (calculo?.pesoPerda || 0);
   }, 0);
 
   // Obter cálculos do tipo CARTOLA_SEMI_ENRIJECIDO para visualização
@@ -244,7 +242,7 @@ export function PerfilCartolaSemiEnrijecido() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-19 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-18 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
         <div className="text-center">Enrij1</div>
@@ -260,16 +258,15 @@ export function PerfilCartolaSemiEnrijecido() {
         <div className="text-center">Tira</div>
         <div className="text-center">T.Perda</div>
         <div className="text-center">kg/Pç</div>
-        <div className="text-center">kg/Perda</div>
         <div className="text-center">P.T</div>
-        <div className="text-center">P.+</div>
+        <div className="text-center">P.P</div>
         <div className="text-center">Ações</div>
       </div>
 
       <div className="space-y-4">
         {linhasCartolaSemiEnrijecido.map(linha => {
         const calculo = calcularPerfil(linha);
-        return <div key={linha.id} className="grid grid-cols-19 gap-1 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-18 gap-1 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Checkbox 
                   checked={!linha.assimetrico} 
@@ -419,10 +416,6 @@ export function PerfilCartolaSemiEnrijecido() {
               
               <div className="text-center font-medium text-muted-foreground text-xs">
                 {calculo ? formatarNumero(calculo.pesoPorPeca) : '0.00'}
-              </div>
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '0.00'}
               </div>
               
               <div className="text-center font-medium text-primary text-xs">

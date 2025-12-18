@@ -50,28 +50,34 @@ export function PerfilPadraoDialog() {
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-primary text-primary-foreground">
-                        <th className="border border-border px-3 py-2 text-center" colSpan={7}>Dimensão</th>
+                        <th className="border border-border px-3 py-2 text-center" colSpan={8}>Dimensão</th>
                       </tr>
                       <tr className="bg-primary/80 text-primary-foreground">
                         <th className="border border-border px-3 py-2 text-center">h (mm)</th>
                         <th className="border border-border px-3 py-2 text-center">B (mm)</th>
+                        <th className="border border-border px-3 py-2 text-center">Tira (mm)</th>
                         <th className="border border-border px-3 py-2 text-center" colSpan={5}>e=r (mm)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {perfilPadraoU.map((perfil, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? 'bg-muted/30' : 'bg-background'}>
-                          <td className="border border-border px-3 py-2 text-center font-medium">{perfil.h.toFixed(2)}</td>
-                          <td className="border border-border px-3 py-2 text-center font-medium">{perfil.B.toFixed(2)}</td>
-                          {perfil.espessuras.map((esp, espIdx) => (
-                            <td key={espIdx} className="border border-border px-3 py-2 text-center">{esp.toFixed(2)}</td>
-                          ))}
-                          {/* Preencher células vazias se houver menos espessuras */}
-                          {Array(5 - perfil.espessuras.length).fill(null).map((_, i) => (
-                            <td key={`empty-${i}`} className="border border-border px-3 py-2 text-center">-</td>
-                          ))}
-                        </tr>
-                      ))}
+                      {perfilPadraoU.map((perfil, idx) => {
+                        // Tira = 2*B + h (dimensão desenvolvida base)
+                        const tira = perfil.h + 2 * perfil.B;
+                        return (
+                          <tr key={idx} className={idx % 2 === 0 ? 'bg-muted/30' : 'bg-background'}>
+                            <td className="border border-border px-3 py-2 text-center font-medium">{perfil.h.toFixed(2)}</td>
+                            <td className="border border-border px-3 py-2 text-center font-medium">{perfil.B.toFixed(2)}</td>
+                            <td className="border border-border px-3 py-2 text-center font-medium text-primary">{tira.toFixed(2)}</td>
+                            {perfil.espessuras.map((esp, espIdx) => (
+                              <td key={espIdx} className="border border-border px-3 py-2 text-center">{esp.toFixed(2)}</td>
+                            ))}
+                            {/* Preencher células vazias se houver menos espessuras */}
+                            {Array(5 - perfil.espessuras.length).fill(null).map((_, i) => (
+                              <td key={`empty-${i}`} className="border border-border px-3 py-2 text-center">-</td>
+                            ))}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -99,26 +105,32 @@ export function PerfilPadraoDialog() {
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-primary text-primary-foreground">
-                        <th className="border border-border px-3 py-2 text-center" colSpan={7}>Dimensão</th>
+                        <th className="border border-border px-3 py-2 text-center" colSpan={8}>Dimensão</th>
                       </tr>
                       <tr className="bg-primary/80 text-primary-foreground">
                         <th className="border border-border px-3 py-2 text-center">h (mm)</th>
                         <th className="border border-border px-3 py-2 text-center">B (mm)</th>
                         <th className="border border-border px-3 py-2 text-center">d (mm)</th>
+                        <th className="border border-border px-3 py-2 text-center">Tira (mm)</th>
                         <th className="border border-border px-3 py-2 text-center" colSpan={4}>e=r (mm)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {perfilPadraoUE.map((perfil, idx) => (
-                        <tr key={idx} className={idx % 2 === 0 ? 'bg-muted/30' : 'bg-background'}>
-                          <td className="border border-border px-3 py-2 text-center font-medium">{perfil.h.toFixed(2)}</td>
-                          <td className="border border-border px-3 py-2 text-center font-medium">{perfil.B.toFixed(2)}</td>
-                          <td className="border border-border px-3 py-2 text-center font-medium">{perfil.d.toFixed(2)}</td>
-                          {perfil.espessuras.map((esp, espIdx) => (
-                            <td key={espIdx} className="border border-border px-3 py-2 text-center">{esp.toFixed(2)}</td>
-                          ))}
-                        </tr>
-                      ))}
+                      {perfilPadraoUE.map((perfil, idx) => {
+                        // Tira = h + 2*B + 2*d (dimensão desenvolvida base)
+                        const tira = perfil.h + 2 * perfil.B + 2 * perfil.d;
+                        return (
+                          <tr key={idx} className={idx % 2 === 0 ? 'bg-muted/30' : 'bg-background'}>
+                            <td className="border border-border px-3 py-2 text-center font-medium">{perfil.h.toFixed(2)}</td>
+                            <td className="border border-border px-3 py-2 text-center font-medium">{perfil.B.toFixed(2)}</td>
+                            <td className="border border-border px-3 py-2 text-center font-medium">{perfil.d.toFixed(2)}</td>
+                            <td className="border border-border px-3 py-2 text-center font-medium text-primary">{tira.toFixed(2)}</td>
+                            {perfil.espessuras.map((esp, espIdx) => (
+                              <td key={espIdx} className="border border-border px-3 py-2 text-center">{esp.toFixed(2)}</td>
+                            ))}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

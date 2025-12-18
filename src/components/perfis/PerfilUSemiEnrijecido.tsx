@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2 } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilUSemiEnrijecido } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
-import { VisualizacaoChapaTiras } from './VisualizacaoChapaTiras';
+import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -423,11 +423,6 @@ export function PerfilUSemiEnrijecido() {
         </div>
       </div>
 
-      {/* Visualização do corte */}
-      <VisualizacaoChapaTiras 
-        calculos={calculosUSemiEnrijecido}
-        tipoPerfil="Perfil U/Z Semi-Enrijecido"
-      />
     </div>
   );
 }

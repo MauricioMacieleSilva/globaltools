@@ -9,7 +9,7 @@ import { usePerfilContext, CalculoItem, LinhaPerfilU } from '@/context/PerfilCon
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { verificarPerfilUPadrao } from '@/lib/perfil-padrao-utils';
 import { IndicadorPerfilPadrao } from './IndicadorPerfilPadrao';
-import { VisualizacaoChapaTiras } from './VisualizacaoChapaTiras';
+import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -248,7 +248,7 @@ function PerfilUDesktop() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-19 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-20 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">U/Z</div>
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
@@ -266,6 +266,7 @@ function PerfilUDesktop() {
         <div className="text-center">P.T</div>
         <div className="text-center">P.+</div>
         <div className="text-center">Tipo</div>
+        <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
 
@@ -278,7 +279,7 @@ function PerfilUDesktop() {
         const temDadosPerfil = espessura > 0 && base > 0 && aba1 > 0;
         const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
         
-        return <div key={linha.id} className="grid grid-cols-19 gap-2 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-20 gap-2 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                   <SelectTrigger className="w-12 h-8 text-xs">
@@ -396,6 +397,14 @@ function PerfilUDesktop() {
               <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDadosPerfil} />
               
               <div className="flex justify-center">
+                {calculo ? (
+                  <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Perfil U" />
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
+              
+              <div className="flex justify-center">
                 <Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -421,12 +430,6 @@ function PerfilUDesktop() {
           </div>
         </div>
       </div>
-
-      {/* Visualização do corte */}
-      <VisualizacaoChapaTiras 
-        calculos={calculosPerfilU}
-        tipoPerfil="Perfil U"
-      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilL } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
-import { VisualizacaoChapaTiras } from './VisualizacaoChapaTiras';
+import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -202,7 +202,7 @@ export function PerfilL() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-14 gap-4 text-sm font-medium text-muted-foreground border-b pb-2">
+      <div className="grid grid-cols-15 gap-4 text-sm font-medium text-muted-foreground border-b pb-2">
         <div className="text-center">Espessura</div>
         <div className="text-center">Aba</div>
         <div className="text-center">Base</div>
@@ -216,6 +216,7 @@ export function PerfilL() {
         <div className="text-center">kg/Perda</div>
         <div className="text-center">Peso Tira</div>
         <div className="text-center">Peso +</div>
+        <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
 
@@ -223,7 +224,7 @@ export function PerfilL() {
         {linhasL.map(linha => {
           const calculo = calcularPerfil(linha);
           return (
-            <div key={linha.id} className="grid grid-cols-14 gap-4 items-center p-4 bg-background rounded-lg border">
+            <div key={linha.id} className="grid grid-cols-15 gap-4 items-center p-4 bg-background rounded-lg border">
               <Input type="number" step="0.01" placeholder="0.00" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center" />
               
               <TooltipProvider>
@@ -299,6 +300,14 @@ export function PerfilL() {
               </div>
               
               <div className="flex justify-center">
+                {calculo ? (
+                  <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Perfil L" />
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
+              
+              <div className="flex justify-center">
                 <Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -325,12 +334,6 @@ export function PerfilL() {
           </div>
         </div>
       </div>
-
-      {/* Visualização do corte */}
-      <VisualizacaoChapaTiras 
-        calculos={calculosPerfilL}
-        tipoPerfil="Perfil L"
-      />
     </div>
   );
 }

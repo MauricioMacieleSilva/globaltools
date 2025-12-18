@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Trash2 } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilCartolaEnrijecido } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
-import { VisualizacaoChapaTiras } from './VisualizacaoChapaTiras';
+import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -487,11 +487,6 @@ export function PerfilCartolaEnrijecido() {
         </div>
       </div>
 
-      {/* Visualização do corte */}
-      <VisualizacaoChapaTiras 
-        calculos={calculosPerfilCartolaEnrijecido}
-        tipoPerfil="Perfil Cartola Enrijecido"
-      />
     </div>
   );
 }

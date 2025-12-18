@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2 } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilCartolaSemiEnrijecido } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
-import { VisualizacaoChapaTiras } from './VisualizacaoChapaTiras';
+import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -460,11 +460,6 @@ export function PerfilCartolaSemiEnrijecido() {
         </div>
       </div>
 
-      {/* Visualização do corte */}
-      <VisualizacaoChapaTiras 
-        calculos={calculosCartolaSemiEnrijecido}
-        tipoPerfil="Perfil Cartola Semi-Enrijecido"
-      />
     </div>
   );
 }

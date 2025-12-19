@@ -12,9 +12,9 @@ interface VisualizacaoPerfilPopoverProps {
 
 export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: VisualizacaoPerfilPopoverProps) {
   const larguraTotal = calculo.largura;
-  const larguraTira = calculo.tira;
+  const larguraTira = Math.ceil(calculo.tira);
   const tirasAproveitadas = calculo.tirasAproveitadas;
-  const larguraPerda = calculo.tiraPerda;
+  const larguraPerda = Math.ceil(calculo.tiraPerda);
   const percentualAproveitamento = ((larguraTotal - larguraPerda) / larguraTotal) * 100;
   
   // Calcular quantidade de chapas necessárias
@@ -56,7 +56,7 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
             </div>
             <div className="text-center">
               <div className="text-muted-foreground">Larg. Tira</div>
-              <div className="font-semibold text-blue-600">{formatarNumero(larguraTira)} mm</div>
+              <div className="font-semibold text-blue-600">{larguraTira} mm</div>
             </div>
             <div className="text-center">
               <div className="text-muted-foreground">Tiras</div>
@@ -64,7 +64,7 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
             </div>
             <div className="text-center">
               <div className="text-muted-foreground">Perda</div>
-              <div className="font-semibold text-red-600">{formatarNumero(larguraPerda)} mm</div>
+              <div className="font-semibold text-red-600">{larguraPerda} mm</div>
             </div>
             <div className="text-center">
               <div className="text-muted-foreground">Chapas</div>
@@ -122,7 +122,7 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
                   textAnchor="middle"
                   className="text-[10px] fill-primary font-medium"
                 >
-                  {formatarNumero(larguraTira)}mm
+                  {larguraTira}mm
                 </text>
               )}
               

@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Eye } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilUSemiEnrijecido } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
@@ -237,7 +237,7 @@ export function PerfilUSemiEnrijecido() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-18 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-19 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">U/Z</div>
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
@@ -255,13 +255,14 @@ export function PerfilUSemiEnrijecido() {
         <div className="text-center">kg/Perda</div>
         <div className="text-center">P.T</div>
         <div className="text-center">P.+</div>
+        <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
 
       <div className="space-y-4">
         {linhasUSemiEnrijecido.map(linha => {
         const calculo = calcularPerfil(linha);
-        return <div key={linha.id} className="grid grid-cols-18 gap-2 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-19 gap-2 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                   <SelectTrigger className="w-12 h-8 text-xs">
@@ -373,11 +374,11 @@ export function PerfilUSemiEnrijecido() {
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-xs" />
               
               <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.tira) : 0}
+                {calculo ? Math.ceil(calculo.tira) : 0}
               </div>
               
               <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.tiraPerda) : 0}
+                {calculo ? Math.ceil(calculo.tiraPerda) : 0}
               </div>
               
               <div className="text-center font-medium text-muted-foreground text-xs">
@@ -394,6 +395,16 @@ export function PerfilUSemiEnrijecido() {
               
               <div className="text-center font-medium text-destructive text-xs">
                 {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
+              </div>
+              
+              <div className="flex justify-center">
+                {calculo && (
+                  <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="U/Z Semi-Enrijecido">
+                    <button className="flex items-center justify-center w-full h-full cursor-pointer hover:bg-primary/5 rounded transition-colors">
+                      <Eye className="h-3 w-3 text-primary" />
+                    </button>
+                  </VisualizacaoPerfilPopover>
+                )}
               </div>
               
               <div className="flex justify-center">

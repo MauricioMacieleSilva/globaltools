@@ -419,11 +419,11 @@ export function PerfilUEnrijecido() {
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-xs" />
               
               <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.tira) : 0}
+                {calculo ? Math.ceil(calculo.tira) : 0}
               </div>
               
               <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.tiraPerda) : 0}
+                {calculo ? Math.ceil(calculo.tiraPerda) : 0}
               </div>
               
               <div className="text-center font-medium text-muted-foreground text-xs">

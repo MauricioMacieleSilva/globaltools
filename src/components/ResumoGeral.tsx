@@ -4,10 +4,11 @@ import { formatarNumero } from '@/lib/utils-perfil';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy } from 'lucide-react';
+import { Copy, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verificarPerfilUPadrao, verificarPerfilUEPadrao } from '@/lib/perfil-padrao-utils';
 import { IndicadorPerfilPadrao } from '@/components/perfis/IndicadorPerfilPadrao';
+import { VisualizacaoPerfilPopover } from '@/components/perfis/VisualizacaoPerfilPopover';
 
 export function ResumoGeral() {
   const {
@@ -26,7 +27,7 @@ export function ResumoGeral() {
   }
 
   const totalPesoGeral = calculosValidos.reduce((sum, calc) => sum + calc.pesoTotal, 0);
-  const totalPerdaGeral = calculosValidos.reduce((sum, calc) => sum + calc.pesoPerda, 0);
+  const totalPerdaGeral = calculosValidos.reduce((sum, calc) => sum + ((calc.pesoPerdaPorPeca || 0) * calc.quantidade), 0);
   const totalQuantidade = calculosValidos.reduce((sum, calc) => sum + calc.quantidade, 0);
   const eficiencia = totalPesoGeral > 0 ? (totalPesoGeral - totalPerdaGeral) / totalPesoGeral * 100 : 0;
 
@@ -139,12 +140,14 @@ export function ResumoGeral() {
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden md:table-cell">% Perda</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Peso Tira</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">Peso Perda</th>
+                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Ver</th>
                     </tr>
                   </thead>
                   <tbody>
                     {calculosValidos.map(calc => {
                     const pesoPorPeca = calc.quantidade > 0 ? calc.pesoTotal / calc.quantidade : 0;
                     const descricaoCompleta = gerarDescricaoCompleta(calc);
+                    const pesoPerdaItem = (calc.pesoPerdaPorPeca || 0) * calc.quantidade;
                     
                     // Verificar se é perfil padrão
                     let isPadrao = false;
@@ -182,12 +185,19 @@ export function ResumoGeral() {
                               </Button>
                             </div>
                           </td>
-                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">{Math.round(calc.tira)}</td>
-                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(calc.tiraPerda)}</td>
+                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">{Math.ceil(calc.tira)}</td>
+                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden sm:table-cell">{Math.ceil(calc.tiraPerda)}</td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden sm:table-cell">{pesoPorPeca.toFixed(2)}</td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden md:table-cell">{Math.round(calc.percentualPerda)}%</td>
                           <td className="text-center p-1 sm:p-3 font-medium text-primary text-xs sm:text-sm">{formatarNumero(calc.pesoTotal)}</td>
-                          <td className="text-center p-1 sm:p-3 font-medium text-destructive text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(calc.pesoPerda)}</td>
+                          <td className="text-center p-1 sm:p-3 font-medium text-destructive text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(pesoPerdaItem)}</td>
+                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">
+                            <VisualizacaoPerfilPopover calculo={calc} tipoPerfil={obterNomeTipo(calc.tipo, calc.orientacaoUZ)}>
+                              <button className="flex items-center justify-center w-full h-full cursor-pointer hover:bg-primary/5 rounded transition-colors p-1">
+                                <Eye className="h-3 w-3 text-primary" />
+                              </button>
+                            </VisualizacaoPerfilPopover>
+                          </td>
                         </tr>;
                   })}
                   </tbody>

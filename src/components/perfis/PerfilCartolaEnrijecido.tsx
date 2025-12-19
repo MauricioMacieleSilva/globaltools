@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Eye } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilCartolaEnrijecido } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
@@ -249,7 +249,7 @@ export function PerfilCartolaEnrijecido() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-20 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-21 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
         <div className="text-center">Enrij1</div>
@@ -269,13 +269,14 @@ export function PerfilCartolaEnrijecido() {
         <div className="text-center">kg/Perda</div>
         <div className="text-center">P.T</div>
         <div className="text-center">P.+</div>
+        <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
 
       <div className="space-y-4">
         {linhasCartolaEnrijecido.map(linha => {
         const calculo = calcularPerfil(linha);
-        return <div key={linha.id} className="grid grid-cols-20 gap-1 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-21 gap-1 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Checkbox 
                   checked={!linha.assimetrico} 
@@ -437,11 +438,11 @@ export function PerfilCartolaEnrijecido() {
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-xs" />
               
               <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.tira) : 0}
+                {calculo ? Math.ceil(calculo.tira) : 0}
               </div>
               
               <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.tiraPerda) : 0}
+                {calculo ? Math.ceil(calculo.tiraPerda) : 0}
               </div>
               
               <div className="text-center font-medium text-muted-foreground text-xs">
@@ -458,6 +459,16 @@ export function PerfilCartolaEnrijecido() {
               
               <div className="text-center font-medium text-destructive text-xs">
                 {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
+              </div>
+              
+              <div className="flex justify-center">
+                {calculo && (
+                  <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Cartola Enrijecido">
+                    <button className="flex items-center justify-center w-full h-full cursor-pointer hover:bg-primary/5 rounded transition-colors">
+                      <Eye className="h-3 w-3 text-primary" />
+                    </button>
+                  </VisualizacaoPerfilPopover>
+                )}
               </div>
               
               <div className="flex justify-center">

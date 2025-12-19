@@ -152,13 +152,13 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
               <div>
                 <div className="text-muted-foreground">Material Aproveitado</div>
                 <div className="font-bold text-primary">
-                  {formatarNumero(larguraTotal - larguraPerda)} mm
+                  {Math.ceil(larguraTotal - larguraPerda)} mm
                 </div>
               </div>
               <div>
                 <div className="text-muted-foreground">Total Perda</div>
                 <div className="font-bold text-destructive">
-                  {formatarNumero(larguraPerda * quantidadeChapas)} mm
+                  {Math.ceil(larguraPerda * quantidadeChapas)} mm
                 </div>
               </div>
             </div>

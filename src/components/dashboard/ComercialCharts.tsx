@@ -654,11 +654,12 @@ export function ComercialCharts() {
           {/* Tooltip Fixo */}
           {pinnedTooltip && !drillDown.isMonthView && (
             <div 
-              className="fixed bg-background border border-border rounded-lg shadow-2xl w-80 max-h-96 flex flex-col"
+              className="fixed bg-background border border-border rounded-lg shadow-2xl w-80 flex flex-col"
               style={{ 
                 zIndex: 10000,
                 left: Math.min(pinnedTooltip.position.x, window.innerWidth - 340),
-                top: Math.max(pinnedTooltip.position.y - 200, 10)
+                top: Math.max(pinnedTooltip.position.y - 200, 10),
+                maxHeight: 'calc(100vh - 40px)'
               }}
             >
               <div className="p-3 border-b border-border flex-shrink-0 flex items-center justify-between">
@@ -690,7 +691,7 @@ export function ComercialCharts() {
               </div>
               
               {pinnedTooltip.data.detalhes && pinnedTooltip.data.detalhes.length > 0 && (
-                <ScrollArea className="flex-1 max-h-60">
+                <ScrollArea className="flex-1" style={{ maxHeight: '300px' }}>
                   <div className="p-3">
                     <p className="font-medium text-xs text-muted-foreground mb-2">Detalhes por Cliente:</p>
                     <div className="space-y-2">

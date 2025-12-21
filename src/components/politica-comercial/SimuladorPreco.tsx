@@ -121,7 +121,7 @@ export function SimuladorPreco() {
         {/* Campos de Entrada */}
         <div className="space-y-2">
           <div>
-            <Label htmlFor="precoBase" className="text-xs">Preço da Tabela (c/ 12% ICMS)</Label>
+            <Label htmlFor="precoBase" className="text-xs">Preço da Tabela (c/ 17% ICMS)</Label>
             <Input id="precoBase" type="number" step="0.01" value={simulador.precoBase} onChange={e => handleInputChange('precoBase', e.target.value)} placeholder="0,00" className="h-8 text-sm" />
           </div>
 

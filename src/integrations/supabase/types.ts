@@ -1489,6 +1489,59 @@ export type Database = {
           },
         ]
       }
+      politica_comercial_itens: {
+        Row: {
+          ativo: boolean
+          classe: string
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          ipi: string | null
+          preco: number
+          preco_kg: number | null
+          preco_m2: number | null
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          classe: string
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          id?: string
+          ipi?: string | null
+          preco: number
+          preco_kg?: number | null
+          preco_m2?: number | null
+          unidade?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          classe?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          ipi?: string | null
+          preco?: number
+          preco_kg?: number | null
+          preco_m2?: number | null
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "politica_comercial_itens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       politica_descontos: {
         Row: {
           ativo: boolean

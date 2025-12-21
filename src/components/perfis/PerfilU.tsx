@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, DollarSign } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilU } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { verificarPerfilUPadrao } from '@/lib/perfil-padrao-utils';
@@ -37,6 +36,7 @@ function PerfilUDesktop() {
   
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
+  const [descontos, setDescontos] = useState<Record<string, string>>({});
   const { getPreco, loading: loadingPrecos } = usePerfilPreco();
 
   React.useEffect(() => {
@@ -77,7 +77,6 @@ function PerfilUDesktop() {
       return null;
     }
 
-    // Tira = Aba1 + Base + Aba2 – (2 × Espessura × 2)
     const tira = aba1 + base + aba2 - (2 * espessura * 2);
     const tirasAproveitadas = Math.floor(largura / tira);
     const tiraPerda = largura - (tirasAproveitadas * tira);
@@ -150,14 +149,9 @@ function PerfilUDesktop() {
     const updatedLinhas = linhasU.map(l => {
       if (l.id === id) {
         const novaLinha = { ...l, [campo]: valor };
-        
-        // Se não é assimétrico, espelhar Aba1 -> Aba2
-        if (!novaLinha.assimetrico) {
-          if (campo === 'aba1') {
-            novaLinha.aba2 = valor as string;
-          }
+        if (!novaLinha.assimetrico && campo === 'aba1') {
+          novaLinha.aba2 = valor as string;
         }
-        
         return novaLinha;
       }
       return l;
@@ -203,8 +197,11 @@ function PerfilUDesktop() {
     });
     atualizarLinhaU(updatedLinhas);
     removerCalculo(id);
-    
-    // Limpar erros de validação da linha
+    setDescontos(prev => {
+      const newDescontos = {...prev};
+      delete newDescontos[id];
+      return newDescontos;
+    });
     setErrosValidacao(prev => {
       const newErrors = {...prev};
       Object.keys(newErrors).forEach(key => {
@@ -214,15 +211,6 @@ function PerfilUDesktop() {
       });
       return newErrors;
     });
-  };
-
-  const removerLinha = (id: string) => {
-    if (linhasU.length > 3) {
-      if (confirm('Tem certeza que deseja remover esta linha?')) {
-        atualizarLinhaU(linhasU.filter(linha => linha.id !== id));
-        removerCalculo(id);
-      }
-    }
   };
 
   useEffect(() => {
@@ -241,191 +229,156 @@ function PerfilUDesktop() {
 
   const totalPerda = linhasU.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    // Peso de perda = peso da tira perdida × quantidade total
     return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
   }, 0);
 
-  // Obter cálculos do tipo U para visualização
   const calculosPerfilU = Object.values(calculos).filter(calc => calc.tipo === 'U');
 
+  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Desc%', 'R$/kg', 'Valor', 'Ver', 'Ação'];
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-21 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
-        <div className="text-center">U/Z</div>
-        <div className="text-center">Simétrico</div>
-        <div className="text-center">Esp.</div>
-        <div className="text-center">Aba1</div>
-        <div className="text-center">Base</div>
-        <div className="text-center">Aba2</div>
-        <div className="text-center">Comp.</div>
-        <div className="text-center">Larg.</div>
-        <div className="text-center">Qt.</div>
-        <div className="text-center">%P</div>
-        <div className="text-center">Tira</div>
-        <div className="text-center">T.Perda</div>
-        <div className="text-center">kg/Pç</div>
-        <div className="text-center">kg/Perda</div>
-        <div className="text-center">P.T</div>
-        <div className="text-center">P.+</div>
-        <div className="text-center">Tipo</div>
-        <div className="text-center">R$/kg</div>
-        <div className="text-center">Ver</div>
-        <div className="text-center">Ações</div>
+    <div className="space-y-4">
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
+        {headers.map((h, i) => (
+          <div key={i} className={`text-center ${h === 'R$/kg' || h === 'Valor' ? 'text-green-600' : ''} ${h === 'Desc%' ? 'text-orange-500' : ''}`}>
+            {h}
+          </div>
+        ))}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {linhasU.map(linha => {
-        const calculo = calcularPerfil(linha);
-        const espessura = parseFloat(linha.espessura) || 0;
-        const base = parseFloat(linha.base) || 0;
-        const aba1 = parseFloat(linha.aba1) || 0;
-        const temDadosPerfil = espessura > 0 && base > 0 && aba1 > 0;
-        const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
-        const precoKg = temDadosPerfil ? getPreco(espessura, verificacao.isPadrao) : null;
-        
-        return <div key={linha.id} className="grid grid-cols-21 gap-2 items-center p-2 bg-background rounded-lg border">
-              <div className="flex justify-center">
-                <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
-                  <SelectTrigger className="w-12 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-50">
-                    <SelectItem value="U">U</SelectItem>
-                    <SelectItem value="Z">Z</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          const calculo = calcularPerfil(linha);
+          const espessura = parseFloat(linha.espessura) || 0;
+          const base = parseFloat(linha.base) || 0;
+          const aba1 = parseFloat(linha.aba1) || 0;
+          const temDadosPerfil = espessura > 0 && base > 0 && aba1 > 0;
+          const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
+          const precoKg = temDadosPerfil ? getPreco(espessura, verificacao.isPadrao) : null;
+          const desconto = parseFloat(descontos[linha.id] || '0') || 0;
+          const precoComDesconto = precoKg ? precoKg * (1 - desconto / 100) : null;
+          const valorTotal = calculo && precoComDesconto ? calculo.pesoTotal * precoComDesconto : null;
+          
+          return (
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
+              <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
+                <SelectTrigger className="h-7 text-[10px] px-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  <SelectItem value="U">U</SelectItem>
+                  <SelectItem value="Z">Z</SelectItem>
+                </SelectContent>
+              </Select>
               
               <div className="flex justify-center">
                 <Checkbox 
                   checked={!linha.assimetrico} 
                   onCheckedChange={(checked) => atualizarLinha(linha.id, 'assimetrico', !checked)}
+                  className="h-4 w-4"
                 />
               </div>
               
-              <Input type="number" step="0.01" placeholder="0.00" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center text-xs" />
+              <Input type="number" step="0.01" placeholder="0" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               
               <TooltipProvider>
                 <Tooltip open={!!errosValidacao[`${linha.id}-aba1`]} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.aba1} 
-                        onChange={e => atualizarLinha(linha.id, 'aba1', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'aba1', e.target.value)}
-                        className={`text-center text-xs ${errosValidacao[`${linha.id}-aba1`] ? 'border-destructive' : ''}`}
-                      />
-                    </div>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      value={linha.aba1} 
+                      onChange={e => atualizarLinha(linha.id, 'aba1', e.target.value)}
+                      onBlur={e => validarCampo(linha.id, 'aba1', e.target.value)}
+                      className={`text-center text-[10px] h-7 px-1 ${errosValidacao[`${linha.id}-aba1`] ? 'border-destructive' : ''}`}
+                    />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-aba1`]}</p>
-                  </TooltipContent>
+                  {errosValidacao[`${linha.id}-aba1`] && (
+                    <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[200px]">
+                      <p className="text-[10px]">{errosValidacao[`${linha.id}-aba1`]}</p>
+                    </TooltipContent>
+                  )}
                 </Tooltip>
               </TooltipProvider>
               
               <TooltipProvider>
                 <Tooltip open={!!errosValidacao[`${linha.id}-base`]} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.base} 
-                        onChange={e => atualizarLinha(linha.id, 'base', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'base', e.target.value)}
-                        className={`text-center text-xs ${errosValidacao[`${linha.id}-base`] ? 'border-destructive' : ''}`}
-                      />
-                    </div>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      value={linha.base} 
+                      onChange={e => atualizarLinha(linha.id, 'base', e.target.value)}
+                      onBlur={e => validarCampo(linha.id, 'base', e.target.value)}
+                      className={`text-center text-[10px] h-7 px-1 ${errosValidacao[`${linha.id}-base`] ? 'border-destructive' : ''}`}
+                    />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-base`]}</p>
-                  </TooltipContent>
+                  {errosValidacao[`${linha.id}-base`] && (
+                    <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[200px]">
+                      <p className="text-[10px]">{errosValidacao[`${linha.id}-base`]}</p>
+                    </TooltipContent>
+                  )}
                 </Tooltip>
               </TooltipProvider>
               
               <TooltipProvider>
                 <Tooltip open={!!errosValidacao[`${linha.id}-aba2`]} delayDuration={0}>
                   <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.aba2} 
-                        onChange={e => atualizarLinha(linha.id, 'aba2', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'aba2', e.target.value)} 
-                        className={`text-center text-xs ${!linha.assimetrico ? 'bg-muted text-muted-foreground' : ''} ${errosValidacao[`${linha.id}-aba2`] ? 'border-destructive' : ''}`}
-                        disabled={!linha.assimetrico}
-                      />
-                    </div>
+                    <Input 
+                      type="number" 
+                      placeholder="0" 
+                      value={linha.aba2} 
+                      onChange={e => atualizarLinha(linha.id, 'aba2', e.target.value)}
+                      onBlur={e => validarCampo(linha.id, 'aba2', e.target.value)} 
+                      className={`text-center text-[10px] h-7 px-1 ${!linha.assimetrico ? 'bg-muted text-muted-foreground' : ''} ${errosValidacao[`${linha.id}-aba2`] ? 'border-destructive' : ''}`}
+                      disabled={!linha.assimetrico}
+                    />
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-aba2`]}</p>
-                  </TooltipContent>
+                  {errosValidacao[`${linha.id}-aba2`] && (
+                    <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[200px]">
+                      <p className="text-[10px]">{errosValidacao[`${linha.id}-aba2`]}</p>
+                    </TooltipContent>
+                  )}
                 </Tooltip>
               </TooltipProvider>
               
-              <Input type="number" placeholder="6000" value={linha.comprimento} onChange={e => atualizarLinha(linha.id, 'comprimento', e.target.value)} className="text-center text-xs" />
+              <Input type="number" placeholder="6000" value={linha.comprimento} onChange={e => atualizarLinha(linha.id, 'comprimento', e.target.value)} className="text-center text-[10px] h-7 px-1" />
+              <Input type="number" placeholder="1200" value={linha.largura} onChange={e => atualizarLinha(linha.id, 'largura', e.target.value)} className="text-center text-[10px] h-7 px-1" />
+              <Input type="number" placeholder="0" value={linha.quantidade} onChange={e => atualizarLinha(linha.id, 'quantidade', e.target.value)} className="text-center text-[10px] h-7 px-1" />
+              <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               
-              <Input type="number" placeholder="1200" value={linha.largura} onChange={e => atualizarLinha(linha.id, 'largura', e.target.value)} className="text-center text-xs" />
-              
-              <Input type="number" placeholder="0" value={linha.quantidade} onChange={e => atualizarLinha(linha.id, 'quantidade', e.target.value)} className="text-center text-xs" />
-              
-              <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-xs" />
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? Math.ceil(calculo.tira) : 0}
-              </div>
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? Math.ceil(calculo.tiraPerda) : 0}
-              </div>
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.pesoPorPeca) : '0.00'}
-              </div>
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '0.00'}
-              </div>
-              
-              <div className="text-center font-medium text-primary text-xs">
-                {calculo ? formatarNumero(calculo.pesoTotal) : '0.00'}
-              </div>
-              
-              <div className="text-center font-medium text-destructive text-xs">
-                {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
-              </div>
+              <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tira) : '-'}</div>
+              <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tiraPerda) : '-'}</div>
+              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPorPeca) : '-'}</div>
+              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
+              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
+              <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               
               <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDadosPerfil} />
               
-              <div className="text-center">
-                {temDadosPerfil && precoKg ? (
-                  <TooltipProvider>
-                    <Tooltip delayDuration={100}>
-                      <TooltipTrigger asChild>
-                        <span className="text-xs font-medium text-green-600 cursor-help">
-                          {precoKg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p className="text-xs">
-                          Preço/kg para perfil {verificacao.isPadrao ? 'padrão' : 'especial'} - Esp. {espessura}mm
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : temDadosPerfil ? (
-                  <span className="text-xs text-muted-foreground">-</span>
-                ) : null}
+              <Input 
+                type="number" 
+                placeholder="0" 
+                value={descontos[linha.id] || ''} 
+                onChange={e => setDescontos(prev => ({...prev, [linha.id]: e.target.value}))}
+                className="text-center text-[10px] h-7 px-1 text-orange-600"
+                min="0"
+                max="100"
+              />
+              
+              <div className="text-center text-[10px] font-medium text-green-600">
+                {precoComDesconto ? precoComDesconto.toFixed(2) : '-'}
+              </div>
+              
+              <div className="text-center text-[10px] font-medium text-green-600">
+                {valorTotal ? valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}
               </div>
               
               <div className="flex justify-center">
                 {calculo ? (
                   <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Perfil U" />
                 ) : (
-                  <span className="text-muted-foreground">-</span>
+                  <span className="text-muted-foreground text-[10px]">-</span>
                 )}
               </div>
               
@@ -434,24 +387,25 @@ function PerfilUDesktop() {
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
-            </div>;
-      })}
+            </div>
+          );
+        })}
       </div>
 
-      <Button onClick={adicionarLinha} className="w-full" variant="outline">
-        <Plus className="h-4 w-4 mr-2" />
+      <Button onClick={adicionarLinha} className="w-full" variant="outline" size="sm">
+        <Plus className="h-3 w-3 mr-1" />
         Adicionar Linha
       </Button>
 
-      <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+      <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
-            <div className="text-sm text-muted-foreground">Peso Total</div>
-            <div className="text-2xl font-bold text-primary">{formatarNumero(totalPeso)} kg</div>
+            <div className="text-xs text-muted-foreground">Peso Total</div>
+            <div className="text-lg font-bold text-primary">{formatarNumero(totalPeso)} kg</div>
           </div>
           <div className="text-center">
-            <div className="text-sm text-muted-foreground">Peso de Perda</div>
-            <div className="text-2xl font-bold text-destructive">{formatarNumero(totalPerda)} kg</div>
+            <div className="text-xs text-muted-foreground">Peso de Perda</div>
+            <div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg</div>
           </div>
         </div>
       </div>

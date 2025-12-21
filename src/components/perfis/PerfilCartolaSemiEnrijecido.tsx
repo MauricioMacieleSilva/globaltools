@@ -2,45 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Eye } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilCartolaSemiEnrijecido } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 
 export function PerfilCartolaSemiEnrijecido() {
-  const {
-    atualizarCalculo,
-    removerCalculo,
-    linhasCartolaSemiEnrijecido,
-    atualizarLinhaCartolaSemiEnrijecido,
-    calculos
-  } = usePerfilContext();
-  
+  const { atualizarCalculo, removerCalculo, linhasCartolaSemiEnrijecido, atualizarLinhaCartolaSemiEnrijecido, calculos } = usePerfilContext();
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
-  const { getPreco, loading: loadingPrecos } = usePerfilPreco();
+  const [descontos, setDescontos] = useState<Record<string, string>>({});
+  const { getPreco } = usePerfilPreco();
 
   React.useEffect(() => {
     if (linhasCartolaSemiEnrijecido.length === 0) {
-      const linhasIniciais = Array.from({
-        length: 3
-      }, () => ({
-        id: gerarId(),
-        espessura: '',
-        enrij1: '',
-        enrij2: '',
-        aba1: '',
-        base: '',
-        aba2: '',
-        enrij3: '',
-        comprimento: '6000',
-        largura: '1200',
-        quantidade: '',
-        percentualPerda: '101',
-        assimetrico: false
+      const linhasIniciais = Array.from({ length: 3 }, () => ({
+        id: gerarId(), espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '',
+        comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false
       }));
       atualizarLinhaCartolaSemiEnrijecido(linhasIniciais);
     }
@@ -49,7 +29,6 @@ export function PerfilCartolaSemiEnrijecido() {
   const calcularPerfil = (linha: LinhaPerfilCartolaSemiEnrijecido): CalculoItem | null => {
     const temErro = Object.keys(errosValidacao).some(key => key.startsWith(linha.id));
     if (temErro) return null;
-
     const espessura = parseFloat(linha.espessura) || 0;
     const enrij1 = parseFloat(linha.enrij1) || 0;
     const enrij2 = parseFloat(linha.enrij2) || 0;
@@ -61,12 +40,7 @@ export function PerfilCartolaSemiEnrijecido() {
     const largura = parseFloat(linha.largura) || 0;
     const quantidade = parseInt(linha.quantidade) || 0;
     const percentualPerda = parseFloat(linha.percentualPerda) || 0;
-
-    if (espessura <= 0 || enrij1 <= 0 || enrij2 <= 0 || aba1 <= 0 || base <= 0 || aba2 <= 0 || enrij3 <= 0 || comprimento <= 0 || largura <= 0 || quantidade <= 0) {
-      return null;
-    }
-
-    // Tira = Enrij1 + Enrij2 + Aba1 + Base + Aba2 + Enrij3 – (2 × Espessura × 5)
+    if (espessura <= 0 || enrij1 <= 0 || enrij2 <= 0 || aba1 <= 0 || base <= 0 || aba2 <= 0 || enrij3 <= 0 || comprimento <= 0 || largura <= 0 || quantidade <= 0) return null;
     const tira = enrij1 + enrij2 + aba1 + base + aba2 + enrij3 - (2 * espessura * 5);
     const tirasAproveitadas = Math.floor(largura / tira);
     const tiraPerda = largura - (tirasAproveitadas * tira);
@@ -74,66 +48,21 @@ export function PerfilCartolaSemiEnrijecido() {
     const pesoTotal = quantidade * pesoPorPeca;
     const pesoPerda = pesoTotal * (percentualPerda / 100);
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
-
-    return {
-      id: linha.id,
-      tipo: 'CARTOLA_SEMI_ENRIJECIDO',
-      espessura,
-      aba1,
-      base,
-      aba2,
-      enrij1,
-      enrij2,
-      enrij3,
-      comprimento,
-      largura,
-      quantidade,
-      percentualPerda,
-      tira,
-      tirasAproveitadas,
-      tiraPerda,
-      pesoPorPeca,
-      pesoTotal,
-      pesoPerda,
-      pesoPerdaPorPeca
-    };
+    return { id: linha.id, tipo: 'CARTOLA_SEMI_ENRIJECIDO', espessura, aba1, base, aba2, enrij1, enrij2, enrij3, comprimento, largura, quantidade, percentualPerda, tira, tirasAproveitadas, tiraPerda, pesoPorPeca, pesoTotal, pesoPerda, pesoPerdaPorPeca };
   };
 
-  const validarCampo = (id: string, campo: 'aba1' | 'aba2' | 'base' | 'enrij1' | 'enrij2' | 'enrij3', valor: string) => {
+  const validarCampo = (id: string, campo: string, valor: string) => {
     const linha = linhasCartolaSemiEnrijecido.find(l => l.id === id);
     if (!linha) return;
-    
     const espessura = parseFloat(linha.espessura);
     const valorNum = parseFloat(valor);
-    
-    if (!valor || isNaN(valorNum)) {
-      setErrosValidacao(prev => {
-        const newErrors = {...prev};
-        delete newErrors[`${id}-${campo}`];
-        return newErrors;
-      });
-      return;
-    }
-    
+    if (!valor || isNaN(valorNum)) { setErrosValidacao(prev => { const n = {...prev}; delete n[`${id}-${campo}`]; return n; }); return; }
     if (!isNaN(espessura) && !isNaN(valorNum)) {
       const validacao = validarAbaMinima(espessura, valorNum);
       if (!validacao.valida && validacao.abaMinimaPermitida) {
-        setErrosValidacao(prev => ({
-          ...prev,
-          [`${id}-${campo}`]: validacao.mensagem
-        }));
-        toast({
-          title: `${campo.includes('aba') ? 'Aba' : campo === 'base' ? 'Base' : 'Enrijecedor'} inválido`,
-          description: validacao.mensagem,
-          variant: "destructive",
-        });
-      } else {
-        setErrosValidacao(prev => {
-          const newErrors = {...prev};
-          delete newErrors[`${id}-${campo}`];
-          return newErrors;
-        });
-      }
+        setErrosValidacao(prev => ({ ...prev, [`${id}-${campo}`]: validacao.mensagem }));
+        toast({ title: 'Valor inválido', description: validacao.mensagem, variant: "destructive" });
+      } else { setErrosValidacao(prev => { const n = {...prev}; delete n[`${id}-${campo}`]; return n; }); }
     }
   };
 
@@ -141,16 +70,10 @@ export function PerfilCartolaSemiEnrijecido() {
     const updatedLinhas = linhasCartolaSemiEnrijecido.map(l => {
       if (l.id === id) {
         const novaLinha = { ...l, [campo]: valor };
-        
-        // Se não é assimétrico, espelhar Aba1 -> Aba2 e Enrij1 -> Enrij3
         if (!novaLinha.assimetrico) {
-          if (campo === 'aba1') {
-            novaLinha.aba2 = valor as string;
-          } else if (campo === 'enrij1') {
-            novaLinha.enrij3 = valor as string;
-          }
+          if (campo === 'aba1') novaLinha.aba2 = valor as string;
+          else if (campo === 'enrij1') novaLinha.enrij3 = valor as string;
         }
-        
         return novaLinha;
       }
       return l;
@@ -159,346 +82,77 @@ export function PerfilCartolaSemiEnrijecido() {
   };
 
   const adicionarLinha = () => {
-    const novaLinha: LinhaPerfilCartolaSemiEnrijecido = {
-      id: gerarId(),
-      espessura: '',
-      enrij1: '',
-      enrij2: '',
-      aba1: '',
-      base: '',
-      aba2: '',
-      enrij3: '',
-      comprimento: '6000',
-      largura: '1200',
-      quantidade: '',
-      percentualPerda: '101',
-      assimetrico: false
-    };
-    atualizarLinhaCartolaSemiEnrijecido([...linhasCartolaSemiEnrijecido, novaLinha]);
+    atualizarLinhaCartolaSemiEnrijecido([...linhasCartolaSemiEnrijecido, { id: gerarId(), espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false }]);
   };
 
   const limparLinha = (id: string) => {
-    const updatedLinhas = linhasCartolaSemiEnrijecido.map(l => {
-      if (l.id === id) {
-        return {
-          ...l,
-          espessura: '',
-          enrij1: '',
-          enrij2: '',
-          aba1: '',
-          base: '',
-          aba2: '',
-          enrij3: '',
-          comprimento: '6000',
-          largura: '1200',
-          quantidade: '',
-          percentualPerda: '101',
-          assimetrico: false
-        };
-      }
-      return l;
-    });
-    atualizarLinhaCartolaSemiEnrijecido(updatedLinhas);
+    atualizarLinhaCartolaSemiEnrijecido(linhasCartolaSemiEnrijecido.map(l => l.id === id ? { ...l, espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false } : l));
     removerCalculo(id);
-    
-    // Limpar erros de validação da linha
-    setErrosValidacao(prev => {
-      const newErrors = {...prev};
-      Object.keys(newErrors).forEach(key => {
-        if (key.startsWith(id)) {
-          delete newErrors[key];
-        }
-      });
-      return newErrors;
-    });
+    setDescontos(prev => { const n = {...prev}; delete n[id]; return n; });
+    setErrosValidacao(prev => { const n = {...prev}; Object.keys(n).filter(k => k.startsWith(id)).forEach(k => delete n[k]); return n; });
   };
 
-  const removerLinha = (id: string) => {
-    if (linhasCartolaSemiEnrijecido.length > 3) {
-      if (confirm('Tem certeza que deseja remover esta linha?')) {
-        atualizarLinhaCartolaSemiEnrijecido(linhasCartolaSemiEnrijecido.filter(linha => linha.id !== id));
-        removerCalculo(id);
-      }
-    }
-  };
+  useEffect(() => { linhasCartolaSemiEnrijecido.forEach(linha => { const calculo = calcularPerfil(linha); if (calculo) atualizarCalculo(linha.id, calculo); }); }, [linhasCartolaSemiEnrijecido]);
 
-  useEffect(() => {
-    linhasCartolaSemiEnrijecido.forEach(linha => {
-      const calculo = calcularPerfil(linha);
-      if (calculo) {
-        atualizarCalculo(linha.id, calculo);
-      }
-    });
-  }, [linhasCartolaSemiEnrijecido]);
+  const totalPeso = linhasCartolaSemiEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
+  const totalPerda = linhasCartolaSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
 
-  const totalPeso = linhasCartolaSemiEnrijecido.reduce((sum, linha) => {
-    const calculo = calcularPerfil(linha);
-    return sum + (calculo?.pesoTotal || 0);
-  }, 0);
-
-  const totalPerda = linhasCartolaSemiEnrijecido.reduce((sum, linha) => {
-    const calculo = calcularPerfil(linha);
-    return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
-  }, 0);
-
-  // Obter cálculos do tipo CARTOLA_SEMI_ENRIJECIDO para visualização
-  const calculosCartolaSemiEnrijecido = Object.values(calculos).filter(calc => calc.tipo === 'CARTOLA_SEMI_ENRIJECIDO');
+  const headers = ['Sim', 'Esp.', 'E1', 'E2', 'Ab1', 'Bas', 'Ab2', 'E3', 'Cmp', 'Lrg', 'Qt', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Desc%', 'R$/kg', 'Valor', 'Ver', 'Ação'];
 
   return (
-    <div className="space-y-6">
-      <div className="overflow-x-auto">
-        <div className="grid grid-cols-21 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 min-w-max">
-          <div className="text-center min-w-[60px]">Simétrico</div>
-          <div className="text-center min-w-[50px]">Esp.</div>
-          <div className="text-center min-w-[50px]">Enrij1</div>
-          <div className="text-center min-w-[50px]">Enrij2</div>
-          <div className="text-center min-w-[50px]">Aba1</div>
-          <div className="text-center min-w-[50px]">Base</div>
-          <div className="text-center min-w-[50px]">Aba2</div>
-          <div className="text-center min-w-[50px]">Enrij3</div>
-          <div className="text-center min-w-[55px]">Comp.</div>
-          <div className="text-center min-w-[50px]">Larg.</div>
-          <div className="text-center min-w-[40px]">Qt.</div>
-          <div className="text-center min-w-[40px]">%P</div>
-          <div className="text-center min-w-[40px]">Tira</div>
-          <div className="text-center min-w-[50px]">T.Perda</div>
-          <div className="text-center min-w-[50px]">kg/Pç</div>
-          <div className="text-center min-w-[55px]">kg/Perda</div>
-          <div className="text-center min-w-[50px]">P.T</div>
-          <div className="text-center min-w-[50px]">P.+</div>
-          <div className="text-center min-w-[55px] text-green-600">R$/kg</div>
-          <div className="text-center min-w-[40px]">Ver</div>
-          <div className="text-center min-w-[60px]">Ações</div>
-        </div>
+    <div className="space-y-4">
+      <div className="grid gap-0.5 text-[9px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(23, minmax(0, 1fr))' }}>
+        {headers.map((h, i) => (<div key={i} className={`text-center ${h === 'R$/kg' || h === 'Valor' ? 'text-green-600' : ''} ${h === 'Desc%' ? 'text-orange-500' : ''}`}>{h}</div>))}
       </div>
 
-      <div className="space-y-4 overflow-x-auto">
+      <div className="space-y-2">
         {linhasCartolaSemiEnrijecido.map(linha => {
-        const calculo = calcularPerfil(linha);
-        const espessura = parseFloat(linha.espessura) || 0;
-        const temDadosPerfil = espessura > 0;
-        // Cartola Semi-Enrijecido é sempre especial
-        const precoKg = temDadosPerfil ? getPreco(espessura, false) : null;
-        return <div key={linha.id} className="grid grid-cols-21 gap-1 items-center p-2 bg-background rounded-lg border min-w-max">
-              <div className="flex justify-center">
-                <Checkbox 
-                  checked={!linha.assimetrico} 
-                  onCheckedChange={(checked) => atualizarLinha(linha.id, 'assimetrico', !checked)}
-                />
-              </div>
-              
-              <Input type="number" step="0.01" placeholder="0.00" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center text-xs" />
-              
-              <TooltipProvider>
-                <Tooltip open={!!errosValidacao[`${linha.id}-enrij1`]} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.enrij1} 
-                        onChange={e => atualizarLinha(linha.id, 'enrij1', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'enrij1', e.target.value)}
-                        className={`text-center text-xs ${errosValidacao[`${linha.id}-enrij1`] ? 'border-destructive' : ''}`}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-enrij1`]}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip open={!!errosValidacao[`${linha.id}-enrij2`]} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.enrij2} 
-                        onChange={e => atualizarLinha(linha.id, 'enrij2', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'enrij2', e.target.value)}
-                        className={`text-center text-xs ${errosValidacao[`${linha.id}-enrij2`] ? 'border-destructive' : ''}`}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-enrij2`]}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip open={!!errosValidacao[`${linha.id}-aba1`]} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.aba1} 
-                        onChange={e => atualizarLinha(linha.id, 'aba1', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'aba1', e.target.value)}
-                        className={`text-center text-xs ${errosValidacao[`${linha.id}-aba1`] ? 'border-destructive' : ''}`}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-aba1`]}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip open={!!errosValidacao[`${linha.id}-base`]} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.base} 
-                        onChange={e => atualizarLinha(linha.id, 'base', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'base', e.target.value)}
-                        className={`text-center text-xs ${errosValidacao[`${linha.id}-base`] ? 'border-destructive' : ''}`}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-base`]}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip open={!!errosValidacao[`${linha.id}-aba2`]} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.aba2} 
-                        onChange={e => atualizarLinha(linha.id, 'aba2', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'aba2', e.target.value)} 
-                        className={`text-center text-xs ${!linha.assimetrico ? 'bg-muted text-muted-foreground' : ''} ${errosValidacao[`${linha.id}-aba2`] ? 'border-destructive' : ''}`}
-                        disabled={!linha.assimetrico}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-aba2`]}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip open={!!errosValidacao[`${linha.id}-enrij3`]} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <div className="w-full">
-                      <Input 
-                        type="number" 
-                        placeholder="0.0" 
-                        value={linha.enrij3} 
-                        onChange={e => atualizarLinha(linha.id, 'enrij3', e.target.value)}
-                        onBlur={e => validarCampo(linha.id, 'enrij3', e.target.value)} 
-                        className={`text-center text-xs ${!linha.assimetrico ? 'bg-muted text-muted-foreground' : ''} ${errosValidacao[`${linha.id}-enrij3`] ? 'border-destructive' : ''}`}
-                        disabled={!linha.assimetrico}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-destructive text-destructive-foreground max-w-[250px]">
-                    <p className="text-xs font-medium">{errosValidacao[`${linha.id}-enrij3`]}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <Input type="number" placeholder="6000" value={linha.comprimento} onChange={e => atualizarLinha(linha.id, 'comprimento', e.target.value)} className="text-center text-xs" />
-              
-              <Input type="number" placeholder="1200" value={linha.largura} onChange={e => atualizarLinha(linha.id, 'largura', e.target.value)} className="text-center text-xs" />
-              
-              <Input type="number" placeholder="0" value={linha.quantidade} onChange={e => atualizarLinha(linha.id, 'quantidade', e.target.value)} className="text-center text-xs" />
-              
-              <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-xs" />
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? Math.ceil(calculo.tira) : 0}
-              </div>
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? Math.ceil(calculo.tiraPerda) : 0}
-              </div>
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.pesoPorPeca) : '0.00'}
-              </div>
-              
-              <div className="text-center font-medium text-muted-foreground text-xs">
-                {calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '0.00'}
-              </div>
-              
-              <div className="text-center font-medium text-primary text-xs">
-                {calculo ? formatarNumero(calculo.pesoTotal) : '0.00'}
-              </div>
-              
-              <div className="text-center font-medium text-destructive text-xs">
-                {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
-              </div>
-              
-              <div className="text-center">
-                {temDadosPerfil && precoKg ? (
-                  <TooltipProvider>
-                    <Tooltip delayDuration={100}>
-                      <TooltipTrigger asChild>
-                        <span className="text-xs font-medium text-green-600 cursor-help">
-                          {precoKg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p className="text-xs">Preço/kg para perfil especial - Esp. {espessura}mm</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : temDadosPerfil ? (
-                  <span className="text-xs text-muted-foreground">-</span>
-                ) : null}
-              </div>
-              
-              <div className="flex justify-center">
-                {calculo && (
-                  <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Cartola Semi-Enrijecido">
-                    <button className="flex items-center justify-center w-full h-full cursor-pointer hover:bg-primary/5 rounded transition-colors">
-                      <Eye className="h-3 w-3 text-primary" />
-                    </button>
-                  </VisualizacaoPerfilPopover>
-                )}
-              </div>
-              
-              <div className="flex justify-center">
-                <Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>;
-      })}
+          const calculo = calcularPerfil(linha);
+          const espessura = parseFloat(linha.espessura) || 0;
+          const temDados = espessura > 0;
+          const precoKg = temDados ? getPreco(espessura, false) : null;
+          const desconto = parseFloat(descontos[linha.id] || '0') || 0;
+          const precoComDesconto = precoKg ? precoKg * (1 - desconto / 100) : null;
+          const valorTotal = calculo && precoComDesconto ? calculo.pesoTotal * precoComDesconto : null;
+          
+          return (
+            <div key={linha.id} className="grid gap-0.5 items-center p-1 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(23, minmax(0, 1fr))' }}>
+              <div className="flex justify-center"><Checkbox checked={!linha.assimetrico} onCheckedChange={(c) => atualizarLinha(linha.id, 'assimetrico', !c)} className="h-3 w-3" /></div>
+              <Input type="number" step="0.01" placeholder="0" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" placeholder="0" value={linha.enrij1} onChange={e => atualizarLinha(linha.id, 'enrij1', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" placeholder="0" value={linha.enrij2} onChange={e => atualizarLinha(linha.id, 'enrij2', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" placeholder="0" value={linha.aba1} onChange={e => atualizarLinha(linha.id, 'aba1', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" placeholder="0" value={linha.base} onChange={e => atualizarLinha(linha.id, 'base', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" placeholder="0" value={linha.aba2} onChange={e => atualizarLinha(linha.id, 'aba2', e.target.value)} className={`text-center text-[9px] h-6 px-0.5 ${!linha.assimetrico ? 'bg-muted text-muted-foreground' : ''}`} disabled={!linha.assimetrico} />
+              <Input type="number" placeholder="0" value={linha.enrij3} onChange={e => atualizarLinha(linha.id, 'enrij3', e.target.value)} className={`text-center text-[9px] h-6 px-0.5 ${!linha.assimetrico ? 'bg-muted text-muted-foreground' : ''}`} disabled={!linha.assimetrico} />
+              <Input type="number" placeholder="6000" value={linha.comprimento} onChange={e => atualizarLinha(linha.id, 'comprimento', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" placeholder="1200" value={linha.largura} onChange={e => atualizarLinha(linha.id, 'largura', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" placeholder="0" value={linha.quantidade} onChange={e => atualizarLinha(linha.id, 'quantidade', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-[9px] h-6 px-0.5" />
+              <div className="text-center text-[9px] text-muted-foreground">{calculo ? Math.ceil(calculo.tira) : '-'}</div>
+              <div className="text-center text-[9px] text-muted-foreground">{calculo ? Math.ceil(calculo.tiraPerda) : '-'}</div>
+              <div className="text-center text-[9px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPorPeca) : '-'}</div>
+              <div className="text-center text-[9px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
+              <div className="text-center text-[9px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
+              <div className="text-center text-[9px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
+              <Input type="number" placeholder="0" value={descontos[linha.id] || ''} onChange={e => setDescontos(prev => ({...prev, [linha.id]: e.target.value}))} className="text-center text-[9px] h-6 px-0.5 text-orange-600" min="0" max="100" />
+              <div className="text-center text-[9px] font-medium text-green-600">{precoComDesconto ? precoComDesconto.toFixed(2) : '-'}</div>
+              <div className="text-center text-[9px] font-medium text-green-600">{valorTotal ? (valorTotal/1000).toFixed(1) + 'k' : '-'}</div>
+              <div className="flex justify-center">{calculo ? <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Cartola Semi-Enrijecido" /> : <span className="text-muted-foreground text-[9px]">-</span>}</div>
+              <div className="flex justify-center"><Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-5 w-5 p-0 hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-2.5 w-2.5" /></Button></div>
+            </div>
+          );
+        })}
       </div>
 
-      <Button onClick={adicionarLinha} className="w-full" variant="outline">
-        <Plus className="h-4 w-4 mr-2" />
-        Adicionar Linha
-      </Button>
+      <Button onClick={adicionarLinha} className="w-full" variant="outline" size="sm"><Plus className="h-3 w-3 mr-1" />Adicionar Linha</Button>
 
-      <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+      <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
         <div className="grid grid-cols-2 gap-4">
-          <div className="text-center">
-            <div className="text-sm text-muted-foreground">Peso Total</div>
-            <div className="text-2xl font-bold text-primary">{formatarNumero(totalPeso)} kg</div>
-          </div>
-          <div className="text-center">
-            <div className="text-sm text-muted-foreground">Peso de Perda</div>
-            <div className="text-2xl font-bold text-destructive">{formatarNumero(totalPerda)} kg</div>
-          </div>
+          <div className="text-center"><div className="text-xs text-muted-foreground">Peso Total</div><div className="text-lg font-bold text-primary">{formatarNumero(totalPeso)} kg</div></div>
+          <div className="text-center"><div className="text-xs text-muted-foreground">Peso de Perda</div><div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg</div></div>
         </div>
       </div>
-
     </div>
   );
 }

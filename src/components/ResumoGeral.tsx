@@ -4,17 +4,20 @@ import { formatarNumero } from '@/lib/utils-perfil';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Eye } from 'lucide-react';
+import { Copy, Eye, DollarSign, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verificarPerfilUPadrao, verificarPerfilUEPadrao } from '@/lib/perfil-padrao-utils';
 import { IndicadorPerfilPadrao } from '@/components/perfis/IndicadorPerfilPadrao';
 import { VisualizacaoPerfilPopover } from '@/components/perfis/VisualizacaoPerfilPopover';
+import { usePerfilPreco } from '@/hooks/usePerfilPreco';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function ResumoGeral() {
   const {
     calculos
   } = usePerfilContext();
   const { toast } = useToast();
+  const { getPreco, loading: loadingPrecos } = usePerfilPreco();
 
   const calculosValidos = Object.values(calculos).filter(calc => calc.pesoTotal > 0 && calc.quantidade > 0);
 
@@ -30,6 +33,32 @@ export function ResumoGeral() {
   const totalPerdaGeral = calculosValidos.reduce((sum, calc) => sum + ((calc.pesoPerdaPorPeca || 0) * calc.quantidade), 0);
   const totalQuantidade = calculosValidos.reduce((sum, calc) => sum + calc.quantidade, 0);
   const eficiencia = totalPesoGeral > 0 ? (totalPesoGeral - totalPerdaGeral) / totalPesoGeral * 100 : 0;
+
+  // Função para verificar se é perfil padrão
+  const verificarPadrao = (calc: any) => {
+    if (calc.tipo === 'U' && calc.base && calc.aba1) {
+      const verificacao = verificarPerfilUPadrao(calc.espessura, calc.base, calc.aba1);
+      return { isPadrao: verificacao.isPadrao, temDados: true };
+    } else if (calc.tipo === 'U_ENRIJECIDO' && calc.base && calc.aba1 && calc.enrij1) {
+      const verificacao = verificarPerfilUEPadrao(calc.espessura, calc.base, calc.aba1, calc.enrij1);
+      return { isPadrao: verificacao.isPadrao, temDados: true };
+    }
+    return { isPadrao: false, temDados: false };
+  };
+
+  // Calcular valores com preços
+  const calculosComPreco = calculosValidos.map(calc => {
+    const { isPadrao } = verificarPadrao(calc);
+    const precoKg = getPreco(calc.espessura, isPadrao);
+    const valorTotal = precoKg ? calc.pesoTotal * precoKg : null;
+    return { ...calc, precoKg, valorTotal, isPadrao };
+  });
+
+  const valorTotalGeral = calculosComPreco.reduce((sum, calc) => {
+    return sum + (calc.valorTotal || 0);
+  }, 0);
+
+  const temPrecosCadastrados = calculosComPreco.some(calc => calc.precoKg !== null);
 
   const obterNomeTipo = (tipo: string, orientacaoUZ?: 'U' | 'Z') => {
     const nomes: {
@@ -93,9 +122,13 @@ export function ResumoGeral() {
     }
   };
 
+  const formatarMoeda = (valor: number) => {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
   return <div className="space-y-6">
       {/* Resumo Executivo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <Card className="border border-primary/20 bg-primary/5">
           <CardContent className="p-2 sm:p-4 text-center">
             <div className="text-xs sm:text-sm text-muted-foreground">Peso Total</div>
@@ -114,6 +147,34 @@ export function ResumoGeral() {
           <CardContent className="p-2 sm:p-4 text-center">
             <div className="text-xs sm:text-sm text-muted-foreground">Quantidade Total</div>
             <div className="text-lg sm:text-2xl font-bold text-blue-600">{Math.round(totalQuantidade)}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-green-500/20 bg-green-500/5">
+          <CardContent className="p-2 sm:p-4 text-center">
+            <div className="text-xs sm:text-sm text-muted-foreground flex items-center justify-center gap-1">
+              <DollarSign className="h-3 w-3" />
+              Valor Estimado
+            </div>
+            {loadingPrecos ? (
+              <div className="text-lg sm:text-2xl font-bold text-green-600">...</div>
+            ) : temPrecosCadastrados ? (
+              <div className="text-lg sm:text-2xl font-bold text-green-600">{formatarMoeda(valorTotalGeral)}</div>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      Sem preços
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Cadastre preços na Política Comercial → Perfis</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -140,35 +201,25 @@ export function ResumoGeral() {
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden md:table-cell">% Perda</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Peso Tira</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">Peso Perda</th>
+                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600">R$/kg</th>
+                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600 hidden sm:table-cell">Valor</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Ver</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {calculosValidos.map(calc => {
+                    {calculosComPreco.map(calc => {
                     const pesoPorPeca = calc.quantidade > 0 ? calc.pesoTotal / calc.quantidade : 0;
                     const descricaoCompleta = gerarDescricaoCompleta(calc);
                     const pesoPerdaItem = (calc.pesoPerdaPorPeca || 0) * calc.quantidade;
                     
-                    // Verificar se é perfil padrão
-                    let isPadrao = false;
-                    let temDadosParaVerificacao = false;
-                    
-                    if (calc.tipo === 'U' && calc.base && calc.aba1) {
-                      temDadosParaVerificacao = true;
-                      const verificacao = verificarPerfilUPadrao(calc.espessura, calc.base, calc.aba1);
-                      isPadrao = verificacao.isPadrao;
-                    } else if (calc.tipo === 'U_ENRIJECIDO' && calc.base && calc.aba1 && calc.enrij1) {
-                      temDadosParaVerificacao = true;
-                      const verificacao = verificarPerfilUEPadrao(calc.espessura, calc.base, calc.aba1, calc.enrij1);
-                      isPadrao = verificacao.isPadrao;
-                    }
+                    const { temDados } = verificarPadrao(calc);
 
                     return <tr key={calc.id} className="border-b hover:bg-muted/50">
                           <td className="p-1 sm:p-3">
                             <Badge variant="secondary" className="text-xs">{obterNomeTipo(calc.tipo, calc.orientacaoUZ)}</Badge>
                           </td>
                           <td className="p-1 sm:p-3 text-center">
-                            {temDadosParaVerificacao && isPadrao ? (
+                            {temDados && calc.isPadrao ? (
                               <IndicadorPerfilPadrao isPadrao={true} temDados={true} />
                             ) : (
                               <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30">
@@ -197,6 +248,25 @@ export function ResumoGeral() {
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden md:table-cell">{Math.round(calc.percentualPerda)}%</td>
                           <td className="text-center p-1 sm:p-3 font-medium text-primary text-xs sm:text-sm">{formatarNumero(calc.pesoTotal)}</td>
                           <td className="text-center p-1 sm:p-3 font-medium text-destructive text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(pesoPerdaItem)}</td>
+                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm text-green-600">
+                            {calc.precoKg ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <span className="font-medium">{formatarNumero(calc.precoKg)}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Esp: {calc.espessura.toFixed(2)}mm | {calc.isPadrao ? 'Padrão' : 'Especial'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="text-center p-1 sm:p-3 font-medium text-green-600 text-xs sm:text-sm hidden sm:table-cell">
+                            {calc.valorTotal ? formatarMoeda(calc.valorTotal) : '-'}
+                          </td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">
                             <VisualizacaoPerfilPopover calculo={calc} tipoPerfil={obterNomeTipo(calc.tipo, calc.orientacaoUZ)}>
                               <button className="flex items-center justify-center w-full h-full cursor-pointer hover:bg-primary/5 rounded transition-colors p-1">
@@ -207,6 +277,26 @@ export function ResumoGeral() {
                         </tr>;
                   })}
                   </tbody>
+                  {temPrecosCadastrados && (
+                    <tfoot>
+                      <tr className="border-t-2 bg-muted/30">
+                        <td colSpan={10} className="p-2 sm:p-3 text-right font-bold text-sm hidden sm:table-cell">
+                          Total Estimado:
+                        </td>
+                        <td colSpan={8} className="p-2 sm:p-3 text-right font-bold text-sm sm:hidden">
+                          Total:
+                        </td>
+                        <td className="text-center p-2 sm:p-3 font-bold text-green-600 text-sm sm:hidden" colSpan={2}>
+                          {formatarMoeda(valorTotalGeral)}
+                        </td>
+                        <td className="text-center p-2 sm:p-3 font-bold text-green-600 text-sm hidden sm:table-cell">-</td>
+                        <td className="text-center p-2 sm:p-3 font-bold text-green-600 text-sm hidden sm:table-cell">
+                          {formatarMoeda(valorTotalGeral)}
+                        </td>
+                        <td className="hidden sm:table-cell"></td>
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
               </div>
             </div>

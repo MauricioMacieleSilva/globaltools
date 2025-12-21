@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Copy, Eye, DollarSign, AlertCircle, Percent, AlertTriangle } from 'lucide-react';
+import { Copy, Eye, DollarSign, AlertCircle, Percent, AlertTriangle, Lightbulb } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { verificarPerfilUPadrao, verificarPerfilUEPadrao } from '@/lib/perfil-padrao-utils';
+import { verificarPerfilUPadrao, verificarPerfilUEPadrao, perfilPadraoU, perfilPadraoUE } from '@/lib/perfil-padrao-utils';
 import { IndicadorPerfilPadrao } from '@/components/perfis/IndicadorPerfilPadrao';
 import { VisualizacaoPerfilPopover } from '@/components/perfis/VisualizacaoPerfilPopover';
 import { usePerfilPreco } from '@/hooks/usePerfilPreco';
@@ -435,5 +435,89 @@ export function ResumoGeral() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sugestões de Perfis com a Perda */}
+      {calculosValidos.some(calc => calc.tiraPerda >= 50) && (
+        <Card className="border border-amber-500/20 bg-amber-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-amber-600" />
+              Sugestões de Aproveitamento da Perda
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-4">
+              Com base na largura da tira de perda, estes perfis padrão podem ser fabricados:
+            </p>
+            <div className="space-y-3">
+              {calculosValidos
+                .filter(calc => calc.tiraPerda >= 50)
+                .map(calc => {
+                  const tiraPerdaMm = Math.floor(calc.tiraPerda);
+                  
+                  // Calcular tira necessária para cada perfil padrão (aproximado: 2*aba + base)
+                  const sugestoesU = perfilPadraoU
+                    .filter(p => p.espessuras.includes(calc.espessura) || p.espessuras.some(e => Math.abs(e - calc.espessura) < 0.1))
+                    .map(p => ({
+                      tipo: 'U',
+                      h: p.h,
+                      B: p.B,
+                      tiraNecessaria: 2 * p.B + p.h + 20, // margem de 20mm para dobras
+                      espessuras: p.espessuras
+                    }))
+                    .filter(s => s.tiraNecessaria <= tiraPerdaMm);
+                    
+                  const sugestoesUE = perfilPadraoUE
+                    .filter(p => p.espessuras.includes(calc.espessura) || p.espessuras.some(e => Math.abs(e - calc.espessura) < 0.1))
+                    .map(p => ({
+                      tipo: 'UE',
+                      h: p.h,
+                      B: p.B,
+                      d: p.d,
+                      tiraNecessaria: 2 * p.B + p.h + 2 * p.d + 20,
+                      espessuras: p.espessuras
+                    }))
+                    .filter(s => s.tiraNecessaria <= tiraPerdaMm);
+
+                  const sugestoesL = [
+                    { aba: 25, base: 25, tira: 70 },
+                    { aba: 30, base: 30, tira: 80 },
+                    { aba: 40, base: 40, tira: 100 },
+                    { aba: 50, base: 50, tira: 120 },
+                  ].filter(s => s.tira <= tiraPerdaMm);
+
+                  const todasSugestoes = [
+                    ...sugestoesU.slice(0, 3).map(s => `U ${s.B}x${s.h}x${s.B}`),
+                    ...sugestoesUE.slice(0, 2).map(s => `UE ${s.d}x${s.B}x${s.h}x${s.B}x${s.d}`),
+                    ...sugestoesL.slice(0, 2).map(s => `L ${s.aba}x${s.base}`),
+                  ];
+
+                  if (todasSugestoes.length === 0) return null;
+
+                  return (
+                    <div key={calc.id} className="p-3 bg-background rounded-lg border">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {obterNomeTipo(calc.tipo, calc.orientacaoUZ)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Esp: {calc.espessura.toFixed(2)}mm | Perda: {tiraPerdaMm}mm
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {todasSugestoes.map((sugestao, idx) => (
+                          <Badge key={idx} className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                            {sugestao}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+                .filter(Boolean)}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>;
 }

@@ -615,10 +615,13 @@ export function ComercialCharts() {
                     return Math.max(Math.ceil(dataMax * 1.15), Math.ceil(metaAtual * 1.1));
                   }]}
                 />
-                <Tooltip 
-                  content={drillDown.isMonthView ? <CustomTooltip /> : <CustomTooltipDaily />}
-                  wrapperStyle={{ zIndex: 9999 }}
-                />
+                {/* Tooltip só no hover para visão mensal - na visão diária usa apenas o clique */}
+                {drillDown.isMonthView && (
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    wrapperStyle={{ zIndex: 9999 }}
+                  />
+                )}
                 <Bar 
                   dataKey="valor" 
                   fill="hsl(var(--primary))"

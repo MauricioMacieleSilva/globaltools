@@ -168,16 +168,12 @@ export function ResumoGeral() {
                             <Badge variant="secondary" className="text-xs">{obterNomeTipo(calc.tipo, calc.orientacaoUZ)}</Badge>
                           </td>
                           <td className="p-1 sm:p-3 text-center">
-                            {temDadosParaVerificacao ? (
-                              isPadrao ? (
-                                <IndicadorPerfilPadrao isPadrao={true} temDados={true} />
-                              ) : (
-                                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30">
-                                  Especial
-                                </Badge>
-                              )
+                            {temDadosParaVerificacao && isPadrao ? (
+                              <IndicadorPerfilPadrao isPadrao={true} temDados={true} />
                             ) : (
-                              <span className="text-muted-foreground text-xs">-</span>
+                              <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30">
+                                Especial
+                              </Badge>
                             )}
                           </td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">{calc.espessura.toFixed(2)}</td>

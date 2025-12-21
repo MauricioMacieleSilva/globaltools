@@ -7,6 +7,7 @@ import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 
 export function PerfilL() {
   const {
@@ -19,6 +20,7 @@ export function PerfilL() {
   
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
+  const { getPreco, loading: loadingPrecos } = usePerfilPreco();
 
   React.useEffect(() => {
     if (linhasL.length === 0) {
@@ -202,7 +204,7 @@ export function PerfilL() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-15 gap-4 text-sm font-medium text-muted-foreground border-b pb-2">
+      <div className="grid grid-cols-16 gap-4 text-sm font-medium text-muted-foreground border-b pb-2">
         <div className="text-center">Espessura</div>
         <div className="text-center">Aba</div>
         <div className="text-center">Base</div>
@@ -216,6 +218,7 @@ export function PerfilL() {
         <div className="text-center">kg/Perda</div>
         <div className="text-center">Peso Tira</div>
         <div className="text-center">Peso +</div>
+        <div className="text-center text-green-600">R$/kg</div>
         <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
@@ -223,8 +226,12 @@ export function PerfilL() {
       <div className="space-y-4">
         {linhasL.map(linha => {
           const calculo = calcularPerfil(linha);
+          const espessura = parseFloat(linha.espessura) || 0;
+          const temDadosPerfil = espessura > 0;
+          // Perfil L é sempre especial (não tem dimensões padrão)
+          const precoKg = temDadosPerfil ? getPreco(espessura, false) : null;
           return (
-            <div key={linha.id} className="grid grid-cols-15 gap-4 items-center p-4 bg-background rounded-lg border">
+            <div key={linha.id} className="grid grid-cols-16 gap-4 items-center p-4 bg-background rounded-lg border">
               <Input type="number" step="0.01" placeholder="0.00" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center" />
               
               <TooltipProvider>
@@ -297,6 +304,25 @@ export function PerfilL() {
               
               <div className="text-center font-medium text-destructive">
                 {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
+              </div>
+              
+              <div className="text-center">
+                {temDadosPerfil && precoKg ? (
+                  <TooltipProvider>
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs font-medium text-green-600 cursor-help">
+                          {precoKg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">Preço/kg para perfil especial - Esp. {espessura}mm</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : temDadosPerfil ? (
+                  <span className="text-xs text-muted-foreground">-</span>
+                ) : null}
               </div>
               
               <div className="flex justify-center">

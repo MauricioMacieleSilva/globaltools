@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePerfilContext } from '@/context/PerfilContext';
 import { formatarNumero } from '@/lib/utils-perfil';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Eye, DollarSign, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Copy, Eye, DollarSign, AlertCircle, Percent, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { verificarPerfilUPadrao, verificarPerfilUEPadrao } from '@/lib/perfil-padrao-utils';
 import { IndicadorPerfilPadrao } from '@/components/perfis/IndicadorPerfilPadrao';
 import { VisualizacaoPerfilPopover } from '@/components/perfis/VisualizacaoPerfilPopover';
 import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function ResumoGeral() {
   const {
@@ -18,6 +21,7 @@ export function ResumoGeral() {
   } = usePerfilContext();
   const { toast } = useToast();
   const { getPreco, loading: loadingPrecos } = usePerfilPreco();
+  const [descontoPercent, setDescontoPercent] = useState<string>('');
 
   const calculosValidos = Object.values(calculos).filter(calc => calc.pesoTotal > 0 && calc.quantidade > 0);
 
@@ -32,7 +36,6 @@ export function ResumoGeral() {
   const totalPesoGeral = calculosValidos.reduce((sum, calc) => sum + calc.pesoTotal, 0);
   const totalPerdaGeral = calculosValidos.reduce((sum, calc) => sum + ((calc.pesoPerdaPorPeca || 0) * calc.quantidade), 0);
   const totalQuantidade = calculosValidos.reduce((sum, calc) => sum + calc.quantidade, 0);
-  const eficiencia = totalPesoGeral > 0 ? (totalPesoGeral - totalPerdaGeral) / totalPesoGeral * 100 : 0;
 
   // Função para verificar se é perfil padrão
   const verificarPadrao = (calc: any) => {
@@ -57,6 +60,25 @@ export function ResumoGeral() {
   const valorTotalGeral = calculosComPreco.reduce((sum, calc) => {
     return sum + (calc.valorTotal || 0);
   }, 0);
+
+  // Lógica de desconto por volume
+  const pesoTotalToneladas = totalPesoGeral / 1000;
+  const descontoDigitado = parseFloat(descontoPercent) || 0;
+  
+  // Calcular desconto máximo permitido baseado no volume
+  const calcularDescontoMaximoPermitido = (pesoToneladas: number): number => {
+    if (pesoToneladas >= 10) return 5;
+    if (pesoToneladas >= 5) return 4;
+    if (pesoToneladas >= 2) return 3;
+    return 2;
+  };
+  
+  const descontoMaximoPermitido = calcularDescontoMaximoPermitido(pesoTotalToneladas);
+  const precisaAprovacao = descontoDigitado > 5;
+  const descontoExcedeVolume = descontoDigitado > descontoMaximoPermitido && descontoDigitado <= 5;
+  
+  const valorDesconto = valorTotalGeral * (descontoDigitado / 100);
+  const valorFinalComDesconto = valorTotalGeral - valorDesconto;
 
   const temPrecosCadastrados = calculosComPreco.some(calc => calc.precoKg !== null);
 
@@ -178,6 +200,85 @@ export function ResumoGeral() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Desconto por Volume */}
+      {temPrecosCadastrados && (
+        <Card className="border border-amber-500/20 bg-amber-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Percent className="h-4 w-4" />
+              Desconto por Volume
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="text-center p-2 bg-background rounded border">
+                <div className="text-muted-foreground">Até 2 ton</div>
+                <div className="font-medium">Até 2%</div>
+              </div>
+              <div className="text-center p-2 bg-background rounded border">
+                <div className="text-muted-foreground">2 a 5 ton</div>
+                <div className="font-medium">Até 3%</div>
+              </div>
+              <div className="text-center p-2 bg-background rounded border">
+                <div className="text-muted-foreground">5 a 10 ton</div>
+                <div className="font-medium">Até 4%</div>
+              </div>
+              <div className="text-center p-2 bg-background rounded border">
+                <div className="text-muted-foreground">Acima 10 ton</div>
+                <div className="font-medium">Até 5%</div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+              <div className="flex-1 w-full sm:w-auto">
+                <Label className="text-xs text-muted-foreground">
+                  Seu volume: {pesoTotalToneladas.toFixed(2)} ton (máx. {descontoMaximoPermitido}% permitido)
+                </Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="10"
+                    placeholder="0"
+                    value={descontoPercent}
+                    onChange={(e) => setDescontoPercent(e.target.value)}
+                    className="w-24 text-center"
+                  />
+                  <span className="text-sm font-medium">%</span>
+                </div>
+              </div>
+              
+              {descontoDigitado > 0 && (
+                <div className="flex-1 text-right">
+                  <div className="text-xs text-muted-foreground">Valor com desconto</div>
+                  <div className="text-lg font-bold text-green-600">{formatarMoeda(valorFinalComDesconto)}</div>
+                  <div className="text-xs text-muted-foreground">(-{formatarMoeda(valorDesconto)})</div>
+                </div>
+              )}
+            </div>
+            
+            {precisaAprovacao && (
+              <Alert variant="destructive" className="mt-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  Desconto acima de 5% requer aprovação da gestão.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {descontoExcedeVolume && (
+              <Alert className="mt-2 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs text-amber-700 dark:text-amber-400">
+                  Desconto de {descontoDigitado}% excede o permitido para seu volume ({descontoMaximoPermitido}%).
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Detalhamento Completo */}
       <Card>

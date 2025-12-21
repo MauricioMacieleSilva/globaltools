@@ -3,13 +3,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Eye } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilCartola } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye } from 'lucide-react';
+import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 export function PerfilCartola() {
   const {
     atualizarCalculo,
@@ -20,6 +20,7 @@ export function PerfilCartola() {
   
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
+  const { getPreco, loading: loadingPrecos } = usePerfilPreco();
   React.useEffect(() => {
     if (linhasCartola.length === 0) {
       const linhasIniciais = Array.from({
@@ -222,7 +223,7 @@ export function PerfilCartola() {
     return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
   }, 0);
   return <div className="space-y-6">
-      <div className="grid grid-cols-19 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-20 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
         <div className="text-center">Enrij1</div>
@@ -240,6 +241,7 @@ export function PerfilCartola() {
         <div className="text-center">kg/Perda</div>
         <div className="text-center">P.T</div>
         <div className="text-center">P.+</div>
+        <div className="text-center text-green-600">R$/kg</div>
         <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
@@ -247,7 +249,11 @@ export function PerfilCartola() {
       <div className="space-y-4">
         {linhasCartola.map(linha => {
         const calculo = calcularPerfil(linha);
-        return <div key={linha.id} className="grid grid-cols-19 gap-1 items-center p-2 bg-background rounded-lg border">
+        const espessura = parseFloat(linha.espessura) || 0;
+        const temDadosPerfil = espessura > 0;
+        // Cartola é sempre especial
+        const precoKg = temDadosPerfil ? getPreco(espessura, false) : null;
+        return <div key={linha.id} className="grid grid-cols-20 gap-1 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Checkbox 
                   checked={!linha.assimetrico} 
@@ -389,6 +395,25 @@ export function PerfilCartola() {
               
               <div className="text-center font-medium text-destructive text-xs">
                 {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
+              </div>
+              
+              <div className="text-center">
+                {temDadosPerfil && precoKg ? (
+                  <TooltipProvider>
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs font-medium text-green-600 cursor-help">
+                          {precoKg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">Preço/kg para perfil especial - Esp. {espessura}mm</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : temDadosPerfil ? (
+                  <span className="text-xs text-muted-foreground">-</span>
+                ) : null}
               </div>
               
               <div className="flex justify-center">

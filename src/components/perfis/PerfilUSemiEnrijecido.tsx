@@ -9,6 +9,7 @@ import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 
 export function PerfilUSemiEnrijecido() {
   const {
@@ -21,6 +22,7 @@ export function PerfilUSemiEnrijecido() {
   
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
+  const { getPreco, loading: loadingPrecos } = usePerfilPreco();
 
   React.useEffect(() => {
     if (linhasUSemiEnrijecido.length === 0) {
@@ -237,7 +239,7 @@ export function PerfilUSemiEnrijecido() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-19 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-20 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">U/Z</div>
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
@@ -255,6 +257,7 @@ export function PerfilUSemiEnrijecido() {
         <div className="text-center">kg/Perda</div>
         <div className="text-center">P.T</div>
         <div className="text-center">P.+</div>
+        <div className="text-center text-green-600">R$/kg</div>
         <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
@@ -262,7 +265,11 @@ export function PerfilUSemiEnrijecido() {
       <div className="space-y-4">
         {linhasUSemiEnrijecido.map(linha => {
         const calculo = calcularPerfil(linha);
-        return <div key={linha.id} className="grid grid-cols-19 gap-2 items-center p-2 bg-background rounded-lg border">
+        const espessura = parseFloat(linha.espessura) || 0;
+        const temDadosPerfil = espessura > 0;
+        // U Semi-Enrijecido é sempre especial
+        const precoKg = temDadosPerfil ? getPreco(espessura, false) : null;
+        return <div key={linha.id} className="grid grid-cols-20 gap-2 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                   <SelectTrigger className="w-12 h-8 text-xs">
@@ -395,6 +402,25 @@ export function PerfilUSemiEnrijecido() {
               
               <div className="text-center font-medium text-destructive text-xs">
                 {calculo ? formatarNumero(calculo.pesoPerda) : '0.00'}
+              </div>
+              
+              <div className="text-center">
+                {temDadosPerfil && precoKg ? (
+                  <TooltipProvider>
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs font-medium text-green-600 cursor-help">
+                          {precoKg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">Preço/kg para perfil especial - Esp. {espessura}mm</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : temDadosPerfil ? (
+                  <span className="text-xs text-muted-foreground">-</span>
+                ) : null}
               </div>
               
               <div className="flex justify-center">

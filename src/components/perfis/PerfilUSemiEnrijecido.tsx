@@ -8,8 +8,6 @@ import { usePerfilContext, CalculoItem, LinhaPerfilUSemiEnrijecido } from '@/con
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 
 export function PerfilUSemiEnrijecido() {
   const {
@@ -22,8 +20,6 @@ export function PerfilUSemiEnrijecido() {
   
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
-  const [descontos, setDescontos] = useState<Record<string, string>>({});
-  const { getPreco } = usePerfilPreco();
 
   React.useEffect(() => {
     if (linhasUSemiEnrijecido.length === 0) {
@@ -125,7 +121,6 @@ export function PerfilUSemiEnrijecido() {
       quantidade: '', percentualPerda: '101', assimetrico: false, orientacaoUZ: 'U' as const
     } : l));
     removerCalculo(id);
-    setDescontos(prev => { const n = {...prev}; delete n[id]; return n; });
     setErrosValidacao(prev => { const n = {...prev}; Object.keys(n).filter(k => k.startsWith(id)).forEach(k => delete n[k]); return n; });
   };
 
@@ -139,28 +134,22 @@ export function PerfilUSemiEnrijecido() {
   const totalPeso = linhasUSemiEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
   const totalPerda = linhasUSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
 
-  const headers = ['U/Z', 'Sim', 'Esp.', 'Enrij', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Desc%', 'R$/kg', 'Valor', 'Ver', 'Ação'];
+  const headers = ['U/Z', 'Sim', 'Esp.', 'Enrij', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
         {headers.map((h, i) => (
-          <div key={i} className={`text-center ${h === 'R$/kg' || h === 'Valor' ? 'text-green-600' : ''} ${h === 'Desc%' ? 'text-orange-500' : ''}`}>{h}</div>
+          <div key={i} className="text-center">{h}</div>
         ))}
       </div>
 
       <div className="space-y-2">
         {linhasUSemiEnrijecido.map(linha => {
           const calculo = calcularPerfil(linha);
-          const espessura = parseFloat(linha.espessura) || 0;
-          const temDados = espessura > 0;
-          const precoKg = temDados ? getPreco(espessura, false) : null;
-          const desconto = parseFloat(descontos[linha.id] || '0') || 0;
-          const precoComDesconto = precoKg ? precoKg * (1 - desconto / 100) : null;
-          const valorTotal = calculo && precoComDesconto ? calculo.pesoTotal * precoComDesconto : null;
           
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
               <Select value={linha.orientacaoUZ} onValueChange={(v: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', v)}>
                 <SelectTrigger className="h-7 text-[10px] px-1"><SelectValue /></SelectTrigger>
                 <SelectContent className="z-50"><SelectItem value="U">U</SelectItem><SelectItem value="Z">Z</SelectItem></SelectContent>
@@ -181,9 +170,6 @@ export function PerfilUSemiEnrijecido() {
               <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
-              <Input type="number" placeholder="0" value={descontos[linha.id] || ''} onChange={e => setDescontos(prev => ({...prev, [linha.id]: e.target.value}))} className="text-center text-[10px] h-7 px-1 text-orange-600" min="0" max="100" />
-              <div className="text-center text-[10px] font-medium text-green-600">{precoComDesconto ? precoComDesconto.toFixed(2) : '-'}</div>
-              <div className="text-center text-[10px] font-medium text-green-600">{valorTotal ? valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
               <div className="flex justify-center">{calculo ? <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="U/Z Semi-Enrijecido" /> : <span className="text-muted-foreground text-[10px]">-</span>}</div>
               <div className="flex justify-center"><Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /></Button></div>
             </div>

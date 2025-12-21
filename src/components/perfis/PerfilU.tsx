@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PerfilUMobile } from './PerfilUMobile';
-import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 
 export function PerfilU() {
   const isMobile = useIsMobile();
@@ -36,8 +35,6 @@ function PerfilUDesktop() {
   
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
-  const [descontos, setDescontos] = useState<Record<string, string>>({});
-  const { getPreco, loading: loadingPrecos } = usePerfilPreco();
 
   React.useEffect(() => {
     if (linhasU.length === 0) {
@@ -197,11 +194,6 @@ function PerfilUDesktop() {
     });
     atualizarLinhaU(updatedLinhas);
     removerCalculo(id);
-    setDescontos(prev => {
-      const newDescontos = {...prev};
-      delete newDescontos[id];
-      return newDescontos;
-    });
     setErrosValidacao(prev => {
       const newErrors = {...prev};
       Object.keys(newErrors).forEach(key => {
@@ -232,15 +224,13 @@ function PerfilUDesktop() {
     return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
   }, 0);
 
-  const calculosPerfilU = Object.values(calculos).filter(calc => calc.tipo === 'U');
-
-  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Desc%', 'R$/kg', 'Valor', 'Ver', 'Ação'];
+  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
         {headers.map((h, i) => (
-          <div key={i} className={`text-center ${h === 'R$/kg' || h === 'Valor' ? 'text-green-600' : ''} ${h === 'Desc%' ? 'text-orange-500' : ''}`}>
+          <div key={i} className="text-center">
             {h}
           </div>
         ))}
@@ -254,13 +244,9 @@ function PerfilUDesktop() {
           const aba1 = parseFloat(linha.aba1) || 0;
           const temDadosPerfil = espessura > 0 && base > 0 && aba1 > 0;
           const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
-          const precoKg = temDadosPerfil ? getPreco(espessura, verificacao.isPadrao) : null;
-          const desconto = parseFloat(descontos[linha.id] || '0') || 0;
-          const precoComDesconto = precoKg ? precoKg * (1 - desconto / 100) : null;
-          const valorTotal = calculo && precoComDesconto ? calculo.pesoTotal * precoComDesconto : null;
           
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
               <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                 <SelectTrigger className="h-7 text-[10px] px-1">
                   <SelectValue />
@@ -355,24 +341,6 @@ function PerfilUDesktop() {
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               
               <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDadosPerfil} />
-              
-              <Input 
-                type="number" 
-                placeholder="0" 
-                value={descontos[linha.id] || ''} 
-                onChange={e => setDescontos(prev => ({...prev, [linha.id]: e.target.value}))}
-                className="text-center text-[10px] h-7 px-1 text-orange-600"
-                min="0"
-                max="100"
-              />
-              
-              <div className="text-center text-[10px] font-medium text-green-600">
-                {precoComDesconto ? precoComDesconto.toFixed(2) : '-'}
-              </div>
-              
-              <div className="text-center text-[10px] font-medium text-green-600">
-                {valorTotal ? valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}
-              </div>
               
               <div className="flex justify-center">
                 {calculo ? (

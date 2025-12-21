@@ -413,10 +413,10 @@ export function ResumoGeral() {
                     <tfoot>
                       <tr className="border-t-2 bg-muted/30">
                         <td colSpan={11} className="p-2 sm:p-3 text-right font-bold text-sm hidden sm:table-cell">
-                          Total Estimado:
+                          Valor Total:
                         </td>
                         <td colSpan={9} className="p-2 sm:p-3 text-right font-bold text-sm sm:hidden">
-                          Total:
+                          Valor Total:
                         </td>
                         <td className="text-center p-2 sm:p-3 font-bold text-green-600 text-sm sm:hidden" colSpan={2}>
                           {formatarMoeda(valorTotalGeral)}

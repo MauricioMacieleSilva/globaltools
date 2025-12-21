@@ -1,8 +1,14 @@
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalculoItem } from '@/context/PerfilContext';
-import { formatarNumero } from '@/lib/utils-perfil';
-import { Eye } from 'lucide-react';
+import { Eye, Lightbulb } from 'lucide-react';
+import { perfilPadraoU, perfilPadraoUE } from '@/lib/perfil-padrao-utils';
+
+interface SugestaoPerfil {
+  tipo: string;
+  descricao: string;
+  tira: number;
+}
 
 interface VisualizacaoPerfilPopoverProps {
   calculo: CalculoItem;
@@ -10,12 +16,49 @@ interface VisualizacaoPerfilPopoverProps {
   children?: React.ReactNode;
 }
 
+// Função para encontrar perfis padrão que cabem na tira perda
+function encontrarSugestoesPerfil(tiraPerda: number, espessura: number): SugestaoPerfil[] {
+  const sugestoes: SugestaoPerfil[] = [];
+  
+  if (tiraPerda < 50) return sugestoes; // Mínimo para fazer algum perfil
+  
+  // Buscar perfis U que cabem na tira perda
+  perfilPadraoU.forEach(perfil => {
+    const tiraU = perfil.h + 2 * perfil.B;
+    if (tiraU <= tiraPerda && perfil.espessuras.includes(espessura)) {
+      sugestoes.push({
+        tipo: 'U',
+        descricao: `U ${perfil.h}x${perfil.B}`,
+        tira: tiraU
+      });
+    }
+  });
+  
+  // Buscar perfis UE que cabem na tira perda
+  perfilPadraoUE.forEach(perfil => {
+    const tiraUE = perfil.h + 2 * perfil.B + 2 * perfil.d;
+    if (tiraUE <= tiraPerda && perfil.espessuras.includes(espessura)) {
+      sugestoes.push({
+        tipo: 'UE',
+        descricao: `UE ${perfil.h}x${perfil.B}x${perfil.d}`,
+        tira: tiraUE
+      });
+    }
+  });
+  
+  // Ordenar por tira (maior primeiro - melhor aproveitamento)
+  return sugestoes.sort((a, b) => b.tira - a.tira).slice(0, 3);
+}
+
 export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: VisualizacaoPerfilPopoverProps) {
-  const larguraTotal = calculo.largura;
+  const larguraTotal = Math.ceil(calculo.largura);
   const larguraTira = Math.ceil(calculo.tira);
   const tirasAproveitadas = calculo.tirasAproveitadas;
   const larguraPerda = Math.ceil(calculo.tiraPerda);
   const percentualAproveitamento = ((larguraTotal - larguraPerda) / larguraTotal) * 100;
+  
+  // Encontrar sugestões de perfis padrão para a tira perda
+  const sugestoes = encontrarSugestoesPerfil(larguraPerda, calculo.espessura);
   
   // Calcular quantidade de chapas necessárias
   const totalPecas = calculo.quantidade || 0;
@@ -52,7 +95,7 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
           <div className="grid grid-cols-5 gap-2 text-xs">
             <div className="text-center">
               <div className="text-muted-foreground">Larg. Total</div>
-              <div className="font-semibold">{formatarNumero(larguraTotal)} mm</div>
+              <div className="font-semibold">{larguraTotal} mm</div>
             </div>
             <div className="text-center">
               <div className="text-muted-foreground">Larg. Tira</div>
@@ -146,7 +189,7 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
               <div>
                 <div className="text-muted-foreground">Aproveitamento</div>
                 <div className="font-bold text-green-600">
-                  {formatarNumero(percentualAproveitamento)}%
+                  {((larguraTotal - larguraPerda) / larguraTotal * 100).toFixed(2)}%
                 </div>
               </div>
               <div>
@@ -163,6 +206,24 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
               </div>
             </div>
           </div>
+
+          {/* Sugestões de perfis padrão */}
+          {sugestoes.length > 0 && (
+            <div className="bg-amber-500/10 p-2 rounded border border-amber-500/30">
+              <div className="flex items-center gap-1 mb-2">
+                <Lightbulb className="h-3 w-3 text-amber-600" />
+                <span className="text-xs font-semibold text-amber-700">Sugestões com a Tira Perda ({larguraPerda} mm)</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {sugestoes.map((sug, idx) => (
+                  <div key={idx} className="text-center text-xs bg-background/50 rounded p-1">
+                    <div className="font-semibold text-amber-700">{sug.descricao}</div>
+                    <div className="text-muted-foreground">Tira: {sug.tira} mm</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, DollarSign } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilU } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { verificarPerfilUPadrao } from '@/lib/perfil-padrao-utils';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PerfilUMobile } from './PerfilUMobile';
+import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 
 export function PerfilU() {
   const isMobile = useIsMobile();
@@ -36,6 +37,7 @@ function PerfilUDesktop() {
   
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
+  const { getPreco, loading: loadingPrecos } = usePerfilPreco();
 
   React.useEffect(() => {
     if (linhasU.length === 0) {
@@ -248,7 +250,7 @@ function PerfilUDesktop() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-20 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
+      <div className="grid grid-cols-21 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
         <div className="text-center">U/Z</div>
         <div className="text-center">Simétrico</div>
         <div className="text-center">Esp.</div>
@@ -266,6 +268,7 @@ function PerfilUDesktop() {
         <div className="text-center">P.T</div>
         <div className="text-center">P.+</div>
         <div className="text-center">Tipo</div>
+        <div className="text-center">R$/kg</div>
         <div className="text-center">Ver</div>
         <div className="text-center">Ações</div>
       </div>
@@ -278,8 +281,9 @@ function PerfilUDesktop() {
         const aba1 = parseFloat(linha.aba1) || 0;
         const temDadosPerfil = espessura > 0 && base > 0 && aba1 > 0;
         const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
+        const precoKg = temDadosPerfil ? getPreco(espessura, verificacao.isPadrao) : null;
         
-        return <div key={linha.id} className="grid grid-cols-20 gap-2 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-21 gap-2 items-center p-2 bg-background rounded-lg border">
               <div className="flex justify-center">
                 <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                   <SelectTrigger className="w-12 h-8 text-xs">
@@ -395,6 +399,27 @@ function PerfilUDesktop() {
               </div>
               
               <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDadosPerfil} />
+              
+              <div className="text-center">
+                {temDadosPerfil && precoKg ? (
+                  <TooltipProvider>
+                    <Tooltip delayDuration={100}>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs font-medium text-green-600 cursor-help">
+                          {precoKg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">
+                          Preço/kg para perfil {verificacao.isPadrao ? 'padrão' : 'especial'} - Esp. {espessura}mm
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : temDadosPerfil ? (
+                  <span className="text-xs text-muted-foreground">-</span>
+                ) : null}
+              </div>
               
               <div className="flex justify-center">
                 {calculo ? (

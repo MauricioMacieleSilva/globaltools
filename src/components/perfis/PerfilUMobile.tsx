@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 import { usePerfilContext, CalculoItem, LinhaPerfilU } from '@/context/PerfilContext';
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
+import { verificarPerfilUPadrao } from '@/lib/perfil-padrao-utils';
 import { VisualizacaoChapaTiras } from './VisualizacaoChapaTiras';
 import { useToast } from '@/hooks/use-toast';
+import { usePerfilPreco } from '@/hooks/usePerfilPreco';
 
 export function PerfilUMobile() {
   const {
@@ -24,6 +27,7 @@ export function PerfilUMobile() {
   const { toast } = useToast();
   const [errosValidacao, setErrosValidacao] = useState<Record<string, string>>({});
   const [openCards, setOpenCards] = useState<Set<string>>(new Set());
+  const { getPreco } = usePerfilPreco();
 
   useEffect(() => {
     if (linhasU.length === 0) {
@@ -229,6 +233,12 @@ export function PerfilUMobile() {
       {linhasU.map((linha, index) => {
         const calculo = calcularPerfil(linha);
         const isOpen = openCards.has(linha.id);
+        const espessura = parseFloat(linha.espessura) || 0;
+        const base = parseFloat(linha.base) || 0;
+        const aba1 = parseFloat(linha.aba1) || 0;
+        const temDadosPerfil = espessura > 0 && base > 0 && aba1 > 0;
+        const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
+        const precoKg = temDadosPerfil ? getPreco(espessura, verificacao.isPadrao) : null;
         
         return (
           <Card key={linha.id} className="overflow-hidden">
@@ -238,6 +248,11 @@ export function PerfilUMobile() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       Linha {index + 1}
+                      {temDadosPerfil && (
+                        <Badge variant={verificacao.isPadrao ? "default" : "secondary"} className="text-[10px]">
+                          {verificacao.isPadrao ? 'Padrão' : 'Especial'}
+                        </Badge>
+                      )}
                       {calculo && (
                         <span className="text-xs font-normal text-muted-foreground">
                           ({formatarNumero(calculo.pesoTotal)} kg)
@@ -245,6 +260,11 @@ export function PerfilUMobile() {
                       )}
                     </CardTitle>
                     <div className="flex items-center gap-2">
+                      {precoKg && (
+                        <span className="text-xs font-medium text-green-600">
+                          {precoKg.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/kg
+                        </span>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -399,6 +419,14 @@ export function PerfilUMobile() {
                           <div className="text-muted-foreground">kg/Pç</div>
                           <div className="font-medium">{formatarNumero(calculo.pesoPorPeca)}</div>
                         </div>
+                        {precoKg && (
+                          <div className="text-center col-span-3 pt-2 border-t mt-2">
+                            <div className="text-muted-foreground">Valor Estimado</div>
+                            <div className="font-medium text-green-600">
+                              {(calculo.pesoTotal * precoKg).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </div>
+                          </div>
+                        )}
                         <div className="text-center col-span-3 pt-2 border-t mt-2">
                           <div className="flex justify-around">
                             <div>

@@ -251,39 +251,41 @@ export function PerfilCartolaEnrijecido() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-22 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 overflow-x-auto">
-        <div className="text-center">Simétrico</div>
-        <div className="text-center">Esp.</div>
-        <div className="text-center">Enrij1</div>
-        <div className="text-center">Enrij2</div>
-        <div className="text-center">Aba1</div>
-        <div className="text-center">Base</div>
-        <div className="text-center">Aba2</div>
-        <div className="text-center">Enrij3</div>
-        <div className="text-center">Enrij4</div>
-        <div className="text-center">Comp.</div>
-        <div className="text-center">Larg.</div>
-        <div className="text-center">Qt.</div>
-        <div className="text-center">%P</div>
-        <div className="text-center">Tira</div>
-        <div className="text-center">T.Perda</div>
-        <div className="text-center">kg/Pç</div>
-        <div className="text-center">kg/Perda</div>
-        <div className="text-center">P.T</div>
-        <div className="text-center">P.+</div>
-        <div className="text-center text-green-600">R$/kg</div>
-        <div className="text-center">Ver</div>
-        <div className="text-center">Ações</div>
+      <div className="overflow-x-auto">
+        <div className="grid grid-cols-22 gap-1 text-xs font-medium text-muted-foreground border-b pb-2 min-w-max">
+          <div className="text-center min-w-[60px]">Simétrico</div>
+          <div className="text-center min-w-[50px]">Esp.</div>
+          <div className="text-center min-w-[50px]">Enrij1</div>
+          <div className="text-center min-w-[50px]">Enrij2</div>
+          <div className="text-center min-w-[50px]">Aba1</div>
+          <div className="text-center min-w-[50px]">Base</div>
+          <div className="text-center min-w-[50px]">Aba2</div>
+          <div className="text-center min-w-[50px]">Enrij3</div>
+          <div className="text-center min-w-[50px]">Enrij4</div>
+          <div className="text-center min-w-[55px]">Comp.</div>
+          <div className="text-center min-w-[50px]">Larg.</div>
+          <div className="text-center min-w-[40px]">Qt.</div>
+          <div className="text-center min-w-[40px]">%P</div>
+          <div className="text-center min-w-[40px]">Tira</div>
+          <div className="text-center min-w-[50px]">T.Perda</div>
+          <div className="text-center min-w-[50px]">kg/Pç</div>
+          <div className="text-center min-w-[55px]">kg/Perda</div>
+          <div className="text-center min-w-[50px]">P.T</div>
+          <div className="text-center min-w-[50px]">P.+</div>
+          <div className="text-center min-w-[55px] text-green-600">R$/kg</div>
+          <div className="text-center min-w-[40px]">Ver</div>
+          <div className="text-center min-w-[60px]">Ações</div>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 overflow-x-auto">
         {linhasCartolaEnrijecido.map(linha => {
         const calculo = calcularPerfil(linha);
         const espessura = parseFloat(linha.espessura) || 0;
         const temDadosPerfil = espessura > 0;
         // Cartola Enrijecido é sempre especial
         const precoKg = temDadosPerfil ? getPreco(espessura, false) : null;
-        return <div key={linha.id} className="grid grid-cols-22 gap-1 items-center p-2 bg-background rounded-lg border">
+        return <div key={linha.id} className="grid grid-cols-22 gap-1 items-center p-2 bg-background rounded-lg border min-w-max">
               <div className="flex justify-center">
                 <Checkbox 
                   checked={!linha.assimetrico} 

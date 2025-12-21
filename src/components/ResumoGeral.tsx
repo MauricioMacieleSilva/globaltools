@@ -361,25 +361,20 @@ export function ResumoGeral() {
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className="relative inline-block">
-                                    <Input
-                                      type="number"
-                                      step="0.5"
-                                      min="0"
-                                      max="20"
-                                      placeholder="0"
-                                      value={descontosIndividuais[calc.id] || ''}
-                                      onChange={(e) => handleDescontoIndividual(calc.id, e.target.value)}
-                                      className={`w-14 h-6 text-center text-xs p-1 ${calc.descontoItem > 5 ? 'border-destructive bg-destructive/10' : ''}`}
-                                    />
-                                    {calc.descontoItem > 5 && (
-                                      <AlertTriangle className="h-3 w-3 text-destructive absolute -top-1 -right-1" />
-                                    )}
-                                  </div>
+                                  <Input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="20"
+                                    placeholder="0"
+                                    value={descontosIndividuais[calc.id] || ''}
+                                    onChange={(e) => handleDescontoIndividual(calc.id, e.target.value)}
+                                    className={`w-14 h-6 text-center text-xs p-1 ${calc.descontoItem > 5 ? 'border-destructive border-2 text-destructive font-medium' : ''}`}
+                                  />
                                 </TooltipTrigger>
                                 {calc.descontoItem > 5 && (
-                                  <TooltipContent className="bg-destructive text-destructive-foreground">
-                                    <p>Requer aprovação da gestão</p>
+                                  <TooltipContent>
+                                    <p className="text-xs">Requer aprovação da gestão</p>
                                   </TooltipContent>
                                 )}
                               </Tooltip>

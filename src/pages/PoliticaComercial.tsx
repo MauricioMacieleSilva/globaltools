@@ -4,10 +4,12 @@ import { PoliticaComercialProvider, usePoliticaComercial } from '@/context/Polit
 import { fetchAllPoliticaComercialData } from '@/services/politicaComercialService';
 import { PoliticaDescontos } from '@/components/politica-comercial/PoliticaDescontos';
 import { TabelaPrecos } from '@/components/politica-comercial/TabelaPrecos';
+import { TabelaPerfis } from '@/components/politica-comercial/TabelaPerfis';
 import { SimuladorPreco } from '@/components/politica-comercial/SimuladorPreco';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchPerfilPrecos } from '@/services/perfilPrecosService';
 
 const classes = [
   { key: 'ARAMES', label: 'Arames' },
@@ -35,6 +37,7 @@ function PoliticaComercialContent() {
   
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [perfilCount, setPerfilCount] = useState(0);
 
   // Check if user is admin
   useEffect(() => {
@@ -61,8 +64,12 @@ function PoliticaComercialContent() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const dadosCompletos = await fetchAllPoliticaComercialData();
+      const [dadosCompletos, perfilData] = await Promise.all([
+        fetchAllPoliticaComercialData(),
+        fetchPerfilPrecos()
+      ]);
       setDados(dadosCompletos);
+      setPerfilCount(perfilData.data?.length || 0);
     } catch (error) {
       console.error('Erro ao carregar dados da política comercial:', error);
     } finally {
@@ -86,6 +93,9 @@ function PoliticaComercialContent() {
   };
 
   const getItemCount = (key: string) => {
+    if (key === 'PERFIS') {
+      return perfilCount;
+    }
     return dados[key]?.length || 0;
   };
 
@@ -117,15 +127,22 @@ function PoliticaComercialContent() {
 
             {classes.map(classe => (
               <TabsContent key={classe.key} value={classe.key} className="mt-6">
-                <TabelaPrecos 
-                  titulo={classe.label} 
-                  dados={dados[classe.key] || []} 
-                  loading={loading} 
-                  onItemClick={handleItemClick}
-                  isAdmin={isAdmin}
-                  classeAtiva={classe.key}
-                  onDataChanged={handleDataChanged}
-                />
+                {classe.key === 'PERFIS' ? (
+                  <TabelaPerfis 
+                    isAdmin={isAdmin}
+                    onItemClick={handleItemClick}
+                  />
+                ) : (
+                  <TabelaPrecos 
+                    titulo={classe.label} 
+                    dados={dados[classe.key] || []} 
+                    loading={loading} 
+                    onItemClick={handleItemClick}
+                    isAdmin={isAdmin}
+                    classeAtiva={classe.key}
+                    onDataChanged={handleDataChanged}
+                  />
+                )}
               </TabsContent>
             ))}
           </Tabs>

@@ -1489,6 +1489,47 @@ export type Database = {
           },
         ]
       }
+      perfil_precos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          espessura: number
+          id: string
+          preco_kg: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          espessura: number
+          id?: string
+          preco_kg: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          espessura?: number
+          id?: string
+          preco_kg?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_precos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       politica_comercial_itens: {
         Row: {
           ativo: boolean

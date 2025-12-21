@@ -55,7 +55,7 @@ export function PoliticaComercialProvider({ children }: PoliticaComercialProvide
   const [classeAtiva, setClasseAtiva] = useState('ARAMES');
   const [simulador, setSimulador] = useState<SimuladorData>({
     precoBase: 0,
-    icms: 12,
+    icms: 17, // Referência: 17% ICMS
     peso: 1000,
     condicaoPagamento: 'À Vista',
     financeiro: 0,
@@ -72,13 +72,13 @@ export function PoliticaComercialProvider({ children }: PoliticaComercialProvide
   };
 
   const calcularSimulacao = (sim: SimuladorData): ResultadoSimulacao => {
-    // O precoBase já inclui 12% de ICMS
-    // Se o ICMS for diferente de 12%, recalcular proporcionalmente
+    // O precoBase já inclui 17% de ICMS (referência padrão)
+    // Se o ICMS for diferente de 17%, recalcular proporcionalmente
     let precoComIcms: number;
-    if (sim.icms === 12) {
+    if (sim.icms === 17) {
       precoComIcms = sim.precoBase; // Usar diretamente o preço da tabela
     } else {
-      const precoSemIcms = sim.precoBase / 1.12; // Remove os 12% inclusos
+      const precoSemIcms = sim.precoBase / 1.17; // Remove os 17% inclusos
       precoComIcms = precoSemIcms * (1 + sim.icms / 100); // Aplica o novo ICMS
     }
     

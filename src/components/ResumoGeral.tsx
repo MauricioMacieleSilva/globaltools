@@ -22,6 +22,11 @@ export function ResumoGeral() {
   const { toast } = useToast();
   const { getPreco, loading: loadingPrecos } = usePerfilPreco();
   const [descontoPercent, setDescontoPercent] = useState<string>('');
+  const [descontosIndividuais, setDescontosIndividuais] = useState<Record<string, string>>({});
+
+  const handleDescontoIndividual = (id: string, valor: string) => {
+    setDescontosIndividuais(prev => ({ ...prev, [id]: valor }));
+  };
 
   const calculosValidos = Object.values(calculos).filter(calc => calc.pesoTotal > 0 && calc.quantidade > 0);
 
@@ -49,12 +54,14 @@ export function ResumoGeral() {
     return { isPadrao: false, temDados: false };
   };
 
-  // Calcular valores com preços
+  // Calcular valores com preços e descontos individuais
   const calculosComPreco = calculosValidos.map(calc => {
     const { isPadrao } = verificarPadrao(calc);
-    const precoKg = getPreco(calc.espessura, isPadrao);
+    const precoKgBase = getPreco(calc.espessura, isPadrao);
+    const descontoItem = parseFloat(descontosIndividuais[calc.id] || '0') || 0;
+    const precoKg = precoKgBase ? precoKgBase * (1 - descontoItem / 100) : null;
     const valorTotal = precoKg ? calc.pesoTotal * precoKg : null;
-    return { ...calc, precoKg, valorTotal, isPadrao };
+    return { ...calc, precoKgBase, precoKg, valorTotal, isPadrao, descontoItem };
   });
 
   const valorTotalGeral = calculosComPreco.reduce((sum, calc) => {
@@ -302,6 +309,7 @@ export function ResumoGeral() {
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden md:table-cell">% Perda</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Peso Tira</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">Peso Perda</th>
+                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-amber-600">Desc%</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600">R$/kg</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600 hidden sm:table-cell">Valor</th>
                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Ver</th>
@@ -349,6 +357,18 @@ export function ResumoGeral() {
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden md:table-cell">{Math.round(calc.percentualPerda)}%</td>
                           <td className="text-center p-1 sm:p-3 font-medium text-primary text-xs sm:text-sm">{formatarNumero(calc.pesoTotal)}</td>
                           <td className="text-center p-1 sm:p-3 font-medium text-destructive text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(pesoPerdaItem)}</td>
+                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">
+                            <Input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              max="20"
+                              placeholder="0"
+                              value={descontosIndividuais[calc.id] || ''}
+                              onChange={(e) => handleDescontoIndividual(calc.id, e.target.value)}
+                              className="w-14 h-6 text-center text-xs p-1"
+                            />
+                          </td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm text-green-600">
                             {calc.precoKg ? (
                               <TooltipProvider>
@@ -357,7 +377,7 @@ export function ResumoGeral() {
                                     <span className="font-medium">{formatarNumero(calc.precoKg)}</span>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Esp: {calc.espessura.toFixed(2)}mm | {calc.isPadrao ? 'Padrão' : 'Especial'}</p>
+                                    <p>Base: {formatarNumero(calc.precoKgBase || 0)} | Desc: {calc.descontoItem}%</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -381,10 +401,10 @@ export function ResumoGeral() {
                   {temPrecosCadastrados && (
                     <tfoot>
                       <tr className="border-t-2 bg-muted/30">
-                        <td colSpan={10} className="p-2 sm:p-3 text-right font-bold text-sm hidden sm:table-cell">
+                        <td colSpan={11} className="p-2 sm:p-3 text-right font-bold text-sm hidden sm:table-cell">
                           Total Estimado:
                         </td>
-                        <td colSpan={8} className="p-2 sm:p-3 text-right font-bold text-sm sm:hidden">
+                        <td colSpan={9} className="p-2 sm:p-3 text-right font-bold text-sm sm:hidden">
                           Total:
                         </td>
                         <td className="text-center p-2 sm:p-3 font-bold text-green-600 text-sm sm:hidden" colSpan={2}>

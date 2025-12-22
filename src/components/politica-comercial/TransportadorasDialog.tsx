@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Plus, Search, Trash2, Edit2, Save, X, MapPin } from 'lucide-react';
+import { Truck, Plus, Search, Trash2, Edit2, Save, X, MapPin, Copy, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -293,10 +293,49 @@ export function TransportadorasDialog() {
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-medium">{t.nome}</h4>
-                        {(t.telefone || t.email) && (
-                          <p className="text-xs text-muted-foreground">
-                            {[t.telefone, t.email].filter(Boolean).join(' • ')}
-                          </p>
+                        {t.telefone && (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-xs text-muted-foreground">{t.telefone}</span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-5 w-5 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => {
+                                    const phoneClean = t.telefone!.replace(/\D/g, '');
+                                    window.open(`https://wa.me/55${phoneClean}`, '_blank');
+                                  }}
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Chamar no WhatsApp</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-5 w-5"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(t.telefone!);
+                                    toast.success('Número copiado!');
+                                  }}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Copiar número</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        )}
+                        {t.email && (
+                          <p className="text-xs text-muted-foreground">{t.email}</p>
                         )}
                       </div>
                       <div className="flex gap-1">

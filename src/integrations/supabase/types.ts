@@ -1844,6 +1844,56 @@ export type Database = {
           },
         ]
       }
+      transportadoras: {
+        Row: {
+          ativo: boolean
+          cidades_atendimento: string[]
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          regioes_atendimento: string[]
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cidades_atendimento?: string[]
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          regioes_atendimento?: string[]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cidades_atendimento?: string[]
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          regioes_atendimento?: string[]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transportadoras_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_invitations: {
         Row: {
           created_at: string

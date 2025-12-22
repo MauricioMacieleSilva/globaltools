@@ -6,6 +6,7 @@ import { PoliticaDescontos } from '@/components/politica-comercial/PoliticaDesco
 import { TabelaPrecos } from '@/components/politica-comercial/TabelaPrecos';
 import { TabelaPerfis } from '@/components/politica-comercial/TabelaPerfis';
 import { SimuladorPreco } from '@/components/politica-comercial/SimuladorPreco';
+import { TransportadorasDialog } from '@/components/politica-comercial/TransportadorasDialog';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -104,8 +105,13 @@ function PoliticaComercialContent() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Conteúdo Principal */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Política de Descontos */}
-          <PoliticaDescontos />
+          {/* Header com Política de Descontos e Transportadoras */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <PoliticaDescontos />
+            </div>
+            <TransportadorasDialog />
+          </div>
 
           {/* Tabelas de Preços */}
           <Tabs value={classeAtiva} onValueChange={setClasseAtiva} className="w-full">

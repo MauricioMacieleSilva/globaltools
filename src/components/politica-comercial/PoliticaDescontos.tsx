@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
+import { TransportadorasDialog } from './TransportadorasDialog';
 
 export function PoliticaDescontos() {
   return (
@@ -45,7 +46,10 @@ export function PoliticaDescontos() {
                 <p className="mt-1">Descontos que excedam o máximo por volume (5%) deverão ser avaliados pela gestão.</p>
               </div>
               <div className="p-3 bg-blue-50 border border-blue-200 rounded text-blue-800">
-                <p className="font-medium">🚚 Pedidos CIF</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">🚚 Pedidos CIF</p>
+                  <TransportadorasDialog />
+                </div>
                 <p className="mt-1">Para pedidos CIF deverá ser realizada cotação de frete (Tabela de frete em desenvolvimento).</p>
               </div>
             </div>

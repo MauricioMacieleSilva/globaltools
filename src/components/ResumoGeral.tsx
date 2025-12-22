@@ -161,7 +161,7 @@ export function ResumoGeral() {
           <CardContent className="p-2 sm:p-4 text-center">
             <div className="text-xs sm:text-sm text-muted-foreground flex items-center justify-center gap-1">
               <DollarSign className="h-3 w-3" />
-              Valor Estimado
+              Valor Total
             </div>
             {loadingPrecos ? (
               <div className="text-lg sm:text-2xl font-bold text-green-600">...</div>

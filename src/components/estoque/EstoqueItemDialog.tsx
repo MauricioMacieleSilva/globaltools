@@ -129,6 +129,39 @@ export function EstoqueItemDialog({
   const isUnidadeUN = CATEGORIAS_UNIDADE_UN.includes(form.categoria);
   const showProfileFields = ['PERFIS'].includes(form.categoria);
   const showDimensionFields = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS', 'BLANK', 'LAMINADOS', 'TUBOS', 'ARAMES', 'VERGALHAO'].includes(form.categoria);
+  
+  // Categorias que geram descrição automaticamente a partir das dimensões
+  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK'].includes(form.categoria);
+
+  // Gera descrição automática baseada nas dimensões
+  const gerarDescricaoAutomatica = useMemo(() => {
+    if (!autoDescricao) return '';
+    
+    const partes: string[] = [];
+    
+    if (form.categoria === 'PERFIS' && form.tipo_perfil) {
+      const tipoLabel = TIPOS_PERFIL.find(t => t.value === form.tipo_perfil)?.label || form.tipo_perfil;
+      partes.push(tipoLabel);
+    } else {
+      partes.push(CATEGORIAS_ESTOQUE.find(c => c.value === form.categoria)?.label || form.categoria);
+    }
+    
+    if (form.espessura) partes.push(`${form.espessura}mm`);
+    
+    if (form.categoria === 'PERFIS') {
+      const dims: string[] = [];
+      if (form.base) dims.push(`B${form.base}`);
+      if (form.aba1) dims.push(`A${form.aba1}`);
+      if (form.aba2) dims.push(`A2${form.aba2}`);
+      if (dims.length > 0) partes.push(dims.join(' x '));
+    } else {
+      if (form.largura) partes.push(`x ${form.largura}mm`);
+    }
+    
+    if (form.comprimento) partes.push(`x ${form.comprimento}mm`);
+    
+    return partes.join(' ');
+  }, [form.categoria, form.tipo_perfil, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, autoDescricao]);
 
   // Calcula peso automaticamente para categorias UN
   const pesoCalculado = useMemo(() => {
@@ -154,8 +187,10 @@ export function EstoqueItemDialog({
   }, [pesoCalculado, form.quantidade]);
 
   const handleSubmit = async () => {
-    if (!form.descricao.trim()) {
-      toast.error('Descrição é obrigatória');
+    const descricaoFinal = autoDescricao ? gerarDescricaoAutomatica : form.descricao.trim();
+    
+    if (!descricaoFinal) {
+      toast.error(autoDescricao ? 'Preencha as dimensões para gerar a descrição' : 'Descrição é obrigatória');
       return;
     }
 
@@ -169,7 +204,7 @@ export function EstoqueItemDialog({
     try {
       const payload = {
         categoria: form.categoria,
-        descricao: form.descricao.trim(),
+        descricao: descricaoFinal,
         quantidade: parseFloat(form.quantidade),
         unidade: form.unidade,
         tipo_perfil: showProfileFields && form.tipo_perfil ? form.tipo_perfil : null,
@@ -255,15 +290,25 @@ export function EstoqueItemDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="descricao">Descrição *</Label>
-            <Input
-              id="descricao"
-              value={form.descricao}
-              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              placeholder="Ex: Bobina ZAR 0,80mm x 1200mm"
-            />
-          </div>
+          {/* Descrição - oculta para categorias com descrição automática */}
+          {autoDescricao ? (
+            <div className="space-y-2">
+              <Label>Descrição (gerada automaticamente)</Label>
+              <div className="p-2 bg-muted rounded-md text-sm min-h-[40px] flex items-center">
+                {gerarDescricaoAutomatica || <span className="text-muted-foreground">Preencha as dimensões abaixo</span>}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="descricao">Descrição *</Label>
+              <Input
+                id="descricao"
+                value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                placeholder="Ex: Bobina ZAR 0,80mm x 1200mm"
+              />
+            </div>
+          )}
 
           {/* Quantidade e Localização */}
           <div className="grid grid-cols-2 gap-4">

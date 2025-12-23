@@ -24,6 +24,7 @@ import {
   CategoriaEstoque,
   CATEGORIAS_ESTOQUE,
   TIPOS_PERFIL,
+  TIPOS_TUBO,
   CATEGORIAS_UNIDADE_UN,
   getUnidadePadrao,
   calcularPesoPeca,
@@ -156,17 +157,42 @@ export function EstoqueItemDialog({
 
   const isUnidadeUN = CATEGORIAS_UNIDADE_UN.includes(form.categoria);
   const showProfileFields = ['PERFIS'].includes(form.categoria);
+  const showTubeFields = form.categoria === 'TUBOS';
   const showDimensionFields = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS', 'BLANK', 'LAMINADOS', 'TUBOS', 'ARAMES', 'VERGALHAO'].includes(form.categoria);
   
   // Configuração de campos dinâmica baseada no tipo de perfil
   const perfilConfig = form.tipo_perfil ? PERFIL_FIELDS_CONFIG[form.tipo_perfil] : null;
   
   // Categorias que geram descrição automaticamente a partir das dimensões
-  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK'].includes(form.categoria);
+  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK', 'TUBOS'].includes(form.categoria);
 
   // Gera descrição automática baseada nas dimensões
   const gerarDescricaoAutomatica = useMemo(() => {
     if (!autoDescricao) return '';
+    
+    // Formato para TUBOS: TB QD #4,75 100×100 6000mm ou TB RT #1,55 30×50 6000mm
+    if (form.categoria === 'TUBOS' && form.tipo_perfil) {
+      const tipoLabel = TIPOS_TUBO.find(t => t.value === form.tipo_perfil)?.label || form.tipo_perfil;
+      const tipoAbrev = form.tipo_perfil === 'QD' ? 'TB QD' : form.tipo_perfil === 'RT' ? 'TB RT' : 'TB RD';
+      const espessuraFormatada = form.espessura ? `#${parseFloat(form.espessura).toFixed(2).replace('.', ',')}` : '';
+      
+      let dimensoes = '';
+      if (form.tipo_perfil === 'QD' && form.largura) {
+        // Tubo Quadrado: lado x lado
+        dimensoes = `${Math.round(parseFloat(form.largura))}×${Math.round(parseFloat(form.largura))}`;
+      } else if (form.tipo_perfil === 'RT' && form.largura && form.aba1) {
+        // Tubo Retangular: largura x altura
+        dimensoes = `${Math.round(parseFloat(form.largura))}×${Math.round(parseFloat(form.aba1))}`;
+      } else if (form.tipo_perfil === 'RD' && form.largura) {
+        // Tubo Redondo: diâmetro
+        dimensoes = `Ø${Math.round(parseFloat(form.largura))}`;
+      }
+      
+      const comprimentoFormatado = form.comprimento ? `${Math.round(parseFloat(form.comprimento))}mm` : '';
+      
+      const partes = [tipoAbrev, espessuraFormatada, dimensoes, comprimentoFormatado].filter(Boolean);
+      return partes.join(' ');
+    }
     
     // Formato para PERFIS: PERFIL U #2,00 40x100x40 6000mm
     if (form.categoria === 'PERFIS' && form.tipo_perfil) {
@@ -274,12 +300,12 @@ export function EstoqueItemDialog({
         descricao: descricaoFinal,
         quantidade: parseFloat(form.quantidade),
         unidade: form.unidade,
-        tipo_perfil: showProfileFields && form.tipo_perfil ? form.tipo_perfil : null,
+        tipo_perfil: (showProfileFields || showTubeFields) && form.tipo_perfil ? form.tipo_perfil : null,
         espessura: showDimensionFields && form.espessura ? parseFloat(form.espessura) : null,
         largura: showDimensionFields && form.largura ? parseFloat(form.largura) : null,
         comprimento: showDimensionFields && form.comprimento ? parseFloat(form.comprimento) : null,
         base: showProfileFields && form.base ? parseFloat(form.base) : null,
-        aba1: showProfileFields && form.aba1 ? parseFloat(form.aba1) : null,
+        aba1: (showProfileFields || (showTubeFields && form.tipo_perfil === 'RT')) && form.aba1 ? parseFloat(form.aba1) : null,
         aba2: showProfileFields && form.aba2 ? parseFloat(form.aba2) : null,
         imagem_url: form.imagem_url,
         localizacao: form.localizacao.trim() || null,
@@ -552,8 +578,113 @@ export function EstoqueItemDialog({
             </>
           )}
 
-          {/* Campos de dimensão para outras categorias (não perfis) */}
-          {showDimensionFields && !showProfileFields && (
+          {/* Campos específicos para Tubos */}
+          {showTubeFields && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="tipo_tubo">Tipo de Tubo *</Label>
+                <Select
+                  value={form.tipo_perfil}
+                  onValueChange={(value) => setForm({ ...form, tipo_perfil: value, aba1: '', largura: '' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_TUBO.map((tipo) => (
+                      <SelectItem key={tipo.value} value={tipo.value}>
+                        {tipo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="espessura">Espessura (mm)</Label>
+                  <Input
+                    id="espessura"
+                    type="number"
+                    step="0.01"
+                    value={form.espessura}
+                    onChange={(e) => setForm({ ...form, espessura: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+
+                {form.tipo_perfil === 'QD' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="largura">Lado (mm)</Label>
+                    <Input
+                      id="largura"
+                      type="number"
+                      step="0.01"
+                      value={form.largura}
+                      onChange={(e) => setForm({ ...form, largura: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                {form.tipo_perfil === 'RT' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="largura">Largura (mm)</Label>
+                      <Input
+                        id="largura"
+                        type="number"
+                        step="0.01"
+                        value={form.largura}
+                        onChange={(e) => setForm({ ...form, largura: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="aba1">Altura (mm)</Label>
+                      <Input
+                        id="aba1"
+                        type="number"
+                        step="0.01"
+                        value={form.aba1}
+                        onChange={(e) => setForm({ ...form, aba1: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {form.tipo_perfil === 'RD' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="largura">Diâmetro (mm)</Label>
+                    <Input
+                      id="largura"
+                      type="number"
+                      step="0.01"
+                      value={form.largura}
+                      onChange={(e) => setForm({ ...form, largura: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="comprimento">Comprimento (mm)</Label>
+                  <Input
+                    id="comprimento"
+                    type="number"
+                    step="0.01"
+                    value={form.comprimento}
+                    onChange={(e) => setForm({ ...form, comprimento: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Campos de dimensão para outras categorias (não perfis e não tubos) */}
+          {showDimensionFields && !showProfileFields && !showTubeFields && (
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="espessura">Espessura (mm)</Label>

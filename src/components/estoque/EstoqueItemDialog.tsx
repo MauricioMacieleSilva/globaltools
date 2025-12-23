@@ -168,31 +168,67 @@ export function EstoqueItemDialog({
   const gerarDescricaoAutomatica = useMemo(() => {
     if (!autoDescricao) return '';
     
-    const partes: string[] = [];
-    
+    // Formato para PERFIS: PERFIL U #2,00 40x100x40 6000mm
     if (form.categoria === 'PERFIS' && form.tipo_perfil) {
       const tipoLabel = TIPOS_PERFIL.find(t => t.value === form.tipo_perfil)?.label || form.tipo_perfil;
-      partes.push(tipoLabel);
-    } else {
-      partes.push(CATEGORIAS_ESTOQUE.find(c => c.value === form.categoria)?.label || form.categoria);
+      const espessuraFormatada = form.espessura ? `#${parseFloat(form.espessura).toFixed(2).replace('.', ',')}` : '';
+      
+      // Monta dimensões no formato correto baseado no tipo de perfil
+      let dimensoes = '';
+      if (form.tipo_perfil === 'U' || form.tipo_perfil === 'Z') {
+        // U/Z: aba1 x base x aba2
+        if (form.aba1 && form.base && form.aba2) {
+          dimensoes = `${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}`;
+        }
+      } else if (form.tipo_perfil === 'L') {
+        // L: base x aba
+        if (form.base && form.aba1) {
+          dimensoes = `${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba1))}`;
+        }
+      } else if (form.tipo_perfil === 'CARTOLA') {
+        // Cartola: base x aba x enrij
+        if (form.base && form.aba1 && form.enrij1) {
+          dimensoes = `${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.enrij1))}`;
+        }
+      } else if (form.tipo_perfil === 'U_ENRIJECIDO') {
+        // UE: enrij1 x aba1 x base x aba2 x enrij2
+        if (form.enrij1 && form.aba1 && form.base && form.aba2 && form.enrij2) {
+          dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}`;
+        }
+      } else if (form.tipo_perfil === 'U_SEMI_ENRIJECIDO') {
+        // U Semi: enrij1 x aba1 x base x aba2
+        if (form.enrij1 && form.aba1 && form.base && form.aba2) {
+          dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}`;
+        }
+      } else if (form.tipo_perfil === 'CARTOLA_ENRIJECIDO') {
+        // Cartola Enrij: enrij1 x aba1 x base x aba2 x enrij2
+        if (form.enrij1 && form.aba1 && form.base && form.aba2 && form.enrij2) {
+          dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}`;
+        }
+      } else if (form.tipo_perfil === 'CARTOLA_SEMI_ENRIJECIDO') {
+        // Cartola Semi: enrij1 x aba1 x base x aba2
+        if (form.enrij1 && form.aba1 && form.base && form.aba2) {
+          dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}`;
+        }
+      }
+      
+      const comprimentoFormatado = form.comprimento ? `${Math.round(parseFloat(form.comprimento))}mm` : '';
+      
+      // Monta descrição final: PERFIL U #2,00 40x100x40 6000mm
+      const partes = [tipoLabel, espessuraFormatada, dimensoes, comprimentoFormatado].filter(Boolean);
+      return partes.join(' ');
     }
+    
+    // Formato para outras categorias (TIRAS, CHAPAS, BLANK)
+    const partes: string[] = [];
+    partes.push(CATEGORIAS_ESTOQUE.find(c => c.value === form.categoria)?.label || form.categoria);
     
     if (form.espessura) partes.push(`${form.espessura}mm`);
-    
-    if (form.categoria === 'PERFIS') {
-      const dims: string[] = [];
-      if (form.base) dims.push(`B${form.base}`);
-      if (form.aba1) dims.push(`A${form.aba1}`);
-      if (form.aba2) dims.push(`A2${form.aba2}`);
-      if (dims.length > 0) partes.push(dims.join(' x '));
-    } else {
-      if (form.largura) partes.push(`x ${form.largura}mm`);
-    }
-    
+    if (form.largura) partes.push(`x ${form.largura}mm`);
     if (form.comprimento) partes.push(`x ${form.comprimento}mm`);
     
     return partes.join(' ');
-  }, [form.categoria, form.tipo_perfil, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, autoDescricao]);
+  }, [form.categoria, form.tipo_perfil, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, form.enrij1, form.enrij2, autoDescricao]);
 
   // Calcula peso automaticamente para categorias UN
   const pesoCalculado = useMemo(() => {

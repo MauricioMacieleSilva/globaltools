@@ -413,6 +413,19 @@ export function EstoqueItemDialog({
                 </Select>
               </div>
 
+              {/* Espessura primeiro para perfis */}
+              <div className="space-y-2">
+                <Label htmlFor="espessura">Espessura (mm)</Label>
+                <Input
+                  id="espessura"
+                  type="number"
+                  step="0.01"
+                  value={form.espessura}
+                  onChange={(e) => setForm({ ...form, espessura: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+
               {/* Campos dinâmicos baseados no tipo de perfil selecionado */}
               {perfilConfig && (
                 <div className="grid grid-cols-3 gap-4">
@@ -487,11 +500,24 @@ export function EstoqueItemDialog({
                   )}
                 </div>
               )}
+
+              {/* Comprimento para perfis */}
+              <div className="space-y-2">
+                <Label htmlFor="comprimento">Comprimento (mm)</Label>
+                <Input
+                  id="comprimento"
+                  type="number"
+                  step="0.01"
+                  value={form.comprimento}
+                  onChange={(e) => setForm({ ...form, comprimento: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
             </>
           )}
 
-          {/* Campos de dimensão */}
-          {showDimensionFields && (
+          {/* Campos de dimensão para outras categorias (não perfis) */}
+          {showDimensionFields && !showProfileFields && (
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="espessura">Espessura (mm)</Label>

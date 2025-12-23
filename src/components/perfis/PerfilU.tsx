@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PerfilUMobile } from './PerfilUMobile';
+import { IndicadorEstoqueDisponibilidade } from '@/components/estoque';
 
 export function PerfilU() {
   const isMobile = useIsMobile();
@@ -224,11 +225,11 @@ function PerfilUDesktop() {
     return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
   }, 0);
 
-  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Ver', 'Ação'];
+  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Est', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
         {headers.map((h, i) => (
           <div key={i} className="text-center">
             {h}
@@ -246,7 +247,7 @@ function PerfilUDesktop() {
           const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
           
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
               <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                 <SelectTrigger className="h-7 text-[10px] px-1">
                   <SelectValue />
@@ -341,6 +342,14 @@ function PerfilUDesktop() {
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               
               <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDadosPerfil} />
+              
+              <IndicadorEstoqueDisponibilidade
+                tipoPerfil={linha.orientacaoUZ}
+                espessura={espessura}
+                base={base}
+                aba1={aba1}
+                aba2={parseFloat(linha.aba2) || undefined}
+              />
               
               <div className="flex justify-center">
                 {calculo ? (

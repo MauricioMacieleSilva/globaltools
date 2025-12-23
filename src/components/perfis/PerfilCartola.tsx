@@ -7,6 +7,7 @@ import { usePerfilContext, CalculoItem, LinhaPerfilCartola } from '@/context/Per
 import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
+import { IndicadorEstoqueDisponibilidade } from '@/components/estoque';
 
 export function PerfilCartola() {
   const { atualizarCalculo, removerCalculo, linhasCartola, atualizarLinhaCartola } = usePerfilContext();
@@ -93,20 +94,23 @@ export function PerfilCartola() {
   const totalPeso = linhasCartola.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
   const totalPerda = linhasCartola.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
 
-  const headers = ['Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Ver', 'Ação'];
+  const headers = ['Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
         {headers.map((h, i) => (<div key={i} className="text-center">{h}</div>))}
       </div>
 
       <div className="space-y-2">
         {linhasCartola.map(linha => {
           const calculo = calcularPerfil(linha);
+          const espessura = parseFloat(linha.espessura) || 0;
+          const base = parseFloat(linha.base) || 0;
+          const aba1 = parseFloat(linha.aba1) || 0;
           
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(19, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
               <div className="flex justify-center"><Checkbox checked={!linha.assimetrico} onCheckedChange={(c) => atualizarLinha(linha.id, 'assimetrico', !c)} className="h-4 w-4" /></div>
               <Input type="number" step="0.01" placeholder="0" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               <Input type="number" placeholder="0" value={linha.enrij1} onChange={e => atualizarLinha(linha.id, 'enrij1', e.target.value)} onBlur={e => validarCampo(linha.id, 'enrij1', e.target.value)} className={`text-center text-[10px] h-7 px-1 ${errosValidacao[`${linha.id}-enrij1`] ? 'border-destructive' : ''}`} />
@@ -124,6 +128,13 @@ export function PerfilCartola() {
               <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
+              <IndicadorEstoqueDisponibilidade
+                tipoPerfil="CARTOLA"
+                espessura={espessura}
+                base={base}
+                aba1={aba1}
+                aba2={parseFloat(linha.aba2) || undefined}
+              />
               <div className="flex justify-center">{calculo ? <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Cartola" /> : <span className="text-muted-foreground text-[10px]">-</span>}</div>
               <div className="flex justify-center"><Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /></Button></div>
             </div>

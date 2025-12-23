@@ -10,6 +10,7 @@ import { verificarPerfilUEPadrao } from '@/lib/perfil-padrao-utils';
 import { IndicadorPerfilPadrao } from './IndicadorPerfilPadrao';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
+import { IndicadorEstoqueDisponibilidade } from '@/components/estoque';
 
 export function PerfilUEnrijecido() {
   const { atualizarCalculo, removerCalculo, linhasUEnrijecido, atualizarLinhaUEnrijecido, calculos } = usePerfilContext();
@@ -96,11 +97,11 @@ export function PerfilUEnrijecido() {
   const totalPeso = linhasUEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
   const totalPerda = linhasUEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
 
-  const headers = ['U/Z', 'Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Ver', 'Ação'];
+  const headers = ['U/Z', 'Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Est', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(21, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
         {headers.map((h, i) => (<div key={i} className="text-center">{h}</div>))}
       </div>
 
@@ -115,7 +116,7 @@ export function PerfilUEnrijecido() {
           const verificacao = verificarPerfilUEPadrao(espessura, base, aba1, enrij1);
           
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(21, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(22, minmax(0, 1fr))' }}>
               <Select value={linha.orientacaoUZ} onValueChange={(v: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', v)}>
                 <SelectTrigger className="h-7 text-[10px] px-1"><SelectValue /></SelectTrigger>
                 <SelectContent className="z-50"><SelectItem value="U">U</SelectItem><SelectItem value="Z">Z</SelectItem></SelectContent>
@@ -138,6 +139,13 @@ export function PerfilUEnrijecido() {
               <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDados} />
+              <IndicadorEstoqueDisponibilidade
+                tipoPerfil="U_ENRIJECIDO"
+                espessura={espessura}
+                base={base}
+                aba1={aba1}
+                aba2={parseFloat(linha.aba2) || undefined}
+              />
               <div className="flex justify-center">{calculo ? <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="U/Z Enrijecido" /> : <span className="text-muted-foreground text-[10px]">-</span>}</div>
               <div className="flex justify-center"><Button variant="ghost" size="sm" onClick={() => limparLinha(linha.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /></Button></div>
             </div>

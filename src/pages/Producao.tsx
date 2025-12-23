@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generatePDFFromElement } from '@/lib/pdf-utils';
 import { useToast } from '@/hooks/use-toast';
-import { FileDown, EyeOff, ClipboardList, Package } from 'lucide-react';
+import { FileDown, EyeOff, ClipboardList, Package, Warehouse } from 'lucide-react';
 import { useProducao } from '@/context/ProducaoContext';
 import { HiddenOrdersDialog } from '@/components/dashboard/HiddenOrdersDialog';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { EstoqueTab } from '@/components/estoque/EstoqueTab';
+import { EstoqueProvider } from '@/context/EstoqueContext';
 
 export default function Producao() {
   const relatorioRef = useRef<HTMLDivElement>(null);
@@ -19,16 +21,9 @@ export default function Producao() {
   const { filteredData, totalPedidos } = useProducao();
   const { isAdmin } = useUserPermissions();
   const [hiddenDialogOpen, setHiddenDialogOpen] = useState(false);
-  
-
-  // Debug: força refresh dos dados ao carregar a página
-  React.useEffect(() => {
-    console.log('Página de produção carregada - dados serão atualizados');
-  }, []);
 
   const exportarPDF = async () => {
     if (!relatorioRef.current) {
-      console.error('Referência do relatório não encontrada');
       toast({
         title: "Erro",
         description: "Referência do relatório não encontrada.",
@@ -38,9 +33,6 @@ export default function Producao() {
     }
 
     try {
-      console.log('Iniciando geração de PDF...');
-      console.log('Elemento encontrado:', relatorioRef.current);
-      
       toast({
         title: "Gerando PDF...",
         description: "Por favor, aguarde enquanto o relatório é gerado."
@@ -53,13 +45,11 @@ export default function Producao() {
         quality: 2
       });
 
-      console.log('PDF gerado com sucesso');
       toast({
         title: "PDF gerado com sucesso!",
         description: "O relatório foi baixado para seu dispositivo."
       });
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+    } catch (error: any) {
       toast({
         title: "Erro ao gerar PDF",
         description: `Ocorreu um erro ao gerar o relatório: ${error.message || error}`,
@@ -68,12 +58,10 @@ export default function Producao() {
     }
   };
 
-
   return (
     <ErrorBoundary>
       <div className="min-h-screen w-full bg-background">
         <div className="container mx-auto p-2 space-y-4">
-          {/* Header com botões de exportar e pedidos ocultos */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">Produção</h1>
             <div className="flex gap-2 w-full sm:w-auto">
@@ -95,46 +83,51 @@ export default function Producao() {
             </div>
           </div>
 
-          {/* Tabs para separar Produção e Materiais */}
           <Tabs defaultValue="producao" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsList className="grid w-full grid-cols-3 max-w-lg">
               <TabsTrigger value="producao" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
-                Produção
+                <span className="hidden sm:inline">Produção</span>
               </TabsTrigger>
               <TabsTrigger value="materiais" className="gap-2">
                 <Package className="h-4 w-4" />
-                Materiais Pendentes
+                <span className="hidden sm:inline">Materiais</span>
+              </TabsTrigger>
+              <TabsTrigger value="estoque" className="gap-2">
+                <Warehouse className="h-4 w-4" />
+                <span className="hidden sm:inline">Estoque</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="producao" className="space-y-4 mt-4">
-              {/* KPIs Produção */}
               <ErrorBoundary>
                 <ProducaoKPIs />
               </ErrorBoundary>
-
-              {/* Tabela Detalhada de Produção */}
               <ErrorBoundary>
                 <ProducaoTable />
               </ErrorBoundary>
             </TabsContent>
 
             <TabsContent value="materiais" className="space-y-4 mt-4">
-              {/* Resumo de Materiais Pendentes */}
               <ErrorBoundary>
                 <MateriaisPendentesSummary />
+              </ErrorBoundary>
+            </TabsContent>
+
+            <TabsContent value="estoque" className="space-y-4 mt-4">
+              <ErrorBoundary>
+                <EstoqueProvider>
+                  <EstoqueTab />
+                </EstoqueProvider>
               </ErrorBoundary>
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Relatório oculto para geração de PDF */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <RelatorioProducao ref={relatorioRef} />
         </div>
         
-        {/* Diálogo de pedidos ocultos */}
         {isAdmin && (
           <HiddenOrdersDialog
             open={hiddenDialogOpen}

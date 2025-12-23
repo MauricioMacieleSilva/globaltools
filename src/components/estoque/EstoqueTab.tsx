@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { EstoqueTable } from './EstoqueTable';
+import { EstoqueKPIs } from './EstoqueKPIs';
 import { useEstoque } from '@/context/EstoqueContext';
 import { CATEGORIAS_ESTOQUE, CategoriaEstoque } from '@/services/estoqueService';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
@@ -22,7 +23,9 @@ export function EstoqueTab() {
     setCategoriaAtiva, 
     refreshData,
     getItemsByCategoria,
-    getItemCount 
+    getItemCount,
+    items,
+    precosMap
   } = useEstoque();
   const { isAdmin, checkPageAccess } = useUserPermissions();
   const isMobile = useIsMobile();
@@ -124,7 +127,8 @@ export function EstoqueTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <EstoqueKPIs items={items} precosMap={precosMap} />
       {renderTabs()}
     </div>
   );

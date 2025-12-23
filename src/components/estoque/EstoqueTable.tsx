@@ -21,8 +21,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { EstoqueItem, CategoriaEstoque, deleteEstoqueItem, TIPOS_PERFIL } from '@/services/estoqueService';
-import { Search, Plus, Pencil, Trash2, Package, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Package, Image as ImageIcon, ZoomIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { EstoqueItemDialog } from './EstoqueItemDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -257,7 +262,7 @@ export function EstoqueTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-20">Imagem</TableHead>
                   <TableHead className="min-w-[200px]">Descrição</TableHead>
                   <TableHead className="w-32 text-right">Quantidade</TableHead>
                   {showPerfilColumns && (
@@ -295,29 +300,35 @@ export function EstoqueTable({
                 ) : (
                   dadosFiltrados.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell>
+                      <TableCell className="py-2">
                         {item.imagem_url ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
+                          <HoverCard openDelay={200}>
+                            <HoverCardTrigger asChild>
+                              <div className="relative group cursor-pointer w-16 h-16">
                                 <img
                                   src={item.imagem_url}
                                   alt={item.descricao}
-                                  className="w-10 h-10 object-cover rounded cursor-pointer hover:opacity-80"
+                                  className="w-16 h-16 object-cover rounded-lg border shadow-sm transition-transform group-hover:scale-105"
                                 />
-                              </TooltipTrigger>
-                              <TooltipContent side="right" className="p-0">
-                                <img
-                                  src={item.imagem_url}
-                                  alt={item.descricao}
-                                  className="max-w-xs max-h-64 object-contain rounded"
-                                />
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                                  <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent side="right" align="start" className="w-auto p-2">
+                              <img
+                                src={item.imagem_url}
+                                alt={item.descricao}
+                                className="max-w-md max-h-80 object-contain rounded-lg"
+                              />
+                              <p className="text-xs text-muted-foreground mt-2 text-center max-w-md truncate">
+                                {item.descricao}
+                              </p>
+                            </HoverCardContent>
+                          </HoverCard>
                         ) : (
-                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                          <div className="w-16 h-16 rounded-lg bg-muted/50 border border-dashed flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
                           </div>
                         )}
                       </TableCell>

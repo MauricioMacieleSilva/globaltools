@@ -148,9 +148,6 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
               <h3 className="text-2xl font-bold text-foreground">
                 {formatWeight(stats.totalPeso)}
               </h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats.totalPecas.toLocaleString('pt-BR')} peças no estoque
-              </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
               <Weight className="h-6 w-6 text-orange-500" />
@@ -167,9 +164,6 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
               <h3 className="text-2xl font-bold text-foreground">
                 {formatCurrency(stats.totalValor)}
               </h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Perfis, chapas, blanks e tiras
-              </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
               <DollarSign className="h-6 w-6 text-emerald-500" />

@@ -97,10 +97,8 @@ export function EstoqueTable({
     return precosEspessuraMap[closest] || 0;
   };
 
-  // Calcular valor de cada item
-  const calcularValorItem = (item: EstoqueItem): number => {
-    if (!CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) return 0;
-    
+  // Calcular peso de cada item
+  const calcularPesoItem = (item: EstoqueItem): number => {
     const peso = calcularPesoTotal(
       item.categoria,
       item.quantidade,
@@ -112,11 +110,26 @@ export function EstoqueTable({
       item.aba2,
       item.tipo_perfil
     );
+    return peso || 0;
+  };
+
+  // Calcular valor de cada item
+  const calcularValorItem = (item: EstoqueItem): number => {
+    if (!CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) return 0;
     
+    const peso = calcularPesoItem(item);
     if (!peso) return 0;
     
     const precoKg = getPrecoByEspessura(item.espessura);
     return peso * precoKg;
+  };
+
+  // Formatar peso
+  const formatWeight = (peso: number): string => {
+    if (peso >= 1000) {
+      return `${(peso / 1000).toFixed(2)} t`;
+    }
+    return `${peso.toFixed(2)} kg`;
   };
 
   const dadosFiltrados = dados.filter((item) =>
@@ -217,6 +230,9 @@ export function EstoqueTable({
                       {item.espessura && (
                         <Badge variant="outline">{item.espessura}mm</Badge>
                       )}
+                      <Badge variant="outline" className="text-orange-600 border-orange-300">
+                        {formatWeight(calcularPesoItem(item))}
+                      </Badge>
                       {showValorColumn && (
                         <Badge variant="default" className="bg-emerald-600">
                           {formatCurrency(calcularValorItem(item))}
@@ -333,6 +349,7 @@ export function EstoqueTable({
                       <TableHead className="w-24 text-right">Largura</TableHead>
                     </>
                   )}
+                  <TableHead className="w-28 text-right">Peso</TableHead>
                   {showValorColumn && (
                     <TableHead className="w-32 text-right">Valor</TableHead>
                   )}
@@ -344,7 +361,7 @@ export function EstoqueTable({
                 {dadosFiltrados.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={showPerfilColumns ? (showValorColumn ? 9 : 8) : showDimensionColumns ? (showValorColumn ? 8 : 7) : 5}
+                      colSpan={showPerfilColumns ? (showValorColumn ? 10 : 9) : showDimensionColumns ? (showValorColumn ? 9 : 8) : 6}
                       className="text-center py-8 text-muted-foreground"
                     >
                       <div className="flex flex-col items-center gap-2">
@@ -413,6 +430,9 @@ export function EstoqueTable({
                           </TableCell>
                         </>
                       )}
+                      <TableCell className="text-right font-medium text-orange-600">
+                        {formatWeight(calcularPesoItem(item))}
+                      </TableCell>
                       {showValorColumn && (
                         <TableCell className="text-right font-medium text-emerald-600">
                           {formatCurrency(calcularValorItem(item))}

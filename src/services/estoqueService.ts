@@ -57,6 +57,7 @@ export const TIPOS_PERFIL = [
   { value: 'CARTOLA', label: 'Cartola' },
   { value: 'U_ENRIJECIDO', label: 'U Enrijecido' },
   { value: 'U_SEMI_ENRIJECIDO', label: 'U Semi Enrijecido' },
+  { value: 'Z_ENRIJECIDO', label: 'Z Enrijecido' },
   { value: 'CARTOLA_ENRIJECIDO', label: 'Cartola Enrijecido' },
   { value: 'CARTOLA_SEMI_ENRIJECIDO', label: 'Cartola Semi Enrijecido' },
 ];
@@ -118,6 +119,10 @@ export function calcularPesoPeca(
       case 'U_SEMI_ENRIJECIDO':
         // Desenvolvimento: base + 2*aba1 + 2*aba2
         desenvolvimento = (base || 0) + 2 * (aba1 || 0) + 2 * (aba2 || 0);
+        break;
+      case 'Z_ENRIJECIDO':
+        // Desenvolvimento: aba1 + base + aba2 + 2*enrijecedor (aba2 usado como enrijecedor)
+        desenvolvimento = (aba1 || 0) + (base || 0) + (aba2 || 0) + 2 * (aba2 || 0);
         break;
       case 'CARTOLA_ENRIJECIDO':
       case 'CARTOLA_SEMI_ENRIJECIDO':

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -26,11 +26,13 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
-import { EstoqueItem, CategoriaEstoque, deleteEstoqueItem, TIPOS_PERFIL } from '@/services/estoqueService';
+import { EstoqueItem, CategoriaEstoque, deleteEstoqueItem, TIPOS_PERFIL, calcularPesoTotal } from '@/services/estoqueService';
 import { Search, Plus, Pencil, Trash2, Package, Image as ImageIcon, ZoomIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { EstoqueItemDialog } from './EstoqueItemDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useEstoque } from '@/context/EstoqueContext';
+import { formatCurrency } from '@/lib/utils-comercial';
 
 interface EstoqueTableProps {
   titulo: string;
@@ -45,6 +47,9 @@ const getTipoPerfilLabel = (value: string | null) => {
   if (!value) return '-';
   return TIPOS_PERFIL.find(t => t.value === value)?.label || value;
 };
+
+// Categorias que usam preço por espessura
+const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK'];
 
 export function EstoqueTable({
   titulo,
@@ -61,9 +66,58 @@ export function EstoqueTable({
   const [itemToDelete, setItemToDelete] = useState<EstoqueItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const isMobile = useIsMobile();
+  const { precosEspessuraMap } = useEstoque();
 
   const showDimensionColumns = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS'].includes(categoria);
   const showPerfilColumns = categoria === 'PERFIS';
+  const showValorColumn = CATEGORIAS_PRECO_ESPESSURA.includes(categoria);
+
+  // Função para buscar preço por espessura
+  const getPrecoByEspessura = (espessura: number | null): number => {
+    if (!espessura || Object.keys(precosEspessuraMap).length === 0) return 0;
+    
+    if (precosEspessuraMap[espessura]) {
+      return precosEspessuraMap[espessura];
+    }
+    
+    const espessuras = Object.keys(precosEspessuraMap).map(Number);
+    if (espessuras.length === 0) return 0;
+    
+    let closest = espessuras[0];
+    let minDiff = Math.abs(closest - espessura);
+    
+    for (const esp of espessuras) {
+      const diff = Math.abs(esp - espessura);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = esp;
+      }
+    }
+    
+    return precosEspessuraMap[closest] || 0;
+  };
+
+  // Calcular valor de cada item
+  const calcularValorItem = (item: EstoqueItem): number => {
+    if (!CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) return 0;
+    
+    const peso = calcularPesoTotal(
+      item.categoria,
+      item.quantidade,
+      item.espessura,
+      item.largura,
+      item.comprimento,
+      item.base,
+      item.aba1,
+      item.aba2,
+      item.tipo_perfil
+    );
+    
+    if (!peso) return 0;
+    
+    const precoKg = getPrecoByEspessura(item.espessura);
+    return peso * precoKg;
+  };
 
   const dadosFiltrados = dados.filter((item) =>
     item.descricao.toLowerCase().includes(filtro.toLowerCase()) ||
@@ -162,6 +216,11 @@ export function EstoqueTable({
                       </Badge>
                       {item.espessura && (
                         <Badge variant="outline">{item.espessura}mm</Badge>
+                      )}
+                      {showValorColumn && (
+                        <Badge variant="default" className="bg-emerald-600">
+                          {formatCurrency(calcularValorItem(item))}
+                        </Badge>
                       )}
                     </div>
                     {item.localizacao && (
@@ -274,6 +333,9 @@ export function EstoqueTable({
                       <TableHead className="w-24 text-right">Largura</TableHead>
                     </>
                   )}
+                  {showValorColumn && (
+                    <TableHead className="w-32 text-right">Valor</TableHead>
+                  )}
                   <TableHead className="w-32">Localização</TableHead>
                   {canManage && <TableHead className="w-24 text-center">Ações</TableHead>}
                 </TableRow>
@@ -282,7 +344,7 @@ export function EstoqueTable({
                 {dadosFiltrados.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={showPerfilColumns ? 8 : showDimensionColumns ? 7 : 5}
+                      colSpan={showPerfilColumns ? (showValorColumn ? 9 : 8) : showDimensionColumns ? (showValorColumn ? 8 : 7) : 5}
                       className="text-center py-8 text-muted-foreground"
                     >
                       <div className="flex flex-col items-center gap-2">
@@ -350,6 +412,11 @@ export function EstoqueTable({
                             {item.largura ? `${item.largura} mm` : '-'}
                           </TableCell>
                         </>
+                      )}
+                      {showValorColumn && (
+                        <TableCell className="text-right font-medium text-emerald-600">
+                          {formatCurrency(calcularValorItem(item))}
+                        </TableCell>
                       )}
                       <TableCell className="text-muted-foreground">
                         {item.localizacao || '-'}

@@ -134,19 +134,19 @@ export function IndicadorEstoqueDisponibilidade({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <button
-          className={cn(
-            "flex items-center justify-center w-6 h-6 rounded hover:scale-110 transition-transform cursor-pointer",
-            config.bgColor,
-            className
-          )}
-          title={config.title}
-        >
-          <Icon className={cn("h-3.5 w-3.5", config.color)} />
-        </button>
-      </PopoverTrigger>
+    <div className={cn("flex items-center justify-center w-full", className)}>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className={cn(
+              "flex items-center justify-center w-6 h-6 rounded hover:scale-110 transition-transform cursor-pointer",
+              config.bgColor
+            )}
+            title={config.title}
+          >
+            <Icon className={cn("h-3.5 w-3.5", config.color)} />
+          </button>
+        </PopoverTrigger>
       <PopoverContent className="w-80 p-3" align="center" side="left">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -240,6 +240,7 @@ export function IndicadorEstoqueDisponibilidade({
           )}
         </div>
       </PopoverContent>
-    </Popover>
+      </Popover>
+    </div>
   );
 }

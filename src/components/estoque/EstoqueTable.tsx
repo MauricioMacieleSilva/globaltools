@@ -339,21 +339,21 @@ export function EstoqueTable({
                 <TableRow>
                   <TableHead className="w-20">Imagem</TableHead>
                   <TableHead className="min-w-[200px]">Descrição</TableHead>
-                  <TableHead className="w-32 text-right">Quantidade</TableHead>
+                  <TableHead className="w-28 text-center">Quantidade</TableHead>
                   {showPerfilColumns && (
                     <TableHead className="w-32">Tipo Perfil</TableHead>
                   )}
                   {showDimensionColumns && (
                     <>
-                      <TableHead className="w-24 text-right">Espessura</TableHead>
-                      <TableHead className="w-24 text-right">Largura</TableHead>
+                      <TableHead className="w-24 text-center">Espessura</TableHead>
+                      <TableHead className="w-24 text-center">Largura</TableHead>
                     </>
                   )}
-                  <TableHead className="w-28 text-right">Peso</TableHead>
+                  <TableHead className="w-28 text-center">Peso</TableHead>
                   {showValorColumn && (
-                    <TableHead className="w-32 text-right">Valor</TableHead>
+                    <TableHead className="w-32 text-center">Valor</TableHead>
                   )}
-                  <TableHead className="w-32">Localização</TableHead>
+                  <TableHead className="w-32 text-center">Localização</TableHead>
                   {canManage && <TableHead className="w-24 text-center">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -412,7 +412,7 @@ export function EstoqueTable({
                         )}
                       </TableCell>
                       <TableCell className="font-medium">{item.descricao}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-center">
                         <Badge variant={item.quantidade > 0 ? 'secondary' : 'destructive'}>
                           {item.quantidade.toLocaleString('pt-BR')} {item.unidade}
                         </Badge>
@@ -422,23 +422,23 @@ export function EstoqueTable({
                       )}
                       {showDimensionColumns && (
                         <>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             {item.espessura ? `${item.espessura} mm` : '-'}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             {item.largura ? `${item.largura} mm` : '-'}
                           </TableCell>
                         </>
                       )}
-                      <TableCell className="text-right font-medium text-orange-600">
+                      <TableCell className="text-center font-medium text-orange-600">
                         {formatWeight(calcularPesoItem(item))}
                       </TableCell>
                       {showValorColumn && (
-                        <TableCell className="text-right font-medium text-emerald-600">
+                        <TableCell className="text-center font-medium text-emerald-600">
                           {formatCurrency(calcularValorItem(item))}
                         </TableCell>
                       )}
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="text-center text-muted-foreground">
                         {item.localizacao || '-'}
                       </TableCell>
                       {canManage && (

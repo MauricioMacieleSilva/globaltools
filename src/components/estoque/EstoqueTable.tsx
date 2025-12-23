@@ -176,17 +176,17 @@ export function EstoqueTable({
 
   if (isMobile) {
     return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">{titulo}</CardTitle>
-              <CardDescription>{dados.length} itens no estoque</CardDescription>
+      <Card className="border-0 shadow-none bg-transparent">
+        <CardHeader className="px-0 pb-3 pt-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle className="text-base font-semibold">{titulo}</CardTitle>
+              <CardDescription className="text-xs">{dados.length} itens</CardDescription>
             </div>
             {canManage && (
-              <Button onClick={handleOpenCreate} size="sm" className="gap-2">
+              <Button onClick={handleOpenCreate} size="sm" className="gap-1.5 h-9 px-3">
                 <Plus className="h-4 w-4" />
-                Adicionar
+                <span className="hidden xs:inline">Adicionar</span>
               </Button>
             )}
           </div>
@@ -196,73 +196,105 @@ export function EstoqueTable({
               placeholder="Buscar..."
               value={filtro}
               onChange={(e) => setFiltro(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-10"
             />
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 px-0">
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" />
+              <Skeleton key={i} className="h-28 w-full rounded-lg" />
             ))
           ) : dadosFiltrados.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>{filtro ? 'Nenhum resultado encontrado' : 'Nenhum item cadastrado'}</p>
+            <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-lg">
+              <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">{filtro ? 'Nenhum resultado encontrado' : 'Nenhum item cadastrado'}</p>
+              {canManage && !filtro && (
+                <Button variant="outline" size="sm" onClick={handleOpenCreate} className="mt-3">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Adicionar item
+                </Button>
+              )}
             </div>
           ) : (
             dadosFiltrados.map((item) => (
-              <Card key={item.id} className="p-3">
-                <div className="flex gap-3">
-                  {item.imagem_url && (
-                    <img
-                      src={item.imagem_url}
-                      alt={item.descricao}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{item.descricao}</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      <Badge variant="secondary">
-                        {item.quantidade.toLocaleString('pt-BR')} {item.unidade}
-                      </Badge>
-                      {item.espessura && (
-                        <Badge variant="outline">{item.espessura}mm</Badge>
-                      )}
-                      <Badge variant="outline" className="text-orange-600 border-orange-300">
-                        {formatWeight(calcularPesoItem(item))}
-                      </Badge>
-                      {showValorColumn && (
-                        <Badge variant="default" className="bg-emerald-600">
-                          {formatCurrency(calcularValorItem(item))}
-                        </Badge>
+              <Card key={item.id} className="overflow-hidden">
+                <div className="p-3">
+                  {/* Header com imagem e ações */}
+                  <div className="flex gap-3">
+                    {item.imagem_url ? (
+                      <img
+                        src={item.imagem_url}
+                        alt={item.descricao}
+                        className="w-14 h-14 object-cover rounded-lg border shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-muted/50 border border-dashed flex items-center justify-center shrink-0">
+                        <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm leading-tight line-clamp-2">{item.descricao}</p>
+                      {item.localizacao && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">📍 {item.localizacao}</p>
                       )}
                     </div>
-                    {item.localizacao && (
-                      <p className="text-xs text-muted-foreground mt-1">{item.localizacao}</p>
+                    {canManage && (
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenEdit(item)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenDelete(item)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
-                  {canManage && (
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenEdit(item)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenDelete(item)}
-                        className="h-8 w-8 p-0 text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  
+                  {/* Badges de informações */}
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                      {item.quantidade.toLocaleString('pt-BR')} {item.unidade}
+                    </Badge>
+                    {item.espessura && (
+                      <Badge variant="outline" className="text-xs px-2 py-0.5">
+                        #{item.espessura}
+                      </Badge>
+                    )}
+                    {showPerfilColumns && item.tipo_perfil && (
+                      <Badge variant="outline" className="text-xs px-2 py-0.5">
+                        {getTipoPerfilLabel(item.tipo_perfil)}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Peso e Valor */}
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Peso</p>
+                      <p className="text-sm font-semibold text-orange-600">
+                        {formatWeight(calcularPesoItem(item))}
+                      </p>
                     </div>
-                  )}
+                    {showValorColumn && (
+                      <div className="flex-1 text-right">
+                        <p className="text-xs text-muted-foreground">Valor</p>
+                        <p className="text-sm font-semibold text-emerald-600">
+                          {formatCurrency(calcularValorItem(item))}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))
@@ -278,18 +310,18 @@ export function EstoqueTable({
         />
 
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-[90vw] rounded-lg">
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogDescription className="text-sm">
                 Tem certeza que deseja excluir "{itemToDelete?.descricao}"?
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogFooter className="flex-row gap-2">
+              <AlertDialogCancel className="flex-1 m-0">Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="flex-1 m-0 bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {isLoading ? 'Excluindo...' : 'Excluir'}
               </AlertDialogAction>

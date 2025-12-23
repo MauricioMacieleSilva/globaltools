@@ -122,51 +122,51 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total de Itens</p>
-              <h3 className="text-2xl font-bold text-foreground">{stats.totalItens}</h3>
-              <p className="text-xs text-muted-foreground mt-1">
+        <CardContent className="py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">Total de Itens</p>
+              <h3 className="text-3xl font-bold text-foreground">{stats.totalItens}</h3>
+              <p className="text-xs text-muted-foreground mt-2">
                 {stats.categoriasComItens.length > 0 
                   ? `Em ${stats.categoriasComItens.length} categorias` 
                   : 'Nenhum item cadastrado'}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <Layers className="h-6 w-6 text-blue-500" />
+            <div className="h-14 w-14 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+              <Layers className="h-7 w-7 text-blue-500" />
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Peso Total</p>
-              <h3 className="text-2xl font-bold text-foreground">
+        <CardContent className="py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">Peso Total</p>
+              <h3 className="text-3xl font-bold text-foreground">
                 {formatWeight(stats.totalPeso)}
               </h3>
             </div>
-            <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-              <Weight className="h-6 w-6 text-orange-500" />
+            <div className="h-14 w-14 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+              <Weight className="h-7 w-7 text-orange-500" />
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Valor em Estoque</p>
-              <h3 className="text-2xl font-bold text-foreground">
+        <CardContent className="py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-muted-foreground mb-1">Valor em Estoque</p>
+              <h3 className="text-3xl font-bold text-foreground">
                 {formatCurrency(stats.totalValor)}
               </h3>
             </div>
-            <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-emerald-500" />
+            <div className="h-14 w-14 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <DollarSign className="h-7 w-7 text-emerald-500" />
             </div>
           </div>
         </CardContent>

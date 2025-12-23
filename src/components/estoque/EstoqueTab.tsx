@@ -25,7 +25,7 @@ export function EstoqueTab() {
     getItemsByCategoria,
     getItemCount,
     items,
-    precosMap
+    precosEspessuraMap
   } = useEstoque();
   const { isAdmin, checkPageAccess } = useUserPermissions();
   const isMobile = useIsMobile();
@@ -128,7 +128,7 @@ export function EstoqueTab() {
 
   return (
     <div className="space-y-6">
-      <EstoqueKPIs items={items} precosMap={precosMap} />
+      <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} />
       {renderTabs()}
     </div>
   );

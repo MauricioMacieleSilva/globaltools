@@ -1,16 +1,45 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Package, Weight, DollarSign, Layers } from 'lucide-react';
-import { EstoqueItem, calcularPesoTotal, CATEGORIAS_UNIDADE_KG } from '@/services/estoqueService';
+import { EstoqueItem, calcularPesoTotal, CategoriaEstoque } from '@/services/estoqueService';
 import { formatCurrency } from '@/lib/utils-comercial';
+
+// Categorias que usam preço por espessura (baseado em perfil_precos)
+const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK'];
 
 interface EstoqueKPIsProps {
   items: EstoqueItem[];
-  precosMap: Record<string, number>; // categoria -> preço por kg
+  precosEspessuraMap: Record<number, number>; // espessura -> preço por kg
 }
 
-export function EstoqueKPIs({ items, precosMap }: EstoqueKPIsProps) {
+export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
+  // Função para encontrar o preço mais próximo por espessura
+  const getPrecoByEspessura = (espessura: number | null): number => {
+    if (!espessura || Object.keys(precosEspessuraMap).length === 0) return 0;
+    
+    // Busca exata primeiro
+    if (precosEspessuraMap[espessura]) {
+      return precosEspessuraMap[espessura];
+    }
+    
+    // Se não encontrar, busca o mais próximo
+    const espessuras = Object.keys(precosEspessuraMap).map(Number);
+    if (espessuras.length === 0) return 0;
+    
+    let closest = espessuras[0];
+    let minDiff = Math.abs(closest - espessura);
+    
+    for (const esp of espessuras) {
+      const diff = Math.abs(esp - espessura);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = esp;
+      }
+    }
+    
+    return precosEspessuraMap[closest] || 0;
+  };
+
   const stats = useMemo(() => {
     let totalItens = 0;
     let totalPecas = 0;
@@ -46,9 +75,12 @@ export function EstoqueKPIs({ items, precosMap }: EstoqueKPIsProps) {
       const pesoItem = peso || 0;
       totalPeso += pesoItem;
       
-      // Calcular valor baseado no preço por kg da política comercial
-      const precoKg = precosMap[item.categoria] || 0;
-      const valorItem = pesoItem * precoKg;
+      // Calcular valor baseado na espessura para PERFIS, TIRAS, CHAPAS, BLANK
+      let valorItem = 0;
+      if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) {
+        const precoKg = getPrecoByEspessura(item.espessura);
+        valorItem = pesoItem * precoKg;
+      }
       totalValor += valorItem;
       
       // Agrupar por categoria
@@ -68,7 +100,7 @@ export function EstoqueKPIs({ items, precosMap }: EstoqueKPIsProps) {
       totalValor,
       porCategoria
     };
-  }, [items, precosMap]);
+  }, [items, precosEspessuraMap]);
 
   const formatWeight = (peso: number) => {
     if (peso >= 1000) {
@@ -143,7 +175,7 @@ export function EstoqueKPIs({ items, precosMap }: EstoqueKPIsProps) {
                 {formatCurrency(stats.totalValor)}
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Baseado na política comercial
+                Perfis, Tiras, Chapas, Blank
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">

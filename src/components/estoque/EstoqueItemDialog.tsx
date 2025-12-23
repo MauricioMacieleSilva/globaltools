@@ -99,6 +99,7 @@ const PERFIL_FIELDS_CONFIG: Record<string, {
   'CARTOLA': { base: true, aba1: true, enrij1: true, aba1Label: 'Aba', enrij1Label: 'Enrij.' },
   'U_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
   'U_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
+  'Z_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
   'CARTOLA_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
   'CARTOLA_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
 };
@@ -225,6 +226,11 @@ export function EstoqueItemDialog({
         // U Semi: enrij1 x aba1 x base x aba2
         if (form.enrij1 && form.aba1 && form.base && form.aba2) {
           dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}`;
+        }
+      } else if (form.tipo_perfil === 'Z_ENRIJECIDO') {
+        // Z Enrij: enrij1 x aba1 x base x aba2 x enrij2
+        if (form.enrij1 && form.aba1 && form.base && form.aba2 && form.enrij2) {
+          dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}`;
         }
       } else if (form.tipo_perfil === 'CARTOLA_ENRIJECIDO') {
         // Cartola Enrij: enrij1 x aba1 x base x aba2 x enrij2

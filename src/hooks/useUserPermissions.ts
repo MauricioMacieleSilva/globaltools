@@ -36,6 +36,12 @@ export const SYSTEM_PAGES = {
     supportsEdit: true,
     route: '/producao'
   },
+  estoque: { 
+    label: 'Estoque', 
+    category: 'Principais',
+    supportsEdit: true,
+    route: '/producao' // Estoque é uma aba dentro de Produção
+  },
   politica: { 
     label: 'Política Comercial', 
     category: 'Principais',

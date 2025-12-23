@@ -54,6 +54,8 @@ interface FormData {
   base: string;
   aba1: string;
   aba2: string;
+  enrij1: string;
+  enrij2: string;
   imagem_url: string | null;
   localizacao: string;
   observacoes: string;
@@ -71,9 +73,33 @@ const initialFormData: FormData = {
   base: '',
   aba1: '',
   aba2: '',
+  enrij1: '',
+  enrij2: '',
   imagem_url: null,
   localizacao: '',
   observacoes: '',
+};
+
+// Configuração de campos por tipo de perfil
+const PERFIL_FIELDS_CONFIG: Record<string, { 
+  base?: boolean; 
+  aba1?: boolean; 
+  aba2?: boolean; 
+  enrij1?: boolean; 
+  enrij2?: boolean;
+  aba1Label?: string;
+  aba2Label?: string;
+  enrij1Label?: string;
+  enrij2Label?: string;
+}> = {
+  'U': { base: true, aba1: true, aba2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2' },
+  'Z': { base: true, aba1: true, aba2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2' },
+  'L': { base: true, aba1: true, aba1Label: 'Aba' },
+  'CARTOLA': { base: true, aba1: true, enrij1: true, aba1Label: 'Aba', enrij1Label: 'Enrij.' },
+  'U_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
+  'U_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
+  'CARTOLA_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
+  'CARTOLA_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
 };
 
 export function EstoqueItemDialog({
@@ -102,6 +128,8 @@ export function EstoqueItemDialog({
         base: item.base?.toString() || '',
         aba1: item.aba1?.toString() || '',
         aba2: item.aba2?.toString() || '',
+        enrij1: '',
+        enrij2: '',
         imagem_url: item.imagem_url,
         localizacao: item.localizacao || '',
         observacoes: item.observacoes || '',
@@ -129,6 +157,9 @@ export function EstoqueItemDialog({
   const isUnidadeUN = CATEGORIAS_UNIDADE_UN.includes(form.categoria);
   const showProfileFields = ['PERFIS'].includes(form.categoria);
   const showDimensionFields = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS', 'BLANK', 'LAMINADOS', 'TUBOS', 'ARAMES', 'VERGALHAO'].includes(form.categoria);
+  
+  // Configuração de campos dinâmica baseada no tipo de perfil
+  const perfilConfig = form.tipo_perfil ? PERFIL_FIELDS_CONFIG[form.tipo_perfil] : null;
   
   // Categorias que geram descrição automaticamente a partir das dimensões
   const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK'].includes(form.categoria);
@@ -364,10 +395,10 @@ export function EstoqueItemDialog({
           {showProfileFields && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="tipo_perfil">Tipo de Perfil</Label>
+                <Label htmlFor="tipo_perfil">Tipo de Perfil *</Label>
                 <Select
                   value={form.tipo_perfil}
-                  onValueChange={(value) => setForm({ ...form, tipo_perfil: value })}
+                  onValueChange={(value) => setForm({ ...form, tipo_perfil: value, aba1: '', aba2: '', base: '', enrij1: '', enrij2: '' })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />
@@ -382,43 +413,80 @@ export function EstoqueItemDialog({
                 </Select>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="base">Base (mm)</Label>
-                  <Input
-                    id="base"
-                    type="number"
-                    step="0.01"
-                    value={form.base}
-                    onChange={(e) => setForm({ ...form, base: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
+              {/* Campos dinâmicos baseados no tipo de perfil selecionado */}
+              {perfilConfig && (
+                <div className="grid grid-cols-3 gap-4">
+                  {perfilConfig.base && (
+                    <div className="space-y-2">
+                      <Label htmlFor="base">Base (mm)</Label>
+                      <Input
+                        id="base"
+                        type="number"
+                        step="0.01"
+                        value={form.base}
+                        onChange={(e) => setForm({ ...form, base: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="aba1">Aba 1 (mm)</Label>
-                  <Input
-                    id="aba1"
-                    type="number"
-                    step="0.01"
-                    value={form.aba1}
-                    onChange={(e) => setForm({ ...form, aba1: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
+                  {perfilConfig.aba1 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="aba1">{perfilConfig.aba1Label || 'Aba 1'} (mm)</Label>
+                      <Input
+                        id="aba1"
+                        type="number"
+                        step="0.01"
+                        value={form.aba1}
+                        onChange={(e) => setForm({ ...form, aba1: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="aba2">Aba 2 (mm)</Label>
-                  <Input
-                    id="aba2"
-                    type="number"
-                    step="0.01"
-                    value={form.aba2}
-                    onChange={(e) => setForm({ ...form, aba2: e.target.value })}
-                    placeholder="0"
-                  />
+                  {perfilConfig.aba2 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="aba2">{perfilConfig.aba2Label || 'Aba 2'} (mm)</Label>
+                      <Input
+                        id="aba2"
+                        type="number"
+                        step="0.01"
+                        value={form.aba2}
+                        onChange={(e) => setForm({ ...form, aba2: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+
+                  {perfilConfig.enrij1 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="enrij1">{perfilConfig.enrij1Label || 'Enrij. 1'} (mm)</Label>
+                      <Input
+                        id="enrij1"
+                        type="number"
+                        step="0.01"
+                        value={form.enrij1}
+                        onChange={(e) => setForm({ ...form, enrij1: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+
+                  {perfilConfig.enrij2 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="enrij2">{perfilConfig.enrij2Label || 'Enrij. 2'} (mm)</Label>
+                      <Input
+                        id="enrij2"
+                        type="number"
+                        step="0.01"
+                        value={form.enrij2}
+                        onChange={(e) => setForm({ ...form, enrij2: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </>
           )}
 

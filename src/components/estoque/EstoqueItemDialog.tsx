@@ -24,13 +24,15 @@ import {
   CategoriaEstoque,
   CATEGORIAS_ESTOQUE,
   TIPOS_PERFIL,
+  CATEGORIAS_UNIDADE_UN,
+  getUnidadePadrao,
+  calcularPesoPeca,
   createEstoqueItem,
   updateEstoqueItem,
 } from '@/services/estoqueService';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-
-const UNIDADES = ['KG', 'M', 'M²', 'UN', 'PC', 'TON'];
+import { useMemo } from 'react';
 
 interface EstoqueItemDialogProps {
   open: boolean;
@@ -105,15 +107,51 @@ export function EstoqueItemDialog({
         observacoes: item.observacoes || '',
       });
     } else {
+      const cat = categoriaInicial || 'PERFIS';
       setForm({
         ...initialFormData,
-        categoria: categoriaInicial || 'PERFIS',
+        categoria: cat,
+        unidade: getUnidadePadrao(cat),
       });
     }
   }, [item, categoriaInicial, open]);
 
+  // Atualiza unidade automaticamente quando categoria muda (apenas para novos itens)
+  useEffect(() => {
+    if (!isEditing) {
+      setForm(prev => ({
+        ...prev,
+        unidade: getUnidadePadrao(prev.categoria)
+      }));
+    }
+  }, [form.categoria, isEditing]);
+
+  const isUnidadeUN = CATEGORIAS_UNIDADE_UN.includes(form.categoria);
   const showProfileFields = ['PERFIS'].includes(form.categoria);
-  const showDimensionFields = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS'].includes(form.categoria);
+  const showDimensionFields = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS', 'BLANK', 'LAMINADOS', 'TUBOS', 'ARAMES', 'VERGALHAO'].includes(form.categoria);
+
+  // Calcula peso automaticamente para categorias UN
+  const pesoCalculado = useMemo(() => {
+    if (!isUnidadeUN) return null;
+    
+    const peso = calcularPesoPeca(
+      form.categoria,
+      form.espessura ? parseFloat(form.espessura) : null,
+      form.largura ? parseFloat(form.largura) : null,
+      form.comprimento ? parseFloat(form.comprimento) : null,
+      form.base ? parseFloat(form.base) : null,
+      form.aba1 ? parseFloat(form.aba1) : null,
+      form.aba2 ? parseFloat(form.aba2) : null,
+      form.tipo_perfil || null
+    );
+    
+    return peso;
+  }, [form.categoria, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, form.tipo_perfil, isUnidadeUN]);
+
+  const pesoTotal = useMemo(() => {
+    if (pesoCalculado === null || !form.quantidade) return null;
+    return pesoCalculado * parseFloat(form.quantidade);
+  }, [pesoCalculado, form.quantidade]);
 
   const handleSubmit = async () => {
     if (!form.descricao.trim()) {
@@ -208,21 +246,12 @@ export function EstoqueItemDialog({
 
             <div className="space-y-2">
               <Label htmlFor="unidade">Unidade</Label>
-              <Select
-                value={form.unidade}
-                onValueChange={(value) => setForm({ ...form, unidade: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Unidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {UNIDADES.map((u) => (
-                    <SelectItem key={u} value={u}>
-                      {u}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="unidade"
+                value={isUnidadeUN ? 'UN (peças)' : 'KG'}
+                disabled
+                className="bg-muted"
+              />
             </div>
           </div>
 
@@ -239,11 +268,14 @@ export function EstoqueItemDialog({
           {/* Quantidade e Localização */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="quantidade">Quantidade *</Label>
+              <Label htmlFor="quantidade">
+                {isUnidadeUN ? 'Quantidade (peças) *' : 'Quantidade (kg) *'}
+              </Label>
               <Input
                 id="quantidade"
                 type="number"
-                step="0.01"
+                step={isUnidadeUN ? '1' : '0.01'}
+                min="0"
                 value={form.quantidade}
                 onChange={(e) => setForm({ ...form, quantidade: e.target.value })}
                 placeholder="0"
@@ -260,6 +292,28 @@ export function EstoqueItemDialog({
               />
             </div>
           </div>
+
+          {/* Peso calculado para categorias UN */}
+          {isUnidadeUN && (
+            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg border">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Peso por peça</Label>
+                <div className="text-sm font-medium">
+                  {pesoCalculado !== null 
+                    ? `${pesoCalculado.toFixed(2)} kg` 
+                    : 'Preencha dimensões'}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Peso total estimado</Label>
+                <div className="text-sm font-medium text-primary">
+                  {pesoTotal !== null 
+                    ? `${pesoTotal.toFixed(2)} kg` 
+                    : '-'}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Campos específicos para Perfis */}
           {showProfileFields && (

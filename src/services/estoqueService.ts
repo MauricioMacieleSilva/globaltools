@@ -61,6 +61,130 @@ export const TIPOS_PERFIL = [
   { value: 'CARTOLA_SEMI_ENRIJECIDO', label: 'Cartola Semi Enrijecido' },
 ];
 
+// Categorias que usam unidade UN (peças) com cálculo automático de peso
+export const CATEGORIAS_UNIDADE_UN: CategoriaEstoque[] = [
+  'ARAMES', 'PERFIS', 'CHAPAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO', 'BLANK', 'TIRAS'
+];
+
+// Categorias que permanecem em KG (peso direto)
+export const CATEGORIAS_UNIDADE_KG: CategoriaEstoque[] = ['BOBINAS', 'TELHAS'];
+
+// Densidade do aço em kg/mm³ (7850 kg/m³ = 0.00000785 kg/mm³)
+const DENSIDADE_ACO = 0.00000785;
+
+// Função para obter unidade padrão por categoria
+export function getUnidadePadrao(categoria: CategoriaEstoque): string {
+  return CATEGORIAS_UNIDADE_UN.includes(categoria) ? 'UN' : 'KG';
+}
+
+// Calcula peso de uma peça baseado nas dimensões (retorna kg)
+export function calcularPesoPeca(
+  categoria: CategoriaEstoque,
+  espessura?: number | null,
+  largura?: number | null,
+  comprimento?: number | null,
+  base?: number | null,
+  aba1?: number | null,
+  aba2?: number | null,
+  tipoPerfil?: string | null
+): number | null {
+  if (!espessura) return null;
+  
+  // Para perfis, calcular baseado no desenvolvimento
+  if (categoria === 'PERFIS' && tipoPerfil) {
+    let desenvolvimento = 0;
+    
+    switch (tipoPerfil) {
+      case 'U':
+        // Desenvolvimento: base + 2*aba
+        desenvolvimento = (base || 0) + 2 * (aba1 || 0);
+        break;
+      case 'L':
+        // Desenvolvimento: aba1 + aba2
+        desenvolvimento = (aba1 || 0) + (aba2 || 0);
+        break;
+      case 'CARTOLA':
+        // Desenvolvimento: base + 2*aba
+        desenvolvimento = (base || 0) + 2 * (aba1 || 0);
+        break;
+      case 'U_ENRIJECIDO':
+      case 'U_SEMI_ENRIJECIDO':
+        // Desenvolvimento: base + 2*aba1 + 2*aba2
+        desenvolvimento = (base || 0) + 2 * (aba1 || 0) + 2 * (aba2 || 0);
+        break;
+      case 'CARTOLA_ENRIJECIDO':
+      case 'CARTOLA_SEMI_ENRIJECIDO':
+        // Desenvolvimento: base + 2*aba1 + 2*aba2
+        desenvolvimento = (base || 0) + 2 * (aba1 || 0) + 2 * (aba2 || 0);
+        break;
+      case 'Z':
+        // Desenvolvimento: aba1 + base + aba2
+        desenvolvimento = (aba1 || 0) + (base || 0) + (aba2 || 0);
+        break;
+      default:
+        desenvolvimento = largura || 0;
+    }
+    
+    if (desenvolvimento <= 0 || !comprimento) return null;
+    
+    // Peso = desenvolvimento * espessura * comprimento * densidade
+    return desenvolvimento * espessura * comprimento * DENSIDADE_ACO;
+  }
+  
+  // Para chapas, blanks, tiras, laminados
+  if (['CHAPAS', 'BLANK', 'TIRAS', 'LAMINADOS'].includes(categoria)) {
+    if (!largura || !comprimento) return null;
+    // Peso = largura * comprimento * espessura * densidade
+    return largura * comprimento * espessura * DENSIDADE_ACO;
+  }
+  
+  // Para tubos (aproximação cilindro)
+  if (categoria === 'TUBOS') {
+    if (!largura || !comprimento) return null;
+    // largura = diâmetro externo, espessura = parede
+    const diametroExterno = largura;
+    const diametroInterno = diametroExterno - 2 * espessura;
+    if (diametroInterno <= 0) return null;
+    
+    const areaTransversal = Math.PI * (Math.pow(diametroExterno / 2, 2) - Math.pow(diametroInterno / 2, 2));
+    return areaTransversal * comprimento * DENSIDADE_ACO;
+  }
+  
+  // Para arames e vergalhão (cilindro sólido)
+  if (['ARAMES', 'VERGALHAO'].includes(categoria)) {
+    if (!comprimento) return null;
+    // espessura = diâmetro
+    const raio = espessura / 2;
+    const areaTransversal = Math.PI * Math.pow(raio, 2);
+    return areaTransversal * comprimento * DENSIDADE_ACO;
+  }
+  
+  return null;
+}
+
+// Calcula peso total do lote (quantidade * peso por peça)
+export function calcularPesoTotal(
+  categoria: CategoriaEstoque,
+  quantidade: number,
+  espessura?: number | null,
+  largura?: number | null,
+  comprimento?: number | null,
+  base?: number | null,
+  aba1?: number | null,
+  aba2?: number | null,
+  tipoPerfil?: string | null
+): number | null {
+  // Se for categoria KG, retorna a quantidade direta
+  if (CATEGORIAS_UNIDADE_KG.includes(categoria)) {
+    return quantidade;
+  }
+  
+  const pesoPeca = calcularPesoPeca(categoria, espessura, largura, comprimento, base, aba1, aba2, tipoPerfil);
+  if (pesoPeca === null) return null;
+  
+  return pesoPeca * quantidade;
+}
+
 // Fetch all items
 export async function fetchEstoqueItems(categoria?: CategoriaEstoque) {
   let query = supabase

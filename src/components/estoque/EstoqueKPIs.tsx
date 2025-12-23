@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Package, Weight, DollarSign, Layers } from 'lucide-react';
-import { EstoqueItem, calcularPesoTotal, CategoriaEstoque } from '@/services/estoqueService';
+import { EstoqueItem, calcularPesoTotal, CategoriaEstoque, CATEGORIAS_ESTOQUE } from '@/services/estoqueService';
 import { formatCurrency } from '@/lib/utils-comercial';
 
 // Categorias que usam preço por espessura (baseado em perfil_precos)
@@ -53,13 +53,18 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
       valor: number 
     }> = {};
 
+    // Inicializar todas as categorias
+    CATEGORIAS_ESTOQUE.forEach(cat => {
+      porCategoria[cat.value] = { itens: 0, pecas: 0, peso: 0, valor: 0 };
+    });
+
     items.forEach(item => {
       if (!item.ativo) return;
       
       totalItens += 1;
       totalPecas += item.quantidade;
       
-      // Calcular peso
+      // Calcular peso para todos os itens
       const peso = calcularPesoTotal(
         item.categoria,
         item.quantidade,
@@ -84,21 +89,26 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
       totalValor += valorItem;
       
       // Agrupar por categoria
-      if (!porCategoria[item.categoria]) {
-        porCategoria[item.categoria] = { itens: 0, pecas: 0, peso: 0, valor: 0 };
+      if (porCategoria[item.categoria]) {
+        porCategoria[item.categoria].itens += 1;
+        porCategoria[item.categoria].pecas += item.quantidade;
+        porCategoria[item.categoria].peso += pesoItem;
+        porCategoria[item.categoria].valor += valorItem;
       }
-      porCategoria[item.categoria].itens += 1;
-      porCategoria[item.categoria].pecas += item.quantidade;
-      porCategoria[item.categoria].peso += pesoItem;
-      porCategoria[item.categoria].valor += valorItem;
     });
+
+    // Gerar lista de categorias com itens
+    const categoriasComItens = CATEGORIAS_ESTOQUE
+      .filter(cat => porCategoria[cat.value]?.itens > 0)
+      .map(cat => cat.label);
 
     return {
       totalItens,
       totalPecas,
       totalPeso,
       totalValor,
-      porCategoria
+      porCategoria,
+      categoriasComItens
     };
   }, [items, precosEspessuraMap]);
 
@@ -118,7 +128,9 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
               <p className="text-sm font-medium text-muted-foreground">Total de Itens</p>
               <h3 className="text-2xl font-bold text-foreground">{stats.totalItens}</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Tipos de produtos cadastrados
+                {stats.categoriasComItens.length > 0 
+                  ? `${stats.categoriasComItens.length} categorias` 
+                  : 'Nenhum item cadastrado'}
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -137,7 +149,7 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
                 {stats.totalPecas.toLocaleString('pt-BR')}
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Unidades em estoque
+                Todas as categorias
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -175,7 +187,7 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
                 {formatCurrency(stats.totalValor)}
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Perfis, Tiras, Chapas, Blank
+                Baseado na política comercial
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">

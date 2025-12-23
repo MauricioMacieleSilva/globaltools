@@ -61,6 +61,13 @@ export const TIPOS_PERFIL = [
   { value: 'CARTOLA_SEMI_ENRIJECIDO', label: 'Cartola Semi Enrijecido' },
 ];
 
+// Tipos de tubos disponíveis
+export const TIPOS_TUBO = [
+  { value: 'QD', label: 'Tubo Quadrado' },
+  { value: 'RT', label: 'Tubo Retangular' },
+  { value: 'RD', label: 'Tubo Redondo' },
+];
+
 // Categorias que usam unidade UN (peças) com cálculo automático de peso
 export const CATEGORIAS_UNIDADE_UN: CategoriaEstoque[] = [
   'ARAMES', 'PERFIS', 'CHAPAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO', 'BLANK', 'TIRAS'
@@ -138,16 +145,44 @@ export function calcularPesoPeca(
     return largura * comprimento * espessura * DENSIDADE_ACO;
   }
   
-  // Para tubos (aproximação cilindro)
+  // Para tubos - cálculo baseado no tipo (QD, RT, RD)
   if (categoria === 'TUBOS') {
-    if (!largura || !comprimento) return null;
-    // largura = diâmetro externo, espessura = parede
-    const diametroExterno = largura;
-    const diametroInterno = diametroExterno - 2 * espessura;
-    if (diametroInterno <= 0) return null;
+    if (!comprimento) return null;
     
-    const areaTransversal = Math.PI * (Math.pow(diametroExterno / 2, 2) - Math.pow(diametroInterno / 2, 2));
-    return areaTransversal * comprimento * DENSIDADE_ACO;
+    // tipoTubo é armazenado em tipoPerfil
+    const tipoTubo = tipoPerfil || 'RD';
+    
+    switch (tipoTubo) {
+      case 'QD': {
+        // Tubo Quadrado: lado está em largura
+        const lado = largura;
+        if (!lado) return null;
+        // Perímetro externo - desconta cantos sobrepostos
+        // Área = 4 * (lado * espessura) - 4 * (espessura²)
+        const areaTransversal = 4 * (lado * espessura) - 4 * Math.pow(espessura, 2);
+        return areaTransversal * comprimento * DENSIDADE_ACO;
+      }
+      case 'RT': {
+        // Tubo Retangular: largura e altura (aba1)
+        const larguraRT = largura;
+        const alturaRT = aba1;
+        if (!larguraRT || !alturaRT) return null;
+        // Perímetro = 2*(largura + altura), desconta cantos
+        const areaTransversal = 2 * ((larguraRT * espessura) + (alturaRT * espessura)) - 4 * Math.pow(espessura, 2);
+        return areaTransversal * comprimento * DENSIDADE_ACO;
+      }
+      case 'RD':
+      default: {
+        // Tubo Redondo: diâmetro externo está em largura
+        if (!largura) return null;
+        const diametroExterno = largura;
+        const diametroInterno = diametroExterno - 2 * espessura;
+        if (diametroInterno <= 0) return null;
+        
+        const areaTransversal = Math.PI * (Math.pow(diametroExterno / 2, 2) - Math.pow(diametroInterno / 2, 2));
+        return areaTransversal * comprimento * DENSIDADE_ACO;
+      }
+    }
   }
   
   // Para arames e vergalhão (cilindro sólido)

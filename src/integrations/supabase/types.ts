@@ -483,6 +483,72 @@ export type Database = {
           },
         ]
       }
+      estoque_itens: {
+        Row: {
+          aba1: number | null
+          aba2: number | null
+          ativo: boolean | null
+          base: number | null
+          categoria: string
+          comprimento: number | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string
+          espessura: number | null
+          id: string
+          imagem_url: string | null
+          largura: number | null
+          localizacao: string | null
+          observacoes: string | null
+          quantidade: number
+          tipo_perfil: string | null
+          unidade: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aba1?: number | null
+          aba2?: number | null
+          ativo?: boolean | null
+          base?: number | null
+          categoria: string
+          comprimento?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao: string
+          espessura?: number | null
+          id?: string
+          imagem_url?: string | null
+          largura?: number | null
+          localizacao?: string | null
+          observacoes?: string | null
+          quantidade?: number
+          tipo_perfil?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aba1?: number | null
+          aba2?: number | null
+          ativo?: boolean | null
+          base?: number | null
+          categoria?: string
+          comprimento?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string
+          espessura?: number | null
+          id?: string
+          imagem_url?: string | null
+          largura?: number | null
+          localizacao?: string | null
+          observacoes?: string | null
+          quantidade?: number
+          tipo_perfil?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       excluded_orders: {
         Row: {
           created_at: string

@@ -5,7 +5,7 @@ import {
   fetchEstoqueItems,
   calcularPesoTotal
 } from '@/services/estoqueService';
-import { fetchAllPoliticaComercialData, PoliticaComercialData } from '@/services/politicaComercialService';
+import { fetchPerfilPrecos, PerfilPreco } from '@/services/perfilPrecosService';
 
 interface EstoqueStats {
   totalItens: number;
@@ -13,6 +13,9 @@ interface EstoqueStats {
   totalPeso: number;
   totalValor: number;
 }
+
+// Mapa de espessura -> preço por kg
+type PrecosEspessuraMap = Record<number, number>;
 
 interface EstoqueContextType {
   items: EstoqueItem[];
@@ -23,38 +26,40 @@ interface EstoqueContextType {
   refreshData: () => Promise<void>;
   getItemsByCategoria: (categoria: CategoriaEstoque) => EstoqueItem[];
   getItemCount: (categoria: CategoriaEstoque) => number;
-  precosMap: Record<string, number>;
+  precosEspessuraMap: PrecosEspessuraMap;
   stats: EstoqueStats;
 }
 
 const EstoqueContext = createContext<EstoqueContextType | undefined>(undefined);
+
+// Categorias que usam preço por espessura (baseado em perfil_precos)
+const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK'];
 
 export function EstoqueProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<EstoqueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaEstoque>('PERFIS');
-  const [precosMap, setPrecosMap] = useState<Record<string, number>>({});
+  const [precosEspessuraMap, setPrecosEspessuraMap] = useState<PrecosEspessuraMap>({});
 
-  // Buscar preços da política comercial
+  // Buscar preços de perfil por espessura
   const fetchPrecos = useCallback(async () => {
     try {
-      const data = await fetchAllPoliticaComercialData();
-      const precos: Record<string, number> = {};
+      const { data } = await fetchPerfilPrecos();
       
-      // Mapear preço médio por categoria
-      Object.entries(data).forEach(([categoria, itens]) => {
-        if (itens.length > 0) {
-          // Usar o primeiro preço ou calcular média
-          const precoMedio = itens.reduce((acc, item) => {
-            // Priorizar preço por kg se disponível
-            return acc + (item.precoKg || item.preco);
-          }, 0) / itens.length;
-          precos[categoria] = precoMedio;
-        }
-      });
-      
-      setPrecosMap(precos);
+      if (data) {
+        const precos: PrecosEspessuraMap = {};
+        
+        // Agrupar por espessura, usando preço padrão preferencialmente
+        data.forEach((preco: PerfilPreco) => {
+          // Se já existe um preço para essa espessura, prioriza 'padrao'
+          if (!precos[preco.espessura] || preco.tipo === 'padrao') {
+            precos[preco.espessura] = preco.preco_kg;
+          }
+        });
+        
+        setPrecosEspessuraMap(precos);
+      }
     } catch (err) {
       console.error('Error fetching precos:', err);
     }
@@ -95,6 +100,33 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
     return items.filter(item => item.categoria === categoria).length;
   }, [items]);
 
+  // Função para encontrar o preço mais próximo por espessura
+  const getPrecoByEspessura = useCallback((espessura: number | null): number => {
+    if (!espessura || Object.keys(precosEspessuraMap).length === 0) return 0;
+    
+    // Busca exata primeiro
+    if (precosEspessuraMap[espessura]) {
+      return precosEspessuraMap[espessura];
+    }
+    
+    // Se não encontrar, busca o mais próximo
+    const espessuras = Object.keys(precosEspessuraMap).map(Number);
+    if (espessuras.length === 0) return 0;
+    
+    let closest = espessuras[0];
+    let minDiff = Math.abs(closest - espessura);
+    
+    for (const esp of espessuras) {
+      const diff = Math.abs(esp - espessura);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = esp;
+      }
+    }
+    
+    return precosEspessuraMap[closest] || 0;
+  }, [precosEspessuraMap]);
+
   // Calcular estatísticas globais
   const stats = React.useMemo<EstoqueStats>(() => {
     let totalItens = 0;
@@ -123,9 +155,12 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       const pesoItem = peso || 0;
       totalPeso += pesoItem;
       
-      const precoKg = precosMap[item.categoria] || 0;
-      const valorItem = pesoItem * precoKg;
-      totalValor += valorItem;
+      // Para PERFIS, TIRAS, CHAPAS, BLANK: usar preço por espessura
+      if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria)) {
+        const precoKg = getPrecoByEspessura(item.espessura);
+        totalValor += pesoItem * precoKg;
+      }
+      // Outras categorias: valor zero por enquanto (sem preço definido)
     });
 
     return {
@@ -134,7 +169,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       totalPeso,
       totalValor
     };
-  }, [items, precosMap]);
+  }, [items, getPrecoByEspessura]);
 
   return (
     <EstoqueContext.Provider value={{
@@ -146,7 +181,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       refreshData,
       getItemsByCategoria,
       getItemCount,
-      precosMap,
+      precosEspessuraMap,
       stats
     }}>
       {children}

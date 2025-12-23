@@ -120,7 +120,7 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-3">
       <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
@@ -129,31 +129,12 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
               <h3 className="text-2xl font-bold text-foreground">{stats.totalItens}</h3>
               <p className="text-xs text-muted-foreground mt-1">
                 {stats.categoriasComItens.length > 0 
-                  ? `${stats.categoriasComItens.length} categorias` 
+                  ? `Em ${stats.categoriasComItens.length} categorias` 
                   : 'Nenhum item cadastrado'}
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
               <Layers className="h-6 w-6 text-blue-500" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total de Peças</p>
-              <h3 className="text-2xl font-bold text-foreground">
-                {stats.totalPecas.toLocaleString('pt-BR')}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Todas as categorias
-              </p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
-              <Package className="h-6 w-6 text-green-500" />
             </div>
           </div>
         </CardContent>
@@ -168,7 +149,7 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
                 {formatWeight(stats.totalPeso)}
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                {(stats.totalPeso / 1000).toFixed(2)} toneladas
+                {stats.totalPecas.toLocaleString('pt-BR')} peças no estoque
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
@@ -187,7 +168,7 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
                 {formatCurrency(stats.totalValor)}
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Baseado na política comercial
+                Perfis, chapas, blanks e tiras
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">

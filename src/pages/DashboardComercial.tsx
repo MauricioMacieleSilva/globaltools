@@ -159,7 +159,7 @@ export default function DashboardComercial() {
   return (
     <ErrorBoundary>
         <div className={cn(
-          "min-h-screen w-full bg-background",
+          "min-h-screen w-full bg-background overflow-x-hidden",
           isFullscreen && "dashboard-fullscreen-mode"
         )}>
           {/* Botão flutuante para sair do modo tela cheia */}

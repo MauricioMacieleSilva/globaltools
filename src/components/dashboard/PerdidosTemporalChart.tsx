@@ -232,9 +232,9 @@ export function PerdidosTemporalChart() {
           </CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-1 sm:p-4 pt-0">
+      <CardContent className="p-1 sm:p-4 pt-0 overflow-hidden">
         <ResponsiveContainer width="100%" height={drillDown.isMonthView ? 120 : 140}>
-          <BarChart data={perdidosTemporalData} margin={{ left: -20, right: 2, top: 15, bottom: 0 }}>
+          <BarChart data={perdidosTemporalData} margin={{ left: 0, right: 0, top: 15, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="periodo" 

@@ -110,7 +110,7 @@ export function PerdidosCharts() {
             Motivos de Perda
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-2 sm:p-4 pt-0">
+        <CardContent className="p-2 sm:p-4 pt-0 overflow-hidden">
           {chartData.motivos.length > 0 ? (
             <PerdidosBarChart 
               data={chartData.motivos} 
@@ -130,7 +130,7 @@ export function PerdidosCharts() {
             Perdidos por Classe
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-2 sm:p-4 pt-0">
+        <CardContent className="p-2 sm:p-4 pt-0 overflow-hidden">
           {chartData.classes.length > 0 ? (
             <PerdidosBarChart 
               data={chartData.classes} 

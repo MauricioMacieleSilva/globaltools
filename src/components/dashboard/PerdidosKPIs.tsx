@@ -51,16 +51,15 @@ export function PerdidosKPIs() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index} className="animate-pulse">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 bg-muted rounded w-24"></div>
-              <div className="h-4 w-4 bg-muted rounded"></div>
+          <Card key={index} className="animate-pulse p-2 sm:p-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-0">
+              <div className="h-3 sm:h-4 bg-muted rounded w-16 sm:w-24"></div>
+              <div className="h-3 w-3 sm:h-4 sm:w-4 bg-muted rounded"></div>
             </CardHeader>
-            <CardContent>
-              <div className="h-8 bg-muted rounded w-32 mb-2"></div>
-              <div className="h-3 bg-muted rounded w-20"></div>
+            <CardContent className="p-0 pt-1 sm:pt-2">
+              <div className="h-5 sm:h-8 bg-muted rounded w-20 sm:w-32"></div>
             </CardContent>
           </Card>
         ))}
@@ -69,58 +68,58 @@ export function PerdidosKPIs() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card className="bg-destructive/5 border-destructive/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-destructive">
-            Valor Total Perdido
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+      <Card className="bg-destructive/5 border-destructive/20 p-2 sm:p-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-0">
+          <CardTitle className="text-[10px] sm:text-sm font-medium text-destructive">
+            Valor Perdido
           </CardTitle>
-          <DollarSign className="h-4 w-4 text-destructive" />
+          <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-destructive">
+        <CardContent className="p-0 pt-1 sm:pt-2">
+          <div className="text-sm sm:text-2xl font-bold text-destructive">
             {formatCurrency(kpisPerdidos.valor)}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-destructive/5 border-destructive/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-destructive">
-            Pedidos Perdidos
+      <Card className="bg-destructive/5 border-destructive/20 p-2 sm:p-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-0">
+          <CardTitle className="text-[10px] sm:text-sm font-medium text-destructive">
+            Pedidos
           </CardTitle>
-          <Package className="h-4 w-4 text-destructive" />
+          <Package className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-destructive">
+        <CardContent className="p-0 pt-1 sm:pt-2">
+          <div className="text-sm sm:text-2xl font-bold text-destructive">
             {formatNumber(kpisPerdidos.numPedidos)}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-destructive/5 border-destructive/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-destructive">
-            Clientes Perdidos
+      <Card className="bg-destructive/5 border-destructive/20 p-2 sm:p-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-0">
+          <CardTitle className="text-[10px] sm:text-sm font-medium text-destructive">
+            Clientes
           </CardTitle>
-          <Users className="h-4 w-4 text-destructive" />
+          <Users className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-destructive">
+        <CardContent className="p-0 pt-1 sm:pt-2">
+          <div className="text-sm sm:text-2xl font-bold text-destructive">
             {formatNumber(kpisPerdidos.numClientes)}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-destructive/5 border-destructive/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-destructive">
-            Peso Perdido
+      <Card className="bg-destructive/5 border-destructive/20 p-2 sm:p-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-0">
+          <CardTitle className="text-[10px] sm:text-sm font-medium text-destructive">
+            Peso
           </CardTitle>
-          <TrendingDown className="h-4 w-4 text-destructive" />
+          <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-destructive">
+        <CardContent className="p-0 pt-1 sm:pt-2">
+          <div className="text-sm sm:text-2xl font-bold text-destructive">
             {formatWeight(kpisPerdidos.peso)}
           </div>
         </CardContent>

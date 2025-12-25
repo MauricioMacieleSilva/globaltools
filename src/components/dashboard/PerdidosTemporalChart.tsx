@@ -213,39 +213,41 @@ export function PerdidosTemporalChart() {
   };
 
   return (
-    <Card className="w-full h-80">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
+    <Card className="w-full h-56 sm:h-80">
+      <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4 pb-1 sm:pb-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {!drillDown.isMonthView && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleBackToMonthView}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 h-6 sm:h-8 px-1 sm:px-2 text-xs"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Voltar</span>
             </Button>
           )}
-          <CardTitle className="text-destructive">
+          <CardTitle className="text-destructive text-xs sm:text-base">
             {getChartTitle()}
           </CardTitle>
         </div>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={perdidosTemporalData}>
+      <CardContent className="p-1 sm:p-4 pt-0">
+        <ResponsiveContainer width="100%" height={drillDown.isMonthView ? 150 : 180}>
+          <BarChart data={perdidosTemporalData} margin={{ left: -10, right: 5, top: 5, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="periodo" 
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 8 }}
               angle={drillDown.isMonthView ? -45 : 0}
               textAnchor={drillDown.isMonthView ? 'end' : 'middle'}
-              height={drillDown.isMonthView ? 60 : 30}
+              height={drillDown.isMonthView ? 40 : 20}
+              interval={0}
             />
             <YAxis 
               tickFormatter={formatLabel}
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 8 }}
+              width={35}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar 
@@ -261,7 +263,7 @@ export function PerdidosTemporalChart() {
                 <LabelList 
                   dataKey="pedidos" 
                   position="top" 
-                  style={{ fontSize: '12px', fill: 'hsl(var(--destructive))' }}
+                  style={{ fontSize: '8px', fill: 'hsl(var(--destructive))' }}
                 />
               )}
             </Bar>

@@ -15,6 +15,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ClientFollowUpDialog } from "./ClientFollowUpDialog";
 import { BaseClientesTableMobile } from "./BaseClientesTableMobile";
+import { ClientesKPIsMobile } from "./ClientesKPIsMobile";
 
 interface ClienteInfo {
   nome: string;
@@ -337,82 +338,93 @@ export function BaseClientesTable() {
   };
 
   return (
-    <div className="space-y-4 w-full min-w-0 overflow-hidden">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4 w-full">
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground truncate">Total Clientes</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-bold">{estatisticas.total}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground truncate">Ativos</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-bold text-green-600">{estatisticas.ativos}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground truncate">Inativos</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-bold text-red-600">{estatisticas.inativos}</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground truncate">Faturamento</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-sm sm:text-lg font-bold truncate">
-              {formatCurrency(estatisticas.faturamentoTotal)}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="col-span-2 sm:col-span-1 min-w-0 overflow-hidden">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground truncate">Ticket Médio</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-sm sm:text-lg font-bold truncate">
-              {formatCurrency(estatisticas.ticketMedioGeral)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex items-center gap-2 sm:gap-4 w-full">
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3 w-3 sm:h-4 sm:w-4" />
-          <Input
-            placeholder="Buscar cliente..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-7 sm:pl-10 h-8 sm:h-10 text-xs sm:text-sm w-full"
-          />
+    <div className="space-y-4">
+      {/* KPIs - Mobile vs Desktop */}
+      {isMobile ? (
+        <ClientesKPIsMobile
+          total={estatisticas.total}
+          ativos={estatisticas.ativos}
+          inativos={estatisticas.inativos}
+          faturamentoTotal={estatisticas.faturamentoTotal}
+          ticketMedioGeral={estatisticas.ticketMedioGeral}
+        />
+      ) : (
+        <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Total Clientes</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl font-bold">{estatisticas.total}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Ativos</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl font-bold text-green-600">{estatisticas.ativos}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Inativos</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl font-bold text-red-600">{estatisticas.inativos}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Faturamento</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-lg font-bold">
+                {formatCurrency(estatisticas.faturamentoTotal)}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Ticket Médio</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-lg font-bold">
+                {formatCurrency(estatisticas.ticketMedioGeral)}
+              </div>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Buscar cliente..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
+      {/* Lista de Clientes */}
       <Card>
-        <CardHeader className="p-2 sm:p-4">
+        <CardHeader className="p-3 sm:p-4">
           <CardTitle className="text-sm sm:text-base">
             Base de Clientes ({clientesFiltrados.length})
             {clientesFiltrados.length > 0 && (
-              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1 sm:ml-2">
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-2">
                 {startIndex}-{endIndex} de {clientesFiltrados.length}
               </span>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-2 sm:p-4 pt-0">
+        <CardContent className="p-3 sm:p-4 pt-0">
           {isMobile ? (
             <BaseClientesTableMobile
               clientes={clientes}

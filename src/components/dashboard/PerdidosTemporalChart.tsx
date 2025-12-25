@@ -212,8 +212,13 @@ export function PerdidosTemporalChart() {
     }
   };
 
+  // Calcular largura mínima para visualização diária no mobile
+  const chartMinWidth = !drillDown.isMonthView && perdidosTemporalData.length > 15 
+    ? Math.max(500, perdidosTemporalData.length * 18) 
+    : undefined;
+
   return (
-    <Card className="w-full h-56 sm:h-80">
+    <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4 pb-1 sm:pb-2">
         <div className="flex items-center gap-1 sm:gap-2">
           {!drillDown.isMonthView && (
@@ -233,42 +238,46 @@ export function PerdidosTemporalChart() {
         </div>
       </CardHeader>
       <CardContent className="p-1 sm:p-4 pt-0">
-        <ResponsiveContainer width="100%" height={drillDown.isMonthView ? 150 : 180}>
-          <BarChart data={perdidosTemporalData} margin={{ left: -10, right: 5, top: 5, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="periodo" 
-              tick={{ fontSize: 8 }}
-              angle={drillDown.isMonthView ? -45 : 0}
-              textAnchor={drillDown.isMonthView ? 'end' : 'middle'}
-              height={drillDown.isMonthView ? 40 : 20}
-              interval={0}
-            />
-            <YAxis 
-              tickFormatter={formatLabel}
-              tick={{ fontSize: 8 }}
-              width={35}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar 
-              dataKey="valor" 
-              radius={[4, 4, 0, 0]}
-              cursor={drillDown.isMonthView ? "pointer" : "default"}
-              onClick={handleBarClick}
-            >
-              {perdidosTemporalData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-              {!drillDown.isMonthView && (
-                <LabelList 
-                  dataKey="pedidos" 
-                  position="top" 
-                  style={{ fontSize: '8px', fill: 'hsl(var(--destructive))' }}
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: chartMinWidth }}>
+            <ResponsiveContainer width="100%" height={drillDown.isMonthView ? 120 : 140}>
+              <BarChart data={perdidosTemporalData} margin={{ left: -15, right: 5, top: 15, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="periodo" 
+                  tick={{ fontSize: 8 }}
+                  angle={drillDown.isMonthView ? -45 : 0}
+                  textAnchor={drillDown.isMonthView ? 'end' : 'middle'}
+                  height={drillDown.isMonthView ? 35 : 18}
+                  interval={0}
                 />
-              )}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+                <YAxis 
+                  tickFormatter={formatLabel}
+                  tick={{ fontSize: 7 }}
+                  width={30}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar 
+                  dataKey="valor" 
+                  radius={[4, 4, 0, 0]}
+                  cursor={drillDown.isMonthView ? "pointer" : "default"}
+                  onClick={handleBarClick}
+                >
+                  {perdidosTemporalData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                  {!drillDown.isMonthView && (
+                    <LabelList 
+                      dataKey="pedidos" 
+                      position="top" 
+                      style={{ fontSize: '7px', fill: 'hsl(var(--destructive))' }}
+                    />
+                  )}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

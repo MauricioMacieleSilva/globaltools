@@ -338,51 +338,51 @@ export function BaseClientesTable() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
-        <Card>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
+        <Card className="overflow-hidden">
           <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm">Total Clientes</CardTitle>
+            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground">Total Clientes</CardTitle>
           </CardHeader>
           <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-bold">{estatisticas.total}</div>
+            <div className="text-base sm:text-2xl font-bold">{estatisticas.total}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm">Ativos</CardTitle>
+            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground">Ativos</CardTitle>
           </CardHeader>
           <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-bold text-green-600">{estatisticas.ativos}</div>
+            <div className="text-base sm:text-2xl font-bold text-green-600">{estatisticas.ativos}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm">Inativos</CardTitle>
+            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground">Inativos</CardTitle>
           </CardHeader>
           <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-bold text-red-600">{estatisticas.inativos}</div>
+            <div className="text-base sm:text-2xl font-bold text-red-600">{estatisticas.inativos}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm">Faturamento</CardTitle>
+            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground">Faturamento</CardTitle>
           </CardHeader>
           <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-sm sm:text-lg font-bold truncate">
+            <div className="text-xs sm:text-lg font-bold break-all leading-tight">
               {formatCurrency(estatisticas.faturamentoTotal)}
             </div>
           </CardContent>
         </Card>
         
-        <Card className="col-span-2 sm:col-span-1">
+        <Card className="col-span-2 sm:col-span-1 overflow-hidden">
           <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-[10px] sm:text-sm">Ticket Médio</CardTitle>
+            <CardTitle className="text-[10px] sm:text-sm text-muted-foreground">Ticket Médio</CardTitle>
           </CardHeader>
           <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-sm sm:text-lg font-bold">
+            <div className="text-xs sm:text-lg font-bold">
               {formatCurrency(estatisticas.ticketMedioGeral)}
             </div>
           </CardContent>

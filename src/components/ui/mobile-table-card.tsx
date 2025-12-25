@@ -33,7 +33,7 @@ export function MobileTableCard({
   return (
     <Card 
       className={cn(
-        "p-4 space-y-3",
+        "p-3 space-y-2 w-full min-w-0 overflow-hidden",
         onClick && "cursor-pointer hover:bg-accent/50 transition-colors",
         className
       )}
@@ -41,15 +41,15 @@ export function MobileTableCard({
     >
       {/* Header */}
       {(title || badge) && (
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <div className="min-w-0 flex-1 overflow-hidden">
             {title && (
-              <div className="font-semibold text-base truncate">
+              <div className="font-semibold text-sm truncate">
                 {title}
               </div>
             )}
             {subtitle && (
-              <div className="text-sm text-muted-foreground truncate">
+              <div className="text-xs text-muted-foreground truncate">
                 {subtitle}
               </div>
             )}
@@ -88,7 +88,7 @@ export function MobileTableCard({
 
       {/* Actions */}
       {actions && (
-        <div className="flex gap-2 pt-2 border-t flex-wrap">
+        <div className="flex gap-2 pt-2 border-t flex-wrap min-w-0">
           {actions}
         </div>
       )}

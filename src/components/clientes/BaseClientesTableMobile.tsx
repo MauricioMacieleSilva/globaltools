@@ -32,22 +32,23 @@ export function BaseClientesTableMobile({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full min-w-0">
       {clientes.map((cliente) => (
         <MobileTableCard
           key={cliente.nome}
           title={cliente.nome}
+          className="w-full min-w-0"
           badge={
             cliente.ativo ? (
-              <Badge className="bg-green-100 text-green-800">Ativo</Badge>
+              <Badge className="bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5">Ativo</Badge>
             ) : (
-              <Badge className="bg-red-100 text-red-800">Inativo</Badge>
+              <Badge className="bg-red-100 text-red-800 text-[10px] px-1.5 py-0.5">Inativo</Badge>
             )
           }
           fields={[
-            { label: 'Faturado', value: formatCurrency(cliente.totalFaturado), fullWidth: true },
+            { label: 'Faturado', value: formatCurrency(cliente.totalFaturado) },
             { label: 'Pedidos', value: cliente.pedidosFaturados.toString() },
-            { label: 'Ticket', value: formatCurrency(cliente.ticketMedio), fullWidth: true },
+            { label: 'Ticket', value: formatCurrency(cliente.ticketMedio) },
             { 
               label: 'Última Compra', 
               value: cliente.ultimaCompra 
@@ -65,17 +66,19 @@ export function BaseClientesTableMobile({
               <Button 
                 size="sm" 
                 variant="outline"
+                className="text-xs h-7 px-2"
                 onClick={() => onViewHistory(cliente)}
               >
-                <Eye className="h-4 w-4 mr-1" />
+                <Eye className="h-3 w-3 mr-1" />
                 Histórico
               </Button>
               <Button 
                 size="sm" 
                 variant="outline"
+                className="text-xs h-7 px-2"
                 onClick={() => onFollowUp(cliente.nome)}
               >
-                <MessageSquare className="h-4 w-4 mr-1" />
+                <MessageSquare className="h-3 w-3 mr-1" />
                 Follow-up
               </Button>
             </>

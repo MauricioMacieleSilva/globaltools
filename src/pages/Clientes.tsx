@@ -29,13 +29,13 @@ export default function Clientes() {
         <CardContent className="p-3 sm:p-6 pt-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 h-9">
-              <TabsTrigger value="base" className="text-xs sm:text-sm">
-                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Clientes
+              <TabsTrigger value="base" className="w-full min-w-0 px-2 text-xs sm:text-sm gap-1">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="min-w-0 truncate">Clientes</span>
               </TabsTrigger>
-              <TabsTrigger value="analise" className="text-xs sm:text-sm">
-                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Análise
+              <TabsTrigger value="analise" className="w-full min-w-0 px-2 text-xs sm:text-sm gap-1">
+                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="min-w-0 truncate">Análise</span>
               </TabsTrigger>
             </TabsList>
 

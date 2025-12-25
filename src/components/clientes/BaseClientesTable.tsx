@@ -338,81 +338,81 @@ export function BaseClientesTable() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total de Clientes</CardTitle>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
+            <CardTitle className="text-[10px] sm:text-sm">Total Clientes</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{estatisticas.total}</div>
+          <CardContent className="p-2 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-bold">{estatisticas.total}</div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Clientes Ativos</CardTitle>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
+            <CardTitle className="text-[10px] sm:text-sm">Ativos</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{estatisticas.ativos}</div>
+          <CardContent className="p-2 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">{estatisticas.ativos}</div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Clientes Inativos</CardTitle>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
+            <CardTitle className="text-[10px] sm:text-sm">Inativos</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{estatisticas.inativos}</div>
+          <CardContent className="p-2 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-red-600">{estatisticas.inativos}</div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Faturamento Total</CardTitle>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
+            <CardTitle className="text-[10px] sm:text-sm">Faturamento</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">
+          <CardContent className="p-2 sm:p-4 pt-0">
+            <div className="text-sm sm:text-lg font-bold truncate">
               {formatCurrency(estatisticas.faturamentoTotal)}
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Ticket Médio</CardTitle>
+        <Card className="col-span-2 sm:col-span-1">
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
+            <CardTitle className="text-[10px] sm:text-sm">Ticket Médio</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-lg font-bold">
+          <CardContent className="p-2 sm:p-4 pt-0">
+            <div className="text-sm sm:text-lg font-bold">
               {formatCurrency(estatisticas.ticketMedioGeral)}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3 w-3 sm:h-4 sm:w-4" />
           <Input
             placeholder="Buscar cliente..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-7 sm:pl-10 h-8 sm:h-10 text-xs sm:text-sm"
           />
         </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>
-            Base de Clientes ({clientesFiltrados.length} total)
+        <CardHeader className="p-2 sm:p-4">
+          <CardTitle className="text-sm sm:text-base">
+            Base de Clientes ({clientesFiltrados.length})
             {clientesFiltrados.length > 0 && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                Mostrando {startIndex}-{endIndex} de {clientesFiltrados.length}
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1 sm:ml-2">
+                {startIndex}-{endIndex} de {clientesFiltrados.length}
               </span>
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2 sm:p-4 pt-0">
           {isMobile ? (
             <BaseClientesTableMobile
               clientes={clientes}

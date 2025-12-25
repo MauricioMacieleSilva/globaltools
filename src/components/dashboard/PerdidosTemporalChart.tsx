@@ -212,11 +212,6 @@ export function PerdidosTemporalChart() {
     }
   };
 
-  // Calcular largura mínima para visualização diária no mobile
-  const chartMinWidth = !drillDown.isMonthView && perdidosTemporalData.length > 15 
-    ? Math.max(500, perdidosTemporalData.length * 18) 
-    : undefined;
-
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between p-2 sm:p-4 pb-1 sm:pb-2">
@@ -238,46 +233,55 @@ export function PerdidosTemporalChart() {
         </div>
       </CardHeader>
       <CardContent className="p-1 sm:p-4 pt-0">
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: chartMinWidth }}>
-            <ResponsiveContainer width="100%" height={drillDown.isMonthView ? 120 : 140}>
-              <BarChart data={perdidosTemporalData} margin={{ left: -15, right: 5, top: 15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="periodo" 
-                  tick={{ fontSize: 8 }}
-                  angle={drillDown.isMonthView ? -45 : 0}
-                  textAnchor={drillDown.isMonthView ? 'end' : 'middle'}
-                  height={drillDown.isMonthView ? 35 : 18}
-                  interval={0}
+        <ResponsiveContainer width="100%" height={drillDown.isMonthView ? 120 : 140}>
+          <BarChart data={perdidosTemporalData} margin={{ left: -20, right: 2, top: 15, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="periodo" 
+              tick={{ fontSize: 7 }}
+              angle={0}
+              textAnchor="middle"
+              height={18}
+              interval={drillDown.isMonthView ? 0 : 'preserveStartEnd'}
+              tickFormatter={(value, index) => {
+                // No mobile com visualização diária, mostrar apenas alguns dias
+                if (!drillDown.isMonthView && perdidosTemporalData.length > 15) {
+                  const dayNum = parseInt(value);
+                  // Mostrar dia 1, 5, 10, 15, 20, 25 e último
+                  if (dayNum === 1 || dayNum === 5 || dayNum === 10 || dayNum === 15 || dayNum === 20 || dayNum === 25 || dayNum === perdidosTemporalData.length) {
+                    return value;
+                  }
+                  return '';
+                }
+                return value;
+              }}
+            />
+            <YAxis 
+              tickFormatter={formatLabel}
+              tick={{ fontSize: 7 }}
+              width={28}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar 
+              dataKey="valor" 
+              radius={[2, 2, 0, 0]}
+              cursor={drillDown.isMonthView ? "pointer" : "default"}
+              onClick={handleBarClick}
+            >
+              {perdidosTemporalData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+              {!drillDown.isMonthView && (
+                <LabelList 
+                  dataKey="pedidos" 
+                  position="top" 
+                  style={{ fontSize: '6px', fill: 'hsl(var(--destructive))' }}
+                  formatter={(value: number) => value > 0 ? value : ''}
                 />
-                <YAxis 
-                  tickFormatter={formatLabel}
-                  tick={{ fontSize: 7 }}
-                  width={30}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar 
-                  dataKey="valor" 
-                  radius={[4, 4, 0, 0]}
-                  cursor={drillDown.isMonthView ? "pointer" : "default"}
-                  onClick={handleBarClick}
-                >
-                  {perdidosTemporalData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                  {!drillDown.isMonthView && (
-                    <LabelList 
-                      dataKey="pedidos" 
-                      position="top" 
-                      style={{ fontSize: '7px', fill: 'hsl(var(--destructive))' }}
-                    />
-                  )}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+              )}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );

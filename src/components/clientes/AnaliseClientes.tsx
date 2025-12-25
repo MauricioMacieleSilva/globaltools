@@ -422,21 +422,28 @@ export function AnaliseClientes() {
               }
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
+          <CardContent className="p-3 sm:p-6 pt-0 overflow-hidden">
+            <ResponsiveContainer width="100%" height={isMobile ? 180 : 300}>
               <BarChart 
                 data={chartData}
+                margin={{ top: 10, right: 5, left: 0, bottom: isMobile ? 0 : 10 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey={drillDownState.mode === 'uf' ? 'uf' : 'cidade'} 
-                  tick={{ fontSize: isMobile ? 10 : 12 }}
-                  interval={0}
-                  angle={isMobile ? -45 : 0}
-                  textAnchor={isMobile ? "end" : "middle"}
-                  height={isMobile ? 50 : 30}
+                  tick={{ fontSize: isMobile ? 9 : 12 }}
+                  interval={isMobile ? 'preserveStartEnd' : 0}
+                  angle={isMobile ? 0 : 0}
+                  textAnchor="middle"
+                  height={isMobile ? 25 : 30}
+                  tickFormatter={(value: string) => {
+                    if (isMobile && drillDownState.mode === 'cidade') {
+                      return value.length > 8 ? `${value.slice(0, 7)}…` : value;
+                    }
+                    return value;
+                  }}
                 />
-                <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 40} />
+                <YAxis tick={{ fontSize: isMobile ? 9 : 12 }} width={isMobile ? 28 : 40} />
                 <Tooltip 
                   formatter={(value, name) => [
                     name === 'qtdClientes' ? `${value} clientes` : formatCurrency(value as number),
@@ -465,8 +472,8 @@ export function AnaliseClientes() {
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-sm sm:text-base">Perfil dos Clientes</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
+          <CardContent className="p-3 sm:p-6 pt-0 overflow-hidden">
+            <ResponsiveContainer width="100%" height={isMobile ? 180 : 300}>
               <PieChart>
                 <Pie
                   data={analisePerfil}

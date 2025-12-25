@@ -83,26 +83,26 @@ export function BaseClientesTableMobile({
             }
           ]}
           actions={
-            <>
+            <div className="grid grid-cols-2 gap-2 w-full">
               <Button 
                 size="sm" 
                 variant="outline"
-                className="flex-1 text-xs h-8"
+                className="w-full min-w-0 h-8 px-2 text-[11px] gap-1 overflow-hidden"
                 onClick={() => onViewHistory(cliente)}
               >
-                <Eye className="h-3 w-3 mr-1" />
-                Histórico
+                <Eye className="h-3 w-3" />
+                <span className="min-w-0 truncate">Histórico</span>
               </Button>
               <Button 
                 size="sm" 
                 variant="outline"
-                className="flex-1 text-xs h-8"
+                className="w-full min-w-0 h-8 px-2 text-[11px] gap-1 overflow-hidden"
                 onClick={() => onFollowUp(cliente.nome)}
               >
-                <MessageSquare className="h-3 w-3 mr-1" />
-                Follow-up
+                <MessageSquare className="h-3 w-3" />
+                <span className="min-w-0 truncate">Follow-up</span>
               </Button>
-            </>
+            </div>
           }
         />
       ))}

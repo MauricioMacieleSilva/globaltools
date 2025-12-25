@@ -1,4 +1,5 @@
 import React from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, CartesianGrid, LabelList } from 'recharts';
 
 interface ChartDataItem {
@@ -16,6 +17,7 @@ interface PerdidosBarChartProps {
 }
 
 export function PerdidosBarChart({ data, height = 176 }: PerdidosBarChartProps) {
+  const isMobile = useIsMobile();
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -40,22 +42,29 @@ export function PerdidosBarChart({ data, height = 176 }: PerdidosBarChartProps) 
   };
 
   return (
-    <div style={{ height }}>
+    <div className="w-full overflow-hidden" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
+        <BarChart data={data} margin={{ top: 10, right: 6, left: 0, bottom: isMobile ? 0 : 10 }}>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
           <XAxis 
             dataKey="name" 
-            tick={{ fontSize: 8 }}
-            interval={0}
-            angle={-45}
-            textAnchor="end"
-            height={80}
+            tick={{ fontSize: isMobile ? 7 : 8 }}
+            interval={isMobile ? 'preserveStartEnd' : 0}
+            angle={isMobile ? 0 : -45}
+            textAnchor={isMobile ? "middle" : "end"}
+            height={isMobile ? 28 : 80}
+            tickFormatter={(name: string) => {
+              const max = isMobile ? 10 : 18;
+              if (!name) return '';
+              if (name.length <= max) return name;
+              return `${name.slice(0, max - 1)}…`;
+            }}
           />
           <YAxis 
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: isMobile ? 8 : 10 }}
             tickFormatter={formatLabel}
-            domain={[0, (dataMax) => dataMax * 1.1]}
+            domain={[0, (dataMax: number) => dataMax * 1.1]}
+            width={isMobile ? 32 : 40}
           />
           <Tooltip 
             formatter={(value: number, name: string, props: any) => {
@@ -100,7 +109,7 @@ export function PerdidosBarChart({ data, height = 176 }: PerdidosBarChartProps) 
               dataKey="valor" 
               position="top" 
               formatter={formatLabel}
-              fontSize={9}
+              fontSize={isMobile ? 8 : 9}
               fill="hsl(var(--foreground))"
             />
             {data.map((entry, index) => (

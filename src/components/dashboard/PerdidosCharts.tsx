@@ -87,14 +87,14 @@ export function PerdidosCharts() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
         {Array.from({ length: 2 }).map((_, index) => (
-          <Card key={index} className="animate-pulse h-72">
-            <CardHeader>
-              <div className="h-6 bg-muted rounded w-48"></div>
+          <Card key={index} className="animate-pulse h-48 sm:h-72">
+            <CardHeader className="p-2 sm:p-4">
+              <div className="h-4 sm:h-6 bg-muted rounded w-32 sm:w-48"></div>
             </CardHeader>
-            <CardContent>
-              <div className="h-52 bg-muted rounded"></div>
+            <CardContent className="p-2 sm:p-4">
+              <div className="h-32 sm:h-52 bg-muted rounded"></div>
             </CardContent>
           </Card>
         ))}
@@ -103,42 +103,42 @@ export function PerdidosCharts() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card className="h-72">
-        <CardHeader>
-          <CardTitle className="text-destructive">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+      <Card className="h-48 sm:h-72">
+        <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
+          <CardTitle className="text-destructive text-xs sm:text-base">
             Motivos de Perda
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2 sm:p-4 pt-0">
           {chartData.motivos.length > 0 ? (
             <PerdidosBarChart 
               data={chartData.motivos} 
-              height={220}
+              height={140}
             />
           ) : (
-            <div className="h-52 flex items-center justify-center text-muted-foreground">
-              Nenhum dado de motivos disponível
+            <div className="h-32 sm:h-52 flex items-center justify-center text-muted-foreground text-xs sm:text-sm">
+              Nenhum dado disponível
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card className="h-72">
-        <CardHeader>
-          <CardTitle className="text-destructive">
+      <Card className="h-48 sm:h-72">
+        <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
+          <CardTitle className="text-destructive text-xs sm:text-base">
             Perdidos por Classe
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2 sm:p-4 pt-0">
           {chartData.classes.length > 0 ? (
             <PerdidosBarChart 
               data={chartData.classes} 
-              height={220}
+              height={140}
             />
           ) : (
-            <div className="h-52 flex items-center justify-center text-muted-foreground">
-              Nenhum dado de classes disponível
+            <div className="h-32 sm:h-52 flex items-center justify-center text-muted-foreground text-xs sm:text-sm">
+              Nenhum dado disponível
             </div>
           )}
         </CardContent>

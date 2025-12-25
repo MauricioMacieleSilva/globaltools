@@ -161,20 +161,21 @@ export function PerdidosTable() {
   return (
     <>
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-destructive">
-          Detalhamento dos Perdidos ({groupedPerdidos.length} pedidos)
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 sm:p-4">
+        <CardTitle className="text-destructive text-sm sm:text-base">
+          Perdidos ({groupedPerdidos.length})
         </CardTitle>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowExcludedDialog(true)}
+          className="h-7 sm:h-8 text-xs sm:text-sm"
         >
-          <Eye className="h-4 w-4 mr-2" />
-          Ver Pedidos Excluídos
+          <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Ver </span>Excluídos
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2 sm:p-4 pt-0">
         {isMobile ? (
           <PerdidosTableMobile
             groupedPerdidos={groupedPerdidos}

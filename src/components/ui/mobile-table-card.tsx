@@ -63,12 +63,12 @@ export function MobileTableCard({
       )}
 
       {/* Fields */}
-      <CardContent className="p-0 space-y-2">
+      <CardContent className="p-0 space-y-2 min-w-0 overflow-hidden">
         {fields.map((field, index) => (
           <div 
             key={index}
             className={cn(
-              "flex justify-between items-center gap-2",
+              "flex justify-between items-center gap-2 min-w-0",
               field.fullWidth && "flex-col items-start",
               field.className
             )}
@@ -77,8 +77,8 @@ export function MobileTableCard({
               {field.label}
             </span>
             <span className={cn(
-              "text-sm font-medium text-right",
-              field.fullWidth && "w-full text-left"
+              "text-sm font-medium text-right min-w-0 truncate max-w-[55%]",
+              field.fullWidth && "w-full text-left max-w-full"
             )}>
               {field.value}
             </span>

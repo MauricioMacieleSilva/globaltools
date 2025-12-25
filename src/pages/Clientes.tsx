@@ -25,15 +25,15 @@ export default function Clientes() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-2 sm:p-6 pt-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-9 sm:h-10">
-              <TabsTrigger value="base" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+            <TabsList className="grid w-full grid-cols-2 h-9 sm:h-10 min-w-0">
+              <TabsTrigger value="base" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 min-w-0 overflow-hidden">
                 <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">Clientes</span>
+                <span className="truncate min-w-0">Clientes</span>
               </TabsTrigger>
-              <TabsTrigger value="analise" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2">
+              <TabsTrigger value="analise" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 min-w-0 overflow-hidden">
                 <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="truncate">Análise</span>
+                <span className="truncate min-w-0">Análise</span>
               </TabsTrigger>
             </TabsList>
 

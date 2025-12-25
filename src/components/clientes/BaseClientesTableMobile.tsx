@@ -45,9 +45,9 @@ export function BaseClientesTableMobile({
             )
           }
           fields={[
-            { label: 'Total Faturado', value: formatCurrency(cliente.totalFaturado) },
+            { label: 'Faturado', value: formatCurrency(cliente.totalFaturado), fullWidth: true },
             { label: 'Pedidos', value: cliente.pedidosFaturados.toString() },
-            { label: 'Ticket Médio', value: formatCurrency(cliente.ticketMedio) },
+            { label: 'Ticket', value: formatCurrency(cliente.ticketMedio), fullWidth: true },
             { 
               label: 'Última Compra', 
               value: cliente.ultimaCompra 

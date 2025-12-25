@@ -148,27 +148,27 @@ export function TemperaturaIndicatorVendas({ stats, data, ratings }: Temperatura
   };
 
   return (
-    <div className="bg-card rounded-lg border p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <h4 className="text-sm font-medium text-muted-foreground">Temperatura dos Orçamentos e Pedidos</h4>
+    <div className="bg-card rounded-lg border p-2 sm:p-4 space-y-2 sm:space-y-3">
+      <div className="flex items-center gap-1 sm:gap-2">
+        <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">Temperatura Orçamentos</h4>
         <TemperaturaExplanation />
       </div>
       
-      <div className="space-y-2">
+      <div className="space-y-1.5 sm:space-y-2">
         {temperatureItems.map((item) => (
-          <div key={item.stars} className="flex items-center gap-3">
-            <div className="flex items-center gap-2 min-w-[100px]">
-              <div className={`w-3 h-3 rounded-full ${item.color}`} />
-              <span className="text-xs font-medium">{item.label}</span>
+          <div key={item.stars} className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-[70px] sm:min-w-[100px]">
+              <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${item.color}`} />
+              <span className="text-[9px] sm:text-xs font-medium truncate">{item.label}</span>
             </div>
             <div className="flex-1">
               <Progress 
                 value={stats.total > 0 ? (item.value / stats.total) * 100 : 0} 
-                className="h-2"
+                className="h-1.5 sm:h-2"
               />
             </div>
-            <div className="min-w-[60px] text-right">
-              <span className="text-xs font-medium">
+            <div className="min-w-[50px] sm:min-w-[60px] text-right">
+              <span className="text-[9px] sm:text-xs font-medium">
                 {item.value} | {formatValue(item.valorMonetario)}
               </span>
             </div>
@@ -176,29 +176,29 @@ export function TemperaturaIndicatorVendas({ stats, data, ratings }: Temperatura
         ))}
       </div>
       
-      <div className="text-xs text-muted-foreground pt-1">
-        Total de Orçamentos e Pedidos: {stats.total}
+      <div className="text-[10px] sm:text-xs text-muted-foreground pt-1">
+        Total: {stats.total}
       </div>
 
       {/* Lista de Clientes com Alta Temperatura (4 e 5 Estrelas) */}
       {listaClientesAltaTemperatura.length > 0 && (
-        <div className="mt-4 pt-3 border-t">
-          <h5 className="text-sm font-medium text-muted-foreground mb-2">Aguardando Fechamento</h5>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
+        <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t">
+          <h5 className="text-xs sm:text-sm font-medium text-muted-foreground mb-1.5 sm:mb-2">Aguardando Fechamento</h5>
+          <div className="space-y-0.5 sm:space-y-1 max-h-24 sm:max-h-32 overflow-y-auto">
             {listaClientesAltaTemperatura.map((cliente, index) => (
-              <div key={cliente.cliente} className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${cliente.rating === 5 ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                  <span className="font-medium truncate max-w-[140px]" title={cliente.cliente}>
+              <div key={cliente.cliente} className="flex items-center justify-between text-[10px] sm:text-xs py-0.5 sm:py-1">
+                <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                  <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0 ${cliente.rating === 5 ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                  <span className="font-medium truncate max-w-[100px] sm:max-w-[140px]" title={cliente.cliente}>
                     {index + 1}. {cliente.cliente}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-right">
+                <div className="flex items-center gap-1 sm:gap-2 text-right flex-shrink-0">
                   <span className="font-medium text-green-600">
                     {formatCurrency(cliente.valor)}
                   </span>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-muted-foreground">
+                  <span className="text-muted-foreground hidden sm:inline">•</span>
+                  <span className="text-muted-foreground hidden sm:inline">
                     {formatPeso(cliente.peso)}
                   </span>
                 </div>

@@ -84,13 +84,13 @@ export function ComercialKPIs() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
       {/* Card Faturamento */}
-      <Card className="p-3 sm:p-4 relative">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3 px-0 pt-0">
-          <CardTitle className="text-sm font-medium text-green-600">Faturamento</CardTitle>
-          <div className="flex items-center gap-1">
-            <DollarSign className="h-4 w-4 text-green-600" />
+      <Card className="p-2 sm:p-3 relative">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2 px-0 pt-0">
+          <CardTitle className="text-xs sm:text-sm font-medium text-green-600">Faturamento</CardTitle>
+          <div className="flex items-center gap-0.5">
+            <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
             <Button
               variant="ghost"
               size="sm"
@@ -98,40 +98,40 @@ export function ComercialKPIs() {
                 e.stopPropagation();
                 setIsExcludedOrdersDialogOpen(true);
               }}
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground opacity-60 hover:opacity-100"
+              className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-muted-foreground hover:text-foreground opacity-60 hover:opacity-100"
               title="Gerenciar pedidos excluídos dos indicadores"
             >
-              <Settings2 className="h-3 w-3" />
+              <Settings2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             </Button>
           </div>
         </CardHeader>
         <div className="cursor-pointer" onClick={() => setShowFaturamentoDialog(true)}>
           <CardContent className="px-0 pb-0">
-            <div className="space-y-3 text-sm">
+            <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Faturado:</span>
-                <span className="font-medium">
+                <span className="text-muted-foreground text-[10px] sm:text-xs">Faturado:</span>
+                <span className="font-medium text-[11px] sm:text-sm">
                   {formatCurrency(kpis.faturamento.valor)} 
-                  <span className={`ml-1 ${((kpis.faturamento.valor / metas.metaMensal) * 100) >= 100 ? 'text-green-600' : 'text-orange-600'}`}>
-                    ({((kpis.faturamento.valor / metas.metaMensal) * 100).toFixed(1)}%)
+                  <span className={`ml-0.5 sm:ml-1 ${((kpis.faturamento.valor / metas.metaMensal) * 100) >= 100 ? 'text-green-600' : 'text-orange-600'}`}>
+                    ({((kpis.faturamento.valor / metas.metaMensal) * 100).toFixed(0)}%)
                   </span>
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Peso:</span>
-                <span className="font-medium">{formatWeight(kpis.faturamento.peso)}</span>
+                <span className="text-muted-foreground text-[10px] sm:text-xs">Peso:</span>
+                <span className="font-medium text-[11px] sm:text-sm">{formatWeight(kpis.faturamento.peso)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Nº Clientes:</span>
-                <span className="font-medium">{formatNumber(kpis.faturamento.numClientes)}</span>
+                <span className="text-muted-foreground text-[10px] sm:text-xs">Nº Clientes:</span>
+                <span className="font-medium text-[11px] sm:text-sm">{formatNumber(kpis.faturamento.numClientes)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Ticket Médio:</span>
-                <span className="font-medium">{formatCurrency(kpis.faturamento.ticketMedio)}</span>
+                <span className="text-muted-foreground text-[10px] sm:text-xs">Ticket Médio:</span>
+                <span className="font-medium text-[11px] sm:text-sm">{formatCurrency(kpis.faturamento.ticketMedio)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">R$/kg:</span>
-                <span className="font-medium">{formatReaisPorKg(kpis.faturamento.reaisPorKg)}</span>
+                <span className="text-muted-foreground text-[10px] sm:text-xs">R$/kg:</span>
+                <span className="font-medium text-[11px] sm:text-sm">{formatReaisPorKg(kpis.faturamento.reaisPorKg)}</span>
               </div>
             </div>
           </CardContent>
@@ -139,32 +139,32 @@ export function ComercialKPIs() {
       </Card>
 
       {/* Card Orçamento */}
-      <Card className="p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3 px-0 pt-0">
-          <CardTitle className="text-sm font-medium text-blue-600">Orçamento</CardTitle>
-          <Calculator className="h-4 w-4 text-blue-600" />
+      <Card className="p-2 sm:p-3 cursor-pointer hover:shadow-md transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2 px-0 pt-0">
+          <CardTitle className="text-xs sm:text-sm font-medium text-blue-600">Orçamento</CardTitle>
+          <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="space-y-3 text-sm">
+          <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Orçado:</span>
-              <span className="font-medium">{formatCurrency(kpis.orcamento.valor)}</span>
+              <span className="text-muted-foreground text-[10px] sm:text-xs">Orçado:</span>
+              <span className="font-medium text-[11px] sm:text-sm">{formatCurrency(kpis.orcamento.valor)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Peso:</span>
-              <span className="font-medium">{formatWeight(kpis.orcamento.peso)}</span>
+              <span className="text-muted-foreground text-[10px] sm:text-xs">Peso:</span>
+              <span className="font-medium text-[11px] sm:text-sm">{formatWeight(kpis.orcamento.peso)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Nº Clientes:</span>
-              <span className="font-medium">{formatNumber(kpis.orcamento.numClientes)}</span>
+              <span className="text-muted-foreground text-[10px] sm:text-xs">Nº Clientes:</span>
+              <span className="font-medium text-[11px] sm:text-sm">{formatNumber(kpis.orcamento.numClientes)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Ticket Médio:</span>
-              <span className="font-medium">{formatCurrency(kpis.orcamento.ticketMedio)}</span>
+              <span className="text-muted-foreground text-[10px] sm:text-xs">Ticket Médio:</span>
+              <span className="font-medium text-[11px] sm:text-sm">{formatCurrency(kpis.orcamento.ticketMedio)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">R$/kg:</span>
-              <span className="font-medium">{formatReaisPorKg(kpis.orcamento.reaisPorKg)}</span>
+              <span className="text-muted-foreground text-[10px] sm:text-xs">R$/kg:</span>
+              <span className="font-medium text-[11px] sm:text-sm">{formatReaisPorKg(kpis.orcamento.reaisPorKg)}</span>
             </div>
           </div>
         </CardContent>

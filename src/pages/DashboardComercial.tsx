@@ -175,33 +175,33 @@ export default function DashboardComercial() {
             </Button>
           )}
           
-          <div className="container mx-auto p-2 space-y-2">
+          <div className="container mx-auto px-2 sm:px-4 py-2 space-y-2">
             {/* Navegação por Abas */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <div className="flex items-center gap-2">
-                <TabsList className="grid flex-1 grid-cols-3 gap-1">
-                  <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Dashboard</span>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <TabsList className="grid flex-1 grid-cols-3 gap-0.5 sm:gap-1 h-9 sm:h-10">
+                  <TabsTrigger value="dashboard" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8">
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Dashboard</span>
                   </TabsTrigger>
-                  <TabsTrigger value="perdidos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Perdidos</span>
+                  <TabsTrigger value="perdidos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8">
+                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Perdidos</span>
                   </TabsTrigger>
-                  <TabsTrigger value="orcamentos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                    <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Orçamentos</span>
+                  <TabsTrigger value="orcamentos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8">
+                    <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Orçamentos</span>
                   </TabsTrigger>
                 </TabsList>
                 
-                {/* Botão Tela Cheia */}
+                {/* Botão Tela Cheia - escondido no mobile */}
                 {!isFullscreen && (
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => setIsFullscreen(true)}
                     title="Modo tela cheia"
-                    className="shrink-0"
+                    className="shrink-0 hidden sm:flex h-9 w-9"
                   >
                     <Maximize2 className="h-4 w-4" />
                   </Button>
@@ -216,19 +216,17 @@ export default function DashboardComercial() {
               )}
 
               {/* Aba Dashboard */}
-              <TabsContent value="dashboard" className="space-y-2">
+              <TabsContent value="dashboard" className="space-y-2 sm:space-y-4 mt-2">
                 {/* KPIs Vendas */}
                 <ErrorBoundary>
                   <ComercialKPIs />
                 </ErrorBoundary>
 
                 {/* Gráficos Vendas e Indicador de Temperatura */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2">
-                    <ErrorBoundary>
-                      <ComercialCharts />
-                    </ErrorBoundary>
-                  </div>
+                <div className="grid grid-cols-1 gap-2 sm:gap-4">
+                  <ErrorBoundary>
+                    <ComercialCharts />
+                  </ErrorBoundary>
                   <ErrorBoundary>
                     <TemperaturaIndicatorVendas 
                       stats={temperatureStats} 
@@ -241,7 +239,7 @@ export default function DashboardComercial() {
               </TabsContent>
 
               {/* Aba Perdidos */}
-              <TabsContent value="perdidos" className="space-y-4">
+              <TabsContent value="perdidos" className="space-y-2 sm:space-y-4 mt-2">
                 {/* KPIs Perdidos */}
                 <ErrorBoundary>
                   <PerdidosKPIs />
@@ -257,7 +255,6 @@ export default function DashboardComercial() {
                   <PerdidosCharts />
                 </ErrorBoundary>
 
-
                 {/* Tabela Detalhada */}
                 <ErrorBoundary>
                   <PerdidosTable />
@@ -265,7 +262,7 @@ export default function DashboardComercial() {
               </TabsContent>
 
               {/* Aba Orçamentos */}
-              <TabsContent value="orcamentos" className="space-y-2">
+              <TabsContent value="orcamentos" className="space-y-2 sm:space-y-4 mt-2">
                 <ErrorBoundary>
                   <OrcamentosSection 
                     sharedOrcamentosData={orcamentosDataHook}

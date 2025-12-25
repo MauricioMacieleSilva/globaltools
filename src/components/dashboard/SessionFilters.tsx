@@ -62,26 +62,28 @@ export function SessionFilters() {
   const vendedores = [...new Set(data.map(item => item.vendedor))].filter(v => v && v.trim() !== '').sort();
 
   return (
-    <div className="bg-card/50 p-4 rounded-lg border space-y-4">
-      <div className="flex items-center justify-end">
-        {hasActiveFilters && (
+    <div className="bg-card/50 p-2 sm:p-4 rounded-lg border space-y-2 sm:space-y-3 mt-2">
+      {/* Header com botão limpar */}
+      {hasActiveFilters && (
+        <div className="flex items-center justify-end">
           <Button
             variant="outline"
             size="sm"
             onClick={clearFilters}
-            className="h-8"
+            className="h-7 sm:h-8 text-xs"
           >
             <X className="h-3 w-3 mr-1" />
             Limpar
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Grid de filtros responsivo */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
         <div>
-          <label className="text-xs sm:text-xs font-medium text-muted-foreground mb-1 block">Ano</label>
+          <label className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1 block">Ano</label>
           <Select value={filters.ano || ''} onValueChange={(value) => setFilters({ ...filters, ano: value === 'todos' ? undefined : value })}>
-            <SelectTrigger className="h-8">
+            <SelectTrigger className="h-7 sm:h-8 text-xs sm:text-sm">
               <SelectValue placeholder="Ano" />
             </SelectTrigger>
             <SelectContent>
@@ -94,9 +96,9 @@ export function SessionFilters() {
         </div>
 
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Mês</label>
+          <label className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1 block">Mês</label>
           <Select value={filters.mes || ''} onValueChange={(value) => setFilters({ ...filters, mes: value === 'todos' ? undefined : value })}>
-            <SelectTrigger className="h-8">
+            <SelectTrigger className="h-7 sm:h-8 text-xs sm:text-sm">
               <SelectValue placeholder="Mês" />
             </SelectTrigger>
             <SelectContent>
@@ -109,9 +111,9 @@ export function SessionFilters() {
         </div>
 
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">UF</label>
+          <label className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1 block">UF</label>
           <Select value={filters.uf || ''} onValueChange={(value) => setFilters({ ...filters, uf: value === 'todos' ? undefined : value })}>
-            <SelectTrigger className="h-8">
+            <SelectTrigger className="h-7 sm:h-8 text-xs sm:text-sm">
               <SelectValue placeholder="UF" />
             </SelectTrigger>
             <SelectContent>
@@ -124,9 +126,9 @@ export function SessionFilters() {
         </div>
 
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Classe</label>
+          <label className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1 block">Classe</label>
           <Select value={filters.classe || ''} onValueChange={(value) => setFilters({ ...filters, classe: value === 'todos' ? undefined : value })}>
-            <SelectTrigger className="h-8">
+            <SelectTrigger className="h-7 sm:h-8 text-xs sm:text-sm">
               <SelectValue placeholder="Classe" />
             </SelectTrigger>
             <SelectContent>
@@ -138,10 +140,10 @@ export function SessionFilters() {
           </Select>
         </div>
 
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Vendedor</label>
+        <div className="col-span-2 sm:col-span-1">
+          <label className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1 block">Vendedor</label>
           <Select value={filters.vendedor || ''} onValueChange={(value) => setFilters({ ...filters, vendedor: value === 'todos' ? undefined : value })}>
-            <SelectTrigger className="h-8">
+            <SelectTrigger className="h-7 sm:h-8 text-xs sm:text-sm">
               <SelectValue placeholder="Vendedor" />
             </SelectTrigger>
             <SelectContent>

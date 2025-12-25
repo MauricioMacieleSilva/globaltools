@@ -537,29 +537,29 @@ export function ComercialCharts() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <Card className="h-56">
-          <CardHeader className="pb-2 px-3 pt-3">
-            <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+        <Card className="h-48 sm:h-56">
+          <CardHeader className="pb-2 px-2 sm:px-3 pt-2 sm:pt-3">
+            <div className="h-4 w-32 sm:w-48 bg-muted animate-pulse rounded" />
           </CardHeader>
-          <CardContent className="px-3 pb-3">
-            <div className="h-44 bg-muted animate-pulse rounded" />
+          <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3">
+            <div className="h-36 sm:h-44 bg-muted animate-pulse rounded" />
           </CardContent>
         </Card>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-          <Card className="h-56">
-            <CardHeader className="pb-2 px-3 pt-3">
-              <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <Card className="h-48 sm:h-56">
+            <CardHeader className="pb-2 px-2 sm:px-3 pt-2 sm:pt-3">
+              <div className="h-4 w-24 sm:w-32 bg-muted animate-pulse rounded" />
             </CardHeader>
-            <CardContent className="px-3 pb-3">
-              <div className="h-44 bg-muted animate-pulse rounded" />
+            <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3">
+              <div className="h-36 sm:h-44 bg-muted animate-pulse rounded" />
             </CardContent>
           </Card>
-          <Card className="h-56">
-            <CardHeader className="pb-2 px-3 pt-3">
-              <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+          <Card className="h-48 sm:h-56">
+            <CardHeader className="pb-2 px-2 sm:px-3 pt-2 sm:pt-3">
+              <div className="h-4 w-24 sm:w-32 bg-muted animate-pulse rounded" />
             </CardHeader>
-            <CardContent className="px-3 pb-3">
-              <div className="h-44 bg-muted animate-pulse rounded" />
+            <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3">
+              <div className="h-36 sm:h-44 bg-muted animate-pulse rounded" />
             </CardContent>
           </Card>
         </div>
@@ -570,15 +570,15 @@ export function ComercialCharts() {
   return (
     <div className="space-y-2">
       {/* Gráfico de Faturamento Temporal */}
-      <Card className="h-56">
-        <CardHeader className="pb-2 px-3 pt-3">
-          <CardTitle className="text-sm font-semibold flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {drillDown.isMonthView ? 'Faturamento por Período' : 'Faturamento Diário'}
+      <Card className="h-48 sm:h-56">
+        <CardHeader className="pb-1 sm:pb-2 px-2 sm:px-3 pt-2 sm:pt-3">
+          <CardTitle className="text-xs sm:text-sm font-semibold flex items-center justify-between">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="truncate">{drillDown.isMonthView ? 'Faturamento/Período' : 'Fat. Diário'}</span>
               {!drillDown.isMonthView && (
                 <button 
                   onClick={handleBackToMonthView}
-                  className="text-xs text-primary hover:underline"
+                  className="text-[10px] sm:text-xs text-primary hover:underline flex-shrink-0"
                 >
                   ← Voltar
                 </button>
@@ -588,28 +588,30 @@ export function ComercialCharts() {
               variant="ghost"
               size="sm"
               onClick={() => setIsMetasDialogOpen(true)}
-              className="h-6 w-6 p-0"
+              className="h-5 w-5 sm:h-6 sm:w-6 p-0"
             >
-              <Settings className="h-3 w-3" />
+              <Settings className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-3 pb-3">
-          <div className="h-44">
+        <CardContent className="px-1 sm:px-3 pb-2 sm:pb-3">
+          <div className="h-36 sm:h-44">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={faturamentoTemporalData}>
+              <BarChart data={faturamentoTemporalData} margin={{ left: -10, right: 5, top: 5, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="periodo" 
-                  tick={{ fontSize: 10 }} 
+                  tick={{ fontSize: 8 }} 
                   angle={-45}
                   textAnchor="end"
-                  height={60}
+                  height={40}
+                  interval={0}
                 />
                 <YAxis 
-                  tickFormatter={formatCurrency} 
-                  tick={{ fontSize: 10 }}
+                  tickFormatter={formatLabel} 
+                  tick={{ fontSize: 8 }}
                   allowDecimals={false}
+                  width={35}
                   domain={[0, (dataMax: number) => {
                     const metaAtual = drillDown.isMonthView ? metas.metaMensal : metas.metaDiaria;
                     return Math.max(Math.ceil(dataMax * 1.15), Math.ceil(metaAtual * 1.1));
@@ -638,7 +640,7 @@ export function ComercialCharts() {
                     dataKey="valor" 
                     position="top" 
                     formatter={drillDown.isMonthView ? formatLabel : formatLabelDaily}
-                    style={{ fontSize: '10px', fill: 'hsl(var(--foreground))' }}
+                    style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
                   />
                 </Bar>
                 <ReferenceLine 
@@ -733,25 +735,25 @@ export function ComercialCharts() {
         </CardContent>
       </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {/* Card Ranking Vendedores - Redesenhado */}
-          <Card className="p-4 h-56 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0 pt-0 flex-shrink-0">
-              <CardTitle className="text-sm font-medium text-orange-600 flex items-center gap-2">
-                <Trophy className="h-4 w-4" />
+          <Card className="p-2 sm:p-4 h-48 sm:h-56 flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 px-0 pt-0 flex-shrink-0">
+              <CardTitle className="text-xs sm:text-sm font-medium text-orange-600 flex items-center gap-1 sm:gap-2">
+                <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
                 Top 5 Vendedores
               </CardTitle>
             </CardHeader>
             <CardContent className="px-0 pb-0 overflow-hidden flex-1 min-h-0">
               <ScrollArea className="h-full min-h-0">
-              <div className="space-y-1.5 pr-2">
+              <div className="space-y-1 sm:space-y-1.5 pr-1 sm:pr-2">
                 {rankingVendedores.map((item, index) => (
                   <HoverCard key={item.vendedor} openDelay={200} closeDelay={300}>
                     <HoverCardTrigger asChild>
                       <div 
-                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-muted/50 transition-all cursor-pointer group"
+                        className="flex items-center justify-between p-1 sm:p-1.5 rounded-lg hover:bg-muted/50 transition-all cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 sm:gap-3">
                           {/* Avatar com borda colorida e badge de posição */}
                           <button
                             onClick={(e) => {
@@ -764,35 +766,35 @@ export function ComercialCharts() {
                             className="relative"
                             title="Clique para adicionar/alterar foto"
                           >
-                            <Avatar className={`h-10 w-10 flex-shrink-0 transition-all ${getAvatarRingStyle(index)} group-hover:scale-105`}>
+                            <Avatar className={`h-7 w-7 sm:h-10 sm:w-10 flex-shrink-0 transition-all ${getAvatarRingStyle(index)} group-hover:scale-105`}>
                               <AvatarImage src={vendedorAvatars[item.vendedor]} alt={item.vendedor} className="object-cover" />
-                              <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                              <AvatarFallback className="text-[9px] sm:text-xs bg-primary/10 text-primary font-semibold">
                                 {getInitials(item.vendedor)}
                               </AvatarFallback>
                             </Avatar>
                             {/* Badge de posição no canto */}
-                            <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${getPositionBadgeStyle(index)} shadow-sm`}>
+                            <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-4 sm:h-4 rounded-full flex items-center justify-center text-[7px] sm:text-[9px] font-bold ${getPositionBadgeStyle(index)} shadow-sm`}>
                               {index + 1}
                             </span>
-                            {/* Ícone de câmera no hover */}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
+                            {/* Ícone de câmera no hover - hidden on mobile */}
+                            <div className="absolute inset-0 hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
                               <Camera className="h-4 w-4 text-white" />
                             </div>
                           </button>
                           
                           {/* Nome do vendedor */}
                           <div className="flex flex-col min-w-0">
-                            <span className="font-medium text-sm truncate max-w-[100px]" title={item.vendedor}>
+                            <span className="font-medium text-[10px] sm:text-sm truncate max-w-[60px] sm:max-w-[100px]" title={item.vendedor}>
                               {item.vendedor}
                             </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {item.totalPedidos} pedidos • {item.totalClientes} clientes
+                            <span className="text-[8px] sm:text-[10px] text-muted-foreground">
+                              {item.totalPedidos} ped. • {item.totalClientes} cli.
                             </span>
                           </div>
                         </div>
                         
                         {/* Valor total */}
-                        <span className="font-semibold text-sm text-green-600">
+                        <span className="font-semibold text-[10px] sm:text-sm text-green-600">
                           {formatCurrency(item.valor)}
                         </span>
                       </div>
@@ -876,20 +878,21 @@ export function ComercialCharts() {
 
 
         {/* Gráfico de Faturamento por Classe */}
-        <Card className="h-56">
-          <CardHeader className="pb-2 px-3 pt-3">
-            <CardTitle className="text-sm font-semibold">Faturamento por Classe</CardTitle>
+        <Card className="h-48 sm:h-56">
+          <CardHeader className="pb-1 sm:pb-2 px-2 sm:px-3 pt-2 sm:pt-3">
+            <CardTitle className="text-xs sm:text-sm font-semibold">Fat. por Classe</CardTitle>
           </CardHeader>
-          <CardContent className="px-3 pb-3">
-            <div className="h-44">
+          <CardContent className="px-1 sm:px-3 pb-2 sm:pb-3">
+            <div className="h-36 sm:h-44">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={faturamentoClasseData}>
+                <BarChart data={faturamentoClasseData} margin={{ left: -10, right: 5, top: 5, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="classe" tick={{ fontSize: 10 }} />
+                  <XAxis dataKey="classe" tick={{ fontSize: 8 }} />
                   <YAxis 
-                    tickFormatter={formatCurrency} 
-                    tick={{ fontSize: 10 }}
+                    tickFormatter={formatLabel} 
+                    tick={{ fontSize: 8 }}
                     allowDecimals={false}
+                    width={35}
                     domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.15)]}
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -897,8 +900,8 @@ export function ComercialCharts() {
                     <LabelList 
                       dataKey="valor" 
                       position="top" 
-                      formatter={formatInteger}
-                      style={{ fontSize: '10px', fill: 'hsl(var(--foreground))' }}
+                      formatter={formatLabel}
+                      style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
                     />
                   </Bar>
                 </BarChart>

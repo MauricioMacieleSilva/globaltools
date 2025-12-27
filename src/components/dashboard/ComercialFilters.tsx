@@ -46,12 +46,8 @@ export function ComercialFilters() {
   const classes = [...new Set(filteredDataForOptions.map(item => item.classe))].filter(c => c && c.trim() !== '').sort();
   const clienteNovos = [...new Set(filteredDataForOptions.map(item => item.cliente_novo))].filter(cn => cn && cn.trim() !== '');
   
-  // Para vendedores, usar todos os dados disponíveis (não filtrar por período)
-  const vendedores = [...new Set(data.map(item => item.vendedor))].filter(v => v && v.trim() !== '').sort();
-  
-  // Debug dos vendedores encontrados
-  console.log('Vendedores encontrados nos dados filtrados:', vendedores);
-  console.log('Total de registros filtrados para opções:', filteredDataForOptions.length);
+  // Vendedores também filtrados pelo período selecionado
+  const vendedores = [...new Set(filteredDataForOptions.map(item => item.vendedor))].filter(v => v && v.trim() !== '').sort();
 
   const clearFilters = () => {
     // Obter ano e mês atual

@@ -59,7 +59,7 @@ export function SessionFilters() {
 
   const ufs = [...new Set(filteredDataForOptions.map(item => item.uf))].filter(u => u && u.trim() !== '').sort();
   const classes = [...new Set(filteredDataForOptions.map(item => item.classe))].filter(c => c && c.trim() !== '').sort();
-  const vendedores = [...new Set(data.map(item => item.vendedor))].filter(v => v && v.trim() !== '').sort();
+  const vendedores = [...new Set(filteredDataForOptions.map(item => item.vendedor))].filter(v => v && v.trim() !== '').sort();
 
   return (
     <div className="bg-card/50 p-2 sm:p-4 rounded-lg border space-y-2 sm:space-y-3 mt-2">

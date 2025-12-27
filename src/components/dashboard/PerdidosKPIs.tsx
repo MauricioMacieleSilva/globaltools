@@ -38,6 +38,8 @@ export function PerdidosKPIs() {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
@@ -46,7 +48,7 @@ export function PerdidosKPIs() {
   };
 
   const formatWeight = (value: number) => {
-    return `${Math.round(value)} t`;
+    return `${Math.round(value / 1000)} t`;
   };
 
   if (isLoading) {

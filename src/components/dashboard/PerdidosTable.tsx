@@ -187,7 +187,7 @@ export function PerdidosTable() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="w-full max-w-full overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

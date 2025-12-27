@@ -14,6 +14,7 @@ import { PerdidosKPIs } from '@/components/dashboard/PerdidosKPIs';
 import { PerdidosCharts } from '@/components/dashboard/PerdidosCharts';
 import { PerdidosTemporalChart } from '@/components/dashboard/PerdidosTemporalChart';
 import { PerdidosTable } from '@/components/dashboard/PerdidosTable';
+import { PerdidosVendedorChart } from '@/components/dashboard/PerdidosVendedorChart';
 import { CancelamentosDevolucoesKPIs } from '@/components/dashboard/CancelamentosDevolucoesKPIs';
 import { CancelamentosDevolucoesCharts } from '@/components/dashboard/CancelamentosDevolucoesCharts';
 import { CancelamentosDevolucoesTable } from '@/components/dashboard/CancelamentosDevolucoesTable';
@@ -243,6 +244,11 @@ export default function DashboardComercial() {
                 {/* KPIs Perdidos */}
                 <ErrorBoundary>
                   <PerdidosKPIs />
+                </ErrorBoundary>
+
+                {/* Perdidos por Vendedor */}
+                <ErrorBoundary>
+                  <PerdidosVendedorChart />
                 </ErrorBoundary>
 
                 {/* Gráfico Temporal Perdidos */}

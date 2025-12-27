@@ -177,18 +177,18 @@ export default function DashboardComercial() {
           
           <div className="container mx-auto px-2 sm:px-4 py-2 space-y-2">
             {/* Navegação por Abas */}
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <div className="flex items-center gap-1 sm:gap-2">
-                <TabsList className="grid flex-1 grid-cols-3 gap-0.5 sm:gap-1 h-9 sm:h-10">
-                  <TabsTrigger value="dashboard" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full overflow-hidden">
+              <div className="flex items-center gap-1 sm:gap-2 w-full overflow-hidden">
+                <TabsList className="grid grid-cols-3 gap-0.5 sm:gap-1 h-9 sm:h-10 flex-1 min-w-0">
+                  <TabsTrigger value="dashboard" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
                     <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Dashboard</span>
                   </TabsTrigger>
-                  <TabsTrigger value="perdidos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8">
+                  <TabsTrigger value="perdidos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
                     <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Perdidos</span>
                   </TabsTrigger>
-                  <TabsTrigger value="orcamentos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8">
+                  <TabsTrigger value="orcamentos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
                     <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Orçamentos</span>
                   </TabsTrigger>
@@ -239,7 +239,7 @@ export default function DashboardComercial() {
               </TabsContent>
 
               {/* Aba Perdidos */}
-              <TabsContent value="perdidos" className="space-y-2 sm:space-y-4 mt-2">
+              <TabsContent value="perdidos" className="space-y-2 sm:space-y-4 mt-2 overflow-hidden">
                 {/* KPIs Perdidos */}
                 <ErrorBoundary>
                   <PerdidosKPIs />

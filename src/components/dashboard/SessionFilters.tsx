@@ -7,11 +7,16 @@ import { parseDate } from '@/lib/utils-comercial';
 export function SessionFilters() {
   const { data, filters, setFilters, activeSession } = useComercial();
 
-  // Clear filters function
+  // Clear filters function - limpar TODOS os filtros exceto ano/mês atual
   const clearFilters = () => {
     setFilters({
       ano: new Date().getFullYear().toString(),
-      mes: (new Date().getMonth() + 1).toString().padStart(2, '0')
+      mes: (new Date().getMonth() + 1).toString().padStart(2, '0'),
+      uf: undefined,
+      classe: undefined,
+      vendedor: undefined,
+      situacao: undefined,
+      cliente_novo: undefined
     });
   };
 

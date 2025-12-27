@@ -113,28 +113,28 @@ export const PerdidosVendedorChart = () => {
           Perdidos por Vendedor
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 min-w-0">
         {vendedoresData.map((vendedor, index) => (
           <div 
             key={vendedor.vendedor} 
-            className="p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
+            className="p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors min-w-0"
           >
             {/* Header do vendedor */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
                   {index + 1}
                 </div>
-                <span className="font-medium text-sm sm:text-base truncate max-w-[180px] sm:max-w-none">
+                <span className="font-medium text-sm sm:text-base truncate">
                   {vendedor.vendedor}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-muted-foreground">
+              <div className="flex items-center gap-3 text-sm flex-shrink-0">
+                <span className="text-muted-foreground whitespace-nowrap">
                   <TrendingDown className="h-3.5 w-3.5 inline mr-1 text-destructive" />
                   {vendedor.totalPedidos} {vendedor.totalPedidos === 1 ? 'pedido' : 'pedidos'}
                 </span>
-                <span className="font-semibold text-destructive">
+                <span className="font-semibold text-destructive whitespace-nowrap">
                   {formatCurrency(vendedor.valorTotal)}
                 </span>
               </div>
@@ -149,12 +149,13 @@ export const PerdidosVendedorChart = () => {
             </div>
 
             {/* Motivos */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 min-w-0">
               {vendedor.motivos.map(({ motivo, count }) => (
                 <Badge 
                   key={motivo} 
                   variant="outline" 
-                  className="text-xs font-normal bg-muted/50"
+                  className="text-xs font-normal bg-muted/50 max-w-full truncate"
+                  title={`${motivo} (${count})`}
                 >
                   {motivo} ({count})
                 </Badge>

@@ -5,18 +5,17 @@ import { Button } from '@/components/ui/button';
 import { useComercial, ComercialData } from '@/context/ComercialContext';
 import { useExcludedOrders } from '@/hooks/useExcludedOrders';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { 
   User, 
   TrendingDown, 
   ChevronDown, 
   ChevronUp,
-  Trophy,
-  Medal,
-  Award,
   ArrowUpDown,
   Hash,
   DollarSign,
-  Tag,
   Eye
 } from 'lucide-react';
 import { VendedorPerdidosDialog } from './VendedorPerdidosDialog';
@@ -34,38 +33,24 @@ interface VendedorPerdidos {
 
 type SortBy = 'valor' | 'quantidade' | 'ticket';
 
-const MOTIVO_COLORS: Record<string, string> = {
+// Cores para barras segmentadas por motivo
+const MOTIVO_BAR_COLORS: Record<string, string> = {
+  'Preço': 'bg-red-500',
+  'Prazo': 'bg-amber-500',
+  'Concorrência': 'bg-purple-500',
+  'Desistência': 'bg-gray-400',
+  'Qualidade': 'bg-blue-500',
+  'Frete': 'bg-cyan-500',
+  'Outros': 'bg-slate-400',
+};
+
+const MOTIVO_BADGE_COLORS: Record<string, string> = {
   'Preço': 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
   'Prazo': 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
   'Concorrência': 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
   'Desistência': 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700',
   'Qualidade': 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-};
-
-const getRankingIcon = (index: number) => {
-  switch (index) {
-    case 0:
-      return <Trophy className="h-4 w-4 text-amber-500" />;
-    case 1:
-      return <Medal className="h-4 w-4 text-gray-400" />;
-    case 2:
-      return <Award className="h-4 w-4 text-amber-700" />;
-    default:
-      return null;
-  }
-};
-
-const getRankingBg = (index: number) => {
-  switch (index) {
-    case 0:
-      return 'bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-amber-500/20';
-    case 1:
-      return 'bg-gradient-to-r from-gray-400/10 to-gray-400/5 border-gray-400/20';
-    case 2:
-      return 'bg-gradient-to-r from-amber-700/10 to-amber-700/5 border-amber-700/20';
-    default:
-      return 'bg-card border-border';
-  }
+  'Frete': 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
 };
 
 const getInitials = (name: string) => {
@@ -75,6 +60,24 @@ const getInitials = (name: string) => {
     .map(n => n[0])
     .join('')
     .toUpperCase();
+};
+
+const getMotivoBarColor = (motivo: string) => {
+  for (const [key, color] of Object.entries(MOTIVO_BAR_COLORS)) {
+    if (motivo.toLowerCase().includes(key.toLowerCase())) {
+      return color;
+    }
+  }
+  return 'bg-slate-400';
+};
+
+const getMotivoBadgeColor = (motivo: string) => {
+  for (const [key, color] of Object.entries(MOTIVO_BADGE_COLORS)) {
+    if (motivo.toLowerCase().includes(key.toLowerCase())) {
+      return color;
+    }
+  }
+  return 'bg-muted/50 text-muted-foreground border-border';
 };
 
 export const PerdidosVendedorChart = () => {
@@ -87,6 +90,24 @@ export const PerdidosVendedorChart = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVendedor, setSelectedVendedor] = useState<VendedorPerdidos | null>(null);
 
+  // Buscar avatares dos vendedores
+  const { data: vendorAvatars } = useQuery({
+    queryKey: ['vendor-avatars'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('vendor_avatars')
+        .select('vendor_name, avatar_url');
+      return data || [];
+    }
+  });
+
+  const getVendorAvatar = (vendorName: string) => {
+    const avatar = vendorAvatars?.find(
+      v => v.vendor_name.toLowerCase() === vendorName.toLowerCase()
+    );
+    return avatar?.avatar_url || null;
+  };
+
   const INITIAL_LIMIT = 5;
 
   const { vendedoresData, totalGeral } = useMemo(() => {
@@ -94,7 +115,7 @@ export const PerdidosVendedorChart = () => {
 
     // Filtrar apenas perdidos não excluídos
     const perdidos = filteredData.filter(item => 
-      item.situacao === 'Perdido' && 
+      item.situacao === 'Perdido' &&
       item.perdido_motivo && 
       !isOrderExcluded(item.numeropedido)
     );
@@ -183,16 +204,6 @@ export const PerdidosVendedorChart = () => {
     setExpandedVendedor(prev => prev === vendedorName ? null : vendedorName);
   };
 
-  const getMotivoColor = (motivo: string) => {
-    // Tenta encontrar match parcial
-    for (const [key, color] of Object.entries(MOTIVO_COLORS)) {
-      if (motivo.toLowerCase().includes(key.toLowerCase())) {
-        return color;
-      }
-    }
-    return 'bg-muted/50 text-muted-foreground border-border';
-  };
-
   if (isLoading) {
     return (
       <Card>
@@ -274,33 +285,28 @@ export const PerdidosVendedorChart = () => {
         </CardHeader>
         
         <CardContent className="space-y-3 min-w-0">
-          {displayData.map((vendedor, index) => {
+          {displayData.map((vendedor) => {
             const isExpanded = expandedVendedor === vendedor.vendedor;
             const visibleMotivos = isExpanded ? vendedor.motivos : vendedor.motivos.slice(0, 3);
             const hasMoreMotivos = vendedor.motivos.length > 3;
+            const avatarUrl = getVendorAvatar(vendedor.vendedor);
             
             return (
               <div 
                 key={vendedor.vendedor} 
-                className={cn(
-                  "p-3 rounded-lg border transition-all cursor-pointer hover:shadow-md min-w-0",
-                  getRankingBg(index)
-                )}
+                className="p-3 rounded-lg border bg-card border-border transition-all cursor-pointer hover:shadow-md hover:border-primary/30 min-w-0"
                 onClick={() => handleVendedorClick(vendedor)}
               >
                 {/* Header do vendedor */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2 min-w-0">
                   <div className="flex items-center gap-2 min-w-0">
-                    {/* Avatar com iniciais */}
-                    <div className={cn(
-                      "flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full font-medium text-sm",
-                      index === 0 ? "bg-amber-500 text-white" :
-                      index === 1 ? "bg-gray-400 text-white" :
-                      index === 2 ? "bg-amber-700 text-white" :
-                      "bg-destructive/10 text-destructive"
-                    )}>
-                      {index < 3 ? getRankingIcon(index) : getInitials(vendedor.vendedor)}
-                    </div>
+                    {/* Avatar do vendedor */}
+                    <Avatar className="h-9 w-9 flex-shrink-0">
+                      <AvatarImage src={avatarUrl || undefined} alt={vendedor.vendedor} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                        {getInitials(vendedor.vendedor)}
+                      </AvatarFallback>
+                    </Avatar>
                     
                     <div className="min-w-0">
                       <span className="font-medium text-sm sm:text-base truncate block">
@@ -313,7 +319,7 @@ export const PerdidosVendedorChart = () => {
                   </div>
                   
                   <div className="flex items-center gap-3 text-sm flex-shrink-0">
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
                       {vendedor.percentualTotal.toFixed(1)}%
                     </Badge>
                     <span className="text-muted-foreground whitespace-nowrap">
@@ -326,32 +332,36 @@ export const PerdidosVendedorChart = () => {
                   </div>
                 </div>
 
-                {/* Barra de progresso com gradiente */}
-                <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
-                  <div 
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      index === 0 ? "bg-gradient-to-r from-amber-500 to-amber-400" :
-                      index === 1 ? "bg-gradient-to-r from-gray-400 to-gray-300" :
-                      index === 2 ? "bg-gradient-to-r from-amber-700 to-amber-600" :
-                      "bg-gradient-to-r from-destructive/60 to-destructive/40"
-                    )}
-                    style={{ width: `${(vendedor.valorTotal / maxValor) * 100}%` }}
-                  />
+                {/* Barra de progresso segmentada por motivo */}
+                <div className="h-3 bg-muted rounded-full overflow-hidden mb-2 flex" title="Distribuição por motivo">
+                  {vendedor.motivos.map((motivo, idx) => {
+                    const widthPercent = (motivo.valor / vendedor.valorTotal) * 100;
+                    return (
+                      <div
+                        key={motivo.motivo}
+                        className={cn(
+                          "h-full transition-all first:rounded-l-full last:rounded-r-full",
+                          getMotivoBarColor(motivo.motivo)
+                        )}
+                        style={{ width: `${widthPercent}%` }}
+                        title={`${motivo.motivo}: ${formatCurrency(motivo.valor)} (${widthPercent.toFixed(1)}%)`}
+                      />
+                    );
+                  })}
                 </div>
 
-                {/* Motivos */}
+                {/* Motivos com indicador de cor */}
                 <div className="flex flex-wrap gap-1.5 items-center min-w-0">
                   {visibleMotivos.map(({ motivo, count, valor }) => (
                     <Badge 
                       key={motivo} 
                       variant="outline" 
-                      className={cn("text-xs font-normal max-w-full", getMotivoColor(motivo))}
+                      className={cn("text-xs font-normal max-w-full gap-1.5", getMotivoBadgeColor(motivo))}
                       title={`${motivo}: ${count} pedidos • ${formatCurrency(valor)}`}
                     >
-                      <Tag className="h-2.5 w-2.5 mr-1 flex-shrink-0" />
+                      <span className={cn("w-2 h-2 rounded-full flex-shrink-0", getMotivoBarColor(motivo))} />
                       <span className="truncate">{motivo}</span>
-                      <span className="ml-1 opacity-70">({count})</span>
+                      <span className="opacity-70">({count})</span>
                     </Badge>
                   ))}
                   

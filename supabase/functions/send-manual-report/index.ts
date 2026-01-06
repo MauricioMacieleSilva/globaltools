@@ -925,6 +925,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Verificar se a API key do Resend está configurada ANTES de processar
+    if (!RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY não está configurada!');
+      return new Response(
+        JSON.stringify({ error: 'RESEND_API_KEY não está configurada. Configure nas secrets do projeto.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    console.log('✅ RESEND_API_KEY encontrada');
+
     const { configId, isScheduled } = await req.json();
     console.log(`📧 [send-manual-report] Processando envio para config: ${configId} (${isScheduled ? 'automático' : 'manual'})`);
 
@@ -1101,6 +1111,12 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     console.log("📧 Enviando email via Resend...");
+    console.log("📧 Payload:", JSON.stringify({
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
+      htmlLength: emailPayload.html.length
+    }));
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -1112,11 +1128,15 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const resendData = await resendResponse.json();
-    console.log("📧 Resposta Resend:", resendData);
+    console.log("📧 Resposta Resend completa:", JSON.stringify(resendData));
+    console.log("📧 Status HTTP Resend:", resendResponse.status);
 
     if (!resendResponse.ok) {
-      throw new Error(`Erro no Resend: ${JSON.stringify(resendData)}`);
+      console.error("❌ Erro ao enviar email:", JSON.stringify(resendData));
+      throw new Error(`Erro no Resend (${resendResponse.status}): ${JSON.stringify(resendData)}`);
     }
+    
+    console.log(`✅ Email enviado com sucesso! ID: ${resendData.id || 'N/A'}`)
 
     // 9. Registrar envio no banco de dados
     await supabaseAdmin.from('email_reports_log').insert({

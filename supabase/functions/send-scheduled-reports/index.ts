@@ -142,7 +142,9 @@ const handler = async (req: Request): Promise<Response> => {
       
       try {
         // Verificar se já foi enviado hoje (idempotência)
-        const todayStr = brasiliaTime.toISOString().split('T')[0];
+        // CORREÇÃO: Usar formato correto para data de Brasília (não usar toISOString que converte para UTC)
+        const todayStr = `${brasiliaTime.getFullYear()}-${String(brasiliaTime.getMonth() + 1).padStart(2, '0')}-${String(brasiliaTime.getDate()).padStart(2, '0')}`;
+        console.log(`📅 Data de referência para verificação: ${todayStr}`);
         
         const { data: alreadySent, error: logError } = await supabaseAdmin
           .from('email_reports_log')

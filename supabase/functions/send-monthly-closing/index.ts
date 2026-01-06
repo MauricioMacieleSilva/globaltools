@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -762,18 +763,30 @@ const MONTH_NAMES = [
 ];
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("🚀 [send-monthly-closing] Função iniciada");
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Verificar se a API key do Resend está configurada
+    if (!RESEND_API_KEY || !resend) {
+      console.error('❌ RESEND_API_KEY não está configurada!');
+      return new Response(
+        JSON.stringify({ error: 'RESEND_API_KEY não está configurada. Configure nas secrets do projeto.' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    console.log('✅ RESEND_API_KEY encontrada');
+
     const { month, year, recipients } = await req.json();
 
     console.log(`📅 Gerando relatório de fechamento para ${month}/${year}`);
-    console.log(`📧 Destinatários: ${recipients.length}`);
+    console.log(`📧 Destinatários: ${recipients?.length || 0}`);
 
     if (!month || !year || !recipients || recipients.length === 0) {
-      throw new Error("Parâmetros inválidos");
+      throw new Error("Parâmetros inválidos: month, year e recipients são obrigatórios");
     }
 
     // Calcular período completo do mês
@@ -825,28 +838,33 @@ const handler = async (req: Request): Promise<Response> => {
 
     for (const recipient of recipients) {
       try {
-        await resend.emails.send({
+        console.log(`📧 Enviando para ${recipient}...`);
+        
+        const emailResult = await resend.emails.send({
           from: "Vendas Global Aço <onboarding@resend.dev>",
           to: [recipient],
           subject: `📊 Relatório de Fechamento - ${monthName}/${year}`,
           html: reportHTML,
         });
 
-        // Log no banco
+        console.log(`📧 Resposta Resend para ${recipient}:`, JSON.stringify(emailResult));
+
+        // Log no banco - corrigido status para 'success' (consistência)
         await supabase.from('email_reports_log').insert({
           config_id: '00000000-0000-0000-0000-000000000000',
           email: recipient,
-          status: 'sent',
+          status: 'success',
           report_type: 'monthly_closing',
           reference_month: monthYear,
           is_scheduled: false,
         });
 
         successCount++;
-        console.log(`✅ Email enviado para ${recipient}`);
+        console.log(`✅ Email enviado com sucesso para ${recipient}! ID: ${emailResult?.data?.id || 'N/A'}`);
       } catch (error) {
         errorCount++;
         console.error(`❌ Erro ao enviar para ${recipient}:`, error);
+        console.error(`❌ Detalhes do erro:`, JSON.stringify(error));
 
         await supabase.from('email_reports_log').insert({
           config_id: '00000000-0000-0000-0000-000000000000',

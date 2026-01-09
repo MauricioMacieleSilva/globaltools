@@ -121,14 +121,14 @@ export function ProducaoTableMobile({
                 label: 'Situação',
                 value: canEdit ? (
                   <Select
-                    value={situacoes[item.numero_pedido] || ''}
-                    onValueChange={(value) => handleSituacaoChange(item.numero_pedido, value)}
+                    value={situacoes[item.numero_pedido] || 'none'}
+                    onValueChange={(value) => handleSituacaoChange(item.numero_pedido, value === 'none' ? '' : value)}
                   >
                     <SelectTrigger className="w-full h-8" onClick={(e) => e.stopPropagation()}>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma</SelectItem>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       <SelectItem value="aguardando_mp">Aguardando MP</SelectItem>
                       <SelectItem value="em_producao">Em Produção</SelectItem>
                     </SelectContent>

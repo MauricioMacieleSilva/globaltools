@@ -114,7 +114,7 @@ const adminMenuItems = [
 ];
 
 export function AppSidebar() {
-  const { state, setOpen, open } = useSidebar();
+  const { state, setOpenMobile, openMobile } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
   const isMobile = useIsMobile();
@@ -125,10 +125,10 @@ export function AppSidebar() {
 
   // Auto-close sidebar on mobile when route changes
   React.useEffect(() => {
-    if (isMobile && open) {
-      setOpen(false);
+    if (isMobile && openMobile) {
+      setOpenMobile(false);
     }
-  }, [currentPath, isMobile]);
+  }, [currentPath, isMobile, openMobile, setOpenMobile]);
 
   return (
     <Sidebar collapsible="icon" className="border-r">

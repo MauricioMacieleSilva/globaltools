@@ -67,6 +67,7 @@ export function EstoqueTable({
   const [selectedItem, setSelectedItem] = useState<EstoqueItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<EstoqueItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const { precosEspessuraMap } = useEstoque();
 
@@ -225,11 +226,19 @@ export function EstoqueTable({
                   {/* Header com imagem e ações */}
                   <div className="flex gap-3">
                     {item.imagem_url ? (
-                      <img
-                        src={item.imagem_url}
-                        alt={item.descricao}
-                        className="w-14 h-14 object-cover rounded-lg border shrink-0"
-                      />
+                      <div 
+                        className="relative cursor-pointer shrink-0"
+                        onClick={() => setExpandedImageUrl(item.imagem_url)}
+                      >
+                        <img
+                          src={item.imagem_url}
+                          alt={item.descricao}
+                          className="w-14 h-14 object-cover rounded-lg border"
+                        />
+                        <div className="absolute inset-0 bg-black/0 active:bg-black/20 rounded-lg flex items-center justify-center">
+                          <ZoomIn className="h-4 w-4 text-white opacity-0 active:opacity-100" />
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-14 h-14 rounded-lg bg-muted/50 border border-dashed flex items-center justify-center shrink-0">
                         <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
@@ -329,6 +338,27 @@ export function EstoqueTable({
               >
                 {isLoading ? 'Excluindo...' : 'Excluir'}
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Modal para expandir imagem no mobile */}
+        <AlertDialog open={!!expandedImageUrl} onOpenChange={() => setExpandedImageUrl(null)}>
+          <AlertDialogContent className="max-w-[95vw] max-h-[90vh] p-2 rounded-lg">
+            <AlertDialogHeader className="sr-only">
+              <AlertDialogTitle>Imagem do material</AlertDialogTitle>
+            </AlertDialogHeader>
+            <div className="flex items-center justify-center" onClick={() => setExpandedImageUrl(null)}>
+              {expandedImageUrl && (
+                <img
+                  src={expandedImageUrl}
+                  alt="Material em estoque"
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                />
+              )}
+            </div>
+            <AlertDialogFooter className="mt-2">
+              <AlertDialogCancel className="w-full">Fechar</AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

@@ -39,6 +39,7 @@ interface EstoqueTableProps {
   dados: EstoqueItem[];
   loading?: boolean;
   canManage?: boolean;
+  canDelete?: boolean;
   categoria: CategoriaEstoque;
   onDataChanged: () => void;
 }
@@ -56,6 +57,7 @@ export function EstoqueTable({
   dados,
   loading,
   canManage = false,
+  canDelete = false,
   categoria,
   onDataChanged,
 }: EstoqueTableProps) {
@@ -249,14 +251,16 @@ export function EstoqueTable({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDelete(item)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenDelete(item)}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -484,14 +488,16 @@ export function EstoqueTable({
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenDelete(item)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenDelete(item)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       )}

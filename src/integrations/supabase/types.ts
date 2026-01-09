@@ -549,6 +549,62 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_movimentacoes: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_categoria: string | null
+          item_descricao: string | null
+          item_id: string | null
+          motivo: string | null
+          observacao: string | null
+          quantidade_anterior: number | null
+          quantidade_movimentada: number | null
+          quantidade_nova: number | null
+          tipo_movimentacao: string
+          usuario_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_categoria?: string | null
+          item_descricao?: string | null
+          item_id?: string | null
+          motivo?: string | null
+          observacao?: string | null
+          quantidade_anterior?: number | null
+          quantidade_movimentada?: number | null
+          quantidade_nova?: number | null
+          tipo_movimentacao: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_categoria?: string | null
+          item_descricao?: string | null
+          item_id?: string | null
+          motivo?: string | null
+          observacao?: string | null
+          quantidade_anterior?: number | null
+          quantidade_movimentada?: number | null
+          quantidade_nova?: number | null
+          tipo_movimentacao?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentacoes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       excluded_orders: {
         Row: {
           created_at: string

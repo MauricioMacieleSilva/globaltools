@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { EstoqueTable } from './EstoqueTable';
 import { EstoqueKPIs } from './EstoqueKPIs';
 import { EstoqueHistorico } from './EstoqueHistorico';
+import { EstoqueMovimentacaoDialog } from './EstoqueMovimentacaoDialog';
 import { useEstoque } from '@/context/EstoqueContext';
 import { CATEGORIAS_ESTOQUE, CategoriaEstoque } from '@/services/estoqueService';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { Loader2, History } from 'lucide-react';
+import { Loader2, History, ArrowDownUp, Plus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Select,
@@ -20,6 +21,7 @@ import {
 
 export function EstoqueTab() {
   const [showHistorico, setShowHistorico] = useState(false);
+  const [showMovimentacao, setShowMovimentacao] = useState(false);
   const { 
     loading, 
     error, 
@@ -136,23 +138,48 @@ export function EstoqueTab() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between">
-        <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} />
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setShowHistorico(true)}
-          className="gap-2 shrink-0"
-        >
-          <History className="h-4 w-4" />
-          <span className={isMobile ? "sr-only" : ""}>Histórico</span>
-        </Button>
-      </div>
+      {/* KPIs */}
+      <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} />
+
+      {/* Barra de Ações */}
+      {canManage && (
+        <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 rounded-lg border">
+          <span className="text-sm font-medium text-muted-foreground mr-2">Ações:</span>
+          <Button 
+            variant="default"
+            size="sm" 
+            onClick={() => setShowMovimentacao(true)}
+            className="gap-2"
+          >
+            <ArrowDownUp className="h-4 w-4" />
+            <span>Entrada / Saída</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowHistorico(true)}
+            className="gap-2"
+          >
+            <History className="h-4 w-4" />
+            <span>Histórico</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Tabs de Categorias */}
       {renderTabs()}
       
+      {/* Dialogs */}
       <EstoqueHistorico 
         open={showHistorico} 
         onOpenChange={setShowHistorico} 
+      />
+      
+      <EstoqueMovimentacaoDialog
+        open={showMovimentacao}
+        onOpenChange={setShowMovimentacao}
+        items={items}
+        onSuccess={refreshData}
       />
     </div>
   );

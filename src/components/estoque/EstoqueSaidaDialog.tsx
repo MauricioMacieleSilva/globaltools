@@ -19,30 +19,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { EstoqueItem, updateEstoqueItem } from '@/services/estoqueService';
+import { EstoqueItem } from '@/services/estoqueService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowDownCircle, ArrowUpCircle, Package, Search } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowUpCircle, Package, Search } from 'lucide-react';
 
-interface EstoqueMovimentacaoDialogProps {
+interface EstoqueSaidaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: EstoqueItem[];
   onSuccess: () => void;
 }
 
-type TipoMovimentacao = 'ENTRADA' | 'SAIDA';
-
-export function EstoqueMovimentacaoDialog({
+export function EstoqueSaidaDialog({
   open,
   onOpenChange,
   items,
   onSuccess,
-}: EstoqueMovimentacaoDialogProps) {
+}: EstoqueSaidaDialogProps) {
   const { user, userProfile } = useAuth();
-  const [tipo, setTipo] = useState<TipoMovimentacao>('ENTRADA');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [quantidade, setQuantidade] = useState('');
   const [motivo, setMotivo] = useState('');
@@ -60,7 +56,6 @@ export function EstoqueMovimentacaoDialog({
 
   useEffect(() => {
     if (!open) {
-      setTipo('ENTRADA');
       setSelectedItemId('');
       setQuantidade('');
       setMotivo('');
@@ -82,7 +77,7 @@ export function EstoqueMovimentacaoDialog({
     }
 
     if (!motivo.trim()) {
-      toast.error('Informe o motivo da movimentação');
+      toast.error('Informe o motivo da saída');
       return;
     }
 
@@ -91,8 +86,7 @@ export function EstoqueMovimentacaoDialog({
       return;
     }
 
-    // Validar saída
-    if (tipo === 'SAIDA' && qtd > selectedItem.quantidade) {
+    if (qtd > selectedItem.quantidade) {
       toast.error(`Quantidade insuficiente. Disponível: ${selectedItem.quantidade} ${selectedItem.unidade}`);
       return;
     }
@@ -100,14 +94,12 @@ export function EstoqueMovimentacaoDialog({
     setIsLoading(true);
 
     try {
-      const novaQuantidade = tipo === 'ENTRADA' 
-        ? selectedItem.quantidade + qtd 
-        : selectedItem.quantidade - qtd;
+      const novaQuantidade = selectedItem.quantidade - qtd;
 
-      // Registrar movimentação manualmente (além do trigger)
+      // Registrar movimentação
       const { error: movError } = await supabase.from('estoque_movimentacoes').insert({
         item_id: selectedItemId,
-        tipo_movimentacao: tipo,
+        tipo_movimentacao: 'SAIDA',
         quantidade_anterior: selectedItem.quantidade,
         quantidade_nova: novaQuantidade,
         quantidade_movimentada: qtd,
@@ -121,7 +113,7 @@ export function EstoqueMovimentacaoDialog({
 
       if (movError) throw movError;
 
-      // Atualizar quantidade do item (sem trigger para evitar duplicação)
+      // Atualizar quantidade do item
       const { error: updateError } = await supabase
         .from('estoque_itens')
         .update({ quantidade: novaQuantidade })
@@ -129,12 +121,12 @@ export function EstoqueMovimentacaoDialog({
 
       if (updateError) throw updateError;
 
-      toast.success(`${tipo === 'ENTRADA' ? 'Entrada' : 'Saída'} registrada com sucesso!`);
+      toast.success('Saída registrada com sucesso!');
       onOpenChange(false);
       onSuccess();
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Erro ao registrar movimentação');
+      toast.error('Erro ao registrar saída');
     } finally {
       setIsLoading(false);
     }
@@ -145,47 +137,15 @@ export function EstoqueMovimentacaoDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {tipo === 'ENTRADA' ? (
-              <ArrowDownCircle className="h-5 w-5 text-emerald-500" />
-            ) : (
-              <ArrowUpCircle className="h-5 w-5 text-red-500" />
-            )}
-            Registrar Movimentação
+            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+            Registrar Saída
           </DialogTitle>
           <DialogDescription>
-            Registre entradas ou saídas de materiais do estoque.
+            Registre a saída de materiais do estoque.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Tipo de Movimentação */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant={tipo === 'ENTRADA' ? 'default' : 'outline'}
-              className={cn(
-                'h-16 flex-col gap-1',
-                tipo === 'ENTRADA' && 'bg-emerald-600 hover:bg-emerald-700'
-              )}
-              onClick={() => setTipo('ENTRADA')}
-            >
-              <ArrowDownCircle className="h-5 w-5" />
-              <span>Entrada</span>
-            </Button>
-            <Button
-              type="button"
-              variant={tipo === 'SAIDA' ? 'default' : 'outline'}
-              className={cn(
-                'h-16 flex-col gap-1',
-                tipo === 'SAIDA' && 'bg-red-600 hover:bg-red-700'
-              )}
-              onClick={() => setTipo('SAIDA')}
-            >
-              <ArrowUpCircle className="h-5 w-5" />
-              <span>Saída</span>
-            </Button>
-          </div>
-
           {/* Busca de Item */}
           <div className="space-y-2">
             <Label>Item do Estoque *</Label>
@@ -267,10 +227,7 @@ export function EstoqueMovimentacaoDialog({
               <p className="text-xs text-muted-foreground">
                 Novo estoque:{' '}
                 <strong>
-                  {tipo === 'ENTRADA'
-                    ? selectedItem.quantidade + parseFloat(quantidade)
-                    : selectedItem.quantidade - parseFloat(quantidade)}{' '}
-                  {selectedItem.unidade}
+                  {selectedItem.quantidade - parseFloat(quantidade)} {selectedItem.unidade}
                 </strong>
               </p>
             )}
@@ -284,25 +241,12 @@ export function EstoqueMovimentacaoDialog({
                 <SelectValue placeholder="Selecione o motivo" />
               </SelectTrigger>
               <SelectContent>
-                {tipo === 'ENTRADA' ? (
-                  <>
-                    <SelectItem value="Compra">Compra</SelectItem>
-                    <SelectItem value="Devolução de cliente">Devolução de cliente</SelectItem>
-                    <SelectItem value="Transferência de depósito">Transferência de depósito</SelectItem>
-                    <SelectItem value="Produção interna">Produção interna</SelectItem>
-                    <SelectItem value="Ajuste de inventário">Ajuste de inventário</SelectItem>
-                    <SelectItem value="Outro">Outro</SelectItem>
-                  </>
-                ) : (
-                  <>
-                    <SelectItem value="Venda">Venda</SelectItem>
-                    <SelectItem value="Consumo interno">Consumo interno</SelectItem>
-                    <SelectItem value="Transferência de depósito">Transferência de depósito</SelectItem>
-                    <SelectItem value="Perda/Avaria">Perda/Avaria</SelectItem>
-                    <SelectItem value="Ajuste de inventário">Ajuste de inventário</SelectItem>
-                    <SelectItem value="Outro">Outro</SelectItem>
-                  </>
-                )}
+                <SelectItem value="Venda">Venda</SelectItem>
+                <SelectItem value="Consumo interno">Consumo interno</SelectItem>
+                <SelectItem value="Transferência de depósito">Transferência de depósito</SelectItem>
+                <SelectItem value="Perda/Avaria">Perda/Avaria</SelectItem>
+                <SelectItem value="Ajuste de inventário">Ajuste de inventário</SelectItem>
+                <SelectItem value="Outro">Outro</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -327,13 +271,9 @@ export function EstoqueMovimentacaoDialog({
           <Button
             onClick={handleSubmit}
             disabled={isLoading}
-            className={cn(
-              tipo === 'ENTRADA' 
-                ? 'bg-emerald-600 hover:bg-emerald-700' 
-                : 'bg-red-600 hover:bg-red-700'
-            )}
+            className="bg-red-600 hover:bg-red-700"
           >
-            {isLoading ? 'Registrando...' : `Registrar ${tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}`}
+            {isLoading ? 'Registrando...' : 'Registrar Saída'}
           </Button>
         </DialogFooter>
       </DialogContent>

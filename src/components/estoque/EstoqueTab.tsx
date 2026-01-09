@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { EstoqueTable } from './EstoqueTable';
 import { EstoqueKPIs } from './EstoqueKPIs';
 import { EstoqueHistorico } from './EstoqueHistorico';
-import { EstoqueMovimentacaoDialog } from './EstoqueMovimentacaoDialog';
+import { EstoqueSaidaDialog } from './EstoqueSaidaDialog';
+import { EstoqueItemDialog } from './EstoqueItemDialog';
 import { useEstoque } from '@/context/EstoqueContext';
 import { CATEGORIAS_ESTOQUE, CategoriaEstoque } from '@/services/estoqueService';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { Loader2, History, ArrowDownUp, Plus } from 'lucide-react';
+import { Loader2, History, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Select,
@@ -21,7 +22,8 @@ import {
 
 export function EstoqueTab() {
   const [showHistorico, setShowHistorico] = useState(false);
-  const [showMovimentacao, setShowMovimentacao] = useState(false);
+  const [showEntrada, setShowEntrada] = useState(false);
+  const [showSaida, setShowSaida] = useState(false);
   const { 
     loading, 
     error, 
@@ -148,11 +150,20 @@ export function EstoqueTab() {
           <Button 
             variant="default"
             size="sm" 
-            onClick={() => setShowMovimentacao(true)}
-            className="gap-2"
+            onClick={() => setShowEntrada(true)}
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700"
           >
-            <ArrowDownUp className="h-4 w-4" />
-            <span>Entrada / Saída</span>
+            <ArrowDownCircle className="h-4 w-4" />
+            <span>Entrada</span>
+          </Button>
+          <Button 
+            variant="default"
+            size="sm" 
+            onClick={() => setShowSaida(true)}
+            className="gap-2 bg-red-600 hover:bg-red-700"
+          >
+            <ArrowUpCircle className="h-4 w-4" />
+            <span>Saída</span>
           </Button>
           <Button 
             variant="outline" 
@@ -175,9 +186,18 @@ export function EstoqueTab() {
         onOpenChange={setShowHistorico} 
       />
       
-      <EstoqueMovimentacaoDialog
-        open={showMovimentacao}
-        onOpenChange={setShowMovimentacao}
+      {/* Dialog de Entrada - usa o mesmo formulário de Adicionar Item */}
+      <EstoqueItemDialog
+        open={showEntrada}
+        onOpenChange={setShowEntrada}
+        categoriaInicial={categoriaAtiva}
+        onSuccess={refreshData}
+      />
+      
+      {/* Dialog de Saída */}
+      <EstoqueSaidaDialog
+        open={showSaida}
+        onOpenChange={setShowSaida}
         items={items}
         onSuccess={refreshData}
       />

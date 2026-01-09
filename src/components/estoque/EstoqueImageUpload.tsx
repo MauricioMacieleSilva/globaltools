@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { uploadEstoqueImage, deleteEstoqueImage } from '@/services/estoqueService';
-import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Loader2, Image as ImageIcon, Camera } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EstoqueImageUploadProps {
   currentImageUrl: string | null;
@@ -19,6 +20,8 @@ export function EstoqueImageUpload({
 }: EstoqueImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -56,9 +59,12 @@ export function EstoqueImageUpload({
       toast.error('Erro ao enviar imagem');
     } finally {
       setIsUploading(false);
-      // Reset input
+      // Reset inputs
       if (inputRef.current) {
         inputRef.current.value = '';
+      }
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
       }
     }
   };
@@ -108,6 +114,17 @@ export function EstoqueImageUpload({
                   <Upload className="h-4 w-4" />
                 )}
               </Button>
+              {isMobile && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="destructive"
@@ -121,35 +138,62 @@ export function EstoqueImageUpload({
           )}
         </div>
       ) : (
-        <div
-          onClick={() => !disabled && inputRef.current?.click()}
-          className={`
-            w-full h-40 rounded-md border-2 border-dashed 
-            flex flex-col items-center justify-center gap-2
-            transition-colors
-            ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary hover:bg-muted/50'}
-          `}
-        >
-          {isUploading ? (
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          ) : (
-            <>
-              <ImageIcon className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                Clique para adicionar imagem
-              </span>
-              <span className="text-xs text-muted-foreground">
-                (máximo 5MB)
-              </span>
-            </>
+        <div className="space-y-2">
+          <div
+            onClick={() => !disabled && inputRef.current?.click()}
+            className={`
+              w-full h-32 rounded-md border-2 border-dashed 
+              flex flex-col items-center justify-center gap-2
+              transition-colors
+              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary hover:bg-muted/50'}
+            `}
+          >
+            {isUploading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Clique para selecionar imagem
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  (máximo 5MB)
+                </span>
+              </>
+            )}
+          </div>
+          
+          {isMobile && !disabled && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Tirar Foto com Câmera
+            </Button>
           )}
         </div>
       )}
 
+      {/* Input para selecionar arquivo da galeria */}
       <Input
         ref={inputRef}
         type="file"
         accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        disabled={disabled || isUploading}
+      />
+
+      {/* Input separado para captura com câmera */}
+      <Input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         onChange={handleFileSelect}
         className="hidden"
         disabled={disabled || isUploading}

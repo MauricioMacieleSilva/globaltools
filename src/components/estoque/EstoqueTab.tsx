@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EstoqueTable } from './EstoqueTable';
 import { EstoqueKPIs } from './EstoqueKPIs';
+import { EstoqueHistorico } from './EstoqueHistorico';
 import { useEstoque } from '@/context/EstoqueContext';
 import { CATEGORIAS_ESTOQUE, CategoriaEstoque } from '@/services/estoqueService';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, History } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Select,
@@ -16,6 +19,7 @@ import {
 } from '@/components/ui/select';
 
 export function EstoqueTab() {
+  const [showHistorico, setShowHistorico] = useState(false);
   const { 
     loading, 
     error, 
@@ -33,6 +37,7 @@ export function EstoqueTab() {
   // Verificar permissão específica de estoque
   const { canEdit: canEditEstoque } = checkPageAccess('estoque');
   const canManage = isAdmin || canEditEstoque;
+  const canDelete = isAdmin; // Apenas admin pode excluir
 
   if (error) {
     return (
@@ -72,6 +77,7 @@ export function EstoqueTab() {
             dados={getItemsByCategoria(categoriaAtiva)}
             loading={loading}
             canManage={canManage}
+            canDelete={canDelete}
             categoria={categoriaAtiva}
             onDataChanged={refreshData}
           />
@@ -110,6 +116,7 @@ export function EstoqueTab() {
               dados={getItemsByCategoria(cat.value)}
               loading={loading}
               canManage={canManage}
+              canDelete={canDelete}
               categoria={cat.value}
               onDataChanged={refreshData}
             />
@@ -129,8 +136,24 @@ export function EstoqueTab() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} />
+      <div className="flex items-center justify-between">
+        <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} />
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowHistorico(true)}
+          className="gap-2 shrink-0"
+        >
+          <History className="h-4 w-4" />
+          <span className={isMobile ? "sr-only" : ""}>Histórico</span>
+        </Button>
+      </div>
       {renderTabs()}
+      
+      <EstoqueHistorico 
+        open={showHistorico} 
+        onOpenChange={setShowHistorico} 
+      />
     </div>
   );
 }

@@ -35,7 +35,7 @@ export function EstoqueTab() {
     items,
     precosEspessuraMap
   } = useEstoque();
-  const { isAdmin, checkPageAccess } = useUserPermissions();
+  const { isAdmin, checkPageAccess, loading: permissionsLoading } = useUserPermissions();
   const isMobile = useIsMobile();
   
   // Verificar permissão específica de estoque ou produção (já que estoque é aba da produção)
@@ -145,7 +145,7 @@ export function EstoqueTab() {
       <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} />
 
       {/* Barra de Ações */}
-      {canManage && (
+      {!permissionsLoading && canManage && (
         <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 rounded-lg border">
           <span className="text-sm font-medium text-muted-foreground mr-2">Ações:</span>
           <Button 

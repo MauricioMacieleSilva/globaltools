@@ -38,9 +38,10 @@ export function EstoqueTab() {
   const { isAdmin, checkPageAccess } = useUserPermissions();
   const isMobile = useIsMobile();
   
-  // Verificar permissão específica de estoque
+  // Verificar permissão específica de estoque ou produção (já que estoque é aba da produção)
   const { canEdit: canEditEstoque } = checkPageAccess('estoque');
-  const canManage = isAdmin || canEditEstoque;
+  const { canEdit: canEditProducao } = checkPageAccess('producao');
+  const canManage = isAdmin || canEditEstoque || canEditProducao;
   const canDelete = isAdmin; // Apenas admin pode excluir
 
   if (error) {

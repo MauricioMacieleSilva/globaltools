@@ -224,17 +224,24 @@ export default function DashboardComercial() {
                 </ErrorBoundary>
 
                 {/* Gráficos Vendas e Indicador de Temperatura */}
-                <div className="grid grid-cols-1 gap-2 sm:gap-4">
-                  <ErrorBoundary>
-                    <ComercialCharts />
-                  </ErrorBoundary>
-                  <ErrorBoundary>
-                    <TemperaturaIndicatorVendas 
-                      stats={temperatureStats} 
-                      data={orcamentosData} 
-                      ratings={orcamentosDataHook.ratings} 
-                    />
-                  </ErrorBoundary>
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-2 sm:gap-4">
+                  {/* Coluna esquerda: Faturamento Diário + Top 5 e Fat. por Classe */}
+                  <div className="space-y-2 sm:space-y-4">
+                    <ErrorBoundary>
+                      <ComercialCharts />
+                    </ErrorBoundary>
+                  </div>
+                  
+                  {/* Coluna direita: Card de Temperatura */}
+                  <div className="lg:row-span-1">
+                    <ErrorBoundary>
+                      <TemperaturaIndicatorVendas 
+                        stats={temperatureStats} 
+                        data={orcamentosData} 
+                        ratings={orcamentosDataHook.ratings} 
+                      />
+                    </ErrorBoundary>
+                  </div>
                 </div>
 
               </TabsContent>

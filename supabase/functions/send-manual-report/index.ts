@@ -1139,11 +1139,13 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`✅ Email enviado com sucesso! ID: ${resendData.id || 'N/A'}`)
 
     // 9. Registrar envio no banco de dados
+    // CORREÇÃO: Usar nowBrasil para data correta (não startDate que é 1º do mês)
+    const reportDateStr = `${nowBrasil.getFullYear()}-${String(nowBrasil.getMonth() + 1).padStart(2, '0')}-${String(nowBrasil.getDate()).padStart(2, '0')}`;
     await supabaseAdmin.from('email_reports_log').insert({
       config_id: configId,
       email: targetEmail,
       status: 'success',
-      report_date: startDate.toISOString().split('T')[0],
+      report_date: reportDateStr,
       report_type: config.frequency || 'custom',
       is_scheduled: isScheduled || false,
     });

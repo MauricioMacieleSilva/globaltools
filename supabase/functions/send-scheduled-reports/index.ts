@@ -141,32 +141,37 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`📧 Verificando envio para ${config.email}...`);
       
       try {
-        // Verificar se já foi enviado hoje (idempotência)
-        // CORREÇÃO: Usar formato correto para data de Brasília (não usar toISOString que converte para UTC)
+        // CORREÇÃO: Usar formato correto para data de Brasília
         const todayStr = `${brasiliaTime.getFullYear()}-${String(brasiliaTime.getMonth() + 1).padStart(2, '0')}-${String(brasiliaTime.getDate()).padStart(2, '0')}`;
         console.log(`📅 Data de referência para verificação: ${todayStr}`);
         
-        const { data: alreadySent, error: logError } = await supabaseAdmin
+        // CORREÇÃO: Implementar lock otimista para evitar race conditions
+        // Tentar inserir um registro 'pending' antes de enviar
+        // Se falhar por conflito, outra execução já está processando
+        const { error: lockError } = await supabaseAdmin
           .from('email_reports_log')
-          .select('id')
-          .eq('config_id', config.id)
-          .eq('report_date', todayStr)
-          .eq('is_scheduled', true)
-          .eq('status', 'success')
-          .maybeSingle();
-
-        if (logError) {
-          console.error('❌ Erro ao verificar log de envio:', logError);
-        }
-
-        if (alreadySent) {
-          console.log(`ℹ️ Relatório já enviado hoje para ${config.email} (config ${config.id}). Pulando...`);
-          results.push({
+          .insert({
+            config_id: config.id,
             email: config.email,
-            status: 'skipped',
-            reason: 'already_sent_today'
+            status: 'pending',
+            report_date: todayStr,
+            report_type: config.frequency,
+            is_scheduled: true,
           });
-          continue;
+
+        if (lockError) {
+          // Se for erro de constraint único, já existe um registro para hoje
+          if (lockError.code === '23505') {
+            console.log(`ℹ️ Relatório já em processamento ou enviado hoje para ${config.email}. Pulando...`);
+            results.push({
+              email: config.email,
+              status: 'skipped',
+              reason: 'already_processing_or_sent'
+            });
+            continue;
+          }
+          // Outro erro, logar mas continuar
+          console.error('⚠️ Erro ao criar lock:', lockError);
         }
 
         console.log(`📧 Enviando relatório para ${config.email}...`);
@@ -182,16 +187,17 @@ const handler = async (req: Request): Promise<Response> => {
         if (error) {
           console.error(`❌ Erro ao enviar para ${config.email}:`, error);
           
-          // Registrar erro no log
-          await supabaseAdmin.from('email_reports_log').insert({
-            config_id: config.id,
-            email: config.email,
-            status: 'failed',
-            error_message: error.message || 'Erro desconhecido',
-            report_date: now.toISOString().split('T')[0],
-            report_type: config.frequency,
-            is_scheduled: true,
-          });
+          // Atualizar registro de pending para failed
+          await supabaseAdmin
+            .from('email_reports_log')
+            .update({
+              status: 'failed',
+              error_message: error.message || 'Erro desconhecido',
+            })
+            .eq('config_id', config.id)
+            .eq('report_date', todayStr)
+            .eq('is_scheduled', true)
+            .eq('status', 'pending');
 
           results.push({
             email: config.email,
@@ -200,6 +206,17 @@ const handler = async (req: Request): Promise<Response> => {
           });
         } else {
           console.log(`✅ Relatório enviado com sucesso para ${config.email}`);
+          
+          // O send-manual-report já cria um registro de success
+          // Remover o registro pending que criamos como lock
+          await supabaseAdmin
+            .from('email_reports_log')
+            .delete()
+            .eq('config_id', config.id)
+            .eq('report_date', todayStr)
+            .eq('is_scheduled', true)
+            .eq('status', 'pending');
+          
           results.push({
             email: config.email,
             status: 'success'

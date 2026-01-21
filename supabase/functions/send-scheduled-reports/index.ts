@@ -47,8 +47,9 @@ function shouldSendReport(config: ReportConfig, now: Date): boolean {
     return false;
   }
 
-  const today = getDayOfWeek(now);
-  const dayOfMonth = now.getDate();
+  // Usar dia baseado no horário de Brasília para evitar inconsistências perto da virada do dia (UTC)
+  const today = getDayOfWeek(brasiliaTime);
+  const dayOfMonth = brasiliaTime.getDate();
 
   switch (config.frequency) {
     case 'daily':
@@ -145,10 +146,10 @@ const handler = async (req: Request): Promise<Response> => {
         const todayStr = `${brasiliaTime.getFullYear()}-${String(brasiliaTime.getMonth() + 1).padStart(2, '0')}-${String(brasiliaTime.getDate()).padStart(2, '0')}`;
         console.log(`📅 Data de referência para verificação: ${todayStr}`);
         
-        // CORREÇÃO: Implementar lock otimista para evitar race conditions
-        // Tentar inserir um registro 'pending' antes de enviar
-        // Se falhar por conflito, outra execução já está processando
-        const { error: lockError } = await supabaseAdmin
+        // Lock otimista para evitar envios duplicados (ex.: múltiplos agendadores)
+        // Criamos 1 registro por dia (config_id + report_date + is_scheduled=true).
+        // Se já existir, pulamos o envio.
+        const { data: lockRow, error: lockError } = await supabaseAdmin
           .from('email_reports_log')
           .insert({
             config_id: config.id,
@@ -157,21 +158,30 @@ const handler = async (req: Request): Promise<Response> => {
             report_date: todayStr,
             report_type: config.frequency,
             is_scheduled: true,
-          });
+          })
+          .select('id')
+          .single();
 
         if (lockError) {
-          // Se for erro de constraint único, já existe um registro para hoje
+          // Já existe registro para hoje (pending/success/failed) => não enviar novamente
           if (lockError.code === '23505') {
             console.log(`ℹ️ Relatório já em processamento ou enviado hoje para ${config.email}. Pulando...`);
             results.push({
               email: config.email,
               status: 'skipped',
-              reason: 'already_processing_or_sent'
+              reason: 'already_processing_or_sent',
             });
             continue;
           }
-          // Outro erro, logar mas continuar
-          console.error('⚠️ Erro ao criar lock:', lockError);
+
+          // Qualquer outro erro no lock é crítico: não enviar para evitar duplicidade sem controle.
+          console.error('❌ Erro ao criar lock (abortando envio):', lockError);
+          results.push({
+            email: config.email,
+            status: 'failed',
+            error: `Erro ao criar lock: ${lockError.message ?? 'desconhecido'}`,
+          });
+          continue;
         }
 
         console.log(`📧 Enviando relatório para ${config.email}...`);
@@ -180,7 +190,8 @@ const handler = async (req: Request): Promise<Response> => {
         const { data, error } = await supabaseAdmin.functions.invoke('send-manual-report', {
           body: { 
             configId: config.id,
-            isScheduled: true 
+            isScheduled: true,
+            skipLog: true,
           }
         });
 
@@ -193,11 +204,9 @@ const handler = async (req: Request): Promise<Response> => {
             .update({
               status: 'failed',
               error_message: error.message || 'Erro desconhecido',
+              sent_at: new Date().toISOString(),
             })
-            .eq('config_id', config.id)
-            .eq('report_date', todayStr)
-            .eq('is_scheduled', true)
-            .eq('status', 'pending');
+            .eq('id', lockRow?.id);
 
           results.push({
             email: config.email,
@@ -206,16 +215,16 @@ const handler = async (req: Request): Promise<Response> => {
           });
         } else {
           console.log(`✅ Relatório enviado com sucesso para ${config.email}`);
-          
-          // O send-manual-report já cria um registro de success
-          // Remover o registro pending que criamos como lock
+
+          // Marcar o lock como sucesso (não deletar; ele é o registro único do dia)
           await supabaseAdmin
             .from('email_reports_log')
-            .delete()
-            .eq('config_id', config.id)
-            .eq('report_date', todayStr)
-            .eq('is_scheduled', true)
-            .eq('status', 'pending');
+            .update({
+              status: 'success',
+              error_message: null,
+              sent_at: new Date().toISOString(),
+            })
+            .eq('id', lockRow?.id);
           
           results.push({
             email: config.email,

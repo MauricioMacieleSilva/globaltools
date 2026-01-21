@@ -1,8 +1,10 @@
 // Dados do Perfil Padrão U
 export const perfilPadraoU = [
   { h: 50, B: 25, espessuras: [2.00, 2.25, 2.65, 3.00] },
+  { h: 68, B: 30, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
   { h: 75, B: 38, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
   { h: 75, B: 40, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
+  { h: 92, B: 30, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
   { h: 100, B: 40, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
   { h: 100, B: 50, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },
   { h: 127, B: 50, espessuras: [2.00, 2.25, 2.65, 3.00, 4.75] },

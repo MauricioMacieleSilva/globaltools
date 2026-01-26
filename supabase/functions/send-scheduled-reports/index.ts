@@ -39,13 +39,23 @@ function shouldSendReport(config: ReportConfig, now: Date): boolean {
   const currentMinute = brasiliaTime.getMinutes();
   const [configHour, configMinute] = config.send_time.split(':').map(Number);
 
-  // Verificar se é EXATAMENTE o horário configurado
-  if (currentHour !== configHour || currentMinute !== configMinute) {
+  // Calcular minutos desde meia-noite para comparação
+  const currentTotalMinutes = currentHour * 60 + currentMinute;
+  const configTotalMinutes = configHour * 60 + configMinute;
+  
+  // Janela de tolerância: aceitar envio até 10 minutos APÓS o horário configurado
+  // Isso resolve o problema de cold starts do serverless que atrasam 1-3 minutos
+  const minutesDiff = currentTotalMinutes - configTotalMinutes;
+  
+  if (minutesDiff < 0 || minutesDiff > 10) {
     console.log(
-      `⏰ Horário diferente. Config: ${config.send_time}, Atual: ${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
+      `⏰ Fora da janela de envio. Config: ${config.send_time}, Atual: ${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')} (diff: ${minutesDiff} min)`
     );
     return false;
   }
+  
+  console.log(`✅ Dentro da janela de envio (${minutesDiff} min após ${config.send_time})`);
+  
 
   // Usar dia baseado no horário de Brasília para evitar inconsistências perto da virada do dia (UTC)
   const today = getDayOfWeek(brasiliaTime);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calculator, FileDown, Trash2 } from 'lucide-react';
+import { Calculator, FileDown, Trash2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PerfilU } from '@/components/perfis/PerfilU';
 import { PerfilL } from '@/components/perfis/PerfilL';
@@ -12,6 +12,7 @@ import { PerfilCartolaEnrijecido } from '@/components/perfis/PerfilCartolaEnrije
 import { PerfilUSemiEnrijecido } from '@/components/perfis/PerfilUSemiEnrijecido';
 import { PerfilCartolaSemiEnrijecido } from '@/components/perfis/PerfilCartolaSemiEnrijecido';
 import { ResumoGeral } from '@/components/ResumoGeral';
+import { AproveitamentoOtimizado } from '@/components/perfis/AproveitamentoOtimizado';
 import { usePerfilContext, PerfilProvider } from '@/context/PerfilContext';
 import { PerfilPadraoDialog } from '@/components/perfis/PerfilPadraoDialog';
 import jsPDF from 'jspdf';
@@ -123,6 +124,10 @@ function CortePerfliContent() {
                 <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
                   Resumo
                 </TabsTrigger>
+                <TabsTrigger value="otimizado" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0 gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Otimizado
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="perfil-u" className="mt-4 sm:mt-6">
@@ -223,6 +228,20 @@ function CortePerfliContent() {
                   </CardHeader>
                   <CardContent className="p-3 sm:p-6" data-export="resumo">
                     <ResumoGeral />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="otimizado" className="mt-4 sm:mt-6">
+                <Card className="shadow-lg border-0 bg-gradient-card">
+                  <CardHeader className="border-b bg-primary/5 p-3 sm:p-6">
+                    <CardTitle className="flex items-center gap-2 text-primary text-base sm:text-lg">
+                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+                      Aproveitamento Otimizado
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 sm:p-6">
+                    <AproveitamentoOtimizado />
                   </CardContent>
                 </Card>
               </TabsContent>

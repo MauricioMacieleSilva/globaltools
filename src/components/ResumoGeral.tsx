@@ -96,7 +96,7 @@ export function ResumoGeral() {
       case 'CARTOLA':
         return `${Math.round(calc.enrij1 || 0)}x${Math.round(calc.aba1 || 0)}x${base}x${Math.round(calc.aba2 || 0)}x${Math.round(calc.enrij3 || 0)}`;
       case 'CARTOLA_ENRIJECIDO':
-        return `${Math.round(calc.enrij1 || 0)}x${Math.round(calc.enrij2 || 0)}x${Math.round(calc.aba1 || 0)}x${base}x${Math.round(calc.aba2 || 0)}x${Math.round(calc.enrij3 || 0)}x${Math.round(calc.enrij4 || 0)}`;
+        return `${Math.round(calc.enrij1 || 0)}x${Math.round(calc.enrij2 || 0)}x${Math.round(calc.aba1 || 0)}x${base}x${Math.round(calc.aba2 || 0)}x${Math.round(calc.enrij4 || 0)}x${Math.round(calc.enrij3 || 0)}`;
       case 'CARTOLA_SEMI_ENRIJECIDO':
         return `${Math.round(calc.enrij1 || 0)}x${Math.round(calc.enrij2 || 0)}x${Math.round(calc.aba1 || 0)}x${base}x${Math.round(calc.aba2 || 0)}x${Math.round(calc.enrij3 || 0)}`;
       default:

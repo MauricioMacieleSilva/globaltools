@@ -20,7 +20,7 @@ const classes = [
   { key: 'TELHAS', label: 'Telhas' },
   { key: 'TUBOS', label: 'Tubos' },
   { key: 'LAMINADOS', label: 'Laminados' },
-  { key: 'VERGALHAO', label: 'Vergalhão' },
+  { key: 'VERGALHAO', label: 'Construção Civil' },
   { key: 'BLANK', label: 'Blank' }
 ];
 

@@ -28,54 +28,63 @@ const menuItems = [
     url: '/dashboard-comercial',
     icon: BarChart3,
     pageKey: 'dashboard',
+    tourId: 'sidebar-dashboard',
   },
   {
     title: 'Pré-Vendas',
     url: '/pre-vendas',
     icon: Target,
     pageKey: 'prevendas',
+    tourId: 'sidebar-pre-vendas',
   },
   {
     title: 'Pipeline de Vendas',
     url: '/pipeline',
     icon: Target,
     pageKey: 'pipeline',
+    tourId: 'sidebar-pipeline',
   },
   {
     title: 'Clientes',
     url: '/clientes',
     icon: Users,
     pageKey: 'clientes',
+    tourId: 'sidebar-clientes',
   },
   {
     title: 'Produção',
     url: '/producao',
     icon: Factory,
     pageKey: 'producao',
+    tourId: 'sidebar-producao',
   },
   {
     title: 'Política Comercial',
     url: '/politica-comercial',
     icon: FileText,
     pageKey: 'politica',
+    tourId: 'sidebar-politica',
   },
   {
     title: 'Corte Perfil',
     url: '/corte-perfil',
     icon: PerfilUIcon,
     pageKey: 'corteperfil',
+    tourId: 'sidebar-corte-perfil',
   },
   {
     title: 'Corte Blank',
     url: '/corte-blank',
     icon: ChapaBlankIcon,
     pageKey: 'corteblank',
+    tourId: 'sidebar-corte-blank',
   },
   {
     title: 'Assistente Global',
     url: '/assistente-global',
     icon: Monitor,
     pageKey: 'assistente',
+    tourId: 'sidebar-assistente',
   },
   {
     title: 'Central de Preços',
@@ -83,6 +92,7 @@ const menuItems = [
     icon: DollarSign,
     pageKey: 'centralprecos',
     external: true,
+    tourId: 'sidebar-central-precos',
   },
 ]
 
@@ -135,7 +145,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader>
-        <div className={`flex items-center gap-2 px-2 py-1 ${state === "collapsed" ? "justify-center" : ""}`}>
+        <div 
+          data-tour="sidebar-logo"
+          className={`flex items-center gap-2 px-2 py-1 ${state === "collapsed" ? "justify-center" : ""}`}
+        >
           <img 
             src="/lovable-uploads/8030c9ff-1e7f-497b-8069-65171ce1ab5e.png" 
             alt="Global Aço" 
@@ -156,7 +169,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {(loading ? menuItems : menuItems.filter(item => checkPageAccess(item.pageKey as PageKey).canView)).map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} data-tour={item.tourId}>
                   <SidebarMenuButton asChild isActive={!item.external && isActive(item.url)}>
                     {item.external ? (
                       <a href={item.url} target="_blank" rel="noopener noreferrer">

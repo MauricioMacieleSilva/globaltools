@@ -180,7 +180,7 @@ export default function DashboardComercial() {
             {/* Navegação por Abas */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full overflow-hidden">
               <div className="flex items-center gap-1 sm:gap-2 w-full overflow-hidden">
-                <TabsList className="grid grid-cols-3 gap-0.5 sm:gap-1 h-9 sm:h-10 flex-1 min-w-0">
+                <TabsList data-tour="dashboard-tabs" className="grid grid-cols-3 gap-0.5 sm:gap-1 h-9 sm:h-10 flex-1 min-w-0">
                   <TabsTrigger value="dashboard" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
                     <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">Dashboard</span>
@@ -198,6 +198,7 @@ export default function DashboardComercial() {
                 {/* Botão Tela Cheia - escondido no mobile */}
                 {!isFullscreen && (
                   <Button
+                    data-tour="dashboard-fullscreen"
                     variant="outline"
                     size="icon"
                     onClick={() => setIsFullscreen(true)}
@@ -212,7 +213,9 @@ export default function DashboardComercial() {
               {/* Filtros - Abaixo das abas (escondidos em tela cheia) */}
               {!isFullscreen && (
                 <ErrorBoundary>
-                  <SessionFilters />
+                  <div data-tour="dashboard-filters">
+                    <SessionFilters />
+                  </div>
                 </ErrorBoundary>
               )}
 
@@ -220,20 +223,22 @@ export default function DashboardComercial() {
               <TabsContent value="dashboard" className="space-y-2 sm:space-y-4 mt-2">
                 {/* KPIs Vendas */}
                 <ErrorBoundary>
-                  <ComercialKPIs />
+                  <div data-tour="dashboard-kpis">
+                    <ComercialKPIs />
+                  </div>
                 </ErrorBoundary>
 
                 {/* Gráficos Vendas e Indicador de Temperatura */}
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-2 sm:gap-4">
                   {/* Coluna esquerda: Faturamento Diário + Top 5 e Fat. por Classe */}
-                  <div className="space-y-2 sm:space-y-4">
+                  <div className="space-y-2 sm:space-y-4" data-tour="dashboard-charts">
                     <ErrorBoundary>
                       <ComercialCharts />
                     </ErrorBoundary>
                   </div>
                   
                   {/* Coluna direita: Card de Temperatura */}
-                  <div className="lg:row-span-1">
+                  <div className="lg:row-span-1" data-tour="dashboard-temperatura">
                     <ErrorBoundary>
                       <TemperaturaIndicatorVendas 
                         stats={temperatureStats} 

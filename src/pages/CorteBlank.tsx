@@ -15,7 +15,7 @@ function CorteBlankContent() {
     <div className="min-h-screen bg-gradient-to-br from-primary-light to-background">
       <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-8">
         <Tabs value={abaSelecionada} onValueChange={setAbaSelecionada} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-card p-1 rounded-lg h-auto">
+          <TabsList className="grid w-full grid-cols-4 bg-card p-1 rounded-lg h-auto" data-tour="blank-tabs">
             <TabsTrigger value="configuracao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] sm:text-sm p-1.5 sm:p-3 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1">
               <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Configuração</span>
@@ -37,19 +37,19 @@ function CorteBlankContent() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="configuracao" className="mt-4 sm:mt-6">
+          <TabsContent value="configuracao" className="mt-4 sm:mt-6" data-tour="blank-chapa">
             <ConfiguracaoChapa />
           </TabsContent>
 
-          <TabsContent value="pecas" className="mt-4 sm:mt-6">
+          <TabsContent value="pecas" className="mt-4 sm:mt-6" data-tour="blank-pecas">
             <ListaPecas />
           </TabsContent>
 
-          <TabsContent value="visualizacao" className="mt-4 sm:mt-6">
+          <TabsContent value="visualizacao" className="mt-4 sm:mt-6" data-tour="blank-visualizacao">
             <VisualizacaoCorte />
           </TabsContent>
 
-          <TabsContent value="relatorio" className="mt-4 sm:mt-6">
+          <TabsContent value="relatorio" className="mt-4 sm:mt-6" data-tour="blank-relatorio">
             <RelatorioAproveitamento />
           </TabsContent>
         </Tabs>

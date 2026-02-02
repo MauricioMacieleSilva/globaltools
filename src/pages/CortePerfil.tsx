@@ -99,7 +99,7 @@ function CortePerfliContent() {
             </div>
             
             <Tabs defaultValue="perfil-u" className="w-full">
-              <TabsList className="flex flex-wrap w-full bg-card p-1 rounded-lg h-auto gap-1">
+              <TabsList className="flex flex-wrap w-full bg-card p-1 rounded-lg h-auto gap-1" data-tour="perfil-tabs">
                 <TabsTrigger value="perfil-u" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
                   U/Z
                 </TabsTrigger>
@@ -121,10 +121,10 @@ function CortePerfliContent() {
                 <TabsTrigger value="perfil-cartola-semi-enrijecido" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
                   Cart. Semi-Enrij.
                 </TabsTrigger>
-                <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0">
+                <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0" data-tour="perfil-resumo">
                   Resumo
                 </TabsTrigger>
-                <TabsTrigger value="otimizado" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0 gap-1">
+                <TabsTrigger value="otimizado" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-2 py-1.5 whitespace-nowrap flex-shrink-0 gap-1" data-tour="perfil-otimizado">
                   <Sparkles className="h-3 w-3" />
                   Otimizado
                 </TabsTrigger>
@@ -194,7 +194,7 @@ function CortePerfliContent() {
                         <Calculator className="h-4 w-4 sm:h-5 sm:w-5" />
                         Resumo Geral
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" data-tour="perfil-export">
                         <Button 
                           onClick={() => {
                             if (window.confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {

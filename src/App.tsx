@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
+import { TourProvider } from "./components/tour/TourProvider";
 import CorteBlank from "./pages/CorteBlank";
 import CortePerfil from "./pages/CortePerfil";
 import DashboardComercial from '@/pages/DashboardComercial';
@@ -137,15 +138,16 @@ function AppContent() {
                               {userProfile && <UserAvatarMenu />}
                             </header>
                             <main className="flex-1">
-                              <Routes>
-                                <Route
-                                  path="/"
-                                  element={
-                                    <ProtectedRoute requirePageAccess="/dashboard-comercial">
-                                      <DashboardComercial />
-                                    </ProtectedRoute>
-                                  }
-                                />
+                              <TourProvider>
+                                <Routes>
+                                  <Route
+                                    path="/"
+                                    element={
+                                      <ProtectedRoute requirePageAccess="/dashboard-comercial">
+                                        <DashboardComercial />
+                                      </ProtectedRoute>
+                                    }
+                                  />
                                 <Route
                                   path="/dashboard-comercial"
                                   element={
@@ -260,7 +262,8 @@ function AppContent() {
                                 />
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                                 <Route path="*" element={<NotFound />} />
-                              </Routes>
+                                </Routes>
+                              </TourProvider>
                             </main>
                           </SidebarInset>
                           <PWAInstallPrompt />

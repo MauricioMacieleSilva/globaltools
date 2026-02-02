@@ -397,7 +397,7 @@ export const PreVendasSection: React.FC = () => {
   }
   return <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList data-tour="pre-vendas-tabs">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="gestao">Gestão de Leads</TabsTrigger>
@@ -408,7 +408,7 @@ export const PreVendasSection: React.FC = () => {
         {/* Dashboard Tab */}
         <TabsContent value="dashboard" className="space-y-6">
           {/* Filtros e Configurações */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6" data-tour="pre-vendas-filters">
             <div className="flex gap-4 items-center">
               <ComercialVendorFilter vendedores={availableSDRs} selectedVendedor={selectedSDR} onVendedorChange={sdr => {
               const newFilter = sdr || '';
@@ -460,7 +460,7 @@ export const PreVendasSection: React.FC = () => {
           </div>
 
           {/* KPIs Diários */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4" data-tour="pre-vendas-kpis">
             {/* KPI Mensal */}
             <MonthlyContactsKPI activities={activities.filter(activity => !selectedSDR || activity.sdr_name === selectedSDR)} monthlyGoal={adjustedGoals.monthlyContacts} baseDate={selectedDate} />
             <Card>

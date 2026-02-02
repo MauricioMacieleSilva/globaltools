@@ -15,7 +15,7 @@ const AssistenteGlobal: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-4" data-tour="assistente-tabs">
           <TabsTrigger value="text" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             Chat de Texto
@@ -26,11 +26,11 @@ const AssistenteGlobal: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="text" className="flex-1 flex flex-col mt-0">
+        <TabsContent value="text" className="flex-1 flex flex-col mt-0" data-tour="assistente-chat">
           <ChatInterface />
         </TabsContent>
 
-        <TabsContent value="voice" className="flex-1 mt-0">
+        <TabsContent value="voice" className="flex-1 mt-0" data-tour="assistente-voice">
           <div className="max-w-2xl mx-auto">
             <VoiceInterface />
           </div>

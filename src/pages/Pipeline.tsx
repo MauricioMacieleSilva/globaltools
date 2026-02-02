@@ -619,7 +619,7 @@ export const Pipeline: React.FC = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-5" data-tour="pipeline-tabs">
           <TabsTrigger value="leads">
             Leads Pipeline ({getFilteredLeadsForTab('leads').length})
           </TabsTrigger>
@@ -667,7 +667,7 @@ export const Pipeline: React.FC = () => {
 
 
           {/* Filtros */}
-          <Card>
+          <Card data-tour="pipeline-filters">
             <CardContent className="p-4">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
@@ -721,7 +721,7 @@ export const Pipeline: React.FC = () => {
           </Card>
 
           {/* Tabela de Leads */}
-          <Card>
+          <Card data-tour="pipeline-table">
             <CardHeader>
               <CardTitle>Leads do Pipeline</CardTitle>
             </CardHeader>

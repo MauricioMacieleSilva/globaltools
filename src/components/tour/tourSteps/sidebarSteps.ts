@@ -90,5 +90,14 @@ export const sidebarSteps: DriveStep[] = [
       side: 'right',
       align: 'start'
     }
+  },
+  {
+    element: '[data-tour="sidebar-reunioes"]',
+    popover: {
+      title: 'Reuniões',
+      description: 'Acesse o Secretário Digital para gerenciar reuniões e atas.',
+      side: 'right',
+      align: 'start'
+    }
   }
 ];

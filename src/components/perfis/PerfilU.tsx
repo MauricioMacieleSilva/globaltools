@@ -229,7 +229,7 @@ function PerfilUDesktop() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }} data-tour="perfil-headers">
         {headers.map((h, i) => (
           <div key={i} className="text-center">
             {h}
@@ -246,8 +246,9 @@ function PerfilUDesktop() {
           const temDadosPerfil = espessura > 0 && base > 0 && aba1 > 0;
           const verificacao = verificarPerfilUPadrao(espessura, base, aba1);
           
+          const isFirstLine = linhasU.indexOf(linha) === 0;
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }} data-tour={isFirstLine ? "perfil-linha" : undefined}>
               <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                 <SelectTrigger className="h-7 text-[10px] px-1">
                   <SelectValue />
@@ -258,7 +259,7 @@ function PerfilUDesktop() {
                 </SelectContent>
               </Select>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center" data-tour={isFirstLine ? "perfil-simetrico" : undefined}>
                 <Checkbox 
                   checked={!linha.assimetrico} 
                   onCheckedChange={(checked) => atualizarLinha(linha.id, 'assimetrico', !checked)}
@@ -334,24 +335,28 @@ function PerfilUDesktop() {
               <Input type="number" placeholder="0" value={linha.quantidade} onChange={e => atualizarLinha(linha.id, 'quantidade', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tira) : '-'}</div>
+              <div className="text-center text-[10px] text-muted-foreground" data-tour={isFirstLine ? "perfil-resultados" : undefined}>{calculo ? Math.ceil(calculo.tira) : '-'}</div>
               <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tiraPerda) : '-'}</div>
               <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPorPeca) : '-'}</div>
               <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               
-              <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDadosPerfil} />
+              <div data-tour={isFirstLine ? "perfil-tipo-indicador" : undefined}>
+                <IndicadorPerfilPadrao isPadrao={verificacao.isPadrao} temDados={temDadosPerfil} />
+              </div>
               
-              <IndicadorEstoqueDisponibilidade
-                tipoPerfil={linha.orientacaoUZ}
-                espessura={espessura}
-                base={base}
-                aba1={aba1}
-                aba2={parseFloat(linha.aba2) || undefined}
-              />
+              <div data-tour={isFirstLine ? "perfil-estoque" : undefined}>
+                <IndicadorEstoqueDisponibilidade
+                  tipoPerfil={linha.orientacaoUZ}
+                  espessura={espessura}
+                  base={base}
+                  aba1={aba1}
+                  aba2={parseFloat(linha.aba2) || undefined}
+                />
+              </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center" data-tour={isFirstLine ? "perfil-visualizacao" : undefined}>
                 {calculo ? (
                   <VisualizacaoPerfilPopover calculo={calculo} tipoPerfil="Perfil U" />
                 ) : (
@@ -369,12 +374,12 @@ function PerfilUDesktop() {
         })}
       </div>
 
-      <Button onClick={adicionarLinha} className="w-full" variant="outline" size="sm">
+      <Button onClick={adicionarLinha} className="w-full" variant="outline" size="sm" data-tour="perfil-adicionar">
         <Plus className="h-3 w-3 mr-1" />
         Adicionar Linha
       </Button>
 
-      <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+      <div className="bg-primary/5 p-3 rounded-lg border border-primary/20" data-tour="perfil-totais">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
             <div className="text-xs text-muted-foreground">Peso Total</div>

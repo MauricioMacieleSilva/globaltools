@@ -94,7 +94,7 @@ function CortePerfliContent() {
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {/* Main Content */}
           <div>
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-4" data-tour="perfil-padrao-btn">
               <PerfilPadraoDialog />
             </div>
             

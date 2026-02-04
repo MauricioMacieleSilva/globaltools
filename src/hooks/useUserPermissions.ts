@@ -72,6 +72,12 @@ export const SYSTEM_PAGES = {
     supportsEdit: false,
     route: '/central-precos'
   },
+  reunioes: { 
+    label: 'Reuniões', 
+    category: 'Principais',
+    supportsEdit: false,
+    route: '/reunioes'
+  },
   
   // Páginas administrativas
   usuarios: { 

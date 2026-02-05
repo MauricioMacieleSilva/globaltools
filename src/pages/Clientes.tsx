@@ -11,7 +11,7 @@ export default function Clientes() {
   return (
     <div className="min-h-screen p-3 sm:p-6 space-y-4">
       {/* Header */}
-      <div>
+      <div data-tour="clientes-header">
         <h1 className="text-xl sm:text-3xl font-bold">Central de Clientes</h1>
         <p className="text-sm text-muted-foreground">
           Gerencie e analise sua base de clientes
@@ -28,7 +28,7 @@ export default function Clientes() {
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsList className="grid w-full grid-cols-2 h-9" data-tour="clientes-tabs">
               <TabsTrigger value="base" className="w-full min-w-0 px-2 text-xs sm:text-sm gap-1">
                 <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="min-w-0 truncate">Clientes</span>

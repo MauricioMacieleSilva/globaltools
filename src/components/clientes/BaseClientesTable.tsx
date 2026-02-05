@@ -349,7 +349,7 @@ export function BaseClientesTable() {
           ticketMedioGeral={estatisticas.ticketMedioGeral}
         />
       ) : (
-        <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-3 lg:grid-cols-5 gap-4" data-tour="clientes-kpis">
           <Card>
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-sm text-muted-foreground">Total Clientes</CardTitle>
@@ -402,7 +402,7 @@ export function BaseClientesTable() {
       )}
 
       {/* Search */}
-      <div className="relative">
+      <div className="relative" data-tour="clientes-search">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
           placeholder="Buscar cliente..."
@@ -413,7 +413,7 @@ export function BaseClientesTable() {
       </div>
 
       {/* Lista de Clientes */}
-      <Card>
+      <Card data-tour="clientes-table">
         <CardHeader className="p-3 sm:p-4">
           <CardTitle className="text-sm sm:text-base">
             Base de Clientes ({clientesFiltrados.length})
@@ -454,7 +454,7 @@ export function BaseClientesTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clientes.map((cliente) => (
+                  {clientes.map((cliente, index) => (
                     <TableRow key={cliente.nome}>
                       <TableCell className="font-medium">{cliente.nome}</TableCell>
                       <TableCell>{getStatusBadge(cliente.ativo)}</TableCell>
@@ -479,6 +479,7 @@ export function BaseClientesTable() {
                           <Button 
                             variant="outline" 
                             size="sm"
+                            data-tour={index === 0 ? "clientes-historico" : undefined}
                             onClick={() => {
                               const clienteComHistorico = carregarHistorico(cliente.nome);
                               setSelectedCliente(clienteComHistorico);
@@ -493,6 +494,7 @@ export function BaseClientesTable() {
                           <Button 
                             variant="outline" 
                             size="sm"
+                            data-tour={index === 0 ? "clientes-followup" : undefined}
                             onClick={() => {
                               setSelectedClienteFollowUp(cliente.nome);
                               setFollowUpDialogOpen(true);
@@ -512,7 +514,7 @@ export function BaseClientesTable() {
           
           {/* Paginação */}
           {totalPages > 1 && (
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center mt-4" data-tour="clientes-pagination">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>

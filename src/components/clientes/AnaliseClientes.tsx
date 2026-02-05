@@ -265,7 +265,7 @@ export function AnaliseClientes() {
       )}
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4" data-tour="analise-kpis">
         {drillDownState.mode === 'uf' ? (
           <>
             <Card>
@@ -413,7 +413,7 @@ export function AnaliseClientes() {
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <Card>
+        <Card data-tour="analise-grafico-uf">
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-sm sm:text-base">
               {drillDownState.mode === 'uf' 
@@ -468,7 +468,7 @@ export function AnaliseClientes() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card data-tour="analise-perfil">
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-sm sm:text-base">Perfil dos Clientes</CardTitle>
           </CardHeader>
@@ -511,7 +511,7 @@ export function AnaliseClientes() {
       {/* Tabelas Detalhadas - Esconder em mobile e mostrar cards */}
       {/* Mobile: Cards view */}
       {isMobile ? (
-        <div className="space-y-4">
+        <div className="space-y-4" data-tour="analise-tabela">
           <Card>
             <CardHeader className="p-3">
               <CardTitle className="text-sm">
@@ -586,7 +586,7 @@ export function AnaliseClientes() {
         </div>
       ) : (
         /* Desktop: Tables view */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-tour="analise-tabela">
           <Card>
             <CardHeader>
               <CardTitle>

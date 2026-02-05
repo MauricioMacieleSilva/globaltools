@@ -31,9 +31,9 @@ export function ProducaoKPIs() {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6" data-tour="producao-kpis">
       {/* Total de Pedidos */}
-      <Card>
+      <Card data-tour="producao-kpi-total">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
           <Package className="h-4 w-4 text-muted-foreground" />
@@ -75,7 +75,7 @@ export function ProducaoKPIs() {
       </Card>
 
       {/* Atrasados */}
-      <Card>
+      <Card data-tour="producao-kpi-atrasados">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Atrasados</CardTitle>
           <AlertTriangle className="h-4 w-4 text-red-600" />

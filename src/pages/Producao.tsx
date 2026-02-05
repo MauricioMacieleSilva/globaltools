@@ -62,7 +62,7 @@ export default function Producao() {
     <ErrorBoundary>
       <div className="min-h-screen w-full bg-background">
         <div className="container mx-auto p-2 space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" data-tour="producao-header">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">Produção</h1>
             <div className="flex gap-2 w-full sm:w-auto">
               {isAdmin && (
@@ -75,7 +75,7 @@ export default function Producao() {
                   <span className="hidden sm:inline">Pedidos Ocultos</span>
                 </Button>
               )}
-              <Button onClick={exportarPDF} className="gap-2 flex-1 sm:flex-none">
+              <Button onClick={exportarPDF} className="gap-2 flex-1 sm:flex-none" data-tour="producao-export-btn">
                 <FileDown className="h-4 w-4" />
                 <span className="hidden sm:inline">Exportar Relatório PDF</span>
                 <span className="sm:hidden">Exportar PDF</span>
@@ -84,7 +84,7 @@ export default function Producao() {
           </div>
 
           <Tabs defaultValue="producao" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg">
+            <TabsList className="grid w-full grid-cols-3 max-w-lg" data-tour="producao-tabs">
               <TabsTrigger value="producao" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
                 <span className="hidden sm:inline">Produção</span>
@@ -114,7 +114,7 @@ export default function Producao() {
               </ErrorBoundary>
             </TabsContent>
 
-            <TabsContent value="estoque" className="space-y-4 mt-4">
+            <TabsContent value="estoque" className="space-y-4 mt-4" data-tour="estoque-tab">
               <ErrorBoundary>
                 <EstoqueProvider>
                   <EstoqueTab />

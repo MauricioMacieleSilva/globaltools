@@ -106,7 +106,7 @@ export function MateriaisPendentesSummary() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="materiais-kpis">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -149,7 +149,7 @@ export function MateriaisPendentesSummary() {
           </div>
 
           {/* Filtros */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2" data-tour="materiais-filtros">
             <Input
               placeholder="Buscar por material ou classe..."
               value={filtro}
@@ -167,7 +167,7 @@ export function MateriaisPendentesSummary() {
           </div>
 
           {/* Tabela Desktop */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto" data-tour="materiais-tabela">
             <table className="w-full">
               <thead>
                 <tr className="border-b">

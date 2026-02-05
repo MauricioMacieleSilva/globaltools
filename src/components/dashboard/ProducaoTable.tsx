@@ -332,7 +332,7 @@ export function ProducaoTable() {
         <CardTitle>Pedidos em Produção</CardTitle>
         
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4" data-tour="producao-filters">
           <div className="relative flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -392,7 +392,7 @@ export function ProducaoTable() {
       onHideOrder={handleHideOrder}
     />
         ) : (
-          <div className="rounded-md border overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto" data-tour="producao-table">
             <Table>
             <TableHeader>
               <TableRow>
@@ -458,6 +458,7 @@ export function ProducaoTable() {
                     <TableRow 
                       className="hover:bg-muted/50 cursor-pointer"
                       onClick={() => toggleRowExpansion(item.numero_pedido)}
+                      data-tour={index === 0 ? "producao-row-expand" : undefined}
                     >
                       <TableCell>
                         {expandedRows.has(item.numero_pedido) ? (
@@ -491,7 +492,7 @@ export function ProducaoTable() {
                         </div>
                       </TableCell>
                       <TableCell>{formatDate(item.prazo_pcp)}</TableCell>
-                      <TableCell>
+                      <TableCell data-tour={index === 0 ? "producao-novo-prazo" : undefined}>
                         {canEdit ? (
                           <div className="relative">
                             <Input
@@ -521,7 +522,7 @@ export function ProducaoTable() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-tour={index === 0 ? "producao-situacao" : undefined}>
                         {canEdit ? (
                           <div className="relative">
                             <Select

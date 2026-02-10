@@ -4,7 +4,7 @@ import { TransportadorasDialog } from './TransportadorasDialog';
 
 export function PoliticaDescontos() {
   return (
-    <Card className="mb-6">
+    <Card className="mb-6" data-tour="politica-descontos">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -48,7 +48,7 @@ export function PoliticaDescontos() {
               <div className="p-3 bg-blue-50 border border-blue-200 rounded text-blue-800">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">🚚 Pedidos CIF</p>
-                  <TransportadorasDialog />
+                  <span data-tour="politica-transportadoras"><TransportadorasDialog /></span>
                 </div>
                 <p className="mt-1">Para pedidos CIF deverá ser realizada cotação de frete (Tabela de frete em desenvolvimento).</p>
               </div>

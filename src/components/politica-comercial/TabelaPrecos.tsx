@@ -190,7 +190,7 @@ export function TabelaPrecos({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>{titulo}</CardTitle>
-            <CardDescription>
+          <CardDescription data-tour="politica-referencia">
               Preços com ICMS 17% | FOB RS | À Vista | Sem IPI
             </CardDescription>
           </div>
@@ -201,7 +201,7 @@ export function TabelaPrecos({
             </Button>
           )}
         </div>
-        <div className="relative mt-2">
+        <div className="relative mt-2" data-tour="politica-busca">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Buscar por descrição..."
@@ -219,7 +219,7 @@ export function TabelaPrecos({
             ))}
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border" data-tour="politica-table">
             <Table>
               <TableHeader>
                 <TableRow>

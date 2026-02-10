@@ -38,6 +38,7 @@ interface ClienteInfo {
       quantidade: number;
       peso: number;
       valor: number;
+      preco_unitario: number;
     }>;
   }>;
 }
@@ -218,6 +219,7 @@ export function BaseClientesTable() {
           quantidade: number;
           peso: number;
           valor: number;
+          preco_unitario: number;
         }>;
       }>();
 
@@ -237,7 +239,8 @@ export function BaseClientesTable() {
             descricao: item.descricaomat || 'Sem descrição',
             quantidade: item.qtd || 0,
             peso: item.peso || 0,
-            valor: item.valor
+            valor: item.valor,
+            preco_unitario: item.valor_un_bruto || 0
           });
         } else {
           // Criar novo pedido agrupado
@@ -254,7 +257,8 @@ export function BaseClientesTable() {
               descricao: item.descricaomat || 'Sem descrição',
               quantidade: item.qtd || 0,
               peso: item.peso || 0,
-              valor: item.valor
+              valor: item.valor,
+              preco_unitario: item.valor_un_bruto || 0
             }]
           };
           pedidosMap.set(numeroPedido, novoPedido);
@@ -672,10 +676,11 @@ export function BaseClientesTable() {
                         <div className="border-t bg-muted/20 p-4">
                           <Table>
                             <TableHeader>
-                              <TableRow>
+                             <TableRow>
                                 <TableHead>Descrição</TableHead>
                                 <TableHead className="text-right">Quantidade</TableHead>
                                 <TableHead className="text-right">Peso (kg)</TableHead>
+                                <TableHead className="text-right">Preço Unit.</TableHead>
                                 <TableHead className="text-right">Valor</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -685,6 +690,7 @@ export function BaseClientesTable() {
                                   <TableCell>{item.descricao}</TableCell>
                                   <TableCell className="text-right">{item.quantidade}</TableCell>
                                   <TableCell className="text-right">{item.peso.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right">{formatCurrency(item.preco_unitario)}</TableCell>
                                   <TableCell className="text-right">{formatCurrency(item.valor)}</TableCell>
                                 </TableRow>
                               ))}

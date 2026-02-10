@@ -3,6 +3,7 @@ import { fetchProducaoData, ProducaoData, MaterialData } from '@/services/produc
 import { loadProductionOrders, ProductionOrderData } from '@/services/productionOrdersService';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useExcludedOrders } from '@/hooks/useExcludedOrders';
 
 export interface HiddenProductionOrder {
   id: string;
@@ -82,6 +83,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
   const [productionOrders, setProductionOrders] = useState<Record<string, ProductionOrderData>>({});
   const [hiddenOrders, setHiddenOrders] = useState<HiddenProductionOrder[]>([]);
   const { toast } = useToast();
+  const { excludedOrders: excludedOrderNumbers, refreshExcludedOrders } = useExcludedOrders();
 
   const fetchData = async () => {
     try {
@@ -196,9 +198,13 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
 
   // Apply filters and sort
   const filteredData = data.filter(item => {
-    // Filtrar pedidos ocultos
+    // Filtrar pedidos ocultos na produção
     const hiddenOrderNumbers = new Set(hiddenOrders.map(o => o.numero_pedido));
     if (hiddenOrderNumbers.has(item.numero_pedido)) {
+      return false;
+    }
+    // Filtrar pedidos excluídos do dashboard comercial
+    if (excludedOrderNumbers.has(item.numero_pedido)) {
       return false;
     }
     

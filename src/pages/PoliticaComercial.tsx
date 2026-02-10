@@ -110,7 +110,7 @@ function PoliticaComercialContent() {
 
           {/* Tabelas de Preços */}
           <Tabs value={classeAtiva} onValueChange={setClasseAtiva} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 lg:grid-cols-9" data-tour="politica-categorias">
               {classes.map(classe => (
                 <TabsTrigger key={classe.key} value={classe.key} className="text-xs relative">
                   {classe.label}

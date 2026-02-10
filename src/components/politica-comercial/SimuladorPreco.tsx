@@ -107,7 +107,7 @@ export function SimuladorPreco() {
       });
     }
   };
-  return <Card className="sticky top-4">
+  return <Card className="sticky top-4" data-tour="politica-simulador">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Calculator className="h-4 w-4" />
@@ -157,7 +157,7 @@ export function SimuladorPreco() {
             </>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2" data-tour="politica-sim-icms">
             <div>
               <Label htmlFor="icms" className="text-xs">% ICMS</Label>
               <div className="flex items-center gap-1">
@@ -204,7 +204,7 @@ export function SimuladorPreco() {
             <Input id="condicao" type="text" value={simulador.condicaoPagamento === 'À Vista' ? '' : simulador.condicaoPagamento} onChange={e => handleInputChange('condicaoPagamento', e.target.value)} placeholder="À Vista, 30 dias, etc." className="h-8 text-sm" />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2" data-tour="politica-sim-desconto">
             <div>
               <Label htmlFor="desconto" className="text-xs">% Desconto</Label>
               <Input id="desconto" type="number" step="0.1" value={simulador.descontoManual || ''} onChange={e => handleInputChange('descontoManual', e.target.value || undefined)} placeholder={`${calcularDesconto(simulador.peso)}%`} className="h-8 text-sm" />
@@ -227,7 +227,7 @@ export function SimuladorPreco() {
         </div>
 
         {/* Resultados */}
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-tour="politica-sim-resultado">
           <div className="flex justify-between text-xs">
             <span>Preço com ICMS:</span>
             <span className="font-medium">

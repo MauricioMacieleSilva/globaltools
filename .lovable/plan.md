@@ -1,93 +1,37 @@
 
+## Plano: Filtrar pedidos excluidos nos relatorios por e-mail
 
-# Adicionar Menu "Reuniões" com Link Externo
+### Problema
+Os pedidos excluidos no Dashboard Comercial (via "excluded_orders") continuam aparecendo nos KPIs dos relatorios enviados por e-mail. O relatorio diario (`send-daily-report`) nao filtra pedidos excluidos. O relatorio manual (`send-manual-report`) filtra apenas nos "Perdidos", mas nao no Faturamento, Orcamentos e Pedidos Nao Faturados.
 
-## Resumo
+### Solucao
 
-Adicionar um novo item no menu lateral chamado "Reuniões" que direciona o usuário para a aplicação externa do Secretário Digital da Global Aço.
+#### 1. `send-daily-report/index.ts`
+- Adicionar consulta a tabela `excluded_orders` para obter a lista de pedidos excluidos
+- Atualizar a funcao `calculateKPIs` para aceitar um parametro `excludedOrders: Set<string>`
+- Filtrar pedidos excluidos de TODOS os calculos: faturamento, orcamentos, pedidos nao faturados e perdidos
+- Aplicar o filtro em todas as chamadas de `calculateKPIs` (KPIs do dia, mes atual, mes anterior, melhor mes)
 
-## O Que Será Feito
+#### 2. `send-manual-report/index.ts`
+- Expandir o filtro de `excludedOrders` que ja existe nos "Perdidos" para tambem filtrar:
+  - Faturamento (Emitida/Pedido com faturamento_tipo=1)
+  - Pedidos Nao Faturados
+  - Orcamentos
+- Aplicar o filtro no inicio do `calculateKPIs`, removendo os pedidos excluidos do `allData` antes de qualquer calculo
+- Tambem filtrar no ranking de vendedores e orcamentos quentes
 
-Seguindo o padrão já existente do "Central de Preços", será adicionado um novo item de menu que:
-- Aparece no menu lateral com o nome "Reuniões"
-- Abre em uma nova aba ao clicar
-- Direciona para: `https://global-a-o-secret-rio-digital-399093119582.us-west1.run.app/`
-- Pode ter permissões controladas pelo sistema de administração
+### Detalhes Tecnicos
 
-## Alterações Necessárias
-
-### 1. Arquivo: `src/components/AppSidebar.tsx`
-
-Adicionar novo item no array `menuItems`:
-
-```text
-{
-  title: 'Reuniões',
-  url: 'https://global-a-o-secret-rio-digital-399093119582.us-west1.run.app/',
-  icon: Calendar,  // Ícone de calendário do Lucide
-  pageKey: 'reunioes',
-  external: true,
-  tourId: 'sidebar-reunioes',
-}
-```
-
-Também será necessário importar o ícone `Calendar` do lucide-react.
-
-### 2. Arquivo: `src/hooks/useUserPermissions.ts`
-
-Adicionar entrada no objeto `SYSTEM_PAGES`:
+Em ambas as funcoes, a logica sera:
 
 ```text
-reunioes: { 
-  label: 'Reuniões', 
-  category: 'Principais',
-  supportsEdit: false,
-  route: '/reunioes'
-}
+// Antes de calcular KPIs, remover pedidos excluidos
+const dataWithoutExcluded = allData.filter(item => !excludedOrders.has(item.numeropedido));
+// Usar dataWithoutExcluded para todos os calculos
 ```
 
-### 3. Tutorial do Sidebar (Opcional)
+Isso garante consistencia total com o Dashboard Comercial, onde `ComercialContext` filtra `isOrderExcluded` de todo o `filteredData`.
 
-Adicionar passo no arquivo `src/components/tour/tourSteps/sidebarSteps.ts`:
-
-```text
-{
-  element: '[data-tour="sidebar-reunioes"]',
-  popover: {
-    title: 'Reuniões',
-    description: 'Acesse o Secretário Digital para gerenciar reuniões e atas.',
-    side: 'right',
-    align: 'start'
-  }
-}
-```
-
-## Posicionamento no Menu
-
-O item será inserido após "Assistente Global" e antes de "Central de Preços", agrupando os links externos no final da lista.
-
-## Resultado Final
-
-```text
-Menu Lateral:
-├── Dashboard Comercial
-├── Pré-Vendas
-├── Pipeline de Vendas
-├── Clientes
-├── Produção
-├── Política Comercial
-├── Corte Perfil
-├── Corte Blank
-├── Assistente Global
-├── Reuniões          ← NOVO (abre nova aba)
-└── Central de Preços (abre nova aba)
-```
-
-## Arquivos a Modificar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/AppSidebar.tsx` | Adicionar item no array menuItems + import Calendar |
-| `src/hooks/useUserPermissions.ts` | Adicionar entrada reunioes no SYSTEM_PAGES |
-| `src/components/tour/tourSteps/sidebarSteps.ts` | Adicionar passo do tutorial |
-
+### Arquivos a modificar
+- `supabase/functions/send-daily-report/index.ts`
+- `supabase/functions/send-manual-report/index.ts`

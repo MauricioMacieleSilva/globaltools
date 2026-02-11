@@ -260,10 +260,16 @@ function calculateKPIs(
   allData: ComercialData[],
   startDate: Date,
   endDate: Date,
+  excludedOrders: Set<string> = new Set(),
   calcularDias: boolean = true,
   diasUteisConfigurados: number | null = null
 ): EmailKPIs {
-  const filteredData = allData.filter(item => {
+  // Filtrar pedidos excluídos antes de qualquer cálculo
+  const dataWithoutExcluded = excludedOrders.size > 0
+    ? allData.filter(item => !excludedOrders.has(item.numeropedido))
+    : allData;
+
+  const filteredData = dataWithoutExcluded.filter(item => {
     const date = getDateField(item);
     return date && date >= startDate && date <= endDate;
   });
@@ -274,7 +280,7 @@ function calculateKPIs(
   );
   const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
   
-  const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
+  const orcamentos = dataWithoutExcluded.filter(item => item.situacao === 'Orçamento');
   const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
   
   // Contar pedidos únicos, não linhas, e somar valor total
@@ -549,6 +555,14 @@ const handler = async (req: Request): Promise<Response> => {
     // Carregar dados
     const allData = await loadComercialDataFromSheet();
 
+    // Buscar pedidos excluídos
+    console.log('🚫 Buscando pedidos excluídos...');
+    const { data: excludedOrdersData } = await supabaseAdmin
+      .from('excluded_orders')
+      .select('numero_pedido');
+    const excludedOrders = new Set((excludedOrdersData || []).map((o: any) => o.numero_pedido));
+    console.log(`🚫 ${excludedOrders.size} pedidos excluídos dos indicadores`);
+
     // Buscar meta mensal do admin_goals
     const ano = yesterday.getFullYear();
     const mes = yesterday.getMonth() + 1;
@@ -571,11 +585,11 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Calcular KPIs de ontem
-    const kpis = calculateKPIs(allData, yesterday, endOfYesterday, false);
+    const kpis = calculateKPIs(allData, yesterday, endOfYesterday, excludedOrders, false);
     
     // Calcular KPIs do mês atual até ontem
     const primeiroDiaMes = new Date(ano, mes - 1, 1);
-    const kpisMesAtual = calculateKPIs(allData, primeiroDiaMes, endOfYesterday);
+    const kpisMesAtual = calculateKPIs(allData, primeiroDiaMes, endOfYesterday, excludedOrders);
     
     // Calcular mês anterior
     let mesAnterior: ComparativoMes | null = null;
@@ -583,7 +597,7 @@ const handler = async (req: Request): Promise<Response> => {
       const mesAnteriorDate = new Date(ano, mes - 2, 1);
       const ultimoDiaMesAnterior = new Date(ano, mes - 1, 0);
       
-      const kpisMesAnterior = calculateKPIs(allData, mesAnteriorDate, ultimoDiaMesAnterior, false);
+      const kpisMesAnterior = calculateKPIs(allData, mesAnteriorDate, ultimoDiaMesAnterior, excludedOrders, false);
       
       if (kpisMesAnterior.faturamento > 0) {
         const variacao = kpisMesAnterior.faturamento > 0 
@@ -611,7 +625,7 @@ const handler = async (req: Request): Promise<Response> => {
         const mesAnalise = new Date(ano, mes - i, 1);
         const ultimoDiaMesAnalise = new Date(ano, mes - i + 1, 0);
         
-        const kpisMes = calculateKPIs(allData, mesAnalise, ultimoDiaMesAnalise, false);
+        const kpisMes = calculateKPIs(allData, mesAnalise, ultimoDiaMesAnalise, excludedOrders, false);
         
         if (kpisMes.faturamento > maiorFaturamento) {
           maiorFaturamento = kpisMes.faturamento;

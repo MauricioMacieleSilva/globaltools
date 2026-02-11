@@ -298,7 +298,12 @@ function calculateKPIs(
 ): EmailKPIs {
   console.log(`📊 Calculando KPIs para período: ${startDate.toISOString()} a ${endDate.toISOString()}`);
   
-  const filteredData = allData.filter(item => {
+  // Filtrar pedidos excluídos antes de qualquer cálculo
+  const dataWithoutExcluded = excludedOrders.size > 0
+    ? allData.filter(item => !excludedOrders.has(item.numeropedido))
+    : allData;
+
+  const filteredData = dataWithoutExcluded.filter(item => {
     const date = getDateField(item);
     return date && date >= startDate && date <= endDate;
   });
@@ -312,7 +317,7 @@ function calculateKPIs(
   const faturado = faturados.reduce((acc, item) => acc + item.valor, 0);
   console.log(`💰 Faturamento: R$ ${faturado.toFixed(2)} (${faturados.length} registros)`);
   
-  const orcamentos = allData.filter(item => item.situacao === 'Orçamento');
+  const orcamentos = dataWithoutExcluded.filter(item => item.situacao === 'Orçamento');
   const orcamentosValor = orcamentos.reduce((acc, item) => acc + item.valor, 0);
   console.log(`📋 Orçamentos: R$ ${orcamentosValor.toFixed(2)} (${orcamentos.length} registros)`);
   
@@ -336,10 +341,9 @@ function calculateKPIs(
   
   // Calcular perdidos usando data_perdido (igual à aba Perdidos do dashboard)
   // FILTRANDO pedidos excluídos
-  const perdidosData = allData.filter(item => {
+  const perdidosData = dataWithoutExcluded.filter(item => {
     if (item.situacao !== 'Perdido') return false;
     if (!item.perdido_motivo || item.perdido_motivo === 'Não informado') return false;
-    if (excludedOrders.has(item.numeropedido)) return false; // NOVO: Filtrar pedidos excluídos
 
     // Preferir data_perdido; se não tiver, cair para data_inicio ou data_emissao
     const datePerdido = parseDate(item.data_perdido || '');
@@ -384,9 +388,13 @@ function calculateKPIs(
 function calcularRankingVendedores(
   allData: ComercialData[],
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  excludedOrders: Set<string> = new Set()
 ): VendedorPerformance[] {
-  const faturadosNoPeriodo = allData.filter(item => {
+  const dataToUse = excludedOrders.size > 0
+    ? allData.filter(item => !excludedOrders.has(item.numeropedido))
+    : allData;
+  const faturadosNoPeriodo = dataToUse.filter(item => {
     const date = getDateField(item);
     return (
       date &&
@@ -438,7 +446,8 @@ function calcularRankingVendedores(
 
 async function buscarOrcamentosQuentes(
   allData: ComercialData[],
-  supabaseAdmin: any
+  supabaseAdmin: any,
+  excludedOrders: Set<string> = new Set()
 ): Promise<OrcamentoQuente[]> {
   try {
     const { data, error } = await supabaseAdmin
@@ -463,7 +472,7 @@ async function buscarOrcamentosQuentes(
     });
 
     const orcamentosEmAberto = allData.filter(item =>
-      item.situacao === 'Orçamento' && ratingsMap.has(item.numeropedido)
+      item.situacao === 'Orçamento' && ratingsMap.has(item.numeropedido) && !excludedOrders.has(item.numeropedido)
     );
 
     const orcamentosMap: Record<string, { items: ComercialData[]; rating: number }> = {};
@@ -1010,10 +1019,10 @@ const handler = async (req: Request): Promise<Response> => {
     const kpis = calculateKPIs(allData, startDate, endDate, excludedOrders, true, diasUteisConfigurados);
 
     // 5. Calcular ranking de vendedores no período
-    const ranking = calcularRankingVendedores(allData, startDate, endDate);
+    const ranking = calcularRankingVendedores(allData, startDate, endDate, excludedOrders);
 
     // 6. Buscar orçamentos quentes (3+ estrelas)
-    const orcamentosQuentes = await buscarOrcamentosQuentes(allData, supabaseAdmin);
+    const orcamentosQuentes = await buscarOrcamentosQuentes(allData, supabaseAdmin, excludedOrders);
     
     // 7. Calcular KPIs do mês anterior
     let mesAnterior: ComparativoMes | null = null;

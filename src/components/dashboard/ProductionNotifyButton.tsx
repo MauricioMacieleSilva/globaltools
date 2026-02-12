@@ -1,0 +1,128 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Mail, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { ProducaoData } from '@/services/producaoService';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
+interface ProductionNotifyButtonProps {
+  pedido: ProducaoData;
+  tipo: 'op_concluida' | 'pedido_finalizado';
+  numeroOp?: string;
+  variant?: 'ghost' | 'outline' | 'default';
+  size?: 'sm' | 'default' | 'icon';
+  showLabel?: boolean;
+}
+
+export function ProductionNotifyButton({ 
+  pedido, tipo, numeroOp, variant = 'ghost', size = 'sm', showLabel = false 
+}: ProductionNotifyButtonProps) {
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
+
+  const formatPesoUnidades = (pesos: Record<string, number>) => {
+    return Object.entries(pesos)
+      .map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`)
+      .join(' / ');
+  };
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      const payload = {
+        numero_pedido: pedido.numero_pedido,
+        tipo,
+        numero_op: numeroOp,
+        cliente: pedido.cli_nomef,
+        prazo: pedido.prazo_pcp,
+        peso_total: formatPesoUnidades(pedido.pesos_por_unidade),
+        percentual_concluido: pedido.percentual_concluido,
+        ops: pedido.ops.map(op => ({
+          numero_op: op.numero_op,
+          situacao_op: op.situacao_op,
+          peso: formatPesoUnidades(op.pesos_por_unidade),
+          materiais: op.materiais.map(mat => ({
+            descricaomat: mat.descricaomat,
+            observacao: mat.observacao,
+            quantidade: mat.qtd_pendente,
+            unidade: mat.un,
+          })),
+        })),
+      };
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão não encontrada');
+
+      const response = await supabase.functions.invoke('notify-production-status', {
+        body: payload,
+      });
+
+      if (response.error) throw response.error;
+
+      toast({
+        title: 'Notificação enviada!',
+        description: tipo === 'pedido_finalizado' 
+          ? `E-mail de conclusão do pedido ${pedido.numero_pedido} enviado com sucesso.`
+          : `E-mail de conclusão da OP ${numeroOp} enviado com sucesso.`,
+      });
+    } catch (error: any) {
+      console.error('Erro ao enviar notificação:', error);
+      toast({
+        title: 'Erro ao enviar notificação',
+        description: error.message || 'Não foi possível enviar o e-mail.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const label = tipo === 'pedido_finalizado' 
+    ? 'Notificar conclusão do pedido' 
+    : `Notificar conclusão da OP ${numeroOp}`;
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant={variant}
+          size={size}
+          disabled={sending}
+          title={label}
+          className="gap-1.5"
+        >
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+          {showLabel && <span className="text-xs">{tipo === 'pedido_finalizado' ? 'Notificar' : 'Notificar OP'}</span>}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Enviar notificação por e-mail?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {tipo === 'pedido_finalizado'
+              ? `Será enviado um e-mail informando a conclusão do pedido ${pedido.numero_pedido} (${pedido.cli_nomef}) para todos os contatos configurados nos relatórios.`
+              : `Será enviado um e-mail informando a conclusão da OP ${numeroOp} do pedido ${pedido.numero_pedido} (${pedido.cli_nomef}) para todos os contatos configurados nos relatórios.`
+            }
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleSend} disabled={sending}>
+            {sending ? 'Enviando...' : 'Enviar e-mail'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

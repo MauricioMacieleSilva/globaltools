@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Search, ArrowUpDown, ChevronDown, ChevronRight, Calendar, Save, Check, EyeOff } from 'lucide-react';
+import { Search, ArrowUpDown, ChevronDown, ChevronRight, Calendar, Save, Check, EyeOff, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useProducao } from '@/context/ProducaoContext';
 import { MaterialData, OperacaoData } from '@/services/producaoService';
@@ -18,6 +18,7 @@ import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ProducaoTableMobile } from './ProducaoTableMobile';
 import { HideOrderDialog } from './HideOrderDialog';
+import { ProductionNotifyButton } from './ProductionNotifyButton';
 
 type SortField = 'numero_pedido' | 'cli_nomef' | 'prazo_pcp' | 'status' | 'dias_atraso' | 'percentual_concluido';
 type SortOrder = 'asc' | 'desc';
@@ -553,14 +554,22 @@ export function ProducaoTable() {
                       </TableCell>
                       {isAdmin && (
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleHideOrder(item.numero_pedido)}
-                            title="Ocultar pedido"
-                          >
-                            <EyeOff className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {item.status === 'FINALIZADO' && (
+                              <ProductionNotifyButton
+                                pedido={item}
+                                tipo="pedido_finalizado"
+                              />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleHideOrder(item.numero_pedido)}
+                              title="Ocultar pedido"
+                            >
+                              <EyeOff className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -589,6 +598,14 @@ export function ProducaoTable() {
                                         .join(' / ')}
                                     </span>
                                   </div>
+                                  {isAdmin && (op.situacao_op || '').toUpperCase().includes('FINALIZADA') && (
+                                    <ProductionNotifyButton
+                                      pedido={item}
+                                      tipo="op_concluida"
+                                      numeroOp={op.numero_op}
+                                      showLabel
+                                    />
+                                  )}
                                 </div>
                                 
                                 <div className="space-y-2">

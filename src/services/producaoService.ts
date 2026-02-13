@@ -446,6 +446,9 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       ops: Map<string, OperacaoData>;
     }>();
     
+    // Track positional counters for fallback weight matching
+    const fallbackPositionCounters = new Map<string, number>();
+    
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       
@@ -570,12 +573,17 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const pesoKeyFallback = `${pedido}_${normalizeForCompare(descricaomat)}`;
       let pesoKg = pesoMap.get(pesoKeyGranular) || 0;
       
-      // Fallback: if granular key didn't match, try matching by pedido+descricaomat
-      // But only if there's exactly one entry (to avoid summing all items)
+      // Fallback: positional matching by pedido+descricaomat
       if (pesoKg === 0) {
         const fallbackEntries = pesoMapFallback.get(pesoKeyFallback);
-        if (fallbackEntries && fallbackEntries.length === 1) {
-          pesoKg = fallbackEntries[0];
+        if (fallbackEntries && fallbackEntries.length > 0) {
+          // Track position counter for this fallback key
+          const posKey = pesoKeyFallback;
+          const currentPos = fallbackPositionCounters.get(posKey) || 0;
+          if (currentPos < fallbackEntries.length) {
+            pesoKg = fallbackEntries[currentPos];
+          }
+          fallbackPositionCounters.set(posKey, currentPos + 1);
         }
       }
       

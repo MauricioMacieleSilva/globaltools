@@ -17,6 +17,8 @@ interface NotifyRequest {
   // Order details passed from frontend
   cliente: string;
   prazo: string;
+  novo_prazo?: string;
+  situacao_producao?: string;
   peso_total: string;
   percentual_concluido: number;
   ops: Array<{
@@ -139,9 +141,17 @@ function generateNotificationHTML(data: NotifyRequest): string {
                 <td style="padding: 6px 0; font-size: 14px; font-weight: 600; color: #2d3748;">${data.cliente}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; font-size: 13px; color: #718096;">Prazo PCP:</td>
+                <td style="padding: 6px 0; font-size: 13px; color: #718096;">Prazo Comercial:</td>
                 <td style="padding: 6px 0; font-size: 14px; color: #2d3748;">${formatDate(data.prazo)}</td>
               </tr>
+              ${data.novo_prazo ? `<tr>
+                <td style="padding: 6px 0; font-size: 13px; color: #718096;">Novo Prazo:</td>
+                <td style="padding: 6px 0; font-size: 14px; color: #2d3748;">${formatDate(data.novo_prazo)}</td>
+              </tr>` : ''}
+              ${data.situacao_producao ? `<tr>
+                <td style="padding: 6px 0; font-size: 13px; color: #718096;">Situação:</td>
+                <td style="padding: 6px 0; font-size: 14px; color: #2d3748;">${data.situacao_producao}</td>
+              </tr>` : ''}
               <tr>
                 <td style="padding: 6px 0; font-size: 13px; color: #718096;">Peso Total:</td>
                 <td style="padding: 6px 0; font-size: 14px; color: #2d3748;">${data.peso_total}</td>

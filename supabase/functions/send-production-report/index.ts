@@ -35,6 +35,8 @@ interface ProducaoData {
   situacao: string;
   cli_nomef: string;
   prazo_pcp: string;
+  novo_prazo?: string;
+  situacao_producao?: string;
   status: string;
   dias_atraso: number;
   ops: OperacaoData[];
@@ -358,6 +360,8 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${item.cli_nomef}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatWeight(item.peso_total_kg)}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatDate(item.prazo_pcp)}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${item.novo_prazo ? formatDate(item.novo_prazo) : '-'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${item.situacao_producao || '-'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#dc2626;font-weight:600;">${item.dias_atraso} dias</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;">${item.percentual_concluido}%</td>
     </tr>
@@ -381,6 +385,8 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;">${getStatusBadge(item.status)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${item.percentual_concluido}%</td>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${formatDate(item.prazo_pcp)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${item.novo_prazo ? formatDate(item.novo_prazo) : '-'}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${item.situacao_producao || '-'}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:${item.dias_atraso > 0 ? '#dc2626' : '#4a5568'};">${item.dias_atraso > 0 ? `${item.dias_atraso}d` : '-'}</td>
     </tr>
   `).join('');
@@ -469,7 +475,9 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Pedido</th>
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Cliente</th>
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Peso</th>
-                  <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Prazo</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Prazo Comercial</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Novo Prazo</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Situação</th>
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Atraso</th>
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#991b1b;font-weight:600;">Conclusão</th>
                 </tr>
@@ -489,7 +497,7 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#166534;font-weight:600;">Pedido</th>
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#166534;font-weight:600;">Cliente</th>
                   <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#166534;font-weight:600;">Peso</th>
-                  <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#166534;font-weight:600;">Prazo</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#166534;font-weight:600;">Prazo Comercial</th>
                 </tr>
               </thead>
               <tbody>${finalizadosRows}</tbody>
@@ -508,7 +516,9 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
                   <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Peso</th>
                   <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Status</th>
                   <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">%</th>
-                  <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Prazo</th>
+                  <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Prazo Comercial</th>
+                  <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Novo Prazo</th>
+                  <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Situação</th>
                   <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Atraso</th>
                 </tr>
               </thead>
@@ -547,8 +557,12 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Check if manual trigger (has auth header) or scheduled
+    const bodyText = await req.text();
+    const body = bodyText ? JSON.parse(bodyText) : {};
+    const isScheduled = body.scheduled === true;
+    
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
+    if (authHeader && !isScheduled) {
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
       if (authError || !user) {
@@ -585,6 +599,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Load data
     const producaoData = await loadProducaoData(excludedOrders, hiddenOrders);
+    
+    // Load production_orders for novo_prazo and situacao
+    const { data: productionOrdersData } = await supabaseAdmin.from('production_orders').select('*');
+    const productionOrdersMap = new Map<string, any>();
+    (productionOrdersData || []).forEach((po: any) => {
+      productionOrdersMap.set(po.numero_pedido, po);
+    });
+    
+    const situacaoMap: Record<string, string> = {
+      'aguardando_mp': 'Aguardando MP',
+      'em_producao': 'Em Produção',
+    };
+    
+    // Enrich producaoData with novo_prazo and situacao
+    for (const item of producaoData) {
+      const po = productionOrdersMap.get(item.numero_pedido);
+      if (po) {
+        if (po.novo_prazo) item.novo_prazo = po.novo_prazo;
+        if (po.situacao) item.situacao_producao = situacaoMap[po.situacao] || po.situacao;
+      }
+    }
+    
     const kpis = calculateKPIs(producaoData);
     const htmlContent = generateProductionReportHTML(producaoData, kpis);
 

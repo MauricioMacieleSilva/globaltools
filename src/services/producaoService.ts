@@ -413,7 +413,9 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const qtdVendaStr = normalizeField(row[columnIndexes.qtd_venda] ?? '');
       const un = normalizeField(row[columnIndexes.un] ?? '');
       const prazoPcpStr = normalizeField(row[columnIndexes.prazocomercial] ?? '');
-      const numeroOp = normalizeField(row[columnIndexes.numero_op] ?? '');
+      const numeroOpRaw = normalizeField(row[columnIndexes.numero_op] ?? '');
+      // Remove trailing .0 from OP numbers (e.g. "6166.0" -> "6166")
+      const numeroOp = numeroOpRaw.replace(/\.0$/, '');
       
       // Skip empty rows (require pedido, cliente e material)
       if (!pedido || !cliNomef || !descricaomat) continue;

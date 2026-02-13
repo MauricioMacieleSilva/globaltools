@@ -513,12 +513,8 @@ const handler = async (req: Request): Promise<Response> => {
     const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const subject = `🏭 Relatório de Produção - ${today}`;
 
-    const isTestMode = true;
-    const authorizedTestEmail = "mauricio.maciel@globalaco.com.br";
-    const recipients = isTestMode ? [authorizedTestEmail] : uniqueEmails;
-
     const results = [];
-    for (const email of recipients) {
+    for (const email of uniqueEmails) {
       try {
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -526,7 +522,7 @@ const handler = async (req: Request): Promise<Response> => {
           body: JSON.stringify({
             from: "Produção Global Aço <onboarding@resend.dev>",
             to: [email],
-            subject: isTestMode ? `${subject} [TESTE]` : subject,
+            subject,
             html: htmlContent,
           }),
         });

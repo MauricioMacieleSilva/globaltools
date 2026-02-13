@@ -66,7 +66,7 @@ function generateOpHTML(op: NotifyRequest['ops'][0], isHighlighted: boolean): st
         <div>
           <span style="font-weight: 600; font-size: 15px; color: #2d3748;">OP ${op.numero_op}</span>
           <span style="display: inline-block; margin-left: 12px; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; background: ${statusColor};">${statusLabel}</span>
-          ${isHighlighted ? '<span style="display: inline-block; margin-left: 8px; font-size: 12px; color: #48bb78; font-weight: 600;">✨ RECÉM CONCLUÍDO</span>' : ''}
+          
         </div>
         <span style="font-size: 13px; color: #718096;">Peso: ${op.peso}</span>
       </div>
@@ -237,10 +237,8 @@ const handler = async (req: Request): Promise<Response> => {
       : `✅ OP ${body.numero_op} Concluída - Pedido ${body.numero_pedido} - ${body.cliente}`;
 
     const results = [];
-    const isTestMode = true;
-    const authorizedTestEmail = "mauricio.maciel@globalaco.com.br";
 
-    for (const email of isTestMode ? [authorizedTestEmail] : uniqueEmails) {
+    for (const email of uniqueEmails) {
       try {
         const resendResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -251,7 +249,7 @@ const handler = async (req: Request): Promise<Response> => {
           body: JSON.stringify({
             from: "Produção Global Aço <onboarding@resend.dev>",
             to: [email],
-            subject: isTestMode ? `${subject} [TESTE]` : subject,
+            subject,
             html: htmlContent,
           }),
         });

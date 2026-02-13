@@ -5,6 +5,7 @@ interface MaterialData {
   un: string;
   numero_op: string;
   classe: string; // Classe do material (Column V)
+  peso_kg: number; // Peso em KG vindo da planilha comercial
 }
 
 interface OperacaoData {
@@ -12,6 +13,7 @@ interface OperacaoData {
   situacao_op: string;
   materiais: MaterialData[];
   pesos_por_unidade: Record<string, number>; // Peso por unidade (ex: { "KG": 1000, "M": 500 })
+  peso_total_kg: number; // Soma dos pesos KG dos materiais (da planilha comercial)
 }
 
 interface ProducaoData {
@@ -24,6 +26,7 @@ interface ProducaoData {
   ops: OperacaoData[];
   pesos_por_unidade: Record<string, number>; // Peso total por unidade
   pesos_finalizados_por_unidade: Record<string, number>; // Peso finalizado por unidade
+  peso_total_kg: number; // Peso total em KG (da planilha comercial)
   percentual_concluido: number; // calculated field
 }
 
@@ -225,14 +228,17 @@ const mockProducaoData: ProducaoData[] = [
             qtd_pendente: 500,
             un: 'KG',
             numero_op: '12345',
-            classe: 'CHAPA'
+            classe: 'CHAPA',
+            peso_kg: 500
           }
         ],
-        pesos_por_unidade: { 'KG': 500 }
+        pesos_por_unidade: { 'KG': 500 },
+        peso_total_kg: 500
       }
     ],
     pesos_por_unidade: { 'KG': 500 },
     pesos_finalizados_por_unidade: {},
+    peso_total_kg: 500,
     percentual_concluido: 0
   },
   {
@@ -253,14 +259,17 @@ const mockProducaoData: ProducaoData[] = [
             qtd_pendente: 250,
             un: 'KG',
             numero_op: '12346',
-            classe: 'PERFIL'
+            classe: 'PERFIL',
+            peso_kg: 250
           }
         ],
-        pesos_por_unidade: { 'KG': 250 }
+        pesos_por_unidade: { 'KG': 250 },
+        peso_total_kg: 250
       }
     ],
     pesos_por_unidade: { 'KG': 250 },
     pesos_finalizados_por_unidade: { 'KG': 250 },
+    peso_total_kg: 250,
     percentual_concluido: 100
   },
   {
@@ -281,14 +290,17 @@ const mockProducaoData: ProducaoData[] = [
             qtd_pendente: 800,
             un: 'KG',
             numero_op: '12347',
-            classe: 'TUBO'
+            classe: 'TUBO',
+            peso_kg: 800
           }
         ],
-        pesos_por_unidade: { 'KG': 800 }
+        pesos_por_unidade: { 'KG': 800 },
+        peso_total_kg: 800
       }
     ],
     pesos_por_unidade: { 'KG': 800 },
     pesos_finalizados_por_unidade: {},
+    peso_total_kg: 800,
     percentual_concluido: 0
   }
 ];
@@ -302,9 +314,16 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     const gid = '407047369';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
     
-    console.log('Fetching from URL:', csvUrl);
+    // Also fetch commercial sheet to get peso_kg
+    const comercialGid = '1086211541';
+    const comercialCsvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${comercialGid}`;
     
-    const response = await fetch(csvUrl);
+    console.log('Fetching production and commercial data...');
+    
+    const [response, comercialResponse] = await Promise.all([
+      fetch(csvUrl),
+      fetch(comercialCsvUrl)
+    ]);
     
     if (!response.ok) {
       console.error(`HTTP error! status: ${response.status}`);
@@ -314,6 +333,34 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     const csvText = await response.text();
     console.log('CSV Response length:', csvText.length);
     console.log('First 200 characters:', csvText.substring(0, 200));
+    
+    // Build peso map from commercial sheet
+    const pesoMap = new Map<string, number>(); // key: "pedido_descricaomat" -> peso_kg
+    if (comercialResponse.ok) {
+      const comercialCsvText = await comercialResponse.text();
+      const comercialRows = parseCSV(comercialCsvText);
+      console.log('Commercial sheet rows:', comercialRows.length);
+      
+      // Commercial columns: B(1)=numeropedido, J(9)=descricaomat, T(19)=peso
+      for (let i = 1; i < comercialRows.length; i++) {
+        const row = comercialRows[i];
+        if (row.length < 20) continue;
+        const pedido = normalizeField(row[1] || '');
+        const descMat = normalizeForCompare(row[9] || '');
+        const pesoStr = normalizeField(row[19] || '');
+        const peso = pesoStr.includes(',')
+          ? parseFloat(pesoStr.replace(/\./g, '').replace(',', '.')) || 0
+          : parseFloat(pesoStr) || 0;
+        
+        if (pedido && descMat && peso > 0) {
+          const key = `${pedido}_${descMat}`;
+          pesoMap.set(key, (pesoMap.get(key) || 0) + peso);
+        }
+      }
+      console.log('Peso map entries:', pesoMap.size);
+    } else {
+      console.warn('Failed to fetch commercial sheet for peso data');
+    }
     
     if (!csvText || csvText.length < 100) {
       console.error('CSV response too short or empty');
@@ -507,6 +554,14 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       // Get pedido data
       const pedidoData = pedidosMap.get(pedido)!;
       
+      // Lookup peso_kg from commercial sheet
+      const pesoKey = `${pedido}_${normalizeForCompare(descricaomat)}`;
+      let pesoKg = pesoMap.get(pesoKey) || 0;
+      // Fallback: if unit is KG, use qtdVenda as peso
+      if (pesoKg === 0 && unidadeNormalizada === 'KG') {
+        pesoKg = qtdVenda;
+      }
+      
       // Create material data - mantém unidade original
       const materialData: MaterialData = {
         descricaomat,
@@ -514,7 +569,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         qtd_pendente: qtdVenda, // Quantidade na unidade original
         un: unidadeNormalizada, // Unidade normalizada
         numero_op: numeroOp || 'SEM OP',
-        classe: deriveClasseFromMaterial(descricaomat) // Derivar classe do nome do material
+        classe: deriveClasseFromMaterial(descricaomat), // Derivar classe do nome do material
+        peso_kg: pesoKg
       };
       
       // Group by OP within pedido (use placeholder for materials without OP)
@@ -524,7 +580,8 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
           numero_op: numeroOp || 'SEM OP',
           situacao_op: situacaoOp,
           materiais: [],
-          pesos_por_unidade: {}
+          pesos_por_unidade: {},
+          peso_total_kg: 0
         });
       }
       
@@ -537,6 +594,9 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         opData.pesos_por_unidade[unidadeNormalizada] = 0;
       }
       opData.pesos_por_unidade[unidadeNormalizada] += qtdVenda;
+      
+      // Acumular peso_kg na OP
+      opData.peso_total_kg += pesoKg;
     }
     
     // Convert map to array and calculate totals
@@ -575,6 +635,9 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       const status = calculateOrderStatus(pedidoData.prazo_pcp, ops);
       const diasAtraso = (status === 'ATRASO') ? calculateDiasAtraso(pedidoData.prazo_pcp) : 0;
       
+      // Calcular peso total KG do pedido
+      const peso_total_kg = ops.reduce((sum, op) => sum + op.peso_total_kg, 0);
+      
       producaoData.push({
         numero_pedido: pedidoData.numero_pedido,
         situacao: pedidoData.situacao,
@@ -585,6 +648,7 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
         ops,
         pesos_por_unidade,
         pesos_finalizados_por_unidade,
+        peso_total_kg,
         percentual_concluido
       });
     }

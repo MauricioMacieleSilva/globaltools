@@ -1,0 +1,1 @@
+ALTER TABLE public.production_report_schedule ADD COLUMN IF NOT EXISTS last_sent_date TEXT;

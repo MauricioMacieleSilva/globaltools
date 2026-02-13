@@ -32,14 +32,9 @@ export function ProductionNotifyButton({
   const { toast } = useToast();
 
   const formatPesoForEmail = (item: ProducaoData) => {
-    // Match UI: show non-KG units + KG weight via pipe
-    const nonKgUnits = Object.entries(item.pesos_por_unidade)
-      .filter(([un]) => un !== 'KG' && un !== 'T')
-      .map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`);
+    // Summary peso total: show ONLY KG weight (from commercial sheet)
     const pesoKg = Math.round(item.peso_total_kg || 0);
-    const kgStr = `${pesoKg.toLocaleString('pt-BR')}KG`;
-    if (nonKgUnits.length > 0) return `${nonKgUnits.join(' / ')} | ${kgStr}`;
-    return kgStr;
+    return `${pesoKg.toLocaleString('pt-BR')}KG`;
   };
 
   const formatOpPesoForEmail = (op: ProducaoData['ops'][0]) => {

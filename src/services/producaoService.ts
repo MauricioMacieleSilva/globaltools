@@ -335,26 +335,37 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     console.log('First 200 characters:', csvText.substring(0, 200));
     
     // Build peso map from commercial sheet
-    const pesoMap = new Map<string, number>(); // key: "pedido_descricaomat" -> peso_kg
+    // Use pedido + descricaomat + observacao as key for granular per-item matching
+    const pesoMap = new Map<string, number>(); // key: "pedido_descricaomat_observacao" -> peso_kg
+    const pesoMapFallback = new Map<string, number[]>(); // fallback: "pedido_descricaomat" -> [peso1, peso2, ...]
     if (comercialResponse.ok) {
       const comercialCsvText = await comercialResponse.text();
       const comercialRows = parseCSV(comercialCsvText);
       console.log('Commercial sheet rows:', comercialRows.length);
       
-      // Commercial columns: B(1)=numeropedido, J(9)=descricaomat, T(19)=peso
+      // Commercial columns: B(1)=numeropedido, J(9)=descricaomat, K(10)=observacao, T(19)=peso
       for (let i = 1; i < comercialRows.length; i++) {
         const row = comercialRows[i];
         if (row.length < 20) continue;
         const pedido = normalizeField(row[1] || '');
         const descMat = normalizeForCompare(row[9] || '');
+        const obs = normalizeForCompare(row[10] || '');
         const pesoStr = normalizeField(row[19] || '');
         const peso = pesoStr.includes(',')
           ? parseFloat(pesoStr.replace(/\./g, '').replace(',', '.')) || 0
           : parseFloat(pesoStr) || 0;
         
         if (pedido && descMat && peso > 0) {
-          const key = `${pedido}_${descMat}`;
+          // Granular key with observacao for exact item matching
+          const key = `${pedido}_${descMat}_${obs}`;
           pesoMap.set(key, (pesoMap.get(key) || 0) + peso);
+          
+          // Also build fallback map by pedido+descricaomat (individual entries, not summed)
+          const fallbackKey = `${pedido}_${descMat}`;
+          if (!pesoMapFallback.has(fallbackKey)) {
+            pesoMapFallback.set(fallbackKey, []);
+          }
+          pesoMapFallback.get(fallbackKey)!.push(peso);
         }
       }
       console.log('Peso map entries:', pesoMap.size);
@@ -554,10 +565,21 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
       // Get pedido data
       const pedidoData = pedidosMap.get(pedido)!;
       
-      // Lookup peso_kg from commercial sheet
-      const pesoKey = `${pedido}_${normalizeForCompare(descricaomat)}`;
-      let pesoKg = pesoMap.get(pesoKey) || 0;
-      // Fallback: if unit is KG, use qtdVenda as peso
+      // Lookup peso_kg from commercial sheet using granular key (pedido + descricaomat + observacao)
+      const pesoKeyGranular = `${pedido}_${normalizeForCompare(descricaomat)}_${normalizeForCompare(observacao)}`;
+      const pesoKeyFallback = `${pedido}_${normalizeForCompare(descricaomat)}`;
+      let pesoKg = pesoMap.get(pesoKeyGranular) || 0;
+      
+      // Fallback: if granular key didn't match, try matching by pedido+descricaomat
+      // But only if there's exactly one entry (to avoid summing all items)
+      if (pesoKg === 0) {
+        const fallbackEntries = pesoMapFallback.get(pesoKeyFallback);
+        if (fallbackEntries && fallbackEntries.length === 1) {
+          pesoKg = fallbackEntries[0];
+        }
+      }
+      
+      // Last fallback: if unit is KG, use qtdVenda as peso
       if (pesoKg === 0 && unidadeNormalizada === 'KG') {
         pesoKg = qtdVenda;
       }

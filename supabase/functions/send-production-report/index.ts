@@ -254,12 +254,27 @@ function calculateKPIs(data: ProducaoData[]): ProductionKPIs {
 }
 
 function formatWeight(kg: number): string {
-  if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
-  return `${kg.toFixed(0)}kg`;
+  return `${Math.round(kg).toLocaleString('pt-BR')}KG`;
 }
 
 function formatPesoUnidades(pesos: Record<string, number>): string {
-  return Object.entries(pesos).map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`).join(' / ');
+  // Match UI format: non-KG units first, then KG weight via pipe
+  const nonKgUnits = Object.entries(pesos)
+    .filter(([un]) => un !== 'KG' && un !== 'T')
+    .map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`);
+  
+  // Calculate total KG (KG direct + T*1000)
+  const totalKg = Object.entries(pesos).reduce((sum, [un, peso]) => {
+    if (un === 'KG') return sum + peso;
+    if (un === 'T') return sum + peso * 1000;
+    return sum;
+  }, 0);
+  const kgStr = `${Math.round(totalKg).toLocaleString('pt-BR')}KG`;
+  
+  if (nonKgUnits.length > 0) {
+    return `${nonKgUnits.join(' / ')} | ${kgStr}`;
+  }
+  return kgStr;
 }
 
 function formatDate(dateStr: string): string {

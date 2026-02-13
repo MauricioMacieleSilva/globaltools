@@ -476,11 +476,8 @@ export function ProducaoTable() {
                       </TableCell>
                       <TableCell>
                         {(() => {
-                          const pesoKg = item.pesos_por_unidade['KG'] || 0;
-                          if (pesoKg >= 1000) {
-                            return `${(pesoKg / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}T`;
-                          }
-                          return `${pesoKg.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}KG`;
+                          const pesoKg = Math.round(item.peso_total_kg || 0);
+                          return `${pesoKg.toLocaleString('pt-BR')}KG`;
                         })()}
                       </TableCell>
                       <TableCell>
@@ -587,14 +584,21 @@ export function ProducaoTable() {
                                     <span className="font-medium">OP {op.numero_op}</span>
                                     {getMaterialStatusBadge(op.situacao_op)}
                                     <span className="text-sm text-muted-foreground">
-                                      Peso: {Object.entries(op.pesos_por_unidade)
-                                        .map(([unidade, peso]) => 
-                                          `${peso.toLocaleString('pt-BR', {
-                                            minimumFractionDigits: 0,
-                                            maximumFractionDigits: 1
-                                          })}${unidade}`
-                                        )
-                                        .join(' / ')}
+                                      Peso: {(() => {
+                                        // Show non-KG units first, then KG weight separated by pipe
+                                        const nonKgUnits = Object.entries(op.pesos_por_unidade)
+                                          .filter(([unidade]) => unidade !== 'KG' && unidade !== 'T')
+                                          .map(([unidade, peso]) => 
+                                            `${peso.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} ${unidade}`
+                                          );
+                                        const pesoKg = Math.round(op.peso_total_kg || 0);
+                                        const kgStr = `${pesoKg.toLocaleString('pt-BR')}KG`;
+                                        
+                                        if (nonKgUnits.length > 0) {
+                                          return `${nonKgUnits.join(' / ')} | ${kgStr}`;
+                                        }
+                                        return kgStr;
+                                      })()}
                                     </span>
                                   </div>
                                   {isAdmin && (op.situacao_op || '').toUpperCase().includes('FINALIZADA') && (

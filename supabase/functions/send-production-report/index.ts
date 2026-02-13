@@ -8,6 +8,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // Production sheet
 const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
 const PROD_GID = "407047369";
+const COMERCIAL_GID = "1086211541";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,6 +40,7 @@ interface ProducaoData {
   ops: OperacaoData[];
   pesos_por_unidade: Record<string, number>;
   pesos_finalizados_por_unidade: Record<string, number>;
+  peso_total_kg: number;
   percentual_concluido: number;
 }
 
@@ -126,13 +128,45 @@ function calculateOrderStatus(prazo: string, ops: OperacaoData[]): string {
 
 async function loadProducaoData(excludedOrders: Set<string>, hiddenOrders: Set<string>): Promise<ProducaoData[]> {
   const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${PROD_GID}&timestamp=${Date.now()}`;
-  const response = await fetch(csvUrl, {
-    headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-  });
+  const comercialUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${COMERCIAL_GID}&timestamp=${Date.now()}`;
+  
+  const [response, comercialResponse] = await Promise.all([
+    fetch(csvUrl, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }),
+    fetch(comercialUrl, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }),
+  ]);
+  
   if (!response.ok) throw new Error(`HTTP error ${response.status}`);
   const csvText = await response.text();
   const rows = parseCSV(csvText);
   if (rows.length < 2) return [];
+
+  // Build peso map from commercial sheet (pedido + descricaomat + observacao -> peso_kg)
+  const pesoMap = new Map<string, number>();
+  const pesoMapFallback = new Map<string, number[]>();
+  if (comercialResponse.ok) {
+    const comercialCsvText = await comercialResponse.text();
+    const comercialRows = parseCSV(comercialCsvText);
+    // Commercial columns: B(1)=numeropedido, J(9)=descricaomat, K(10)=observacao, T(19)=peso
+    for (let i = 1; i < comercialRows.length; i++) {
+      const row = comercialRows[i];
+      if (row.length < 20) continue;
+      const pedido = normalizeField(row[1] || '');
+      const descMat = normalizeForCompare(row[9] || '');
+      const obs = normalizeForCompare(row[10] || '');
+      const pesoStr = normalizeField(row[19] || '');
+      const peso = pesoStr.includes(',')
+        ? parseFloat(pesoStr.replace(/\./g, '').replace(',', '.')) || 0
+        : parseFloat(pesoStr) || 0;
+      if (pedido && descMat && peso > 0) {
+        const key = `${pedido}_${descMat}_${obs}`;
+        pesoMap.set(key, (pesoMap.get(key) || 0) + peso);
+        const fallbackKey = `${pedido}_${descMat}`;
+        if (!pesoMapFallback.has(fallbackKey)) pesoMapFallback.set(fallbackKey, []);
+        pesoMapFallback.get(fallbackKey)!.push(peso);
+      }
+    }
+    console.log('Peso map entries:', pesoMap.size);
+  }
 
   const columnIndexes = {
     pedido: 2, situacao: 4, cli_nomef: 7, descricaomat: 10, observacao: 11,
@@ -140,6 +174,7 @@ async function loadProducaoData(excludedOrders: Set<string>, hiddenOrders: Set<s
   };
 
   const pedidosMap = new Map<string, { numero_pedido: string; situacao: string; cli_nomef: string; prazo_pcp: string; ops: Map<string, OperacaoData> }>();
+  const fallbackPositionCounters = new Map<string, number>();
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -165,6 +200,21 @@ async function loadProducaoData(excludedOrders: Set<string>, hiddenOrders: Set<s
     const qtdVenda = qtdVendaStr.includes(',') ? parseFloat(qtdVendaStr.replace(/\./g, '').replace(',', '.')) || 0 : parseFloat(qtdVendaStr) || 0;
     const unidadeNorm = normalizeUnit(un);
 
+    // Lookup peso_kg from commercial sheet
+    const pesoKeyGranular = `${pedido}_${normalizeForCompare(descricaomat)}_${normalizeForCompare(observacao)}`;
+    const pesoKeyFallback = `${pedido}_${normalizeForCompare(descricaomat)}`;
+    let pesoKg = pesoMap.get(pesoKeyGranular) || 0;
+    if (pesoKg === 0) {
+      const fallbackEntries = pesoMapFallback.get(pesoKeyFallback);
+      if (fallbackEntries && fallbackEntries.length > 0) {
+        const posKey = pesoKeyFallback;
+        const currentPos = fallbackPositionCounters.get(posKey) || 0;
+        if (currentPos < fallbackEntries.length) pesoKg = fallbackEntries[currentPos];
+        fallbackPositionCounters.set(posKey, currentPos + 1);
+      }
+    }
+    if (pesoKg === 0 && unidadeNorm === 'KG') pesoKg = qtdVenda;
+
     let prazoPcp = '';
     if (prazoPcpStr) {
       try {
@@ -187,6 +237,8 @@ async function loadProducaoData(excludedOrders: Set<string>, hiddenOrders: Set<s
     const opData = pedidoData.ops.get(opKey)!;
     opData.materiais.push({ descricaomat, observacao, qtd_pendente: qtdVenda, un: unidadeNorm, classe: '' });
     opData.pesos_por_unidade[unidadeNorm] = (opData.pesos_por_unidade[unidadeNorm] || 0) + qtdVenda;
+    // Store peso_kg on material for summing later
+    (opData as any)._peso_total_kg = ((opData as any)._peso_total_kg || 0) + pesoKg;
   }
 
   const producaoData: ProducaoData[] = [];
@@ -194,12 +246,14 @@ async function loadProducaoData(excludedOrders: Set<string>, hiddenOrders: Set<s
     const ops = Array.from(pedidoData.ops.values());
     const pesos_por_unidade: Record<string, number> = {};
     const pesos_finalizados_por_unidade: Record<string, number> = {};
+    let peso_total_kg = 0;
     for (const op of ops) {
       const isFin = normalizeStatus(op.situacao_op).includes('FINALIZADA');
       for (const [un, peso] of Object.entries(op.pesos_por_unidade)) {
         pesos_por_unidade[un] = (pesos_por_unidade[un] || 0) + peso;
         if (isFin) pesos_finalizados_por_unidade[un] = (pesos_finalizados_por_unidade[un] || 0) + peso;
       }
+      peso_total_kg += (op as any)._peso_total_kg || 0;
     }
     const totalGeral = Object.values(pesos_por_unidade).reduce((s, p) => s + p, 0);
     const finGeral = Object.values(pesos_finalizados_por_unidade).reduce((s, p) => s + p, 0);
@@ -211,11 +265,10 @@ async function loadProducaoData(excludedOrders: Set<string>, hiddenOrders: Set<s
       numero_pedido: pedidoData.numero_pedido, situacao: pedidoData.situacao,
       cli_nomef: pedidoData.cli_nomef, prazo_pcp: pedidoData.prazo_pcp,
       status, dias_atraso: diasAtraso, ops, pesos_por_unidade,
-      pesos_finalizados_por_unidade, percentual_concluido: percentual,
+      pesos_finalizados_por_unidade, peso_total_kg, percentual_concluido: percentual,
     });
   }
 
-  // Sort: delayed first, then by days delayed desc
   producaoData.sort((a, b) => {
     const statusOrder: Record<string, number> = { 'ATRASO': 1, 'PARCIALMENTE_FINALIZADO': 2, 'NO_PRAZO': 3, 'PROGRAMAR': 4, 'FINALIZADO': 5 };
     const aO = statusOrder[a.status] || 5;
@@ -228,13 +281,7 @@ async function loadProducaoData(excludedOrders: Set<string>, hiddenOrders: Set<s
 }
 
 function calculateKPIs(data: ProducaoData[]): ProductionKPIs {
-  const getTotalWeight = (item: ProducaoData) => {
-    return Object.entries(item.pesos_por_unidade).reduce((sum, [un, peso]) => {
-      if (un === 'T') return sum + peso * 1000;
-      if (un === 'KG') return sum + peso;
-      return sum;
-    }, 0);
-  };
+  const getWeight = (item: ProducaoData) => item.peso_total_kg || 0;
 
   const atrasados = data.filter(i => i.status === 'ATRASO');
   const noPrazo = data.filter(i => i.status === 'NO_PRAZO');
@@ -244,12 +291,12 @@ function calculateKPIs(data: ProducaoData[]): ProductionKPIs {
 
   return {
     totalPedidos: data.length,
-    totalPesoKG: data.reduce((s, i) => s + getTotalWeight(i), 0),
-    atrasados: { count: atrasados.length, peso: atrasados.reduce((s, i) => s + getTotalWeight(i), 0) },
-    noPrazo: { count: noPrazo.length, peso: noPrazo.reduce((s, i) => s + getTotalWeight(i), 0) },
-    finalizados: { count: finalizados.length, peso: finalizados.reduce((s, i) => s + getTotalWeight(i), 0) },
-    parciais: { count: parciais.length, peso: parciais.reduce((s, i) => s + getTotalWeight(i), 0) },
-    programar: { count: programar.length, peso: programar.reduce((s, i) => s + getTotalWeight(i), 0) },
+    totalPesoKG: data.reduce((s, i) => s + getWeight(i), 0),
+    atrasados: { count: atrasados.length, peso: atrasados.reduce((s, i) => s + getWeight(i), 0) },
+    noPrazo: { count: noPrazo.length, peso: noPrazo.reduce((s, i) => s + getWeight(i), 0) },
+    finalizados: { count: finalizados.length, peso: finalizados.reduce((s, i) => s + getWeight(i), 0) },
+    parciais: { count: parciais.length, peso: parciais.reduce((s, i) => s + getWeight(i), 0) },
+    programar: { count: programar.length, peso: programar.reduce((s, i) => s + getWeight(i), 0) },
   };
 }
 
@@ -309,7 +356,7 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-weight:600;color:#2d3748;font-size:13px;">${item.numero_pedido}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${item.cli_nomef}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatPesoUnidades(item.pesos_por_unidade)}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatWeight(item.peso_total_kg)}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatDate(item.prazo_pcp)}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#dc2626;font-weight:600;">${item.dias_atraso} dias</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;">${item.percentual_concluido}%</td>
@@ -320,7 +367,7 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-weight:600;color:#2d3748;font-size:13px;">${item.numero_pedido}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${item.cli_nomef}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatPesoUnidades(item.pesos_por_unidade)}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatWeight(item.peso_total_kg)}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#4a5568;">${formatDate(item.prazo_pcp)}</td>
     </tr>
   `).join('');
@@ -330,7 +377,7 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
     <tr>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-weight:500;color:#2d3748;font-size:12px;">${item.numero_pedido}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${item.cli_nomef}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${formatPesoUnidades(item.pesos_por_unidade)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${formatWeight(item.peso_total_kg)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;">${getStatusBadge(item.status)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${item.percentual_concluido}%</td>
       <td style="padding:6px 10px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${formatDate(item.prazo_pcp)}</td>

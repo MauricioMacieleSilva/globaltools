@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-production-report]
 verify_jwt = false
+
+[functions.send-scheduled-production-report]
+verify_jwt = false

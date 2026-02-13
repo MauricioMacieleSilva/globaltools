@@ -31,10 +31,25 @@ export function ProductionNotifyButton({
   const [sending, setSending] = useState(false);
   const { toast } = useToast();
 
-  const formatPesoUnidades = (pesos: Record<string, number>) => {
-    return Object.entries(pesos)
-      .map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`)
-      .join(' / ');
+  const formatPesoForEmail = (item: ProducaoData) => {
+    // Match UI: show non-KG units + KG weight via pipe
+    const nonKgUnits = Object.entries(item.pesos_por_unidade)
+      .filter(([un]) => un !== 'KG' && un !== 'T')
+      .map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`);
+    const pesoKg = Math.round(item.peso_total_kg || 0);
+    const kgStr = `${pesoKg.toLocaleString('pt-BR')}KG`;
+    if (nonKgUnits.length > 0) return `${nonKgUnits.join(' / ')} | ${kgStr}`;
+    return kgStr;
+  };
+
+  const formatOpPesoForEmail = (op: ProducaoData['ops'][0]) => {
+    const nonKgUnits = Object.entries(op.pesos_por_unidade)
+      .filter(([un]) => un !== 'KG' && un !== 'T')
+      .map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`);
+    const pesoKg = Math.round(op.peso_total_kg || 0);
+    const kgStr = `${pesoKg.toLocaleString('pt-BR')}KG`;
+    if (nonKgUnits.length > 0) return `${nonKgUnits.join(' / ')} | ${kgStr}`;
+    return kgStr;
   };
 
   const handleSend = async () => {
@@ -46,12 +61,12 @@ export function ProductionNotifyButton({
         numero_op: numeroOp,
         cliente: pedido.cli_nomef,
         prazo: pedido.prazo_pcp,
-        peso_total: formatPesoUnidades(pedido.pesos_por_unidade),
+        peso_total: formatPesoForEmail(pedido),
         percentual_concluido: pedido.percentual_concluido,
         ops: pedido.ops.map(op => ({
           numero_op: op.numero_op,
           situacao_op: op.situacao_op,
-          peso: formatPesoUnidades(op.pesos_por_unidade),
+          peso: formatOpPesoForEmail(op),
           materiais: op.materiais.map(mat => ({
             descricaomat: mat.descricaomat,
             observacao: mat.observacao,

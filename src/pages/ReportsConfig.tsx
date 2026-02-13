@@ -5,6 +5,7 @@ import { ReportConfigTable } from "@/components/admin/ReportConfigTable";
 import { ReportHistoryTable } from "@/components/admin/ReportHistoryTable";
 import { SampleDataGenerator } from "@/components/admin/SampleDataGenerator";
 import { MonthlyClosingReportDialog } from "@/components/admin/MonthlyClosingReportDialog";
+import { ProductionReportSchedule } from "@/components/admin/ProductionReportSchedule";
 import { Mail, History, Info, Calendar } from "lucide-react";
 
 export default function ReportsConfig() {
@@ -39,6 +40,9 @@ export default function ReportsConfig() {
           <MonthlyClosingReportDialog />
         </CardContent>
       </Card>
+
+      {/* Relatório de Produção Diário */}
+      <ProductionReportSchedule />
 
       <Tabs defaultValue="config" className="space-y-4">
         <TabsList>

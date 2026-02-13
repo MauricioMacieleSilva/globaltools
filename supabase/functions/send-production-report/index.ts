@@ -348,38 +348,54 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
           <!-- KPIs -->
           <h2 style="font-size: 18px; font-weight: 600; color: #2d3748; margin: 0 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">🏭 Resumo Geral</h2>
           
-          <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
-            <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; border-left: 4px solid #1e40af;">
-              <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px;">📦 Total Pedidos</div>
-              <div style="font-size: 28px; font-weight: 700; color: #2d3748;">${kpis.totalPedidos}</div>
-              <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.totalPesoKG)}</div>
-            </div>
-            <div style="background: #fef2f2; border-radius: 8px; padding: 16px; border-left: 4px solid #dc2626;">
-              <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px;">🔴 Atrasados</div>
-              <div style="font-size: 28px; font-weight: 700; color: #dc2626;">${kpis.atrasados.count}</div>
-              <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.atrasados.peso)}</div>
-            </div>
-            <div style="background: #f0fdf4; border-radius: 8px; padding: 16px; border-left: 4px solid #16a34a;">
-              <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px;">🟢 No Prazo</div>
-              <div style="font-size: 28px; font-weight: 700; color: #16a34a;">${kpis.noPrazo.count}</div>
-              <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.noPrazo.peso)}</div>
-            </div>
-            <div style="background: #f0fdf4; border-radius: 8px; padding: 16px; border-left: 4px solid #059669;">
-              <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px;">✅ Finalizados</div>
-              <div style="font-size: 28px; font-weight: 700; color: #059669;">${kpis.finalizados.count}</div>
-              <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.finalizados.peso)}</div>
-            </div>
-            <div style="background: #eff6ff; border-radius: 8px; padding: 16px; border-left: 4px solid #2563eb;">
-              <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px;">🔵 Parciais</div>
-              <div style="font-size: 28px; font-weight: 700; color: #2563eb;">${kpis.parciais.count}</div>
-              <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.parciais.peso)}</div>
-            </div>
-            <div style="background: #fffbeb; border-radius: 8px; padding: 16px; border-left: 4px solid #d97706;">
-              <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 6px;">🟡 A Programar</div>
-              <div style="font-size: 28px; font-weight: 700; color: #d97706;">${kpis.programar.count}</div>
-              <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.programar.peso)}</div>
-            </div>
-          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+            <tr>
+              <td width="33%" style="padding: 6px;">
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 14px; border-left: 4px solid #1e40af;">
+                  <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">📦 Total Pedidos</div>
+                  <div style="font-size: 26px; font-weight: 700; color: #2d3748;">${kpis.totalPedidos}</div>
+                  <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.totalPesoKG)}</div>
+                </div>
+              </td>
+              <td width="33%" style="padding: 6px;">
+                <div style="background: #fef2f2; border-radius: 8px; padding: 14px; border-left: 4px solid #dc2626;">
+                  <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">🔴 Atrasados</div>
+                  <div style="font-size: 26px; font-weight: 700; color: #dc2626;">${kpis.atrasados.count}</div>
+                  <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.atrasados.peso)}</div>
+                </div>
+              </td>
+              <td width="33%" style="padding: 6px;">
+                <div style="background: #f0fdf4; border-radius: 8px; padding: 14px; border-left: 4px solid #16a34a;">
+                  <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">🟢 No Prazo</div>
+                  <div style="font-size: 26px; font-weight: 700; color: #16a34a;">${kpis.noPrazo.count}</div>
+                  <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.noPrazo.peso)}</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td width="33%" style="padding: 6px;">
+                <div style="background: #f0fdf4; border-radius: 8px; padding: 14px; border-left: 4px solid #059669;">
+                  <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">✅ Finalizados</div>
+                  <div style="font-size: 26px; font-weight: 700; color: #059669;">${kpis.finalizados.count}</div>
+                  <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.finalizados.peso)}</div>
+                </div>
+              </td>
+              <td width="33%" style="padding: 6px;">
+                <div style="background: #eff6ff; border-radius: 8px; padding: 14px; border-left: 4px solid #2563eb;">
+                  <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">🔵 Parciais</div>
+                  <div style="font-size: 26px; font-weight: 700; color: #2563eb;">${kpis.parciais.count}</div>
+                  <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.parciais.peso)}</div>
+                </div>
+              </td>
+              <td width="33%" style="padding: 6px;">
+                <div style="background: #fffbeb; border-radius: 8px; padding: 14px; border-left: 4px solid #d97706;">
+                  <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">🟡 A Programar</div>
+                  <div style="font-size: 26px; font-weight: 700; color: #d97706;">${kpis.programar.count}</div>
+                  <div style="font-size: 12px; color: #718096;">${formatWeight(kpis.programar.peso)}</div>
+                </div>
+              </td>
+            </tr>
+          </table>
 
           ${atrasados.length > 0 ? `
           <!-- Atrasados -->

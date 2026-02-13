@@ -475,14 +475,13 @@ export function ProducaoTable() {
                         {item.cli_nomef}
                       </TableCell>
                       <TableCell>
-                        {Object.entries(item.pesos_por_unidade)
-                          .map(([unidade, peso]) => 
-                            `${peso.toLocaleString('pt-BR', { 
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 1
-                            })}${unidade}`
-                          )
-                          .join(' / ')}
+                        {(() => {
+                          const pesoKg = item.pesos_por_unidade['KG'] || 0;
+                          if (pesoKg >= 1000) {
+                            return `${(pesoKg / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}T`;
+                          }
+                          return `${pesoKg.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}KG`;
+                        })()}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

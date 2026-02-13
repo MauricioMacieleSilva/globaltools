@@ -60,29 +60,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Idempotency check - prevent duplicate sends on the same day
     const todayStr = getDayKey(brasiliaTime);
-    const lockKey = `production_report_${todayStr}`;
     
-    // Use email_reports_log with a special config_id to track production report sends
-    const { error: lockError } = await supabaseAdmin
-      .from('email_reports_log')
-      .insert({
-        config_id: schedule.id,
-        email: 'production-report-scheduled',
-        status: 'pending',
-        report_date: todayStr,
-        report_type: 'production_daily',
-        is_scheduled: true,
-      });
+    // Check if we already sent today by looking at the schedule's last_sent_date
+    if (schedule.last_sent_date === todayStr) {
+      console.log('ℹ️ Relatório de produção já enviado hoje');
+      return new Response(
+        JSON.stringify({ message: 'Já enviado hoje' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (lockError) {
-      if (lockError.code === '23505') {
-        console.log('ℹ️ Relatório de produção já enviado/em processamento hoje');
-        return new Response(
-          JSON.stringify({ message: 'Já enviado hoje' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      console.error('❌ Erro no lock:', lockError);
+    // Mark as sent today immediately to prevent concurrent runs
+    const { error: updateError } = await supabaseAdmin
+      .from('production_report_schedule')
+      .update({ last_sent_date: todayStr })
+      .eq('id', schedule.id);
+
+    if (updateError) {
+      console.error('❌ Erro ao atualizar last_sent_date:', updateError);
     }
 
     console.log('✅ Dentro da janela de envio, chamando send-production-report...');
@@ -94,13 +89,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error('❌ Erro ao enviar relatório de produção:', error);
-      // Update lock to failed
+      // Reset last_sent_date on failure so it can retry
       await supabaseAdmin
-        .from('email_reports_log')
-        .update({ status: 'failed', error_message: error.message, sent_at: new Date().toISOString() })
-        .eq('config_id', schedule.id)
-        .eq('report_date', todayStr)
-        .eq('report_type', 'production_daily');
+        .from('production_report_schedule')
+        .update({ last_sent_date: null })
+        .eq('id', schedule.id);
 
       return new Response(
         JSON.stringify({ error: error.message }),
@@ -109,13 +102,6 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('✅ Relatório de produção agendado enviado com sucesso');
-    // Update lock to success
-    await supabaseAdmin
-      .from('email_reports_log')
-      .update({ status: 'success', sent_at: new Date().toISOString() })
-      .eq('config_id', schedule.id)
-      .eq('report_date', todayStr)
-      .eq('report_type', 'production_daily');
 
     return new Response(
       JSON.stringify({ success: true, data }),

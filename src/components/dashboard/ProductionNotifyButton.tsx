@@ -4,6 +4,7 @@ import { Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ProducaoData } from '@/services/producaoService';
+import { ProductionOrderData } from '@/services/productionOrdersService';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,13 +21,14 @@ interface ProductionNotifyButtonProps {
   pedido: ProducaoData;
   tipo: 'op_concluida' | 'pedido_finalizado';
   numeroOp?: string;
+  productionOrder?: ProductionOrderData;
   variant?: 'ghost' | 'outline' | 'default';
   size?: 'sm' | 'default' | 'icon';
   showLabel?: boolean;
 }
 
 export function ProductionNotifyButton({ 
-  pedido, tipo, numeroOp, variant = 'ghost', size = 'sm', showLabel = false 
+  pedido, tipo, numeroOp, productionOrder, variant = 'ghost', size = 'sm', showLabel = false 
 }: ProductionNotifyButtonProps) {
   const [sending, setSending] = useState(false);
   const { toast } = useToast();
@@ -50,12 +52,19 @@ export function ProductionNotifyButton({
   const handleSend = async () => {
     setSending(true);
     try {
+      const situacaoMap: Record<string, string> = {
+        'aguardando_mp': 'Aguardando MP',
+        'em_producao': 'Em Produção',
+      };
+
       const payload = {
         numero_pedido: pedido.numero_pedido,
         tipo,
         numero_op: numeroOp,
         cliente: pedido.cli_nomef,
         prazo: pedido.prazo_pcp,
+        novo_prazo: productionOrder?.novo_prazo || undefined,
+        situacao_producao: productionOrder?.situacao ? situacaoMap[productionOrder.situacao] || productionOrder.situacao : undefined,
         peso_total: formatPesoForEmail(pedido),
         percentual_concluido: pedido.percentual_concluido,
         ops: pedido.ops.map(op => ({

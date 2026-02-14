@@ -131,6 +131,8 @@ export function ProducaoTableMobile({
                       <SelectItem value="none">Nenhuma</SelectItem>
                       <SelectItem value="aguardando_mp">Aguardando MP</SelectItem>
                       <SelectItem value="em_producao">Em Produção</SelectItem>
+                      <SelectItem value="material_em_estoque">Material em Estoque</SelectItem>
+                      <SelectItem value="outra">Outra</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
@@ -138,7 +140,13 @@ export function ProducaoTableMobile({
                     {situacoes[item.numero_pedido] 
                       ? situacoes[item.numero_pedido] === 'aguardando_mp' 
                         ? 'Aguardando MP' 
-                        : 'Em Produção'
+                        : situacoes[item.numero_pedido] === 'em_producao'
+                        ? 'Em Produção'
+                        : situacoes[item.numero_pedido] === 'material_em_estoque'
+                        ? 'Material em Estoque'
+                        : situacoes[item.numero_pedido] === 'outra'
+                        ? 'Outra'
+                        : 'Não definido'
                       : 'Não definido'}
                   </span>
                 ),

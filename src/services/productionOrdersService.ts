@@ -4,7 +4,8 @@ export interface ProductionOrderData {
   id: string;
   numero_pedido: string;
   novo_prazo: string | null;
-  situacao: string | null;  // Allowing string to handle database values
+  situacao: string | null;
+  situacao_descricao: string | null;
   updated_by: string;
   updated_by_name: string;
   created_at: string;
@@ -14,7 +15,8 @@ export interface ProductionOrderData {
 export interface ProductionOrderUpdate {
   numero_pedido: string;
   novo_prazo?: string | null;
-  situacao?: 'aguardando_mp' | 'em_producao' | null;
+  situacao?: 'aguardando_mp' | 'em_producao' | 'material_em_estoque' | 'outra' | null;
+  situacao_descricao?: string | null;
 }
 
 // Carregar todos os dados de pedidos de produção
@@ -70,6 +72,7 @@ export async function saveProductionOrder(orderData: ProductionOrderUpdate): Pro
         numero_pedido: orderData.numero_pedido,
         novo_prazo: orderData.novo_prazo,
         situacao: orderData.situacao,
+        situacao_descricao: orderData.situacao_descricao || null,
         updated_by: user.id,
         updated_by_name: userName,
         updated_at: new Date().toISOString()

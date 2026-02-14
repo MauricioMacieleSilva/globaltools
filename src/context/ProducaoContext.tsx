@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { fetchProducaoData, ProducaoData, MaterialData } from '@/services/producaoService';
 import { loadProductionOrders, ProductionOrderData } from '@/services/productionOrdersService';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,6 +84,88 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
   const [hiddenOrders, setHiddenOrders] = useState<HiddenProductionOrder[]>([]);
   const { toast } = useToast();
   const { excludedOrders: excludedOrderNumbers, refreshExcludedOrders } = useExcludedOrders();
+  const previousStatusesRef = useRef<Record<string, string>>({});
+  const isInitialLoadRef = useRef(true);
+
+  // Auto-send notification when order status changes to FINALIZADO
+  const sendAutoFinalizadoNotification = useCallback(async (pedido: ProducaoData) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (!roleData || roleData.role !== 'admin') return;
+
+      // Load production order data for novo_prazo/situacao
+      const orderData = productionOrders[pedido.numero_pedido];
+
+      const situacaoMap: Record<string, string> = {
+        'aguardando_mp': 'Aguardando MP',
+        'em_producao': 'Em Produção',
+        'material_em_estoque': 'Material em Estoque',
+        'outra': 'Outra',
+      };
+
+      const pesoKg = Math.round(pedido.peso_total_kg || 0);
+
+      const payload = {
+        numero_pedido: pedido.numero_pedido,
+        tipo: 'pedido_finalizado',
+        cliente: pedido.cli_nomef,
+        prazo: pedido.prazo_pcp,
+        novo_prazo: orderData?.novo_prazo || undefined,
+        situacao_producao: orderData?.situacao 
+          ? (orderData.situacao === 'outra' && orderData.situacao_descricao 
+            ? orderData.situacao_descricao 
+            : situacaoMap[orderData.situacao] || orderData.situacao)
+          : undefined,
+        peso_total: `${pesoKg.toLocaleString('pt-BR')}KG`,
+        percentual_concluido: pedido.percentual_concluido,
+        ops: pedido.ops.map(op => {
+          const nonKgUnits = Object.entries(op.pesos_por_unidade)
+            .filter(([un]) => un !== 'KG' && un !== 'T')
+            .map(([un, peso]) => `${peso.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${un}`);
+          const opPesoKg = Math.round(op.peso_total_kg || 0);
+          const kgStr = `${opPesoKg.toLocaleString('pt-BR')}KG`;
+          const pesoStr = nonKgUnits.length > 0 ? `${nonKgUnits.join(' / ')} | ${kgStr}` : kgStr;
+
+          return {
+            numero_op: op.numero_op,
+            situacao_op: op.situacao_op,
+            peso: pesoStr,
+            materiais: op.materiais.map(mat => ({
+              descricaomat: mat.descricaomat,
+              observacao: mat.observacao,
+              quantidade: mat.qtd_pendente,
+              unidade: mat.un,
+            })),
+          };
+        }),
+      };
+
+      const response = await supabase.functions.invoke('notify-production-status', {
+        body: payload,
+      });
+
+      if (response.error) {
+        console.error('Erro ao enviar notificação automática:', response.error);
+      } else {
+        console.log('📧 Notificação automática de pedido finalizado enviada:', pedido.numero_pedido);
+        toast({
+          title: 'Notificação automática enviada',
+          description: `Pedido ${pedido.numero_pedido} finalizado - e-mail enviado automaticamente.`,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao enviar notificação automática:', error);
+    }
+  }, [productionOrders, toast]);
 
   const fetchData = async () => {
     try {
@@ -92,6 +174,25 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
       console.log('ProducaoContext: Iniciando fetch de dados de produção - força refresh sem cache');
       const producaoData = await fetchProducaoData();
       console.log('ProducaoContext: Dados recebidos:', producaoData.length, 'pedidos');
+      
+      // Detect status changes to FINALIZADO
+      if (!isInitialLoadRef.current) {
+        const prevStatuses = previousStatusesRef.current;
+        producaoData.forEach(pedido => {
+          const prevStatus = prevStatuses[pedido.numero_pedido];
+          if (prevStatus && prevStatus !== 'FINALIZADO' && pedido.status === 'FINALIZADO') {
+            console.log(`🔔 Pedido ${pedido.numero_pedido} mudou para FINALIZADO (antes: ${prevStatus})`);
+            sendAutoFinalizadoNotification(pedido);
+          }
+        });
+      }
+      
+      // Save current statuses for next comparison
+      const currentStatuses: Record<string, string> = {};
+      producaoData.forEach(p => { currentStatuses[p.numero_pedido] = p.status; });
+      previousStatusesRef.current = currentStatuses;
+      isInitialLoadRef.current = false;
+      
       setData(producaoData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados de produção');

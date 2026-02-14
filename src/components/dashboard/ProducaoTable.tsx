@@ -32,6 +32,7 @@ export function ProducaoTable() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [novosPrazos, setNovosPrazos] = useState<Record<string, string>>({});
   const [situacoes, setSituacoes] = useState<Record<string, string>>({});
+  const [situacaoDescricoes, setSituacaoDescricoes] = useState<Record<string, string>>({});
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
   const [savedStates, setSavedStates] = useState<Record<string, boolean>>({});
   const [hideDialogOpen, setHideDialogOpen] = useState(false);
@@ -46,6 +47,7 @@ export function ProducaoTable() {
   useEffect(() => {
     const newNovosPrazos: Record<string, string> = {};
     const newSituacoes: Record<string, string> = {};
+    const newDescricoes: Record<string, string> = {};
 
     Object.entries(productionOrders).forEach(([numeroPedido, order]) => {
       if (order.novo_prazo) {
@@ -54,21 +56,26 @@ export function ProducaoTable() {
       if (order.situacao) {
         newSituacoes[numeroPedido] = order.situacao;
       }
+      if (order.situacao_descricao) {
+        newDescricoes[numeroPedido] = order.situacao_descricao;
+      }
     });
 
     setNovosPrazos(newNovosPrazos);
     setSituacoes(newSituacoes);
+    setSituacaoDescricoes(newDescricoes);
   }, [productionOrders]);
 
   // Save production order data with debounce
-  const saveOrderData = useCallback(async (numeroPedido: string, novoPrazo?: string, situacao?: string) => {
+  const saveOrderData = useCallback(async (numeroPedido: string, novoPrazo?: string, situacao?: string, descricao?: string) => {
     try {
       setSavingStates(prev => ({ ...prev, [numeroPedido]: true }));
 
       await saveProductionOrder({
         numero_pedido: numeroPedido,
         novo_prazo: novoPrazo || null,
-        situacao: (situacao as 'aguardando_mp' | 'em_producao') || null
+        situacao: (situacao as 'aguardando_mp' | 'em_producao' | 'material_em_estoque' | 'outra') || null,
+        situacao_descricao: situacao === 'outra' ? (descricao || null) : null,
       });
 
       // Show saved indicator
@@ -111,7 +118,24 @@ export function ProducaoTable() {
     }));
     
     const novoPrazo = novosPrazos[numeroPedido];
-    debouncedSave(numeroPedido, novoPrazo, value);
+    const descricao = situacaoDescricoes[numeroPedido];
+    if (value !== 'outra') {
+      // Clear description if not "outra"
+      setSituacaoDescricoes(prev => ({ ...prev, [numeroPedido]: '' }));
+      debouncedSave(numeroPedido, novoPrazo, value, '');
+    } else {
+      debouncedSave(numeroPedido, novoPrazo, value, descricao);
+    }
+  }, [novosPrazos, situacaoDescricoes, debouncedSave]);
+
+  const handleSituacaoDescricaoChange = useCallback((numeroPedido: string, value: string) => {
+    setSituacaoDescricoes(prev => ({
+      ...prev,
+      [numeroPedido]: value
+    }));
+    
+    const novoPrazo = novosPrazos[numeroPedido];
+    debouncedSave(numeroPedido, novoPrazo, 'outra', value);
   }, [novosPrazos, debouncedSave]);
 
   // Get unique clients for filter
@@ -521,7 +545,7 @@ export function ProducaoTable() {
                       </TableCell>
                       <TableCell data-tour={index === 0 ? "producao-situacao" : undefined}>
                         {canEdit ? (
-                          <div className="relative">
+                          <div className="relative space-y-1">
                             <Select
                               value={situacoes[item.numero_pedido] || ''}
                               onValueChange={(value) => handleSituacaoChange(item.numero_pedido, value)}
@@ -532,8 +556,20 @@ export function ProducaoTable() {
                               <SelectContent>
                                 <SelectItem value="aguardando_mp">Aguardando MP</SelectItem>
                                 <SelectItem value="em_producao">Em Produção</SelectItem>
+                                <SelectItem value="material_em_estoque">Material em Estoque</SelectItem>
+                                <SelectItem value="outra">Outra</SelectItem>
                               </SelectContent>
                             </Select>
+                            {situacoes[item.numero_pedido] === 'outra' && (
+                              <Input
+                                placeholder="Descreva..."
+                                className="w-44 text-xs"
+                                value={situacaoDescricoes[item.numero_pedido] || ''}
+                                onChange={(e) => handleSituacaoDescricaoChange(item.numero_pedido, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                maxLength={100}
+                              />
+                            )}
                             {savingStates[item.numero_pedido] && (
                               <Save className="absolute right-2 top-2.5 h-3 w-3 text-blue-500 animate-spin" />
                             )}
@@ -544,7 +580,10 @@ export function ProducaoTable() {
                         ) : (
                           <span className="text-muted-foreground text-sm">
                             {situacoes[item.numero_pedido] === 'aguardando_mp' ? 'Aguardando MP' :
-                             situacoes[item.numero_pedido] === 'em_producao' ? 'Em Produção' : 'Não definido'}
+                             situacoes[item.numero_pedido] === 'em_producao' ? 'Em Produção' :
+                             situacoes[item.numero_pedido] === 'material_em_estoque' ? 'Material em Estoque' :
+                             situacoes[item.numero_pedido] === 'outra' ? (situacaoDescricoes[item.numero_pedido] || 'Outra') :
+                             'Não definido'}
                           </span>
                         )}
                       </TableCell>

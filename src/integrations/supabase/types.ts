@@ -1766,6 +1766,7 @@ export type Database = {
           novo_prazo: string | null
           numero_pedido: string
           situacao: string | null
+          situacao_descricao: string | null
           updated_at: string
           updated_by: string | null
           updated_by_name: string | null
@@ -1776,6 +1777,7 @@ export type Database = {
           novo_prazo?: string | null
           numero_pedido: string
           situacao?: string | null
+          situacao_descricao?: string | null
           updated_at?: string
           updated_by?: string | null
           updated_by_name?: string | null
@@ -1786,6 +1788,7 @@ export type Database = {
           novo_prazo?: string | null
           numero_pedido?: string
           situacao?: string | null
+          situacao_descricao?: string | null
           updated_at?: string
           updated_by?: string | null
           updated_by_name?: string | null

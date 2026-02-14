@@ -55,6 +55,8 @@ export function ProductionNotifyButton({
       const situacaoMap: Record<string, string> = {
         'aguardando_mp': 'Aguardando MP',
         'em_producao': 'Em Produção',
+        'material_em_estoque': 'Material em Estoque',
+        'outra': 'Outra',
       };
 
       const payload = {
@@ -64,7 +66,11 @@ export function ProductionNotifyButton({
         cliente: pedido.cli_nomef,
         prazo: pedido.prazo_pcp,
         novo_prazo: productionOrder?.novo_prazo || undefined,
-        situacao_producao: productionOrder?.situacao ? situacaoMap[productionOrder.situacao] || productionOrder.situacao : undefined,
+        situacao_producao: productionOrder?.situacao 
+          ? (productionOrder.situacao === 'outra' && productionOrder.situacao_descricao 
+            ? productionOrder.situacao_descricao 
+            : situacaoMap[productionOrder.situacao] || productionOrder.situacao) 
+          : undefined,
         peso_total: formatPesoForEmail(pedido),
         percentual_concluido: pedido.percentual_concluido,
         ops: pedido.ops.map(op => ({

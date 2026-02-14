@@ -610,6 +610,8 @@ const handler = async (req: Request): Promise<Response> => {
     const situacaoMap: Record<string, string> = {
       'aguardando_mp': 'Aguardando MP',
       'em_producao': 'Em Produção',
+      'material_em_estoque': 'Material em Estoque',
+      'outra': 'Outra',
     };
     
     // Enrich producaoData with novo_prazo and situacao
@@ -617,7 +619,13 @@ const handler = async (req: Request): Promise<Response> => {
       const po = productionOrdersMap.get(item.numero_pedido);
       if (po) {
         if (po.novo_prazo) item.novo_prazo = po.novo_prazo;
-        if (po.situacao) item.situacao_producao = situacaoMap[po.situacao] || po.situacao;
+        if (po.situacao) {
+          if (po.situacao === 'outra' && po.situacao_descricao) {
+            item.situacao_producao = po.situacao_descricao;
+          } else {
+            item.situacao_producao = situacaoMap[po.situacao] || po.situacao;
+          }
+        }
       }
     }
     

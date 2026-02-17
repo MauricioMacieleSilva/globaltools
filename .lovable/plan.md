@@ -1,88 +1,101 @@
 
-## Plano: Ajustes de peso, formato e emails de producao
 
-### 1. Peso total na linha do pedido (via planilha comercial)
+## Plano: Detecção Automática de Pedidos Finalizados via Backend
 
-A planilha de producao nao tem coluna de peso em KG. A solucao e buscar o peso da planilha comercial (mesma usada no Dashboard Comercial), cruzando pelo numero do pedido.
+### Problema Atual
+A detecção de pedidos finalizados acontece apenas no navegador (frontend), ou seja, **só funciona quando um administrador está com o sistema aberto**. Para funcionar de forma confiável, precisamos mover essa lógica para o backend, rodando nos horários programados.
 
-**Alteracoes em `src/services/producaoService.ts`:**
-- Apos o fetch da planilha de producao, fazer um segundo fetch da planilha comercial (mesmo `SHEET_ID`, gid `1086211541`)
-- Construir um mapa `pedido + descricaomat -> peso (KG)` a partir dos dados comerciais
-- Para cada material na producao, buscar o peso correspondente no mapa comercial
-- Adicionar campo `peso_kg` ao `MaterialData` interface
-- Agregar `peso_kg` no nivel da OP (novo campo `peso_total_kg`) e no nivel do pedido (novo campo `peso_total_kg`)
-- Manter o `pesos_por_unidade` existente para exibir unidades nao-KG nos itens expandidos
+### Horários de Verificação
+O banco de dados atualiza nos seguintes horários. A verificação será feita **6 minutos depois** de cada atualização:
 
-### 2. Formato de peso na linha principal do pedido
+| Atualização DB | Verificação automática |
+|---|---|
+| 08:10 | 08:16 |
+| 09:30 | 09:36 |
+| 10:30 | 10:36 |
+| 11:30 | 11:36 |
+| 13:30 | 13:36 |
+| 14:30 | 14:36 |
+| 15:30 | 15:36 |
+| 16:30 | 16:36 |
+| 17:30 | 17:36 |
 
-**Alteracoes em `src/components/dashboard/ProducaoTable.tsx`:**
-- Linha do pedido: exibir sempre em KG com separador de milhar brasileiro, sem abreviar para toneladas
-- Formato: `2.950KG` (usando `toLocaleString('pt-BR')`)
-- Usar o novo campo `peso_total_kg` do pedido
+### Solução
 
-### 3. Peso nas linhas expandidas das OPs
+#### 1. Nova tabela: `notified_finalized_orders`
+Armazena quais pedidos já tiveram o e-mail de "Pedido Finalizado" enviado, garantindo que cada pedido receba **apenas um** e-mail.
 
-**Alteracoes em `src/components/dashboard/ProducaoTable.tsx`:**
-- Se a OP tem apenas KG: exibir somente o peso em KG (ex: `401KG`)
-- Se a OP tem outras unidades (M, PC, etc): exibir as unidades + peso KG separados por pipe (ex: `157,5 M | 756KG`)
-- Usar o `pesos_por_unidade` para unidades nao-KG e o novo `peso_total_kg` da OP para o peso
+Colunas:
+- `id` (uuid, PK)
+- `numero_pedido` (text, unique) -- identificador do pedido
+- `notified_at` (timestamptz) -- quando o e-mail foi enviado
+- `created_at` (timestamptz)
 
-### 4. Remover `[TESTE]` dos assuntos de email
+#### 2. Nova Edge Function: `check-finalized-orders`
+Essa funcao sera chamada pelo cron nos horarios programados e fara o seguinte:
 
-**Alteracoes em `supabase/functions/notify-production-status/index.ts`:**
-- Remover a logica `isTestMode` que adiciona `[TESTE]` ao subject
-- Enviar para os destinatarios reais (remover flag `isTestMode = true`)
+1. Busca os dados de producao da planilha Google (mesma logica do `send-production-report`)
+2. Identifica pedidos com status FINALIZADO
+3. Consulta a tabela `notified_finalized_orders` para ver quais ja foram notificados
+4. Para cada pedido FINALIZADO ainda nao notificado:
+   - Busca dados extras da tabela `production_orders` (novo_prazo, situacao)
+   - Envia e-mail usando o template do `notify-production-status`
+   - Registra na tabela `notified_finalized_orders`
 
-**Alteracoes em `supabase/functions/send-production-report/index.ts`:**
-- Mesma remocao do `isTestMode` e `[TESTE]` do subject
+A funcao nao requer autenticacao JWT (chamada pelo cron com service role).
 
-### 5. Remover "RECEM CONCLUIDO" do email de notificacao
+#### 3. Cron Job (pg_cron)
+Um cron configurado para rodar a cada minuto. A propria Edge Function verifica se esta dentro de uma das 9 janelas de horario (tolerancia de 5 minutos), similar ao padrao ja usado no `send-scheduled-production-report`.
 
-**Alteracoes em `supabase/functions/notify-production-status/index.ts`:**
-- Remover a linha que exibe o emoji e texto "RECEM CONCLUIDO" no HTML do email (linha 69)
+#### 4. Ajuste no frontend
+A logica de auto-notificacao no `ProducaoContext.tsx` sera mantida como fallback, mas adicionara uma verificacao na tabela `notified_finalized_orders` antes de enviar, evitando duplicatas.
 
----
+### Detalhes Tecnicos
 
-### Detalhes tecnicos
-
-**Novo fluxo de dados em `producaoService.ts`:**
-
+**Tabela SQL:**
 ```text
-1. Fetch CSV producao (gid 407047369)
-2. Fetch CSV comercial (gid 1086211541) 
-3. Criar mapa: { "pedido_descricaomat" -> peso_kg }
-4. Para cada material de producao:
-   - Buscar peso_kg no mapa pelo numeropedido + descricaomat
-   - Se nao encontrar, usar qtd_venda como fallback (quando UN=KG)
-5. Agregar peso_total_kg por OP e por pedido
+CREATE TABLE public.notified_finalized_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  numero_pedido TEXT NOT NULL UNIQUE,
+  notified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.notified_finalized_orders ENABLE ROW LEVEL SECURITY;
+
+-- Somente service role (backend) pode inserir/ler
+CREATE POLICY "Service role access" ON public.notified_finalized_orders
+  FOR ALL USING (true);
 ```
 
-**Interfaces atualizadas:**
+**Edge Function `check-finalized-orders`:**
+- Reutiliza a logica de fetch da planilha Google do `producaoService` / `send-production-report`
+- Horarios permitidos (Brasilia): 08:16, 09:36, 10:36, 11:36, 13:36, 14:36, 15:36, 16:36, 17:36
+- Tolerancia de 5 minutos por janela
+- Envia e-mails via Resend para os mesmos destinatarios do `email_reports_config`
+- Registra cada envio na tabela para garantir idempotencia
 
+**Config TOML:**
 ```text
-MaterialData {
-  ...campos existentes...
-  peso_kg: number;  // NOVO - peso em KG vindo da planilha comercial
-}
-
-OperacaoData {
-  ...campos existentes...
-  peso_total_kg: number;  // NOVO - soma dos pesos KG dos materiais
-}
-
-ProducaoData {
-  ...campos existentes...
-  peso_total_kg: number;  // NOVO - soma dos pesos KG de todas as OPs
-}
+[functions.check-finalized-orders]
+verify_jwt = false
 ```
 
-**Formato de exibicao:**
-- Linha pedido: `peso_total_kg.toLocaleString('pt-BR')` + `KG` (ex: `2.950KG`)
-- Linha OP (so KG): `peso_total_kg.toLocaleString('pt-BR')` + `KG`
-- Linha OP (mista): `157,5 M | 756KG`
+**Cron Job:**
+```text
+SELECT cron.schedule(
+  'check-finalized-orders',
+  '* * * * *',
+  $$ SELECT net.http_post(...) $$
+);
+```
 
-### Arquivos a modificar
-- `src/services/producaoService.ts` - buscar peso da planilha comercial
-- `src/components/dashboard/ProducaoTable.tsx` - formato de exibicao
-- `supabase/functions/notify-production-status/index.ts` - remover [TESTE] e "RECEM CONCLUIDO"
-- `supabase/functions/send-production-report/index.ts` - remover [TESTE]
+### Arquivos que serao criados/modificados
+
+| Arquivo | Acao |
+|---|---|
+| `supabase/functions/check-finalized-orders/index.ts` | Criar -- nova Edge Function |
+| `supabase/config.toml` | Modificar -- adicionar config da nova funcao |
+| `src/context/ProducaoContext.tsx` | Modificar -- adicionar checagem de duplicata |
+| Migracao SQL | Criar -- tabela + cron job |
+

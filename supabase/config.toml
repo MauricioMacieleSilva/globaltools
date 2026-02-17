@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.send-scheduled-production-report]
 verify_jwt = false
+
+[functions.check-finalized-orders]
+verify_jwt = false

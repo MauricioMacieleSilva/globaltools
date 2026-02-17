@@ -1294,6 +1294,27 @@ export type Database = {
           },
         ]
       }
+      notified_finalized_orders: {
+        Row: {
+          created_at: string
+          id: string
+          notified_at: string
+          numero_pedido: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notified_at?: string
+          numero_pedido: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notified_at?: string
+          numero_pedido?: string
+        }
+        Relationships: []
+      }
       orcamento_itens: {
         Row: {
           created_at: string

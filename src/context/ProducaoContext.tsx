@@ -88,6 +88,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
   const isInitialLoadRef = useRef(true);
 
   // Auto-send notification when order status changes to FINALIZADO
+  // This is a frontend fallback — the backend check-finalized-orders handles this automatically
   const sendAutoFinalizadoNotification = useCallback(async (pedido: ProducaoData) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -101,6 +102,18 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
         .maybeSingle();
       
       if (!roleData || roleData.role !== 'admin') return;
+
+      // Check if already notified by the backend to avoid duplicates
+      const { data: alreadyNotified } = await supabase
+        .from('notified_finalized_orders')
+        .select('id')
+        .eq('numero_pedido', pedido.numero_pedido)
+        .maybeSingle();
+      
+      if (alreadyNotified) {
+        console.log(`ℹ️ Pedido ${pedido.numero_pedido} já foi notificado pelo backend, ignorando.`);
+        return;
+      }
 
       // Load production order data for novo_prazo/situacao
       const orderData = productionOrders[pedido.numero_pedido];

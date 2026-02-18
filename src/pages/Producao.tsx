@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generatePDFFromElement } from '@/lib/pdf-utils';
 import { useToast } from '@/hooks/use-toast';
-import { FileDown, EyeOff, ClipboardList, Package, Warehouse, RefreshCw, Clock } from 'lucide-react';
+import { FileDown, EyeOff, ClipboardList, Package, Warehouse } from 'lucide-react';
 import { useProducao } from '@/context/ProducaoContext';
 import { HiddenOrdersDialog } from '@/components/dashboard/HiddenOrdersDialog';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { EstoqueTab } from '@/components/estoque/EstoqueTab';
 import { EstoqueProvider } from '@/context/EstoqueContext';
 import { ProductionReportButton } from '@/components/dashboard/ProductionReportButton';
+import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 
 export default function Producao() {
   const relatorioRef = useRef<HTMLDivElement>(null);
@@ -22,12 +23,6 @@ export default function Producao() {
   const { filteredData, totalPedidos, lastUpdated, refetchData, loading } = useProducao();
   const { isAdmin } = useUserPermissions();
   const [hiddenDialogOpen, setHiddenDialogOpen] = useState(false);
-
-  const formatLastUpdated = (date: Date | null) => {
-    if (!date) return 'Nunca';
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
-      ' - ' + date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  };
 
   const exportarPDF = async () => {
     if (!relatorioRef.current) {
@@ -70,22 +65,9 @@ export default function Producao() {
       <div className="min-h-screen w-full bg-background">
         <div className="container mx-auto p-2 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" data-tour="producao-header">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-bold text-foreground">Produção</h1>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-                <Clock className="h-3 w-3" />
-                <span>{formatLastUpdated(lastUpdated)}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 ml-1"
-                  onClick={() => refetchData()}
-                  disabled={loading}
-                  title="Atualizar dados"
-                >
-                  <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
+              <LastUpdatedIndicator lastUpdated={lastUpdated} onRefresh={refetchData} loading={loading} />
             </div>
             <div className="flex gap-2 w-full sm:w-auto flex-wrap">
               {isAdmin && (

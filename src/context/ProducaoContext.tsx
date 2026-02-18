@@ -34,6 +34,7 @@ interface ProducaoContextType {
   data: ProducaoData[];
   loading: boolean;
   error: string | null;
+  lastUpdated: Date | null;
   refetchData: () => Promise<void>;
   
   // Filters
@@ -82,6 +83,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
   const [productionOrders, setProductionOrders] = useState<Record<string, ProductionOrderData>>({});
   const [hiddenOrders, setHiddenOrders] = useState<HiddenProductionOrder[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const { toast } = useToast();
   const { excludedOrders: excludedOrderNumbers, refreshExcludedOrders } = useExcludedOrders();
   const previousStatusesRef = useRef<Record<string, string>>({});
@@ -216,6 +218,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
       isInitialLoadRef.current = false;
       
       setData(producaoData);
+      setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados de produção');
       console.error('Erro no ProducaoContext:', err);
@@ -494,6 +497,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
     data,
     loading,
     error,
+    lastUpdated,
     refetchData: fetchData,
     selectedCliente,
     setSelectedCliente,

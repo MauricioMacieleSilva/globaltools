@@ -170,6 +170,15 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
         console.error('Erro ao enviar notificação automática:', response.error);
       } else {
         console.log('📧 Notificação automática de pedido finalizado enviada:', pedido.numero_pedido);
+        
+        // Register in notified_finalized_orders to prevent duplicates with backend
+        await supabase
+          .from('notified_finalized_orders')
+          .insert({ numero_pedido: pedido.numero_pedido })
+          .then(({ error: insertErr }) => {
+            if (insertErr) console.error('Erro ao registrar notificação:', insertErr);
+          });
+
         toast({
           title: 'Notificação automática enviada',
           description: `Pedido ${pedido.numero_pedido} finalizado - e-mail enviado automaticamente.`,

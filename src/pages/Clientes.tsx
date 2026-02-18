@@ -4,15 +4,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, BarChart3 } from "lucide-react";
 import { BaseClientesTable } from "@/components/clientes/BaseClientesTable";
 import { AnaliseClientes } from "@/components/clientes/AnaliseClientes";
+import { LastUpdatedIndicator } from "@/components/ui/last-updated-indicator";
+import { useComercial } from "@/context/ComercialContext";
 
 export default function Clientes() {
   const [activeTab, setActiveTab] = useState("base");
+  const { cacheStatus, refreshData, isLoading } = useComercial();
 
   return (
     <div className="min-h-screen p-3 sm:p-6 space-y-4">
       {/* Header */}
       <div data-tour="clientes-header">
-        <h1 className="text-xl sm:text-3xl font-bold">Central de Clientes</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl sm:text-3xl font-bold">Central de Clientes</h1>
+          <LastUpdatedIndicator lastUpdated={cacheStatus.lastUpdate} onRefresh={refreshData} loading={isLoading} />
+        </div>
         <p className="text-sm text-muted-foreground">
           Gerencie e analise sua base de clientes
         </p>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays, Maximize2, Minimize2 } from 'lucide-react';
+import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { SessionFilters } from '@/components/dashboard/SessionFilters';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -48,7 +49,7 @@ export default function DashboardComercial() {
   try {
     comercialData = useComercial();
     data = comercialData?.data || [];
-    const { setActiveSession } = comercialData;
+    const { setActiveSession, cacheStatus, refreshData, isLoading } = comercialData;
 
     // Sync session with tab
     useEffect(() => {
@@ -208,8 +209,16 @@ export default function DashboardComercial() {
                     <Maximize2 className="h-4 w-4" />
                   </Button>
                 )}
-              </div>
+               </div>
 
+              {/* Indicador de última atualização */}
+              <div className="flex justify-end mt-1">
+                <LastUpdatedIndicator 
+                  lastUpdated={comercialData?.cacheStatus?.lastUpdate || null} 
+                  onRefresh={comercialData?.refreshData} 
+                  loading={comercialData?.isLoading} 
+                />
+              </div>
               {/* Filtros - Abaixo das abas (escondidos em tela cheia) */}
               {!isFullscreen && (
                 <ErrorBoundary>

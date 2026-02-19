@@ -292,7 +292,28 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
     try {
       const dadosSalvos = localStorage.getItem(STORAGE_KEY);
       if (dadosSalvos) {
-        return JSON.parse(dadosSalvos);
+        const dadosParseados = JSON.parse(dadosSalvos);
+
+        // Migrar dados antigos com percentualPerda '101' para o novo padrão '103'
+        const normalizarPercentualPerda = <T extends { percentualPerda?: string }>(linhas?: T[]): T[] | undefined => {
+          if (!linhas) return linhas;
+          return linhas.map(linha =>
+            linha.percentualPerda === '101'
+              ? { ...linha, percentualPerda: '103' }
+              : linha
+          );
+        };
+
+        return {
+          ...dadosParseados,
+          linhasU: normalizarPercentualPerda(dadosParseados.linhasU),
+          linhasL: normalizarPercentualPerda(dadosParseados.linhasL),
+          linhasUEnrijecido: normalizarPercentualPerda(dadosParseados.linhasUEnrijecido),
+          linhasCartola: normalizarPercentualPerda(dadosParseados.linhasCartola),
+          linhasCartolaEnrijecido: normalizarPercentualPerda(dadosParseados.linhasCartolaEnrijecido),
+          linhasUSemiEnrijecido: normalizarPercentualPerda(dadosParseados.linhasUSemiEnrijecido),
+          linhasCartolaSemiEnrijecido: normalizarPercentualPerda(dadosParseados.linhasCartolaSemiEnrijecido),
+        };
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);

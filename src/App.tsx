@@ -10,6 +10,7 @@ import { ComercialProvider } from "./context/ComercialContext";
 import { PreVendasProvider } from "./context/PreVendasContext";
 import { ProducaoProvider } from "./context/ProducaoContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
@@ -286,7 +287,9 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <AppContent />
+          <ThemeProvider>
+            <AppContent />
+          </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

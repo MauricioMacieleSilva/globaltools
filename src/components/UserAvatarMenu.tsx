@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -8,11 +9,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Camera, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Camera, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function UserAvatarMenu() {
   const { userProfile, updateProfile } = useAuth();
+  const { isModern, toggleTheme } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
   const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,6 +150,16 @@ export function UserAvatarMenu() {
                 </>
               )}
             </Button>
+
+            <div className="w-full border-t pt-3 mt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Design Moderno</span>
+                </div>
+                <Switch checked={isModern} onCheckedChange={toggleTheme} />
+              </div>
+            </div>
           </div>
         </PopoverContent>
       </Popover>

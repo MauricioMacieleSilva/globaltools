@@ -1,101 +1,68 @@
 
 
-## Plano: Detecção Automática de Pedidos Finalizados via Backend
+# Tema Moderno com Alternancia de Design
 
-### Problema Atual
-A detecção de pedidos finalizados acontece apenas no navegador (frontend), ou seja, **só funciona quando um administrador está com o sistema aberto**. Para funcionar de forma confiável, precisamos mover essa lógica para o backend, rodando nos horários programados.
+## Resumo
 
-### Horários de Verificação
-O banco de dados atualiza nos seguintes horários. A verificação será feita **6 minutos depois** de cada atualização:
+Criar um novo tema visual "Moderno" para o sistema, mantendo o tema atual como "Classico". O usuario podera alternar entre os dois temas atraves de um toggle no menu do avatar ou na sidebar.
 
-| Atualização DB | Verificação automática |
-|---|---|
-| 08:10 | 08:16 |
-| 09:30 | 09:36 |
-| 10:30 | 10:36 |
-| 11:30 | 11:36 |
-| 13:30 | 13:36 |
-| 14:30 | 14:36 |
-| 15:30 | 15:36 |
-| 16:30 | 16:36 |
-| 17:30 | 17:36 |
+## Abordagem Tecnica
 
-### Solução
+A estrategia e baseada em **CSS Variables**, o que permite mudar todo o visual do sistema sem alterar componentes individuais. Apenas trocando as variaveis CSS, cards, botoes, sidebar, header e todos os elementos mudam automaticamente.
 
-#### 1. Nova tabela: `notified_finalized_orders`
-Armazena quais pedidos já tiveram o e-mail de "Pedido Finalizado" enviado, garantindo que cada pedido receba **apenas um** e-mail.
+### O que muda no tema Moderno
 
-Colunas:
-- `id` (uuid, PK)
-- `numero_pedido` (text, unique) -- identificador do pedido
-- `notified_at` (timestamptz) -- quando o e-mail foi enviado
-- `created_at` (timestamptz)
+- **Paleta de cores**: Tons mais vibrantes e com mais contraste, gradientes sutis
+- **Border radius**: Mais arredondado (0.75rem ao inves de 0.5rem)
+- **Sombras**: Sombras mais suaves e difusas (glassmorphism leve)
+- **Backgrounds**: Cards com fundo semi-transparente e backdrop-blur
+- **Tipografia**: Pesos mais leves, espacamento maior
+- **Sidebar**: Fundo escuro com acentos coloridos
+- **Header**: Efeito glassmorphism com blur
+- **Cards KPI**: Bordas coloridas laterais, hover com elevacao
 
-#### 2. Nova Edge Function: `check-finalized-orders`
-Essa funcao sera chamada pelo cron nos horarios programados e fara o seguinte:
+### Arquivos a criar
 
-1. Busca os dados de producao da planilha Google (mesma logica do `send-production-report`)
-2. Identifica pedidos com status FINALIZADO
-3. Consulta a tabela `notified_finalized_orders` para ver quais ja foram notificados
-4. Para cada pedido FINALIZADO ainda nao notificado:
-   - Busca dados extras da tabela `production_orders` (novo_prazo, situacao)
-   - Envia e-mail usando o template do `notify-production-status`
-   - Registra na tabela `notified_finalized_orders`
+1. **`src/context/ThemeContext.tsx`** - Contexto para gerenciar o tema (classico/moderno), salva preferencia no localStorage
+2. **CSS no `src/index.css`** - Novas variaveis CSS dentro de `.theme-modern` que sobrescrevem as variaveis do tema classico
 
-A funcao nao requer autenticacao JWT (chamada pelo cron com service role).
+### Arquivos a modificar
 
-#### 3. Cron Job (pg_cron)
-Um cron configurado para rodar a cada minuto. A propria Edge Function verifica se esta dentro de uma das 9 janelas de horario (tolerancia de 5 minutos), similar ao padrao ja usado no `send-scheduled-production-report`.
-
-#### 4. Ajuste no frontend
-A logica de auto-notificacao no `ProducaoContext.tsx` sera mantida como fallback, mas adicionara uma verificacao na tabela `notified_finalized_orders` antes de enviar, evitando duplicatas.
+3. **`src/App.tsx`** - Envolver com `ThemeProvider`, aplicar classe CSS no container raiz
+4. **`src/components/UserAvatarMenu.tsx`** - Adicionar toggle "Design Moderno" no popover do avatar com icone de Palette
+5. **`src/index.css`** - Adicionar bloco `.theme-modern` com variaveis CSS atualizadas (cores, sombras, radius, backgrounds)
+6. **`src/components/AppSidebar.tsx`** - Estilos condicionais para sidebar moderna (fundo escuro, itens com hover gradiente)
+7. **`src/components/ui/card.tsx`** - Classe condicional para efeito glassmorphism no tema moderno
 
 ### Detalhes Tecnicos
 
-**Tabela SQL:**
 ```text
-CREATE TABLE public.notified_finalized_orders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  numero_pedido TEXT NOT NULL UNIQUE,
-  notified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE public.notified_finalized_orders ENABLE ROW LEVEL SECURITY;
-
--- Somente service role (backend) pode inserir/ler
-CREATE POLICY "Service role access" ON public.notified_finalized_orders
-  FOR ALL USING (true);
+ThemeContext
+  |
+  |-- theme: 'classic' | 'modern'
+  |-- toggleTheme()
+  |-- Salva em localStorage('app-theme')
+  |
+  +-- Aplica classe 'theme-modern' no document.documentElement
 ```
 
-**Edge Function `check-finalized-orders`:**
-- Reutiliza a logica de fetch da planilha Google do `producaoService` / `send-production-report`
-- Horarios permitidos (Brasilia): 08:16, 09:36, 10:36, 11:36, 13:36, 14:36, 15:36, 16:36, 17:36
-- Tolerancia de 5 minutos por janela
-- Envia e-mails via Resend para os mesmos destinatarios do `email_reports_config`
-- Registra cada envio na tabela para garantir idempotencia
+**Variaveis CSS do tema moderno (exemplo):**
+- `--background`: Cinza mais quente
+- `--card`: Semi-transparente com backdrop-blur
+- `--primary`: Azul mais vibrante com gradiente
+- `--radius`: 0.75rem (mais arredondado)
+- `--shadow-card`: Sombras maiores e mais difusas
+- Sidebar com fundo escuro (`--sidebar-background` escuro)
+- Header com efeito glass
 
-**Config TOML:**
-```text
-[functions.check-finalized-orders]
-verify_jwt = false
-```
+**Toggle no avatar:**
+- Switch com label "Design Moderno" e icone Sparkles
+- Posicionado abaixo do botao "Alterar foto" no popover
 
-**Cron Job:**
-```text
-SELECT cron.schedule(
-  'check-finalized-orders',
-  '* * * * *',
-  $$ SELECT net.http_post(...) $$
-);
-```
+### Quantidade estimada de mudancas
 
-### Arquivos que serao criados/modificados
-
-| Arquivo | Acao |
-|---|---|
-| `supabase/functions/check-finalized-orders/index.ts` | Criar -- nova Edge Function |
-| `supabase/config.toml` | Modificar -- adicionar config da nova funcao |
-| `src/context/ProducaoContext.tsx` | Modificar -- adicionar checagem de duplicata |
-| Migracao SQL | Criar -- tabela + cron job |
+- ~2 arquivos novos
+- ~5 arquivos modificados
+- Nenhuma mudanca na logica de negocios, apenas visual
+- Nenhuma mudanca no banco de dados (preferencia salva no localStorage)
 

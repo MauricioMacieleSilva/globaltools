@@ -351,7 +351,96 @@ body:has(.dashboard-fullscreen-mode) aside {
   box-shadow: 0 2px 8px -2px hsl(217 91% 50% / 0.3);
 }
 
-/* Inputs mais refinados */
+/* ===== CARDS GLOBAIS ===== */
+.theme-modern .rounded-lg.border.bg-card,
+.theme-modern [data-slot="card"] {
+  background: hsl(0 0% 100% / 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-color: hsl(220 13% 91% / 0.7);
+  box-shadow: 0 4px 20px -4px hsl(220 20% 50% / 0.08);
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.theme-modern .rounded-lg.border.bg-card:hover,
+.theme-modern [data-slot="card"]:hover {
+  box-shadow: 0 8px 30px -6px hsl(220 20% 50% / 0.14);
+  transform: translateY(-1px);
+}
+
+/* ===== TABS ===== */
+.theme-modern [role="tablist"] {
+  background: hsl(220 14% 92%);
+  border-radius: 0.625rem;
+  padding: 0.25rem;
+}
+
+.theme-modern [role="tab"] {
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+.theme-modern [role="tab"][data-state="active"] {
+  background: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%));
+  color: hsl(0 0% 100%);
+  box-shadow: 0 2px 8px -2px hsl(217 91% 50% / 0.4);
+}
+
+/* ===== TABLES ===== */
+.theme-modern table thead {
+  background: hsl(220 14% 96%);
+}
+
+.theme-modern table thead th {
+  color: hsl(220 8% 36%);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.theme-modern table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.theme-modern table tbody tr:hover {
+  background: hsl(217 91% 60% / 0.04);
+}
+
+/* ===== BADGES ===== */
+.theme-modern .inline-flex.items-center.rounded-full {
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ===== BUTTONS ===== */
+.theme-modern button[data-variant="default"],
+.theme-modern .btn-primary,
+.theme-modern button.bg-primary {
+  background: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%)) !important;
+  box-shadow: 0 2px 8px -2px hsl(217 91% 50% / 0.3);
+  transition: all 0.2s ease;
+}
+
+.theme-modern button[data-variant="default"]:hover,
+.theme-modern .btn-primary:hover,
+.theme-modern button.bg-primary:hover {
+  box-shadow: 0 4px 14px -3px hsl(217 91% 50% / 0.4);
+  transform: translateY(-1px);
+}
+
+.theme-modern button[data-variant="outline"],
+.theme-modern button[data-variant="ghost"] {
+  transition: all 0.2s ease;
+}
+
+.theme-modern button[data-variant="ghost"]:hover {
+  background: hsl(217 91% 60% / 0.08);
+}
+
+/* ===== INPUTS ===== */
 .theme-modern input,
 .theme-modern select,
 .theme-modern textarea {
@@ -363,7 +452,63 @@ body:has(.dashboard-fullscreen-mode) aside {
 .theme-modern select:focus,
 .theme-modern textarea:focus {
   border-color: hsl(217 91% 60%);
-  box-shadow: 0 0 0 3px hsl(217 91% 60% / 0.1);
+  box-shadow: 0 0 0 3px hsl(217 91% 60% / 0.12);
+}
+
+/* ===== PROGRESS BARS ===== */
+.theme-modern [role="progressbar"] > div {
+  background: linear-gradient(90deg, hsl(217 91% 60%), hsl(199 89% 48%));
+}
+
+/* ===== DIALOGS / POPOVERS ===== */
+.theme-modern [role="dialog"] {
+  backdrop-filter: blur(2px);
+  border-color: hsl(220 13% 91% / 0.6);
+  box-shadow: 0 25px 60px -15px hsl(220 20% 30% / 0.2);
+  border-radius: 0.875rem;
+}
+
+.theme-modern [data-radix-popper-content-wrapper] > div {
+  border-color: hsl(220 13% 91% / 0.6);
+  box-shadow: 0 12px 40px -10px hsl(220 20% 30% / 0.15);
+}
+
+/* ===== TIPOGRAFIA DE PAGINA ===== */
+.theme-modern h1,
+.theme-modern h2 {
+  letter-spacing: -0.01em;
+}
+
+.theme-modern main h1:first-of-type,
+.theme-modern main h2:first-of-type {
+  background: linear-gradient(135deg, hsl(224 50% 15%), hsl(217 91% 45%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== SCROLLBAR ===== */
+.theme-modern ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.theme-modern ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.theme-modern ::-webkit-scrollbar-thumb {
+  background: hsl(220 13% 78%);
+  border-radius: 3px;
+}
+
+.theme-modern ::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 13% 60%);
+}
+
+/* ===== SEPARATORS ===== */
+.theme-modern [data-orientation="horizontal"] {
+  background-color: hsl(220 13% 91% / 0.6);
 }
 
 /* Driver.js Tour Customization */

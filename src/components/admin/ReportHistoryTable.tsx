@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { History, Send, RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
+import { History, RefreshCw, CheckCircle, XCircle, Clock } from "lucide-react";
 
 interface ReportLog {
   id: string;
@@ -22,7 +22,6 @@ interface ReportLog {
 export function ReportHistoryTable() {
   const [logs, setLogs] = useState<ReportLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const { toast } = useToast();
 
   const loadLogs = async () => {
@@ -50,35 +49,6 @@ export function ReportHistoryTable() {
   useEffect(() => {
     loadLogs();
   }, []);
-
-  const handleTestReport = async () => {
-    setSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-daily-report', {
-        body: { type: 'manual', test: true }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Relatório enviado",
-        description: "Relatório de teste enviado com sucesso!",
-      });
-
-      // Recarregar histórico após alguns segundos
-      setTimeout(loadLogs, 2000);
-
-    } catch (error: any) {
-      console.error('Erro ao enviar relatório:', error);
-      toast({
-        title: "Erro ao enviar",
-        description: error.message || "Erro inesperado ao enviar relatório.",
-        variant: "destructive"
-      });
-    } finally {
-      setSending(false);
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -128,26 +98,15 @@ export function ReportHistoryTable() {
             <History className="h-5 w-5" />
             Histórico de Envios
           </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadLogs}
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Atualizar
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={handleTestReport}
-              disabled={sending}
-              className="gap-2"
-            >
-              <Send className="h-4 w-4" />
-              {sending ? "Enviando..." : "Enviar Teste"}
-            </Button>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={loadLogs}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
         </CardTitle>
         <CardDescription>
           Histórico dos últimos 50 envios (manuais e automáticos)
@@ -158,13 +117,9 @@ export function ReportHistoryTable() {
           <div className="text-center py-8">
             <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nenhum envio encontrado</h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground">
               O histórico aparecerá aqui após os primeiros envios.
             </p>
-            <Button onClick={handleTestReport} disabled={sending} className="gap-2">
-              <Send className="h-4 w-4" />
-              {sending ? "Enviando..." : "Enviar Relatório de Teste"}
-            </Button>
           </div>
         ) : (
           <Table>
@@ -195,11 +150,12 @@ export function ReportHistoryTable() {
                   </TableCell>
                   <TableCell>{log.email}</TableCell>
                   <TableCell>
-                    <Badge variant={log.report_type === 'monthly_closing' ? 'default' : 'outline'}>
+                    <Badge variant={log.report_type === 'monthly_closing' || log.report_type === 'production' ? 'default' : 'outline'}>
                       {log.report_type === 'daily' ? 'Diário' : 
                        log.report_type === 'weekly' ? 'Semanal' : 
                        log.report_type === 'monthly' ? 'Mensal' :
-                       log.report_type === 'monthly_closing' ? '📅 Fechamento Mensal' :
+                     log.report_type === 'monthly_closing' ? '📅 Fechamento Mensal' :
+                       log.report_type === 'production' ? '🏭 Produção' :
                        log.report_type === 'custom' ? 'Personalizado' : log.report_type}
                     </Badge>
                   </TableCell>

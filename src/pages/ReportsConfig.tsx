@@ -4,7 +4,7 @@ import { ReportConfigTable } from "@/components/admin/ReportConfigTable";
 import { ReportHistoryTable } from "@/components/admin/ReportHistoryTable";
 import { MonthlyClosingReportDialog } from "@/components/admin/MonthlyClosingReportDialog";
 import { ProductionReportSchedule } from "@/components/admin/ProductionReportSchedule";
-import { Mail, History, Settings, Factory, FileText, Calendar } from "lucide-react";
+import { Mail, History, Settings, Factory, Calendar } from "lucide-react";
 
 export default function ReportsConfig() {
   return (
@@ -32,8 +32,8 @@ export default function ReportsConfig() {
           {/* Relatório Comercial */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Mail className="h-5 w-5 text-primary" />
                 Relatório Comercial
               </CardTitle>
               <CardDescription>
@@ -46,13 +46,26 @@ export default function ReportsConfig() {
           </Card>
 
           {/* Relatório de Produção */}
-          <ProductionReportSchedule />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Factory className="h-5 w-5 text-primary" />
+                Relatório de Produção Diário
+              </CardTitle>
+              <CardDescription>
+                Configure o envio automático diário do relatório de produção por e-mail
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProductionReportSchedule embedded />
+            </CardContent>
+          </Card>
 
           {/* Fechamento Mensal */}
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Calendar className="h-5 w-5 text-primary" />
                 Fechamento Mensal
               </CardTitle>
               <CardDescription>

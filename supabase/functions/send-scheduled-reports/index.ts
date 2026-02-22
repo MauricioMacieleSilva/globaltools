@@ -63,8 +63,10 @@ function shouldSendReport(config: ReportConfig, now: Date): boolean {
 
   switch (config.frequency) {
     case 'daily':
-      console.log(`✅ Envio diário aprovado para ${config.email}`);
-      return true;
+      // Enviar apenas de segunda a sexta
+      const isWeekday = !['saturday', 'sunday'].includes(today);
+      console.log(`${isWeekday ? '✅' : '❌'} Envio diário (seg-sex). Hoje: ${today}`);
+      return isWeekday;
 
     case 'weekly':
       // Enviar toda segunda-feira

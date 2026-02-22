@@ -58,6 +58,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Verificar se é dia útil (segunda a sexta)
+    const dayOfWeek = brasiliaTime.getDay(); // 0=Dom, 6=Sáb
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      console.log(`📅 Fim de semana (dia ${dayOfWeek}), pulando envio`);
+      return new Response(
+        JSON.stringify({ message: 'Fim de semana - envio apenas de segunda a sexta' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Idempotency check - prevent duplicate sends on the same day
     const todayStr = getDayKey(brasiliaTime);
     

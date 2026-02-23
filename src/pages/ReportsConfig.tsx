@@ -1,39 +1,119 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ReportConfigTable } from "@/components/admin/ReportConfigTable";
 import { ReportHistoryTable } from "@/components/admin/ReportHistoryTable";
 import { MonthlyClosingReportDialog } from "@/components/admin/MonthlyClosingReportDialog";
-import { ProductionReportSchedule } from "@/components/admin/ProductionReportSchedule";
-import { Mail, History, Settings, Factory, Calendar } from "lucide-react";
+import { Mail, History, Settings, Factory, Calendar, Clock, Loader2, Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReportCardProps {
   icon: React.ReactNode;
   title: string;
   description: string;
-  badge?: string;
+  badge: string;
   children: React.ReactNode;
 }
 
 function ReportCard({ icon, title, description, badge, children }: ReportCardProps) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             {icon}
             {title}
           </CardTitle>
-          {badge && (
-            <Badge variant="outline" className="text-xs">
-              {badge}
-            </Badge>
-          )}
+          <Badge variant="outline" className="text-xs shrink-0">
+            {badge}
+          </Badge>
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
+  );
+}
+
+function ProductionConfig() {
+  const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('production_report_schedule')
+          .select('*')
+          .limit(1)
+          .single();
+        if (error) throw error;
+        setConfig(data);
+      } catch (e) {
+        console.error('Erro ao carregar configuração:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleSave = async () => {
+    if (!config) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('production_report_schedule')
+        .update({ is_active: config.is_active, send_time: config.send_time, updated_at: new Date().toISOString() })
+        .eq('id', config.id);
+      if (error) throw error;
+      toast({
+        title: 'Configuração salva',
+        description: config.is_active
+          ? `Relatório será enviado de seg a sex às ${config.send_time}.`
+          : 'Envio automático desativado.',
+      });
+    } catch (error: any) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (!config) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <Label>Envio automático</Label>
+          <p className="text-sm text-muted-foreground">Enviar relatório de seg a sex para os destinatários configurados</p>
+        </div>
+        <Switch checked={config.is_active} onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })} />
+      </div>
+      {config.is_active && (
+        <div className="space-y-2">
+          <Label htmlFor="prod-send-time" className="flex items-center gap-1">
+            <Clock className="h-3 w-3" /> Horário de Envio
+          </Label>
+          <Input id="prod-send-time" type="time" value={config.send_time} onChange={(e) => setConfig({ ...config, send_time: e.target.value })} className="w-40" />
+        </div>
+      )}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Salvar
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -72,10 +152,10 @@ export default function ReportsConfig() {
           <ReportCard
             icon={<Factory className="h-5 w-5 text-primary" />}
             title="Relatório de Produção"
-            description="Configure o envio automático do relatório de produção"
+            description="Configure o envio automático do relatório de produção diário"
             badge="Seg a Sex"
           >
-            <ProductionReportSchedule embedded />
+            <ProductionConfig />
           </ReportCard>
 
           <ReportCard
@@ -84,7 +164,9 @@ export default function ReportsConfig() {
             description="Gere relatórios completos de meses anteriores para fechamento contábil"
             badge="Sob demanda"
           >
-            <MonthlyClosingReportDialog />
+            <div className="flex justify-end">
+              <MonthlyClosingReportDialog />
+            </div>
           </ReportCard>
         </TabsContent>
 

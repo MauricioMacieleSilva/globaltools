@@ -37,6 +37,7 @@ export function ReportConfigTable() {
       const { data, error } = await supabase
         .from('email_reports_config' as any)
         .select('*')
+        .not('id', 'in', '("00000000-0000-0000-0000-000000000000","00000000-0000-0000-0000-000000000001")')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

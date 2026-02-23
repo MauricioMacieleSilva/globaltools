@@ -635,6 +635,8 @@ const handler = async (req: Request): Promise<Response> => {
     const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const subject = `🏭 Relatório de Produção - ${today}`;
 
+    const todayDate = new Date().toISOString().split('T')[0];
+
     const results = [];
     for (const email of uniqueEmails) {
       try {
@@ -649,10 +651,40 @@ const handler = async (req: Request): Promise<Response> => {
           }),
         });
         const data = await res.json();
-        results.push({ email, success: res.ok, data });
-        console.log(`📧 ${res.ok ? '✅' : '❌'} ${email}`);
+        const success = res.ok;
+        results.push({ email, success, data });
+        console.log(`📧 ${success ? '✅' : '❌'} ${email}`);
+
+        // Log to email_reports_log for unified history
+        try {
+          await supabaseAdmin.from('email_reports_log').insert({
+            config_id: '00000000-0000-0000-0000-000000000001',
+            email,
+            report_date: todayDate,
+            report_type: 'production',
+            status: success ? 'success' : 'failed',
+            error_message: success ? null : JSON.stringify(data),
+            is_scheduled: isScheduled,
+          });
+        } catch (logErr) {
+          console.error('⚠️ Erro ao registrar log:', logErr);
+        }
       } catch (error: any) {
         results.push({ email, success: false, error: error.message });
+        // Log failure
+        try {
+          await supabaseAdmin.from('email_reports_log').insert({
+            config_id: '00000000-0000-0000-0000-000000000001',
+            email,
+            report_date: todayDate,
+            report_type: 'production',
+            status: 'failed',
+            error_message: error.message,
+            is_scheduled: isScheduled,
+          });
+        } catch (logErr) {
+          console.error('⚠️ Erro ao registrar log:', logErr);
+        }
       }
     }
 

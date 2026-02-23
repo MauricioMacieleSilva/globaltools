@@ -109,7 +109,7 @@ export function ReportHistoryTable() {
           </Button>
         </CardTitle>
         <CardDescription>
-          Histórico dos últimos 50 envios (manuais e automáticos)
+          Histórico dos últimos 50 envios — Comercial, Produção e Fechamento Mensal
         </CardDescription>
       </CardHeader>
       <CardContent>

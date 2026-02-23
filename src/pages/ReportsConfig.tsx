@@ -1,10 +1,41 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ReportConfigTable } from "@/components/admin/ReportConfigTable";
 import { ReportHistoryTable } from "@/components/admin/ReportHistoryTable";
 import { MonthlyClosingReportDialog } from "@/components/admin/MonthlyClosingReportDialog";
 import { ProductionReportSchedule } from "@/components/admin/ProductionReportSchedule";
 import { Mail, History, Settings, Factory, Calendar } from "lucide-react";
+
+interface ReportCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  badge?: string;
+  children: React.ReactNode;
+}
+
+function ReportCard({ icon, title, description, badge, children }: ReportCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            {icon}
+            {title}
+          </CardTitle>
+          {badge && (
+            <Badge variant="outline" className="text-xs">
+              {badge}
+            </Badge>
+          )}
+        </div>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
 
 export default function ReportsConfig() {
   return (
@@ -29,53 +60,32 @@ export default function ReportsConfig() {
         </TabsList>
 
         <TabsContent value="config" className="space-y-6">
-          {/* Relatório Comercial */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Mail className="h-5 w-5 text-primary" />
-                Relatório Comercial
-              </CardTitle>
-              <CardDescription>
-                Envio automático de segunda a sexta-feira para os destinatários cadastrados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ReportConfigTable />
-            </CardContent>
-          </Card>
+          <ReportCard
+            icon={<Mail className="h-5 w-5 text-primary" />}
+            title="Relatório Comercial"
+            description="Configure destinatários e horários do relatório comercial diário"
+            badge="Seg a Sex"
+          >
+            <ReportConfigTable />
+          </ReportCard>
 
-          {/* Relatório de Produção */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Factory className="h-5 w-5 text-primary" />
-                Relatório de Produção Diário
-              </CardTitle>
-              <CardDescription>
-                Configure o envio automático diário do relatório de produção por e-mail
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ProductionReportSchedule embedded />
-            </CardContent>
-          </Card>
+          <ReportCard
+            icon={<Factory className="h-5 w-5 text-primary" />}
+            title="Relatório de Produção"
+            description="Configure o envio automático do relatório de produção"
+            badge="Seg a Sex"
+          >
+            <ProductionReportSchedule embedded />
+          </ReportCard>
 
-          {/* Fechamento Mensal */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Calendar className="h-5 w-5 text-primary" />
-                Fechamento Mensal
-              </CardTitle>
-              <CardDescription>
-                Gere relatórios completos de meses anteriores para fechamento contábil
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MonthlyClosingReportDialog />
-            </CardContent>
-          </Card>
+          <ReportCard
+            icon={<Calendar className="h-5 w-5 text-primary" />}
+            title="Fechamento Mensal"
+            description="Gere relatórios completos de meses anteriores para fechamento contábil"
+            badge="Sob demanda"
+          >
+            <MonthlyClosingReportDialog />
+          </ReportCard>
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4">

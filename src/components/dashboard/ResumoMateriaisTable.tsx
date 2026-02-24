@@ -9,13 +9,17 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // Categories that should NOT be summarized to thickness
 const EXCLUDED_CATEGORIES = [
-  'TUBO', 'CANTONEIRA', 'VIGA', 'BARRA', 'TELA', 'VERGALH', 'LAMINAD'
+  'TUBO', 'CANTONEIRA', 'VIGA', 'BARRA', 'TELA', 'VERGALH', 'LAMINAD', 'TB '
 ];
 
 function shouldSummarize(descricaomat: string): boolean {
   const upper = descricaomat.toUpperCase();
-  return !EXCLUDED_CATEGORIES.some(cat => upper.includes(cat));
+  // Also check if starts with "TB " for tube variants like "TB RT", "TB QD"
+  return !EXCLUDED_CATEGORIES.some(cat => upper.includes(cat)) && !upper.startsWith('TB ');
 }
+
+
+
 
 /**
  * Extract thickness from material description.
@@ -30,6 +34,11 @@ function shouldSummarize(descricaomat: string): boolean {
  */
 function extractThickness(descricaomat: string): string | null {
   const desc = descricaomat.toUpperCase().trim();
+
+  // Pattern 0: BGL X,XXX... (e.g. BGL 0,43X1200 ASTM A792)
+  const bglPattern = /BGL\s+(\d+[.,]\d+)/i;
+  const bglMatch = desc.match(bglPattern);
+  if (bglMatch) return bglMatch[1].replace('.', ',');
 
   // Pattern 1: CH #X,XXMM or CH#X,XXMM
   const chPattern = /CH\s*#\s*(\d+[.,]\d+)\s*MM/i;
@@ -78,8 +87,7 @@ export function ResumoMateriaisTable() {
   const { filteredData } = useProducao();
   const [showFinalizados, setShowFinalizados] = useState(false);
 
-  const { pivotRows, thicknesses, otherMaterials, totals, grandTotal } = useMemo(() => {
-    // Map: \"entrega|cliente\" -> { thickness -> totalKG }
+  const { pivotRows, thicknesses, otherPivotRows, otherMaterials, otherTotals, otherGrandTotal, totals, grandTotal } = useMemo(() => {
     const rowMap = new Map<string, { entrega: string; cliente: string; values: Record<string, number> }>();
     const thicknessSet = new Set<string>();
     const otherMats: Array<{ entrega: string; cliente: string; material: string; peso: number; unidade: string }> = [];
@@ -109,43 +117,29 @@ export function ResumoMateriaisTable() {
               const row = rowMap.get(key)!;
               row.values[thickness] = (row.values[thickness] || 0) + (mat.peso_kg || mat.qtd_pendente || 0);
             } else {
-              // Could not extract thickness, treat as \"other\"
-              otherMats.push({
-                entrega,
-                cliente,
-                material: mat.descricaomat,
-                peso: mat.peso_kg || mat.qtd_pendente || 0,
-                unidade: mat.un,
-              });
+              otherMats.push({ entrega, cliente, material: mat.descricaomat, peso: mat.peso_kg || mat.qtd_pendente || 0, unidade: mat.un });
             }
           } else {
-            otherMats.push({
-              entrega,
-              cliente,
-              material: mat.descricaomat,
-              peso: mat.peso_kg || mat.qtd_pendente || 0,
-              unidade: mat.un,
-            });
+            otherMats.push({ entrega, cliente, material: mat.descricaomat, peso: mat.peso_kg || mat.qtd_pendente || 0, unidade: mat.un });
           }
         });
       });
     });
 
-    // Sort thicknesses numerically
     const sortedThicknesses = Array.from(thicknessSet).sort(
       (a, b) => parseThicknessNumber(a) - parseThicknessNumber(b)
     );
 
-    // Sort rows by date, then client
-    const rows = Array.from(rowMap.values()).sort((a, b) => {
+    const sortByDateClient = (a: { entrega: string; cliente: string }, b: { entrega: string; cliente: string }) => {
       const dateA = a.entrega === 'Sem prazo' ? '9999-99-99' : a.entrega;
       const dateB = b.entrega === 'Sem prazo' ? '9999-99-99' : b.entrega;
       const dateCmp = dateA.localeCompare(dateB);
       if (dateCmp !== 0) return dateCmp;
       return a.cliente.localeCompare(b.cliente);
-    });
+    };
 
-    // Calculate totals per thickness
+    const rows = Array.from(rowMap.values()).sort(sortByDateClient);
+
     const totalsByThickness: Record<string, number> = {};
     let grand = 0;
     rows.forEach(row => {
@@ -156,10 +150,38 @@ export function ResumoMateriaisTable() {
       });
     });
 
+    // Build pivot for "other" materials: group by entrega|cliente, columns = material names
+    const otherRowMap = new Map<string, { entrega: string; cliente: string; values: Record<string, number> }>();
+    const otherMatSet = new Set<string>();
+    otherMats.forEach(m => {
+      otherMatSet.add(m.material);
+      const key = `${m.entrega}|${m.cliente}`;
+      if (!otherRowMap.has(key)) {
+        otherRowMap.set(key, { entrega: m.entrega, cliente: m.cliente, values: {} });
+      }
+      const row = otherRowMap.get(key)!;
+      row.values[m.material] = (row.values[m.material] || 0) + m.peso;
+    });
+    const otherRows = Array.from(otherRowMap.values()).sort(sortByDateClient);
+    const otherMatNames = Array.from(otherMatSet).sort();
+
+    const oTotals: Record<string, number> = {};
+    let oGrand = 0;
+    otherRows.forEach(row => {
+      otherMatNames.forEach(m => {
+        const v = row.values[m] || 0;
+        oTotals[m] = (oTotals[m] || 0) + v;
+        oGrand += v;
+      });
+    });
+
     return {
       pivotRows: rows,
       thicknesses: sortedThicknesses,
-      otherMaterials: otherMats,
+      otherPivotRows: otherRows,
+      otherMaterials: otherMatNames,
+      otherTotals: oTotals,
+      otherGrandTotal: oGrand,
       totals: totalsByThickness,
       grandTotal: grand,
     };
@@ -280,42 +302,68 @@ export function ResumoMateriaisTable() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               Outros Materiais
-              <Badge variant="secondary">{otherMaterials.length}</Badge>
+              <Badge variant="secondary">{otherMaterials.length} tipos</Badge>
             </CardTitle>
             <CardDescription>
               Tubos, cantoneiras, vigas, barras, telas, vergalhões e laminados (sem resumo por espessura)
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea className="max-h-[300px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-bold">ENTREGA</TableHead>
-                    <TableHead className="font-bold">CLIENTE</TableHead>
-                    <TableHead className="font-bold">MATERIAL</TableHead>
-                    <TableHead className="font-bold text-right">PESO</TableHead>
-                    <TableHead className="font-bold">UN</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {otherMaterials.map((mat, idx) => (
-                    <TableRow key={idx} className={idx % 2 === 0 ? 'bg-muted/30' : ''}>
-                      <TableCell>{formatDate(mat.entrega)}</TableCell>
-                      <TableCell className="truncate max-w-[150px]" title={mat.cliente}>
-                        {mat.cliente}
-                      </TableCell>
-                      <TableCell className="truncate max-w-[200px]" title={mat.material}>
-                        {mat.material}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatWeight(mat.peso)}
-                      </TableCell>
-                      <TableCell>{mat.unidade}</TableCell>
+            <ScrollArea className="w-full">
+              <div className="min-w-[600px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-primary/10">
+                      <TableHead className="font-bold text-primary sticky left-0 bg-primary/10 z-10 min-w-[100px]">
+                        ENTREGA
+                      </TableHead>
+                      <TableHead className="font-bold text-primary min-w-[120px]">CLIENTE</TableHead>
+                      {otherMaterials.map(m => (
+                        <TableHead key={m} className="font-bold text-primary text-right min-w-[80px]" title={m}>
+                          <span className="block max-w-[100px] truncate">{m}</span>
+                        </TableHead>
+                      ))}
+                      <TableHead className="font-bold text-primary text-right min-w-[80px]">TOTAL</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {otherPivotRows.map((row, idx) => {
+                      const rowTotal = otherMaterials.reduce((sum, m) => sum + (row.values[m] || 0), 0);
+                      return (
+                        <TableRow key={idx} className={idx % 2 === 0 ? 'bg-muted/30' : ''}>
+                          <TableCell className="font-medium sticky left-0 bg-inherit z-10">
+                            {formatDate(row.entrega)}
+                          </TableCell>
+                          <TableCell className="font-medium truncate max-w-[150px]" title={row.cliente}>
+                            {row.cliente}
+                          </TableCell>
+                          {otherMaterials.map(m => (
+                            <TableCell key={m} className="text-right tabular-nums">
+                              {formatWeight(row.values[m] || 0)}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-bold tabular-nums">
+                            {formatWeight(rowTotal)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    <TableRow className="bg-primary/10 font-bold border-t-2 border-primary/30">
+                      <TableCell className="sticky left-0 bg-primary/10 z-10" />
+                      <TableCell className="font-bold">TOTAL</TableCell>
+                      {otherMaterials.map(m => (
+                        <TableCell key={m} className="text-right font-bold tabular-nums">
+                          {formatWeight(otherTotals[m] || 0)}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-right font-bold tabular-nums">
+                        {formatWeight(otherGrandTotal)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </CardContent>
         </Card>

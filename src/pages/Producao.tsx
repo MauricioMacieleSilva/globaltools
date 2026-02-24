@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generatePDFFromElement } from '@/lib/pdf-utils';
 import { useToast } from '@/hooks/use-toast';
-import { FileDown, EyeOff, ClipboardList, Package, Warehouse } from 'lucide-react';
+import { FileDown, EyeOff, ClipboardList, Package, Warehouse, LayoutGrid } from 'lucide-react';
 import { useProducao } from '@/context/ProducaoContext';
 import { HiddenOrdersDialog } from '@/components/dashboard/HiddenOrdersDialog';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
@@ -16,6 +16,7 @@ import { EstoqueTab } from '@/components/estoque/EstoqueTab';
 import { EstoqueProvider } from '@/context/EstoqueContext';
 import { ProductionReportButton } from '@/components/dashboard/ProductionReportButton';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
+import { ResumoMateriaisTable } from '@/components/dashboard/ResumoMateriaisTable';
 
 export default function Producao() {
   const relatorioRef = useRef<HTMLDivElement>(null);
@@ -92,10 +93,14 @@ export default function Producao() {
           </div>
 
           <Tabs defaultValue="producao" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg" data-tour="producao-tabs">
+            <TabsList className="grid w-full grid-cols-4 max-w-2xl" data-tour="producao-tabs">
               <TabsTrigger value="producao" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
                 <span className="hidden sm:inline">Produção</span>
+              </TabsTrigger>
+              <TabsTrigger value="resumo" className="gap-2">
+                <LayoutGrid className="h-4 w-4" />
+                <span className="hidden sm:inline">Resumo</span>
               </TabsTrigger>
               <TabsTrigger value="materiais" className="gap-2">
                 <Package className="h-4 w-4" />
@@ -113,6 +118,12 @@ export default function Producao() {
               </ErrorBoundary>
               <ErrorBoundary>
                 <ProducaoTable />
+              </ErrorBoundary>
+            </TabsContent>
+
+            <TabsContent value="resumo" className="space-y-4 mt-4">
+              <ErrorBoundary>
+                <ResumoMateriaisTable />
               </ErrorBoundary>
             </TabsContent>
 

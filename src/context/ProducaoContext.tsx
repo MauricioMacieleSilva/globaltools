@@ -320,6 +320,16 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
     fetchData();
     refreshProductionOrders();
     refreshHiddenOrders();
+
+    // Auto-refresh a cada 30 minutos
+    const intervalId = setInterval(() => {
+      console.log('⏰ Auto-refresh de produção (30min)');
+      fetchData();
+      refreshProductionOrders();
+      refreshHiddenOrders();
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // Apply filters and sort

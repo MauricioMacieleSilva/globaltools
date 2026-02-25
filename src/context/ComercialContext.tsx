@@ -488,6 +488,15 @@ export function ComercialProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshData();
+
+    // Auto-refresh a cada 30 minutos
+    const intervalId = setInterval(() => {
+      console.log('⏰ Auto-refresh comercial (30min) -', new Date().toLocaleTimeString('pt-BR'));
+      clearCache();
+      refreshData();
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
   }, [refreshData]);
 
   const value: ComercialContextType = {

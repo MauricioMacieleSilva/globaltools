@@ -246,13 +246,17 @@ export async function fetchComercialData(): Promise<ComercialData[]> {
     ];
 
     try {
-      console.log("Attempting to fetch from CSV URL:", CSV_URL);
+      const cacheBuster = `&_t=${Date.now()}`;
+      const fetchUrl = `${CSV_URL}${cacheBuster}`;
+      console.log("Attempting to fetch from CSV URL (cache-bust):", fetchUrl);
 
       // Tenta acessar via CSV primeiro
-      const response = await fetch(CSV_URL, {
+      const response = await fetch(fetchUrl, {
         method: "GET",
+        cache: "no-store",
         headers: {
           Accept: "text/csv",
+          "Cache-Control": "no-cache",
         },
       });
 

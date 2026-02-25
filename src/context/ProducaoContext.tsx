@@ -323,7 +323,7 @@ export function ProducaoProvider({ children }: ProducaoProviderProps) {
 
     // Auto-refresh a cada 30 minutos
     const intervalId = setInterval(() => {
-      console.log('⏰ Auto-refresh de produção (30min)');
+      console.log('⏰ Auto-refresh de produção (30min) -', new Date().toLocaleTimeString('pt-BR'));
       fetchData();
       refreshProductionOrders();
       refreshHiddenOrders();

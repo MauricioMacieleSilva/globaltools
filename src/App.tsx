@@ -29,6 +29,7 @@ import AdminAIProactive from "./pages/AdminAIProactive";
 import NotFound from "./pages/NotFound";
 import { Pipeline } from "./pages/Pipeline";
 import Producao from "./pages/Producao";
+import Fretes from "./pages/Fretes";
 import Auth from "./pages/Auth";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 
@@ -62,6 +63,8 @@ function AppContent() {
         return 'Pipeline de Vendas';
       case '/producao':
         return 'Produção';
+      case '/fretes':
+        return 'Controle de Fretes';
       case '/admin/conhecimento':
         return 'Gestão de Conhecimento';
       case '/admin/usuarios':
@@ -95,6 +98,8 @@ function AppContent() {
         return 'Leads encaminhados pelos SDRs para atendimento comercial';
       case '/producao':
         return 'Acompanhamento de pedidos em produção';
+      case '/fretes':
+        return 'Gestão de fretes e entregas por pedido';
       case '/admin/conhecimento':
         return 'Base de conhecimento e artigos do Zé da Global';
       case '/admin/usuarios':
@@ -226,6 +231,14 @@ function AppContent() {
                                   element={
                                     <ProtectedRoute requirePageAccess="/producao">
                                       <Producao />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/fretes"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/producao">
+                                      <Fretes />
                                     </ProtectedRoute>
                                   }
                                 />

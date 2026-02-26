@@ -694,6 +694,59 @@ export type Database = {
           },
         ]
       }
+      fretes: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_embarque: string
+          data_entrega: string | null
+          id: string
+          notas_fiscais: string[]
+          numero_pedido: string
+          observacoes: string | null
+          transportadora_id: string | null
+          transportadora_nome: string
+          updated_at: string
+          valor_frete: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_embarque: string
+          data_entrega?: string | null
+          id?: string
+          notas_fiscais?: string[]
+          numero_pedido: string
+          observacoes?: string | null
+          transportadora_id?: string | null
+          transportadora_nome: string
+          updated_at?: string
+          valor_frete?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_embarque?: string
+          data_entrega?: string | null
+          id?: string
+          notas_fiscais?: string[]
+          numero_pedido?: string
+          observacoes?: string | null
+          transportadora_id?: string | null
+          transportadora_nome?: string
+          updated_at?: string
+          valor_frete?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hidden_production_orders: {
         Row: {
           hidden_at: string

@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut, DollarSign, Calendar } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut, DollarSign, Calendar, Truck } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -57,6 +57,13 @@ const menuItems = [
     icon: Factory,
     pageKey: 'producao',
     tourId: 'sidebar-producao',
+  },
+  {
+    title: 'Fretes',
+    url: '/fretes',
+    icon: Truck,
+    pageKey: 'producao',
+    tourId: 'sidebar-fretes',
   },
   {
     title: 'Política Comercial',

@@ -696,6 +696,10 @@ export type Database = {
       }
       fretes: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
           created_at: string
           created_by: string
           data_embarque: string
@@ -704,12 +708,17 @@ export type Database = {
           notas_fiscais: string[]
           numero_pedido: string
           observacoes: string | null
+          status: string
           transportadora_id: string | null
           transportadora_nome: string
           updated_at: string
           valor_frete: number
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string | null
           created_at?: string
           created_by: string
           data_embarque: string
@@ -718,12 +727,17 @@ export type Database = {
           notas_fiscais?: string[]
           numero_pedido: string
           observacoes?: string | null
+          status?: string
           transportadora_id?: string | null
           transportadora_nome: string
           updated_at?: string
           valor_frete?: number
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string | null
           created_at?: string
           created_by?: string
           data_embarque?: string
@@ -732,12 +746,20 @@ export type Database = {
           notas_fiscais?: string[]
           numero_pedido?: string
           observacoes?: string | null
+          status?: string
           transportadora_id?: string | null
           transportadora_nome?: string
           updated_at?: string
           valor_frete?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fretes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fretes_transportadora_id_fkey"
             columns: ["transportadora_id"]

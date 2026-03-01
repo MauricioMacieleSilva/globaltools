@@ -708,6 +708,7 @@ export type Database = {
           notas_fiscais: string[]
           numero_pedido: string
           observacoes: string | null
+          peso_kg: number
           status: string
           transportadora_id: string | null
           transportadora_nome: string
@@ -727,6 +728,7 @@ export type Database = {
           notas_fiscais?: string[]
           numero_pedido: string
           observacoes?: string | null
+          peso_kg?: number
           status?: string
           transportadora_id?: string | null
           transportadora_nome: string
@@ -746,6 +748,7 @@ export type Database = {
           notas_fiscais?: string[]
           numero_pedido?: string
           observacoes?: string | null
+          peso_kg?: number
           status?: string
           transportadora_id?: string | null
           transportadora_nome?: string

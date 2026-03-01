@@ -19,11 +19,12 @@ interface Props {
   clientes: Array<{ codigo: string; nome: string }>;
   pedidosByCliente: Map<string, string[]>;
   nfsByPedido: Map<string, string[]>;
+  pesoByNf: Map<string, number>;
   transportadoras: Transportadora[];
   onSaved: () => void;
 }
 
-export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pedidosByCliente, nfsByPedido, transportadoras, onSaved }: Props) {
+export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pedidosByCliente, nfsByPedido, pesoByNf, transportadoras, onSaved }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [clienteOpen, setClienteOpen] = useState(false);
@@ -38,6 +39,7 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     transportadora_id: null,
     transportadora_nome: '',
     valor_frete: 0,
+    peso_kg: 0,
     data_entrega: null,
     observacoes: '',
     cliente_id: null,
@@ -56,6 +58,7 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
         transportadora_id: editingFrete.transportadora_id,
         transportadora_nome: editingFrete.transportadora_nome,
         valor_frete: editingFrete.valor_frete,
+        peso_kg: editingFrete.peso_kg || 0,
         data_entrega: editingFrete.data_entrega,
         observacoes: editingFrete.observacoes || '',
         cliente_id: editingFrete.cliente_id,
@@ -85,9 +88,18 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
   }, [form.numero_pedido, nfsByPedido]);
 
   const resetForm = () => {
-    setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null });
+    setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, peso_kg: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null });
     setSelectedClienteCodigo(null);
     setNfInput('');
+  };
+
+  // Calculate weight from NFs
+  const calcPesoFromNfs = (nfs: string[]) => {
+    let total = 0;
+    nfs.forEach(nf => {
+      total += pesoByNf.get(nf) || 0;
+    });
+    return total;
   };
 
   const handleClienteSelect = (codigo: string) => {
@@ -100,7 +112,8 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
   const handlePedidoChange = (pedido: string) => {
     // Auto-fill NFs from the sheets data
     const autoNfs = nfsByPedido.get(pedido) || [];
-    setForm(p => ({ ...p, numero_pedido: pedido, notas_fiscais: autoNfs }));
+    const autoPeso = calcPesoFromNfs(autoNfs);
+    setForm(p => ({ ...p, numero_pedido: pedido, notas_fiscais: autoNfs, peso_kg: autoPeso }));
   };
 
   const handleTransportadoraChange = (transportadoraId: string) => {
@@ -111,13 +124,15 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
   const addNf = () => {
     const nf = nfInput.trim();
     if (nf && !form.notas_fiscais.includes(nf)) {
-      setForm(p => ({ ...p, notas_fiscais: [...p.notas_fiscais, nf] }));
+      const newNfs = [...form.notas_fiscais, nf];
+      setForm(p => ({ ...p, notas_fiscais: newNfs, peso_kg: calcPesoFromNfs(newNfs) }));
       setNfInput('');
     }
   };
 
   const removeNf = (nf: string) => {
-    setForm(p => ({ ...p, notas_fiscais: p.notas_fiscais.filter(n => n !== nf) }));
+    const newNfs = form.notas_fiscais.filter(n => n !== nf);
+    setForm(p => ({ ...p, notas_fiscais: newNfs, peso_kg: calcPesoFromNfs(newNfs) }));
   };
 
   const handleSave = async () => {
@@ -245,6 +260,23 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
             <label className="text-sm font-medium">Valor do Frete (R$)</label>
             <Input type="number" min={0} step={0.01} value={form.valor_frete} onChange={e => setForm(p => ({ ...p, valor_frete: parseFloat(e.target.value) || 0 }))} className="mt-1" />
           </div>
+
+          {/* Peso */}
+          <div>
+            <label className="text-sm font-medium">Peso (kg)</label>
+            <Input type="number" min={0} step={0.01} value={form.peso_kg || 0} onChange={e => setForm(p => ({ ...p, peso_kg: parseFloat(e.target.value) || 0 }))} className="mt-1" />
+            <p className="text-xs text-muted-foreground mt-1">Peso puxado automaticamente das NFs. Ajuste manualmente se necessário.</p>
+          </div>
+
+          {/* R$/ton */}
+          {form.valor_frete > 0 && (form.peso_kg || 0) > 0 && (
+            <div className="p-3 rounded-md bg-muted">
+              <span className="text-sm font-medium">R$/ton: </span>
+              <span className="text-sm font-bold text-primary">
+                {((form.valor_frete / (form.peso_kg || 1)) * 1000).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/ton
+              </span>
+            </div>
+          )}
 
           {/* Data Entrega */}
           <div>

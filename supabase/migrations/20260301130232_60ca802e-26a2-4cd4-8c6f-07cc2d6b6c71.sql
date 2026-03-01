@@ -1,0 +1,1 @@
+ALTER TABLE public.fretes ADD COLUMN IF NOT EXISTS peso_kg numeric NOT NULL DEFAULT 0;

@@ -8,6 +8,7 @@ export interface Frete {
   transportadora_id: string | null;
   transportadora_nome: string;
   valor_frete: number;
+  peso_kg: number;
   data_entrega: string | null;
   observacoes: string | null;
   status: string;
@@ -27,6 +28,7 @@ export interface FreteInsert {
   transportadora_id?: string | null;
   transportadora_nome: string;
   valor_frete: number;
+  peso_kg?: number;
   data_entrega?: string | null;
   observacoes?: string | null;
   cliente_id?: string | null;
@@ -60,7 +62,7 @@ export async function insertFrete(frete: FreteInsert): Promise<Frete> {
 
   const { data, error } = await (supabase as any)
     .from('fretes')
-    .insert({ ...frete, created_by: user.id, status: 'pendente' })
+    .insert({ ...frete, created_by: user.id, status: 'rascunho' })
     .select()
     .single();
 
@@ -152,6 +154,32 @@ export async function updateTransportadora(id: string, t: Partial<{ nome: string
 
   if (error) throw new Error(error.message);
   return data as any;
+}
+
+export async function sendFreteForApproval(id: string): Promise<Frete> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+
+  // Update status to pendente
+  const { data, error } = await (supabase as any)
+    .from('fretes')
+    .update({ status: 'pendente' })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  // Send approval email via edge function
+  try {
+    await supabase.functions.invoke('notify-frete-approval', {
+      body: { frete_id: id },
+    });
+  } catch (emailErr) {
+    console.error('Erro ao enviar email de aprovação:', emailErr);
+  }
+
+  return data;
 }
 
 export async function loadClientes(): Promise<Array<{ id: string; nome: string }>> {

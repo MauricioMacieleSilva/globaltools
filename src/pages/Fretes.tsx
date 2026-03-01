@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Truck, Search, CheckCircle, XCircle, Settings2, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, Truck, Search, CheckCircle, XCircle, Settings2, Filter, Send } from 'lucide-react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/context/AuthContext';
 import { useComercial } from '@/context/ComercialContext';
-import { loadFretes, deleteFrete, loadTransportadoras, approveFrete, rejectFrete, type Frete, type Transportadora } from '@/services/fretesService';
+import { loadFretes, deleteFrete, loadTransportadoras, approveFrete, rejectFrete, sendFreteForApproval, type Frete, type Transportadora } from '@/services/fretesService';
 import { FreteFormDialog } from '@/components/fretes/FreteFormDialog';
 import { TransportadoraDialog } from '@/components/fretes/TransportadoraDialog';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
@@ -19,7 +19,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileTableCard } from '@/components/ui/mobile-table-card';
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  pendente: { label: 'Pendente', variant: 'secondary' },
+  rascunho: { label: 'Rascunho', variant: 'outline' },
+  pendente: { label: 'Aguardando Aprovação', variant: 'secondary' },
   aprovado: { label: 'Aprovado', variant: 'default' },
   rejeitado: { label: 'Rejeitado', variant: 'destructive' },
 };
@@ -92,6 +93,18 @@ export default function Fretes() {
     return result;
   }, [comercialData]);
 
+  // Extract peso (weight) grouped by NF number
+  const pesoByNf = useMemo(() => {
+    if (!comercialData || comercialData.length === 0) return new Map<string, number>();
+    const map = new Map<string, number>();
+    comercialData.forEach(item => {
+      if (item.numeronf && item.peso) {
+        map.set(item.numeronf, (map.get(item.numeronf) || 0) + Number(item.peso));
+      }
+    });
+    return map;
+  }, [comercialData]);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -144,12 +157,28 @@ export default function Fretes() {
     }
   };
 
+  const handleSendForApproval = async (id: string) => {
+    try {
+      await sendFreteForApproval(id);
+      toast({ title: 'Frete enviado para aprovação!', description: 'E-mail de aprovação enviado.' });
+      fetchData();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const formatDate = (d: string | null) => {
     if (!d) return '-';
     try { return format(parseISO(d), 'dd/MM/yyyy', { locale: ptBR }); } catch { return d; }
   };
 
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const formatWeight = (v: number) => v ? `${v.toLocaleString('pt-BR')} kg` : '-';
+  const calcReaisPorTon = (valor: number, pesoKg: number) => {
+    if (!pesoKg || pesoKg === 0) return '-';
+    const reaisPorTon = (valor / pesoKg) * 1000;
+    return formatCurrency(reaisPorTon) + '/ton';
+  };
 
   const filtered = fretes.filter(f => {
     const matchesSearch = !searchTerm ||
@@ -175,7 +204,7 @@ export default function Fretes() {
   const embarquesPendentes = filtered.filter(f => !f.data_entrega).length;
 
   const renderStatusBadge = (f: Frete) => {
-    const cfg = statusConfig[f.status] || statusConfig.pendente;
+    const cfg = statusConfig[f.status] || statusConfig.rascunho;
     return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
   };
 
@@ -267,9 +296,14 @@ export default function Fretes() {
                     { label: 'Transportadora', value: f.transportadora_nome },
                     { label: 'Entrega', value: formatDate(f.data_entrega) },
                     { label: 'Valor', value: formatCurrency(Number(f.valor_frete)) },
+                    { label: 'Peso', value: formatWeight(Number(f.peso_kg)) },
+                    { label: 'R$/ton', value: calcReaisPorTon(Number(f.valor_frete), Number(f.peso_kg)) },
                   ]}
                   actions={
                     <div className="flex gap-2 flex-wrap">
+                      {userCanEdit && f.status === 'rascunho' && (
+                        <Button variant="outline" size="sm" onClick={() => handleSendForApproval(f.id)} className="gap-1"><Send className="h-4 w-4" />Enviar p/ Aprovação</Button>
+                      )}
                       {canApprove && f.status === 'pendente' && (
                         <>
                           <Button variant="outline" size="sm" onClick={() => handleApprove(f.id)} className="gap-1 text-green-600"><CheckCircle className="h-4 w-4" />Aprovar</Button>
@@ -294,10 +328,12 @@ export default function Fretes() {
                     <TableHead>Embarque</TableHead>
                     <TableHead>Transportadora</TableHead>
                     <TableHead className="text-right">Valor Frete</TableHead>
+                    <TableHead className="text-right">Peso (kg)</TableHead>
+                    <TableHead className="text-right">R$/ton</TableHead>
                     <TableHead>Entrega</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Obs.</TableHead>
-                    <TableHead className="w-32">Ações</TableHead>
+                    <TableHead className="w-40">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -315,11 +351,18 @@ export default function Fretes() {
                       <TableCell>{formatDate(f.data_embarque)}</TableCell>
                       <TableCell>{f.transportadora_nome}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(Number(f.valor_frete))}</TableCell>
+                      <TableCell className="text-right">{formatWeight(Number(f.peso_kg))}</TableCell>
+                      <TableCell className="text-right text-xs font-medium">{calcReaisPorTon(Number(f.valor_frete), Number(f.peso_kg))}</TableCell>
                       <TableCell>{formatDate(f.data_entrega)}</TableCell>
                       <TableCell>{renderStatusBadge(f)}</TableCell>
                       <TableCell className="max-w-32 truncate text-xs text-muted-foreground">{f.observacoes || '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          {userCanEdit && f.status === 'rascunho' && (
+                            <Button variant="ghost" size="icon" onClick={() => handleSendForApproval(f.id)} title="Enviar para Aprovação">
+                              <Send className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
                           {canApprove && f.status === 'pendente' && (
                             <>
                               <Button variant="ghost" size="icon" onClick={() => handleApprove(f.id)} title="Aprovar">
@@ -357,6 +400,7 @@ export default function Fretes() {
           clientes={clientesFromSheets}
           pedidosByCliente={pedidosByCliente}
           nfsByPedido={nfsByPedido}
+          pesoByNf={pesoByNf}
           transportadoras={transportadoras}
           onSaved={fetchData}
         />

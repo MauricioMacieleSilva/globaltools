@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Truck, Search, CheckCircle, XCircle, Settings2, Filter } from 'lucide-react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/context/AuthContext';
-import { loadFretes, deleteFrete, loadTransportadoras, loadClientes, approveFrete, rejectFrete, type Frete, type Transportadora } from '@/services/fretesService';
+import { useComercial } from '@/context/ComercialContext';
+import { loadFretes, deleteFrete, loadTransportadoras, approveFrete, rejectFrete, type Frete, type Transportadora } from '@/services/fretesService';
 import { FreteFormDialog } from '@/components/fretes/FreteFormDialog';
 import { TransportadoraDialog } from '@/components/fretes/TransportadoraDialog';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
@@ -27,10 +28,10 @@ export default function Fretes() {
   const { toast } = useToast();
   const { isAdmin, checkPageAccess } = useUserPermissions();
   const { userProfile } = useAuth();
+  const { data: comercialData } = useComercial();
   const isMobile = useIsMobile();
   const [fretes, setFretes] = useState<Frete[]>([]);
   const [transportadoras, setTransportadoras] = useState<Transportadora[]>([]);
-  const [clientes, setClientes] = useState<Array<{ id: string; nome: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transportadoraDialogOpen, setTransportadoraDialogOpen] = useState(false);
@@ -42,17 +43,64 @@ export default function Fretes() {
   const canApprove = isAdmin || userProfile?.role === 'comercial';
   const userCanEdit = checkPageAccess('producao').canEdit;
 
+  // Extract unique clients from Google Sheets data
+  const clientesFromSheets = useMemo(() => {
+    if (!comercialData || comercialData.length === 0) return [];
+    const clienteMap = new Map<string, string>();
+    comercialData.forEach(item => {
+      if (item.codigocliente && item.cliente) {
+        clienteMap.set(item.codigocliente, item.cliente);
+      }
+    });
+    return Array.from(clienteMap.entries()).map(([codigo, nome]) => ({
+      codigo,
+      nome,
+    })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [comercialData]);
+
+  // Extract orders grouped by client code
+  const pedidosByCliente = useMemo(() => {
+    if (!comercialData || comercialData.length === 0) return new Map<string, string[]>();
+    const map = new Map<string, Set<string>>();
+    comercialData.forEach(item => {
+      if (item.codigocliente && item.numeropedido) {
+        if (!map.has(item.codigocliente)) map.set(item.codigocliente, new Set());
+        map.get(item.codigocliente)!.add(item.numeropedido);
+      }
+    });
+    const result = new Map<string, string[]>();
+    map.forEach((pedidos, codigo) => {
+      result.set(codigo, Array.from(pedidos).sort());
+    });
+    return result;
+  }, [comercialData]);
+
+  // Extract NFs grouped by order number
+  const nfsByPedido = useMemo(() => {
+    if (!comercialData || comercialData.length === 0) return new Map<string, string[]>();
+    const map = new Map<string, Set<string>>();
+    comercialData.forEach(item => {
+      if (item.numeropedido && item.numeronf) {
+        if (!map.has(item.numeropedido)) map.set(item.numeropedido, new Set());
+        map.get(item.numeropedido)!.add(item.numeronf);
+      }
+    });
+    const result = new Map<string, string[]>();
+    map.forEach((nfs, pedido) => {
+      result.set(pedido, Array.from(nfs).sort());
+    });
+    return result;
+  }, [comercialData]);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [fretesData, transportadorasData, clientesData] = await Promise.all([
+      const [fretesData, transportadorasData] = await Promise.all([
         loadFretes(),
         loadTransportadoras(),
-        loadClientes(),
       ]);
       setFretes(fretesData);
       setTransportadoras(transportadorasData);
-      setClientes(clientesData);
     } catch (err: any) {
       toast({ title: 'Erro ao carregar dados', description: err.message, variant: 'destructive' });
     } finally {
@@ -306,7 +354,9 @@ export default function Fretes() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           editingFrete={editingFrete}
-          clientes={clientes}
+          clientes={clientesFromSheets}
+          pedidosByCliente={pedidosByCliente}
+          nfsByPedido={nfsByPedido}
           transportadoras={transportadoras}
           onSaved={fetchData}
         />

@@ -10,25 +10,25 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { type Frete, type FreteInsert, type Transportadora, insertFrete, updateFrete, loadPedidosByCliente } from '@/services/fretesService';
+import { type Frete, type FreteInsert, type Transportadora, insertFrete, updateFrete } from '@/services/fretesService';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingFrete: Frete | null;
-  clientes: Array<{ id: string; nome: string }>;
+  clientes: Array<{ codigo: string; nome: string }>;
+  pedidosByCliente: Map<string, string[]>;
+  nfsByPedido: Map<string, string[]>;
   transportadoras: Transportadora[];
   onSaved: () => void;
 }
 
-export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, transportadoras, onSaved }: Props) {
+export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pedidosByCliente, nfsByPedido, transportadoras, onSaved }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [clienteOpen, setClienteOpen] = useState(false);
   const [clienteSearch, setClienteSearch] = useState('');
-  const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
-  const [pedidos, setPedidos] = useState<Array<{ id: string; numero_pedido: string }>>([]);
-  const [loadingPedidos, setLoadingPedidos] = useState(false);
+  const [selectedClienteCodigo, setSelectedClienteCodigo] = useState<string | null>(null);
   const [nfInput, setNfInput] = useState('');
 
   const [form, setForm] = useState<FreteInsert>({
@@ -46,7 +46,9 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, tr
 
   useEffect(() => {
     if (editingFrete) {
-      setSelectedClienteId(editingFrete.cliente_id);
+      // Try to find the client code from the name
+      const clienteMatch = clientes.find(c => c.nome === editingFrete.cliente_nome);
+      setSelectedClienteCodigo(clienteMatch?.codigo || null);
       setForm({
         numero_pedido: editingFrete.numero_pedido,
         notas_fiscais: editingFrete.notas_fiscais || [],
@@ -64,36 +66,41 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, tr
     }
   }, [editingFrete, open]);
 
-  useEffect(() => {
-    if (selectedClienteId) {
-      setLoadingPedidos(true);
-      loadPedidosByCliente(selectedClienteId)
-        .then(setPedidos)
-        .catch(() => setPedidos([]))
-        .finally(() => setLoadingPedidos(false));
-    } else {
-      setPedidos([]);
-    }
-  }, [selectedClienteId]);
-
   const filteredClientes = useMemo(() => {
     if (!clienteSearch) return clientes.slice(0, 50);
     const search = clienteSearch.toLowerCase();
     return clientes.filter(c => c.nome.toLowerCase().includes(search)).slice(0, 50);
   }, [clientes, clienteSearch]);
 
+  // Get pedidos for selected client
+  const pedidosForClient = useMemo(() => {
+    if (!selectedClienteCodigo) return [];
+    return pedidosByCliente.get(selectedClienteCodigo) || [];
+  }, [selectedClienteCodigo, pedidosByCliente]);
+
+  // Get NFs for selected pedido
+  const nfsForPedido = useMemo(() => {
+    if (!form.numero_pedido) return [];
+    return nfsByPedido.get(form.numero_pedido) || [];
+  }, [form.numero_pedido, nfsByPedido]);
+
   const resetForm = () => {
     setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null });
-    setSelectedClienteId(null);
+    setSelectedClienteCodigo(null);
     setNfInput('');
-    setPedidos([]);
   };
 
-  const handleClienteSelect = (clienteId: string) => {
-    const cliente = clientes.find(c => c.id === clienteId);
-    setSelectedClienteId(clienteId);
-    setForm(p => ({ ...p, cliente_id: clienteId, cliente_nome: cliente?.nome || '', numero_pedido: '' }));
+  const handleClienteSelect = (codigo: string) => {
+    const cliente = clientes.find(c => c.codigo === codigo);
+    setSelectedClienteCodigo(codigo);
+    setForm(p => ({ ...p, cliente_id: null, cliente_nome: cliente?.nome || '', numero_pedido: '', notas_fiscais: [] }));
     setClienteOpen(false);
+  };
+
+  const handlePedidoChange = (pedido: string) => {
+    // Auto-fill NFs from the sheets data
+    const autoNfs = nfsByPedido.get(pedido) || [];
+    setForm(p => ({ ...p, numero_pedido: pedido, notas_fiscais: autoNfs }));
   };
 
   const handleTransportadoraChange = (transportadoraId: string) => {
@@ -137,7 +144,7 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, tr
     }
   };
 
-  const selectedClienteName = clientes.find(c => c.id === selectedClienteId)?.nome;
+  const selectedClienteName = clientes.find(c => c.codigo === selectedClienteCodigo)?.nome;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -162,8 +169,8 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, tr
                   <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                   <CommandGroup className="max-h-60 overflow-auto">
                     {filteredClientes.map(c => (
-                      <CommandItem key={c.id} value={c.nome} onSelect={() => handleClienteSelect(c.id)}>
-                        <Check className={cn("mr-2 h-4 w-4", selectedClienteId === c.id ? "opacity-100" : "opacity-0")} />
+                      <CommandItem key={c.codigo} value={c.nome} onSelect={() => handleClienteSelect(c.codigo)}>
+                        <Check className={cn("mr-2 h-4 w-4", selectedClienteCodigo === c.codigo ? "opacity-100" : "opacity-0")} />
                         {c.nome}
                       </CommandItem>
                     ))}
@@ -176,16 +183,16 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, tr
           {/* Pedido */}
           <div>
             <label className="text-sm font-medium">Nº Pedido *</label>
-            {selectedClienteId ? (
-              <Select value={form.numero_pedido} onValueChange={v => setForm(p => ({ ...p, numero_pedido: v }))}>
+            {selectedClienteCodigo ? (
+              <Select value={form.numero_pedido} onValueChange={handlePedidoChange}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder={loadingPedidos ? 'Carregando...' : 'Selecione o pedido'} />
+                  <SelectValue placeholder="Selecione o pedido" />
                 </SelectTrigger>
                 <SelectContent>
-                  {pedidos.map(p => (
-                    <SelectItem key={p.id} value={p.numero_pedido}>{p.numero_pedido}</SelectItem>
+                  {pedidosForClient.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
-                  {pedidos.length === 0 && !loadingPedidos && (
+                  {pedidosForClient.length === 0 && (
                     <div className="p-2 text-sm text-muted-foreground text-center">Nenhum pedido encontrado</div>
                   )}
                 </SelectContent>
@@ -198,12 +205,8 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, tr
           {/* Notas Fiscais */}
           <div>
             <label className="text-sm font-medium">Notas Fiscais</label>
-            <div className="flex gap-2 mt-1">
-              <Input value={nfInput} onChange={e => setNfInput(e.target.value)} placeholder="Nº da NF" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addNf())} />
-              <Button type="button" variant="outline" onClick={addNf}>Adicionar</Button>
-            </div>
             {form.notas_fiscais.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1 mt-1 mb-2">
                 {form.notas_fiscais.map(nf => (
                   <Badge key={nf} variant="secondary" className="gap-1">
                     {nf}
@@ -212,6 +215,10 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, tr
                 ))}
               </div>
             )}
+            <div className="flex gap-2">
+              <Input value={nfInput} onChange={e => setNfInput(e.target.value)} placeholder="Adicionar NF manualmente" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addNf())} />
+              <Button type="button" variant="outline" onClick={addNf}>Adicionar</Button>
+            </div>
           </div>
 
           {/* Data Embarque */}

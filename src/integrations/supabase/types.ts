@@ -698,6 +698,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          cidade_entrega: string | null
           cliente_id: string | null
           cliente_nome: string | null
           created_at: string
@@ -712,12 +713,14 @@ export type Database = {
           status: string
           transportadora_id: string | null
           transportadora_nome: string
+          uf_entrega: string | null
           updated_at: string
           valor_frete: number
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          cidade_entrega?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
           created_at?: string
@@ -732,12 +735,14 @@ export type Database = {
           status?: string
           transportadora_id?: string | null
           transportadora_nome: string
+          uf_entrega?: string | null
           updated_at?: string
           valor_frete?: number
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          cidade_entrega?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
           created_at?: string
@@ -752,6 +757,7 @@ export type Database = {
           status?: string
           transportadora_id?: string | null
           transportadora_nome?: string
+          uf_entrega?: string | null
           updated_at?: string
           valor_frete?: number
         }

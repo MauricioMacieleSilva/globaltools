@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
     const pesoKg = Number(frete.peso_kg || 0);
     const reaisPorTon = pesoKg > 0 ? ((Number(frete.valor_frete) / pesoKg) * 1000).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/ton' : '-';
     const dataEmbarque = frete.data_embarque || '-';
+    const cidadeUf = frete.cidade_entrega ? `${frete.cidade_entrega}${frete.uf_entrega ? '/' + frete.uf_entrega : ''}` : '-';
     const nfs = (frete.notas_fiscais || []).join(', ') || '-';
 
     // Build the approval link - points to the fretes page
@@ -102,6 +103,10 @@ Deno.serve(async (req) => {
           <tr style="background: #f5f5f5;">
             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Data Embarque</td>
             <td style="padding: 10px; border: 1px solid #ddd;">${dataEmbarque}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Cidade/UF Entrega</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">${cidadeUf}</td>
           </tr>
           <tr>
             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Valor Frete</td>

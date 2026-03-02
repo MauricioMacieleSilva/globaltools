@@ -292,6 +292,7 @@ export default function Fretes() {
                   fields={[
                     { label: 'Cliente', value: f.cliente_nome || '-' },
                     { label: 'NFs', value: (f.notas_fiscais || []).join(', ') || '-' },
+                    { label: 'Cidade/UF', value: f.cidade_entrega ? `${f.cidade_entrega}${f.uf_entrega ? '/' + f.uf_entrega : ''}` : '-' },
                     { label: 'Embarque', value: formatDate(f.data_embarque) },
                     { label: 'Transportadora', value: f.transportadora_nome },
                     { label: 'Entrega', value: formatDate(f.data_entrega) },
@@ -325,6 +326,7 @@ export default function Fretes() {
                     <TableHead>Cliente</TableHead>
                     <TableHead>Pedido</TableHead>
                     <TableHead>Notas Fiscais</TableHead>
+                    <TableHead>Cidade/UF</TableHead>
                     <TableHead>Embarque</TableHead>
                     <TableHead>Transportadora</TableHead>
                     <TableHead className="text-right">Valor Frete</TableHead>
@@ -348,6 +350,7 @@ export default function Fretes() {
                           ))}
                         </div>
                       </TableCell>
+                      <TableCell>{f.cidade_entrega ? `${f.cidade_entrega}${f.uf_entrega ? '/' + f.uf_entrega : ''}` : '-'}</TableCell>
                       <TableCell>{formatDate(f.data_embarque)}</TableCell>
                       <TableCell>{f.transportadora_nome}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(Number(f.valor_frete))}</TableCell>

@@ -14,6 +14,8 @@ export interface Frete {
   status: string;
   cliente_id: string | null;
   cliente_nome: string | null;
+  cidade_entrega: string | null;
+  uf_entrega: string | null;
   approved_by: string | null;
   approved_at: string | null;
   created_by: string;
@@ -33,6 +35,8 @@ export interface FreteInsert {
   observacoes?: string | null;
   cliente_id?: string | null;
   cliente_nome?: string | null;
+  cidade_entrega?: string | null;
+  uf_entrega?: string | null;
 }
 
 export interface Transportadora {

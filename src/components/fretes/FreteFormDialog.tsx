@@ -44,6 +44,8 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     observacoes: '',
     cliente_id: null,
     cliente_nome: null,
+    cidade_entrega: null,
+    uf_entrega: null,
   });
 
   useEffect(() => {
@@ -63,6 +65,8 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
         observacoes: editingFrete.observacoes || '',
         cliente_id: editingFrete.cliente_id,
         cliente_nome: editingFrete.cliente_nome,
+        cidade_entrega: editingFrete.cidade_entrega || null,
+        uf_entrega: editingFrete.uf_entrega || null,
       });
     } else {
       resetForm();
@@ -88,7 +92,7 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
   }, [form.numero_pedido, nfsByPedido]);
 
   const resetForm = () => {
-    setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, peso_kg: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null });
+    setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, peso_kg: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null, cidade_entrega: null, uf_entrega: null });
     setSelectedClienteCodigo(null);
     setNfInput('');
   };
@@ -277,6 +281,18 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
               </span>
             </div>
           )}
+
+          {/* Cidade / UF de Entrega */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2">
+              <label className="text-sm font-medium">Cidade de Entrega</label>
+              <Input value={form.cidade_entrega || ''} onChange={e => setForm(p => ({ ...p, cidade_entrega: e.target.value }))} placeholder="Ex: São Paulo" className="mt-1" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">UF</label>
+              <Input value={form.uf_entrega || ''} onChange={e => setForm(p => ({ ...p, uf_entrega: e.target.value.toUpperCase().slice(0, 2) }))} placeholder="SP" maxLength={2} className="mt-1" />
+            </div>
+          </div>
 
           {/* Data Entrega */}
           <div>

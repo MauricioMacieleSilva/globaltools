@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { type Frete, type FreteInsert, type Transportadora, insertFrete, updateFrete } from '@/services/fretesService';
+import { locationsService } from '@/services/locationsService';
 
 interface Props {
   open: boolean;
@@ -31,6 +32,10 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
   const [clienteSearch, setClienteSearch] = useState('');
   const [selectedClienteCodigo, setSelectedClienteCodigo] = useState<string | null>(null);
   const [nfInput, setNfInput] = useState('');
+  const [estados, setEstados] = useState<Array<{ uf: string; nome: string; id: number }>>([]);
+  const [cidades, setCidades] = useState<string[]>([]);
+  const [cidadeOpen, setCidadeOpen] = useState(false);
+  const [cidadeSearch, setCidadeSearch] = useState('');
 
   const [form, setForm] = useState<FreteInsert>({
     numero_pedido: '',
@@ -45,12 +50,31 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     cliente_id: null,
     cliente_nome: null,
     cidade_entrega: null,
-    uf_entrega: null,
+    uf_entrega: 'RS',
   });
+
+  // Load estados on mount
+  useEffect(() => {
+    locationsService.getEstados().then(setEstados);
+  }, []);
+
+  // Load cidades when UF changes
+  useEffect(() => {
+    if (form.uf_entrega) {
+      locationsService.getCidadesPorEstado(form.uf_entrega).then(setCidades);
+    } else {
+      setCidades([]);
+    }
+  }, [form.uf_entrega]);
+
+  const filteredCidades = useMemo(() => {
+    if (!cidadeSearch) return cidades.slice(0, 80);
+    const search = cidadeSearch.toLowerCase();
+    return cidades.filter(c => c.toLowerCase().includes(search)).slice(0, 80);
+  }, [cidades, cidadeSearch]);
 
   useEffect(() => {
     if (editingFrete) {
-      // Try to find the client code from the name
       const clienteMatch = clientes.find(c => c.nome === editingFrete.cliente_nome);
       setSelectedClienteCodigo(clienteMatch?.codigo || null);
       setForm({
@@ -66,7 +90,7 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
         cliente_id: editingFrete.cliente_id,
         cliente_nome: editingFrete.cliente_nome,
         cidade_entrega: editingFrete.cidade_entrega || null,
-        uf_entrega: editingFrete.uf_entrega || null,
+        uf_entrega: editingFrete.uf_entrega || 'RS',
       });
     } else {
       resetForm();
@@ -92,7 +116,7 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
   }, [form.numero_pedido, nfsByPedido]);
 
   const resetForm = () => {
-    setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, peso_kg: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null, cidade_entrega: null, uf_entrega: null });
+    setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, peso_kg: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null, cidade_entrega: null, uf_entrega: 'RS' });
     setSelectedClienteCodigo(null);
     setNfInput('');
   };
@@ -282,15 +306,43 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
             </div>
           )}
 
-          {/* Cidade / UF de Entrega */}
+          {/* UF / Cidade de Entrega */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-2">
-              <label className="text-sm font-medium">Cidade de Entrega</label>
-              <Input value={form.cidade_entrega || ''} onChange={e => setForm(p => ({ ...p, cidade_entrega: e.target.value }))} placeholder="Ex: São Paulo" className="mt-1" />
-            </div>
             <div>
               <label className="text-sm font-medium">UF</label>
-              <Input value={form.uf_entrega || ''} onChange={e => setForm(p => ({ ...p, uf_entrega: e.target.value.toUpperCase().slice(0, 2) }))} placeholder="SP" maxLength={2} className="mt-1" />
+              <Select value={form.uf_entrega || 'RS'} onValueChange={uf => setForm(p => ({ ...p, uf_entrega: uf, cidade_entrega: null }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="UF" /></SelectTrigger>
+                <SelectContent>
+                  {estados.map(e => (
+                    <SelectItem key={e.uf} value={e.uf}>{e.uf}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2">
+              <label className="text-sm font-medium">Cidade de Entrega</label>
+              <Popover open={cidadeOpen} onOpenChange={setCidadeOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between mt-1">
+                    {form.cidade_entrega || 'Selecione a cidade...'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 min-w-[300px]" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar cidade..." value={cidadeSearch} onValueChange={setCidadeSearch} />
+                    <CommandEmpty>Nenhuma cidade encontrada.</CommandEmpty>
+                    <CommandGroup className="max-h-60 overflow-auto">
+                      {filteredCidades.map(c => (
+                        <CommandItem key={c} value={c} onSelect={() => { setForm(p => ({ ...p, cidade_entrega: c })); setCidadeOpen(false); setCidadeSearch(''); }}>
+                          <Check className={cn("mr-2 h-4 w-4", form.cidade_entrega === c ? "opacity-100" : "opacity-0")} />
+                          {c}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

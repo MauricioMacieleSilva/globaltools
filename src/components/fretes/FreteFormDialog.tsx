@@ -36,6 +36,10 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
   const [cidades, setCidades] = useState<string[]>([]);
   const [cidadeOpen, setCidadeOpen] = useState(false);
   const [cidadeSearch, setCidadeSearch] = useState('');
+  const [pedidoOpen, setPedidoOpen] = useState(false);
+  const [pedidoSearch, setPedidoSearch] = useState('');
+  const [valorFreteStr, setValorFreteStr] = useState('');
+  const [pesoKgStr, setPesoKgStr] = useState('');
 
   const [form, setForm] = useState<FreteInsert>({
     numero_pedido: '',
@@ -77,6 +81,8 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     if (editingFrete) {
       const clienteMatch = clientes.find(c => c.nome === editingFrete.cliente_nome);
       setSelectedClienteCodigo(clienteMatch?.codigo || null);
+      setValorFreteStr(editingFrete.valor_frete ? String(editingFrete.valor_frete) : '');
+      setPesoKgStr(editingFrete.peso_kg ? String(editingFrete.peso_kg) : '');
       setForm({
         numero_pedido: editingFrete.numero_pedido,
         notas_fiscais: editingFrete.notas_fiscais || [],
@@ -103,11 +109,18 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     return clientes.filter(c => c.nome.toLowerCase().includes(search)).slice(0, 50);
   }, [clientes, clienteSearch]);
 
-  // Get pedidos for selected client
+  // Get pedidos for selected client - sorted from most recent (highest number) to oldest
   const pedidosForClient = useMemo(() => {
     if (!selectedClienteCodigo) return [];
-    return pedidosByCliente.get(selectedClienteCodigo) || [];
+    const pedidos = pedidosByCliente.get(selectedClienteCodigo) || [];
+    return [...pedidos].sort((a, b) => Number(b) - Number(a));
   }, [selectedClienteCodigo, pedidosByCliente]);
+
+  // Filtered pedidos for autocomplete
+  const filteredPedidos = useMemo(() => {
+    if (!pedidoSearch) return pedidosForClient.slice(0, 80);
+    return pedidosForClient.filter(p => p.includes(pedidoSearch)).slice(0, 80);
+  }, [pedidosForClient, pedidoSearch]);
 
   // Get NFs for selected pedido
   const nfsForPedido = useMemo(() => {
@@ -119,6 +132,8 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     setForm({ numero_pedido: '', notas_fiscais: [], data_embarque: '', transportadora_id: null, transportadora_nome: '', valor_frete: 0, peso_kg: 0, data_entrega: null, observacoes: '', cliente_id: null, cliente_nome: null, cidade_entrega: null, uf_entrega: 'RS' });
     setSelectedClienteCodigo(null);
     setNfInput('');
+    setValorFreteStr('');
+    setPesoKgStr('');
   };
 
   // Calculate weight from NFs
@@ -135,13 +150,17 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     setSelectedClienteCodigo(codigo);
     setForm(p => ({ ...p, cliente_id: null, cliente_nome: cliente?.nome || '', numero_pedido: '', notas_fiscais: [] }));
     setClienteOpen(false);
+    setPesoKgStr('');
+    setValorFreteStr('');
   };
 
   const handlePedidoChange = (pedido: string) => {
-    // Auto-fill NFs from the sheets data
     const autoNfs = nfsByPedido.get(pedido) || [];
     const autoPeso = calcPesoFromNfs(autoNfs);
     setForm(p => ({ ...p, numero_pedido: pedido, notas_fiscais: autoNfs, peso_kg: autoPeso }));
+    setPesoKgStr(autoPeso > 0 ? String(autoPeso) : '');
+    setPedidoOpen(false);
+    setPedidoSearch('');
   };
 
   const handleTransportadoraChange = (transportadoraId: string) => {
@@ -153,14 +172,31 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
     const nf = nfInput.trim();
     if (nf && !form.notas_fiscais.includes(nf)) {
       const newNfs = [...form.notas_fiscais, nf];
-      setForm(p => ({ ...p, notas_fiscais: newNfs, peso_kg: calcPesoFromNfs(newNfs) }));
+      const newPeso = calcPesoFromNfs(newNfs);
+      setForm(p => ({ ...p, notas_fiscais: newNfs, peso_kg: newPeso }));
+      setPesoKgStr(newPeso > 0 ? String(newPeso) : '');
       setNfInput('');
     }
   };
 
   const removeNf = (nf: string) => {
     const newNfs = form.notas_fiscais.filter(n => n !== nf);
-    setForm(p => ({ ...p, notas_fiscais: newNfs, peso_kg: calcPesoFromNfs(newNfs) }));
+    const newPeso = calcPesoFromNfs(newNfs);
+    setForm(p => ({ ...p, notas_fiscais: newNfs, peso_kg: newPeso }));
+    setPesoKgStr(newPeso > 0 ? String(newPeso) : '');
+  };
+
+  const handleValorFreteChange = (value: string) => {
+    // Remove leading zeros but allow empty string
+    const cleaned = value.replace(/^0+(?=\d)/, '');
+    setValorFreteStr(cleaned);
+    setForm(p => ({ ...p, valor_frete: parseFloat(cleaned) || 0 }));
+  };
+
+  const handlePesoKgChange = (value: string) => {
+    const cleaned = value.replace(/^0+(?=\d)/, '');
+    setPesoKgStr(cleaned);
+    setForm(p => ({ ...p, peso_kg: parseFloat(cleaned) || 0 }));
   };
 
   const handleSave = async () => {
@@ -223,23 +259,32 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
             </Popover>
           </div>
 
-          {/* Pedido */}
+          {/* Pedido - Autocomplete */}
           <div>
             <label className="text-sm font-medium">Nº Pedido *</label>
             {selectedClienteCodigo ? (
-              <Select value={form.numero_pedido} onValueChange={handlePedidoChange}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Selecione o pedido" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pedidosForClient.map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                  {pedidosForClient.length === 0 && (
-                    <div className="p-2 text-sm text-muted-foreground text-center">Nenhum pedido encontrado</div>
-                  )}
-                </SelectContent>
-              </Select>
+              <Popover open={pedidoOpen} onOpenChange={setPedidoOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between mt-1">
+                    {form.numero_pedido || 'Selecione ou digite o pedido...'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 min-w-[350px]" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar pedido..." value={pedidoSearch} onValueChange={setPedidoSearch} />
+                    <CommandEmpty>Nenhum pedido encontrado.</CommandEmpty>
+                    <CommandGroup className="max-h-60 overflow-auto">
+                      {filteredPedidos.map(p => (
+                        <CommandItem key={p} value={p} onSelect={() => handlePedidoChange(p)}>
+                          <Check className={cn("mr-2 h-4 w-4", form.numero_pedido === p ? "opacity-100" : "opacity-0")} />
+                          {p}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             ) : (
               <Input disabled placeholder="Selecione um cliente primeiro" className="mt-1" />
             )}
@@ -286,13 +331,29 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
           {/* Valor */}
           <div>
             <label className="text-sm font-medium">Valor do Frete (R$)</label>
-            <Input type="number" min={0} step={0.01} value={form.valor_frete} onChange={e => setForm(p => ({ ...p, valor_frete: parseFloat(e.target.value) || 0 }))} className="mt-1" />
+            <Input
+              type="number"
+              min={0}
+              step={0.01}
+              value={valorFreteStr}
+              onChange={e => handleValorFreteChange(e.target.value)}
+              placeholder="Digite o valor"
+              className="mt-1"
+            />
           </div>
 
           {/* Peso */}
           <div>
             <label className="text-sm font-medium">Peso (kg)</label>
-            <Input type="number" min={0} step={0.01} value={form.peso_kg || 0} onChange={e => setForm(p => ({ ...p, peso_kg: parseFloat(e.target.value) || 0 }))} className="mt-1" />
+            <Input
+              type="number"
+              min={0}
+              step={0.01}
+              value={pesoKgStr}
+              onChange={e => handlePesoKgChange(e.target.value)}
+              placeholder="Digite o peso"
+              className="mt-1"
+            />
             <p className="text-xs text-muted-foreground mt-1">Peso puxado automaticamente das NFs. Ajuste manualmente se necessário.</p>
           </div>
 

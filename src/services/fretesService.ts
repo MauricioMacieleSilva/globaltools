@@ -51,6 +51,33 @@ export interface Transportadora {
   ativo: boolean;
 }
 
+async function getUserName(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 'Desconhecido';
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single();
+  return profile?.full_name || user.email || 'Desconhecido';
+}
+
+async function addHistoryEntry(freteId: string, acao: string, statusAnterior?: string | null, statusNovo?: string | null, observacao?: string | null) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const userName = await getUserName();
+  await (supabase as any)
+    .from('frete_historico')
+    .insert({
+      frete_id: freteId,
+      acao,
+      status_anterior: statusAnterior || null,
+      status_novo: statusNovo || null,
+      usuario_id: user?.id || null,
+      usuario_nome: userName,
+      observacao: observacao || null,
+    });
+}
+
 export async function loadFretes(): Promise<Frete[]> {
   const { data, error } = await (supabase as any)
     .from('fretes')
@@ -72,10 +99,17 @@ export async function insertFrete(frete: FreteInsert): Promise<Frete> {
     .single();
 
   if (error) throw new Error(error.message);
+
+  // Log history
+  await addHistoryEntry(data.id, 'criacao', null, 'rascunho', `Frete criado para pedido ${frete.numero_pedido}`);
+
   return data;
 }
 
 export async function updateFrete(id: string, frete: Partial<FreteInsert>): Promise<Frete> {
+  // Get current state for history
+  const { data: current } = await (supabase as any).from('fretes').select('status').eq('id', id).single();
+
   const { data, error } = await (supabase as any)
     .from('fretes')
     .update(frete)
@@ -84,6 +118,9 @@ export async function updateFrete(id: string, frete: Partial<FreteInsert>): Prom
     .single();
 
   if (error) throw new Error(error.message);
+
+  await addHistoryEntry(id, 'edicao', current?.status, current?.status, 'Dados do frete editados');
+
   return data;
 }
 
@@ -99,6 +136,9 @@ export async function approveFrete(id: string, motivo?: string): Promise<Frete> 
     .single();
 
   if (error) throw new Error(error.message);
+
+  await addHistoryEntry(id, 'aprovacao', 'pendente', 'aprovado', motivo || null);
+
   return data;
 }
 
@@ -114,6 +154,9 @@ export async function rejectFrete(id: string, motivo?: string): Promise<Frete> {
     .single();
 
   if (error) throw new Error(error.message);
+
+  await addHistoryEntry(id, 'rejeicao', 'pendente', 'rejeitado', motivo || null);
+
   return data;
 }
 
@@ -165,7 +208,6 @@ export async function sendFreteForApproval(id: string): Promise<Frete> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não autenticado');
 
-  // Update status to pendente
   const { data, error } = await (supabase as any)
     .from('fretes')
     .update({ status: 'pendente' })
@@ -174,6 +216,8 @@ export async function sendFreteForApproval(id: string): Promise<Frete> {
     .single();
 
   if (error) throw new Error(error.message);
+
+  await addHistoryEntry(id, 'envio_aprovacao', 'rascunho', 'pendente', 'Frete enviado para aprovação');
 
   // Send approval email via edge function
   try {

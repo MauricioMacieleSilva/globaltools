@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Truck, Search, CheckCircle, XCircle, Settings2, Filter, Send } from 'lucide-react';
+import { Plus, Pencil, Trash2, Truck, Search, CheckCircle, XCircle, Settings2, Filter, Send, History } from 'lucide-react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/context/AuthContext';
 import { useComercial } from '@/context/ComercialContext';
 import { loadFretes, deleteFrete, loadTransportadoras, approveFrete, rejectFrete, sendFreteForApproval, type Frete, type Transportadora } from '@/services/fretesService';
 import { FreteFormDialog } from '@/components/fretes/FreteFormDialog';
+import { FreteApprovalDialog } from '@/components/fretes/FreteApprovalDialog';
+import { FreteHistoryDialog } from '@/components/fretes/FreteHistoryDialog';
 import { TransportadoraDialog } from '@/components/fretes/TransportadoraDialog';
 import { format, parseISO, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,6 +42,10 @@ export default function Fretes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalAction, setApprovalAction] = useState<'aprovar' | 'rejeitar'>('aprovar');
+  const [approvalFrete, setApprovalFrete] = useState<Frete | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   const canApprove = isAdmin || userProfile?.role === 'comercial';
   const userCanEdit = checkPageAccess('producao').canEdit;
@@ -137,20 +143,22 @@ export default function Fretes() {
     }
   };
 
-  const handleApprove = async (id: string) => {
-    try {
-      await approveFrete(id);
-      toast({ title: 'Frete aprovado!' });
-      fetchData();
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-    }
+  const openApprovalDialog = (f: Frete, action: 'aprovar' | 'rejeitar') => {
+    setApprovalFrete(f);
+    setApprovalAction(action);
+    setApprovalDialogOpen(true);
   };
 
-  const handleReject = async (id: string) => {
+  const handleApprovalConfirm = async (motivo: string) => {
+    if (!approvalFrete) return;
     try {
-      await rejectFrete(id);
-      toast({ title: 'Frete rejeitado!' });
+      if (approvalAction === 'aprovar') {
+        await approveFrete(approvalFrete.id, motivo);
+        toast({ title: 'Frete aprovado!' });
+      } else {
+        await rejectFrete(approvalFrete.id, motivo);
+        toast({ title: 'Frete rejeitado!' });
+      }
       fetchData();
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
@@ -219,6 +227,12 @@ export default function Fretes() {
               Controle de Fretes
             </h1>
             <div className="flex gap-2 flex-wrap">
+              {canApprove && (
+                <Button onClick={() => setHistoryDialogOpen(true)} variant="outline" className="gap-1">
+                  <History className="h-4 w-4" />
+                  Histórico
+                </Button>
+              )}
               {userCanEdit && (
                 <Button onClick={() => setTransportadoraDialogOpen(true)} variant="outline" className="gap-1">
                   <Settings2 className="h-4 w-4" />
@@ -307,8 +321,8 @@ export default function Fretes() {
                       )}
                       {canApprove && f.status === 'pendente' && (
                         <>
-                          <Button variant="outline" size="sm" onClick={() => handleApprove(f.id)} className="gap-1 text-green-600"><CheckCircle className="h-4 w-4" />Aprovar</Button>
-                          <Button variant="outline" size="sm" onClick={() => handleReject(f.id)} className="gap-1 text-destructive"><XCircle className="h-4 w-4" />Rejeitar</Button>
+                          <Button variant="outline" size="sm" onClick={() => openApprovalDialog(f, 'aprovar')} className="gap-1 text-green-600"><CheckCircle className="h-4 w-4" />Aprovar</Button>
+                          <Button variant="outline" size="sm" onClick={() => openApprovalDialog(f, 'rejeitar')} className="gap-1 text-destructive"><XCircle className="h-4 w-4" />Rejeitar</Button>
                         </>
                       )}
                       {userCanEdit && <Button variant="outline" size="sm" onClick={() => openEdit(f)}><Pencil className="h-4 w-4" /></Button>}
@@ -368,10 +382,10 @@ export default function Fretes() {
                           )}
                           {canApprove && f.status === 'pendente' && (
                             <>
-                              <Button variant="ghost" size="icon" onClick={() => handleApprove(f.id)} title="Aprovar">
+                              <Button variant="ghost" size="icon" onClick={() => openApprovalDialog(f, 'aprovar')} title="Aprovar">
                                 <CheckCircle className="h-4 w-4 text-green-600" />
                               </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleReject(f.id)} title="Rejeitar">
+                              <Button variant="ghost" size="icon" onClick={() => openApprovalDialog(f, 'rejeitar')} title="Rejeitar">
                                 <XCircle className="h-4 w-4 text-destructive" />
                               </Button>
                             </>
@@ -413,6 +427,20 @@ export default function Fretes() {
           onOpenChange={setTransportadoraDialogOpen}
           transportadoras={transportadoras}
           onSaved={fetchData}
+        />
+        {approvalFrete && (
+          <FreteApprovalDialog
+            open={approvalDialogOpen}
+            onOpenChange={setApprovalDialogOpen}
+            action={approvalAction}
+            numeroPedido={approvalFrete.numero_pedido}
+            onConfirm={handleApprovalConfirm}
+          />
+        )}
+
+        <FreteHistoryDialog
+          open={historyDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
         />
       </div>
     </ErrorBoundary>

@@ -18,6 +18,7 @@ export interface Frete {
   uf_entrega: string | null;
   approved_by: string | null;
   approved_at: string | null;
+  motivo_aprovacao: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -86,13 +87,13 @@ export async function updateFrete(id: string, frete: Partial<FreteInsert>): Prom
   return data;
 }
 
-export async function approveFrete(id: string): Promise<Frete> {
+export async function approveFrete(id: string, motivo?: string): Promise<Frete> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não autenticado');
 
   const { data, error } = await (supabase as any)
     .from('fretes')
-    .update({ status: 'aprovado', approved_by: user.id, approved_at: new Date().toISOString() })
+    .update({ status: 'aprovado', approved_by: user.id, approved_at: new Date().toISOString(), motivo_aprovacao: motivo || null })
     .eq('id', id)
     .select()
     .single();
@@ -101,13 +102,13 @@ export async function approveFrete(id: string): Promise<Frete> {
   return data;
 }
 
-export async function rejectFrete(id: string): Promise<Frete> {
+export async function rejectFrete(id: string, motivo?: string): Promise<Frete> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não autenticado');
 
   const { data, error } = await (supabase as any)
     .from('fretes')
-    .update({ status: 'rejeitado', approved_by: user.id, approved_at: new Date().toISOString() })
+    .update({ status: 'rejeitado', approved_by: user.id, approved_at: new Date().toISOString(), motivo_aprovacao: motivo || null })
     .eq('id', id)
     .select()
     .single();

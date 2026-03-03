@@ -706,6 +706,7 @@ export type Database = {
           data_embarque: string
           data_entrega: string | null
           id: string
+          motivo_aprovacao: string | null
           notas_fiscais: string[]
           numero_pedido: string
           observacoes: string | null
@@ -728,6 +729,7 @@ export type Database = {
           data_embarque: string
           data_entrega?: string | null
           id?: string
+          motivo_aprovacao?: string | null
           notas_fiscais?: string[]
           numero_pedido: string
           observacoes?: string | null
@@ -750,6 +752,7 @@ export type Database = {
           data_embarque?: string
           data_entrega?: string | null
           id?: string
+          motivo_aprovacao?: string | null
           notas_fiscais?: string[]
           numero_pedido?: string
           observacoes?: string | null

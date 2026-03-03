@@ -60,7 +60,13 @@ export const SYSTEM_PAGES = {
     supportsEdit: true,
     route: '/corte-blank'
   },
-  assistente: { 
+  fretes: { 
+    label: 'Fretes', 
+    category: 'Principais',
+    supportsEdit: true,
+    route: '/fretes'
+  },
+  assistente: {
     label: 'Assistente Global', 
     category: 'Principais',
     supportsEdit: false,

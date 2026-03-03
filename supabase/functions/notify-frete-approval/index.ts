@@ -5,6 +5,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function formatDateBR(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    // Try parsing ISO date
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  } catch {
+    return dateStr;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -71,7 +87,8 @@ Deno.serve(async (req) => {
     const valorFrete = Number(frete.valor_frete).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const pesoKg = Number(frete.peso_kg || 0);
     const reaisPorTon = pesoKg > 0 ? ((Number(frete.valor_frete) / pesoKg) * 1000).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/ton' : '-';
-    const dataEmbarque = frete.data_embarque || '-';
+    const dataEmbarque = formatDateBR(frete.data_embarque);
+    const dataEntrega = formatDateBR(frete.data_entrega);
     const cidadeUf = frete.cidade_entrega ? `${frete.cidade_entrega}${frete.uf_entrega ? '/' + frete.uf_entrega : ''}` : '-';
     const nfs = (frete.notas_fiscais || []).join(', ') || '-';
 
@@ -105,6 +122,10 @@ Deno.serve(async (req) => {
             <td style="padding: 10px; border: 1px solid #ddd;">${dataEmbarque}</td>
           </tr>
           <tr>
+            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Data Entrega</td>
+            <td style="padding: 10px; border: 1px solid #ddd;">${dataEntrega}</td>
+          </tr>
+          <tr style="background: #f5f5f5;">
             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Cidade/UF Entrega</td>
             <td style="padding: 10px; border: 1px solid #ddd;">${cidadeUf}</td>
           </tr>

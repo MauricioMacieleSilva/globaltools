@@ -48,7 +48,8 @@ export default function Fretes() {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   const canApprove = isAdmin || userProfile?.role === 'comercial';
-  const userCanEdit = checkPageAccess('producao').canEdit;
+  const fretesAccess = checkPageAccess('fretes');
+  const userCanEdit = fretesAccess.canEdit;
 
   // Extract unique clients from Google Sheets data
   const clientesFromSheets = useMemo(() => {

@@ -243,12 +243,12 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0 min-w-[350px]" align="start">
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput placeholder="Buscar cliente..." value={clienteSearch} onValueChange={setClienteSearch} />
                   <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                   <CommandGroup className="max-h-60 overflow-auto">
                     {filteredClientes.map(c => (
-                      <CommandItem key={c.codigo} value={c.nome} onSelect={() => handleClienteSelect(c.codigo)}>
+                      <CommandItem key={c.codigo} value={c.codigo} onSelect={() => handleClienteSelect(c.codigo)}>
                         <Check className={cn("mr-2 h-4 w-4", selectedClienteCodigo === c.codigo ? "opacity-100" : "opacity-0")} />
                         {c.nome}
                       </CommandItem>
@@ -271,7 +271,7 @@ export function FreteFormDialog({ open, onOpenChange, editingFrete, clientes, pe
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0 min-w-[350px]" align="start">
-                  <Command>
+                  <Command shouldFilter={false}>
                     <CommandInput placeholder="Buscar pedido..." value={pedidoSearch} onValueChange={setPedidoSearch} />
                     <CommandEmpty>Nenhum pedido encontrado.</CommandEmpty>
                     <CommandGroup className="max-h-60 overflow-auto">

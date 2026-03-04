@@ -107,8 +107,8 @@ export async function insertFrete(frete: FreteInsert): Promise<Frete> {
 }
 
 export async function updateFrete(id: string, frete: Partial<FreteInsert>): Promise<Frete> {
-  // Get current state for history
-  const { data: current } = await (supabase as any).from('fretes').select('status').eq('id', id).single();
+  // Get current state for history - fetch all fields we track
+  const { data: current } = await (supabase as any).from('fretes').select('*').eq('id', id).single();
 
   const { data, error } = await (supabase as any)
     .from('fretes')
@@ -119,7 +119,38 @@ export async function updateFrete(id: string, frete: Partial<FreteInsert>): Prom
 
   if (error) throw new Error(error.message);
 
-  await addHistoryEntry(id, 'edicao', current?.status, current?.status, 'Dados do frete editados');
+  // Build detailed change description
+  const changes: string[] = [];
+  const fieldLabels: Record<string, string> = {
+    numero_pedido: 'Nº Pedido',
+    cliente_nome: 'Cliente',
+    transportadora_nome: 'Transportadora',
+    valor_frete: 'Valor do Frete',
+    peso_kg: 'Peso (kg)',
+    data_embarque: 'Data de Embarque',
+    data_entrega: 'Data de Entrega',
+    cidade_entrega: 'Cidade de Entrega',
+    uf_entrega: 'UF',
+    observacoes: 'Observações',
+    notas_fiscais: 'Notas Fiscais',
+  };
+
+  if (current) {
+    for (const [key, label] of Object.entries(fieldLabels)) {
+      const oldVal = current[key];
+      const newVal = (frete as any)[key];
+      if (newVal !== undefined) {
+        const oldStr = Array.isArray(oldVal) ? oldVal.join(', ') : String(oldVal ?? '-');
+        const newStr = Array.isArray(newVal) ? newVal.join(', ') : String(newVal ?? '-');
+        if (oldStr !== newStr) {
+          changes.push(`${label}: "${oldStr}" → "${newStr}"`);
+        }
+      }
+    }
+  }
+
+  const observacao = changes.length > 0 ? changes.join('; ') : 'Dados do frete editados (sem alterações detectadas)';
+  await addHistoryEntry(id, 'edicao', current?.status, current?.status, observacao);
 
   return data;
 }

@@ -5,6 +5,8 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/assets`;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -56,30 +58,32 @@ const CATEGORIA_LABELS: Record<string, string> = {
   'TIRAS': 'Tiras',
 };
 
-const CATEGORIA_ICONS: Record<string, string> = {
-  'ARAMES': '🔗',
-  'BOBINAS': '🔄',
-  'PERFIS': '📐',
-  'CHAPAS': '🔲',
-  'TELHAS': '🏠',
-  'TUBOS': '⭕',
-  'LAMINADOS': '📏',
-  'VERGALHAO': '🔩',
-  'BLANK': '⬜',
-  'TIRAS': '📎',
+// Category image URLs from storage
+const CATEGORIA_IMAGES: Record<string, string> = {
+  'ARAMES': `${STORAGE_BASE}/categorias/slitter.png`,
+  'BOBINAS': `${STORAGE_BASE}/categorias/bobina.png`,
+  'PERFIS': `${STORAGE_BASE}/categorias/perfis.png`,
+  'CHAPAS': `${STORAGE_BASE}/categorias/chapa.png`,
+  'TELHAS': `${STORAGE_BASE}/categorias/chapa.png`,
+  'TUBOS': `${STORAGE_BASE}/categorias/tubos.png`,
+  'LAMINADOS': `${STORAGE_BASE}/categorias/chapa.png`,
+  'VERGALHAO': `${STORAGE_BASE}/categorias/slitter.png`,
+  'BLANK': `${STORAGE_BASE}/categorias/chapa.png`,
+  'TIRAS': `${STORAGE_BASE}/categorias/tiras.webp`,
 };
 
+// Global Aço brand colors - NO RED
 const CATEGORIA_COLORS: Record<string, { bg: string; border: string; headerBg: string; headerColor: string }> = {
-  'ARAMES': { bg: '#faf5ff', border: '#7c3aed', headerBg: '#7c3aed', headerColor: '#ffffff' },
-  'BOBINAS': { bg: '#eff6ff', border: '#2563eb', headerBg: '#2563eb', headerColor: '#ffffff' },
-  'PERFIS': { bg: '#f0fdf4', border: '#16a34a', headerBg: '#16a34a', headerColor: '#ffffff' },
-  'CHAPAS': { bg: '#fff7ed', border: '#ea580c', headerBg: '#ea580c', headerColor: '#ffffff' },
-  'TELHAS': { bg: '#fef2f2', border: '#dc2626', headerBg: '#dc2626', headerColor: '#ffffff' },
-  'TUBOS': { bg: '#f0f9ff', border: '#0284c7', headerBg: '#0284c7', headerColor: '#ffffff' },
-  'LAMINADOS': { bg: '#fefce8', border: '#ca8a04', headerBg: '#ca8a04', headerColor: '#ffffff' },
-  'VERGALHAO': { bg: '#f5f5f4', border: '#57534e', headerBg: '#57534e', headerColor: '#ffffff' },
-  'BLANK': { bg: '#f8fafc', border: '#475569', headerBg: '#475569', headerColor: '#ffffff' },
-  'TIRAS': { bg: '#ecfdf5', border: '#059669', headerBg: '#059669', headerColor: '#ffffff' },
+  'ARAMES':    { bg: '#f0f4f8', border: '#475569', headerBg: '#475569', headerColor: '#ffffff' },
+  'BOBINAS':   { bg: '#eff6ff', border: '#2563eb', headerBg: '#1e40af', headerColor: '#ffffff' },
+  'PERFIS':    { bg: '#f0fdf4', border: '#16a34a', headerBg: '#15803d', headerColor: '#ffffff' },
+  'CHAPAS':    { bg: '#fff7ed', border: '#ea580c', headerBg: '#c2410c', headerColor: '#ffffff' },
+  'TELHAS':    { bg: '#f0f9ff', border: '#0284c7', headerBg: '#0369a1', headerColor: '#ffffff' },
+  'TUBOS':     { bg: '#f5f3ff', border: '#7c3aed', headerBg: '#6d28d9', headerColor: '#ffffff' },
+  'LAMINADOS': { bg: '#fefce8', border: '#ca8a04', headerBg: '#a16207', headerColor: '#ffffff' },
+  'VERGALHAO': { bg: '#f5f5f4', border: '#57534e', headerBg: '#44403c', headerColor: '#ffffff' },
+  'BLANK':     { bg: '#f8fafc', border: '#64748b', headerBg: '#475569', headerColor: '#ffffff' },
+  'TIRAS':     { bg: '#ecfdf5', border: '#059669', headerBg: '#047857', headerColor: '#ffffff' },
 };
 
 const TIPO_PERFIL_LABELS: Record<string, string> = {
@@ -94,7 +98,6 @@ const TIPO_PERFIL_LABELS: Record<string, string> = {
   'CARTOLA_SEMI_ENRIJECIDO': 'Cartola Semi Enrijecido',
 };
 
-// Order of categories in the report
 const CATEGORIAS_ORDER = ['BOBINAS', 'PERFIS', 'CHAPAS', 'TIRAS', 'BLANK', 'ARAMES', 'TUBOS', 'LAMINADOS', 'VERGALHAO', 'TELHAS'];
 
 function calcularPesoPeca(item: EstoqueItem): number | null {
@@ -173,27 +176,6 @@ function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
-function formatDimensoes(item: EstoqueItem): string {
-  const parts: string[] = [];
-  if (item.espessura) parts.push(`${item.espessura}mm`);
-  
-  if (item.categoria === 'PERFIS' && item.tipo_perfil) {
-    if (item.base) parts.push(`B:${item.base}`);
-    if (item.aba1) parts.push(`A1:${item.aba1}`);
-    if (item.aba2) parts.push(`A2:${item.aba2}`);
-    if (item.comprimento) parts.push(`C:${item.comprimento}`);
-  } else if (item.categoria === 'TUBOS') {
-    if (item.largura) parts.push(`Ø${item.largura}`);
-    if (item.aba1 && item.tipo_perfil === 'RT') parts.push(`H:${item.aba1}`);
-    if (item.comprimento) parts.push(`C:${item.comprimento}`);
-  } else {
-    if (item.largura) parts.push(`L:${item.largura}`);
-    if (item.comprimento) parts.push(`C:${item.comprimento}`);
-  }
-  
-  return parts.join(' × ') || '-';
-}
-
 function getPrecoByEspessura(espessura: number | null, precosMap: Record<number, number>): number {
   if (!espessura || Object.keys(precosMap).length === 0) return 0;
   if (precosMap[espessura]) return precosMap[espessura];
@@ -209,9 +191,10 @@ function getPrecoByEspessura(espessura: number | null, precosMap: Record<number,
 }
 
 function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, number>): string {
-  const colors = CATEGORIA_COLORS[cat.itens[0]?.categoria] || CATEGORIA_COLORS['BLANK'];
-  const icon = CATEGORIA_ICONS[cat.itens[0]?.categoria] || '📦';
   const categoria = cat.itens[0]?.categoria || '';
+  const colors = CATEGORIA_COLORS[categoria] || CATEGORIA_COLORS['BLANK'];
+  const imageUrl = CATEGORIA_IMAGES[categoria] || '';
+  const isPrecoCategoria = CATEGORIAS_PRECO_ESPESSURA.includes(categoria);
 
   const itemRows = cat.itens.map((item, idx) => {
     const peso = calcularPesoTotal(item);
@@ -219,14 +202,12 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
     const precoKg = isPreco ? getPrecoByEspessura(item.espessura, precosMap) : 0;
     const valor = peso * precoKg;
     const bgColor = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
-
     const tipoPerfil = item.tipo_perfil ? (TIPO_PERFIL_LABELS[item.tipo_perfil] || item.tipo_perfil) : '';
 
     return `
       <tr style="background:${bgColor};">
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#2d3748;font-weight:500;">${item.descricao}</td>
         ${categoria === 'PERFIS' ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${tipoPerfil}</td>` : ''}
-        <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${formatDimensoes(item)}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#2d3748;font-weight:600;text-align:center;">${item.quantidade}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;text-align:right;">${formatWeight(peso)}</td>
         ${isPreco ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#059669;font-weight:600;text-align:right;">${valor > 0 ? formatCurrency(valor) : '-'}</td>` : ''}
@@ -235,17 +216,19 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
     `;
   }).join('');
 
-  const isPrecoCategoria = CATEGORIAS_PRECO_ESPESSURA.includes(categoria);
-
   return `
     <!-- ${cat.label} -->
     <div style="margin-bottom:28px;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid ${colors.border}20;">
-      <div style="background:${colors.headerBg};padding:14px 20px;display:flex;align-items:center;">
-        <span style="font-size:20px;margin-right:10px;">${icon}</span>
-        <div>
-          <h3 style="margin:0;font-size:17px;font-weight:700;color:${colors.headerColor};">${cat.label}</h3>
-          <p style="margin:2px 0 0 0;font-size:12px;color:${colors.headerColor};opacity:0.9;">${cat.totalItens} ${cat.totalItens === 1 ? 'item' : 'itens'} • ${cat.totalPecas} ${cat.totalPecas === 1 ? 'peça' : 'peças'} • ${formatWeight(cat.totalPeso)}</p>
-        </div>
+      <div style="background:${colors.headerBg};padding:14px 20px;">
+        <table cellpadding="0" cellspacing="0" width="100%"><tr>
+          <td width="48" style="vertical-align:middle;">
+            <img src="${imageUrl}" alt="${cat.label}" width="42" height="42" style="border-radius:6px;object-fit:cover;display:block;" />
+          </td>
+          <td style="padding-left:12px;vertical-align:middle;">
+            <h3 style="margin:0;font-size:17px;font-weight:700;color:${colors.headerColor};">${cat.label}</h3>
+            <p style="margin:2px 0 0 0;font-size:12px;color:${colors.headerColor};opacity:0.9;">${cat.totalItens} ${cat.totalItens === 1 ? 'item' : 'itens'} • ${cat.totalPecas} ${cat.totalPecas === 1 ? 'peça' : 'peças'} • ${formatWeight(cat.totalPeso)}</p>
+          </td>
+        </tr></table>
       </div>
       
       <!-- Summary KPIs -->
@@ -279,7 +262,6 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
             <tr style="background:#f7fafc;">
               <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Descrição</th>
               ${categoria === 'PERFIS' ? `<th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Tipo</th>` : ''}
-              <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Dimensões</th>
               <th style="padding:10px 12px;text-align:center;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Qtd</th>
               <th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Peso</th>
               ${isPrecoCategoria ? `<th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Valor</th>` : ''}
@@ -293,39 +275,25 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
   `;
 }
 
-function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { totalItens: number; totalPecas: number; totalPeso: number; totalValor: number }): string {
+function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { totalItens: number; totalPeso: number; totalValor: number }): string {
   const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const categoriaSections = categorias.map(cat => generateCategorySection(cat, cat._precosMap || {})).join('');
+  const categoriaSections = categorias.map(cat => generateCategorySection(cat, (cat as any)._precosMap || {})).join('');
 
-  // Category summary cards
-  const summaryCards = categorias.map(cat => {
-    const colors = CATEGORIA_COLORS[cat.itens[0]?.categoria] || CATEGORIA_COLORS['BLANK'];
-    const icon = CATEGORIA_ICONS[cat.itens[0]?.categoria] || '📦';
-    return `
-      <td style="padding:4px;">
-        <div style="background:${colors.bg};border-radius:6px;padding:10px 12px;border-left:3px solid ${colors.border};text-align:center;">
-          <div style="font-size:14px;">${icon}</div>
-          <div style="font-size:11px;font-weight:600;color:#2d3748;margin-top:2px;">${cat.label}</div>
-          <div style="font-size:16px;font-weight:700;color:${colors.border};margin-top:2px;">${cat.totalItens}</div>
-          <div style="font-size:10px;color:#718096;">${formatWeight(cat.totalPeso)}</div>
-        </div>
-      </td>
-    `;
-  }).join('');
-
-  // Split into rows of 5
+  // Category summary cards - rows of 5
   const summaryRows: string[] = [];
   for (let i = 0; i < categorias.length; i += 5) {
-    const rowCells = categorias.slice(i, i + 5).map(cat => {
-      const colors = CATEGORIA_COLORS[cat.itens[0]?.categoria] || CATEGORIA_COLORS['BLANK'];
-      const icon = CATEGORIA_ICONS[cat.itens[0]?.categoria] || '📦';
+    const slice = categorias.slice(i, i + 5);
+    const rowCells = slice.map(cat => {
+      const catKey = cat.itens[0]?.categoria || '';
+      const colors = CATEGORIA_COLORS[catKey] || CATEGORIA_COLORS['BLANK'];
+      const imageUrl = CATEGORIA_IMAGES[catKey] || '';
       return `
         <td width="${100 / Math.min(5, categorias.length)}%" style="padding:4px;">
-          <div style="background:${colors.bg};border-radius:6px;padding:10px 12px;border-left:3px solid ${colors.border};text-align:center;">
-            <div style="font-size:14px;">${icon}</div>
-            <div style="font-size:11px;font-weight:600;color:#2d3748;margin-top:2px;">${cat.label}</div>
+          <div style="background:${colors.bg};border-radius:8px;padding:10px 8px;border-left:3px solid ${colors.border};text-align:center;">
+            <img src="${imageUrl}" alt="${cat.label}" width="32" height="32" style="border-radius:4px;object-fit:cover;display:inline-block;" />
+            <div style="font-size:11px;font-weight:600;color:#2d3748;margin-top:4px;">${cat.label}</div>
             <div style="font-size:16px;font-weight:700;color:${colors.border};margin-top:2px;">${cat.totalItens}</div>
             <div style="font-size:10px;color:#718096;">${formatWeight(cat.totalPeso)}</div>
           </div>
@@ -345,39 +313,33 @@ function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { 
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #2d3748;">
       <div style="max-width: 800px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; padding: 30px; text-align: center;">
-          <img src="https://xhkdwfpnmjvmfbmokvct.supabase.co/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
+        <!-- Header - Global Aço brand blue -->
+        <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; padding: 30px; text-align: center;">
+          <img src="${SUPABASE_URL}/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
           <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: 700;">📦 Relatório de Estoque</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${today}</p>
         </div>
 
         <div style="padding: 30px;">
           
-          <!-- Global KPIs -->
+          <!-- Global KPIs: 3 cards (no Total de Peças) -->
           <h2 style="font-size: 18px; font-weight: 600; color: #2d3748; margin: 0 0 15px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">📊 Resumo Geral</h2>
           
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
             <tr>
-              <td width="25%" style="padding: 6px;">
-                <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; border-left: 4px solid #3b82f6; text-align: center;">
+              <td width="33%" style="padding: 6px;">
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; border-left: 4px solid #2563eb; text-align: center;">
                   <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">📦 Total de Itens</div>
                   <div style="font-size: 28px; font-weight: 700; color: #2d3748;">${globalStats.totalItens}</div>
                 </div>
               </td>
-              <td width="25%" style="padding: 6px;">
-                <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; border-left: 4px solid #8b5cf6; text-align: center;">
-                  <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">🔢 Total de Peças</div>
-                  <div style="font-size: 28px; font-weight: 700; color: #2d3748;">${globalStats.totalPecas.toLocaleString('pt-BR')}</div>
-                </div>
-              </td>
-              <td width="25%" style="padding: 6px;">
+              <td width="33%" style="padding: 6px;">
                 <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; border-left: 4px solid #f59e0b; text-align: center;">
                   <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">⚖️ Peso Total</div>
                   <div style="font-size: 28px; font-weight: 700; color: #2d3748;">${formatWeight(globalStats.totalPeso)}</div>
                 </div>
               </td>
-              <td width="25%" style="padding: 6px;">
+              <td width="33%" style="padding: 6px;">
                 <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; border-left: 4px solid #10b981; text-align: center;">
                   <div style="font-size: 11px; text-transform: uppercase; color: #718096; font-weight: 600; margin-bottom: 4px;">💰 Valor Estimado</div>
                   <div style="font-size: 22px; font-weight: 700; color: #059669;">${formatCurrency(globalStats.totalValor)}</div>
@@ -396,7 +358,7 @@ function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { 
           ${categoriaSections}
 
           <!-- Analysis -->
-          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin-top: 24px; border-left: 4px solid #3b82f6;">
+          <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin-top: 24px; border-left: 4px solid #2563eb;">
             <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #2d3748;">💡 Resumo Rápido</h3>
             <p style="margin: 6px 0; color: #4a5568; font-size: 14px; line-height: 1.6;">
               • Estoque com <strong>${globalStats.totalItens}</strong> itens em <strong>${categorias.length}</strong> categorias
@@ -410,7 +372,7 @@ function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { 
             </p>
             ` : ''}
             ${categorias.map(c => `<p style="margin: 4px 0; color: #4a5568; font-size: 13px; line-height: 1.5;">
-              ${CATEGORIA_ICONS[c.itens[0]?.categoria] || '📦'} <strong>${c.label}</strong>: ${c.totalItens} itens, ${c.totalPecas} peças, ${formatWeight(c.totalPeso)}
+              ▸ <strong>${c.label}</strong>: ${c.totalItens} itens, ${c.totalPecas} peças, ${formatWeight(c.totalPeso)}
             </p>`).join('')}
           </div>
         </div>
@@ -482,7 +444,6 @@ const handler = async (req: Request): Promise<Response> => {
     // Build category stats, only non-empty, in order
     const categorias: (CategoriaStats & { _precosMap?: Record<number, number> })[] = [];
     let globalTotalItens = 0;
-    let globalTotalPecas = 0;
     let globalTotalPeso = 0;
     let globalTotalValor = 0;
 
@@ -517,7 +478,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       categorias.push(cat);
       globalTotalItens += items.length;
-      globalTotalPecas += totalPecas;
       globalTotalPeso += totalPeso;
       globalTotalValor += totalValor;
     }
@@ -530,7 +490,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     const htmlContent = generateEstoqueReportHTML(categorias, {
       totalItens: globalTotalItens,
-      totalPecas: globalTotalPecas,
       totalPeso: globalTotalPeso,
       totalValor: globalTotalValor,
     });
@@ -544,8 +503,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const uniqueEmails = [...new Set(configs.map(c => c.email))];
-    const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const subject = `📦 Relatório de Estoque - ${today}`;
+    const todayFmt = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const subject = `📦 Relatório de Estoque - ${todayFmt}`;
     const todayDate = new Date().toISOString().split('T')[0];
 
     const results = [];

@@ -11,6 +11,7 @@ import { useEstoque } from '@/context/EstoqueContext';
 import { CATEGORIAS_ESTOQUE, CategoriaEstoque } from '@/services/estoqueService';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { Loader2, History, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { EstoqueReportButton } from './EstoqueReportButton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Select,
@@ -175,6 +176,7 @@ export function EstoqueTab() {
             <History className="h-4 w-4" />
             <span>Histórico</span>
           </Button>
+          <EstoqueReportButton />
         </div>
       )}
 

@@ -1,113 +1,108 @@
 
 
-# Aprofundamento do Tema Moderno em Todas as Telas
+# Plano: Nova Pagina CRM Unificada
 
-## Resumo
+## Visao Geral
 
-O tema moderno atual so afeta visualmente a sidebar. Precisamos estender os estilos para atingir **todos os componentes reais** usados nas paginas: Cards, Tabs, Tables, Badges, Buttons, Inputs e layouts de pagina. A abordagem sera via **CSS puro** usando seletores que capturam os componentes Shadcn automaticamente, sem precisar editar cada pagina individualmente.
+Unificar as paginas Pre-Vendas (`/pre-vendas`) e Pipeline de Vendas (`/pipeline`) em uma unica pagina CRM (`/crm`) com interface Kanban e funil simplificado.
 
-## Problema Atual
+## Etapas do Funil
 
-- Os estilos `.glass-card` e `.kpi-card` exigem classes manuais que nao estao aplicadas em nenhum componente
-- Cards, tabelas, tabs, badges, botoes e inputs permanecem identicos ao tema classico
-- Apenas sidebar e header sao afetados
+As 5 etapas solicitadas mapeadas ao banco de dados:
 
-## Estrategia
+```text
+Lead → Contato Feito → Visita/Reuniao → Proposta → Pedido
+         (+ coluna "Perdidos" separada)
+```
 
-Usar **seletores CSS globais** dentro de `.theme-modern` que capturam automaticamente os componentes Shadcn pelo seu HTML real (ex: `[role="tablist"]`, `.border.bg-card`, `table`, `[data-state]`). Assim, **todas as telas** sao afetadas sem modificar arquivos de pagina.
+Sera necessario alterar o enum `lead_status` no banco para refletir as novas etapas: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`, `perdido`.
 
-## Arquivos a Modificar
+## Estrutura da Pagina
 
-### 1. `src/index.css` - Estilos globais do tema moderno (principal)
+```text
+┌─────────────────────────────────────────────────────┐
+│ KPIs: Contatos Hoje (X/meta) │ Funil │ Perdidos     │
+├─────────────────────────────────────────────────────┤
+│  Kanban Board (drag & drop entre colunas)           │
+│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───┐ │
+│  │Lead  │ │Contato   │ │Visita/ │ │Proposta│ │Ped│ │
+│  │      │ │Feito     │ │Reuniao │ │        │ │ido│ │
+│  │card  │ │card      │ │card    │ │card    │ │   │ │
+│  │card  │ │          │ │        │ │        │ │   │ │
+│  └──────┘ └──────────┘ └────────┘ └────────┘ └───┘ │
+└─────────────────────────────────────────────────────┘
+```
 
-Adicionar/substituir regras CSS dentro do bloco `.theme-modern`:
+## Componentes Principais
 
-**Cards (todos automaticamente):**
-- Fundo semi-transparente com backdrop-blur sutil
-- Sombra mais difusa e hover com elevacao
-- Borda mais suave
+1. **KPI Bar** (topo):
+   - Contatos diarios (atual/meta) com barra de progresso
+   - Mini funil visual com contagem por etapa
+   - Indicador de perdidos (quantidade + valor estimado)
 
-**Tabs:**
-- TabsList com fundo mais contrastante
-- TabsTrigger ativo com gradiente primario e sombra
-- Transicao suave entre estados
+2. **Kanban Board**:
+   - 5 colunas (Lead, Contato Feito, Visita/Reuniao, Proposta, Pedido)
+   - Cards compactos: nome cliente, valor, dias na etapa, proximo passo
+   - Drag & drop para mover entre etapas (atualiza status no banco)
+   - Ao mover para "Perdido", abre dialog pedindo motivo
 
-**Tables:**
-- Header com fundo accent sutil
-- Linhas com hover highlight
-- Bordas mais suaves
+3. **Card do Lead** (compacto):
+   - Nome do cliente, cidade/UF
+   - Valor estimado
+   - Dias na etapa atual
+   - Icone de WhatsApp para contato rapido
+   - Click abre drawer lateral com detalhes + historico + acoes
 
-**Badges:**
-- Bordas arredondadas maiores
-- Cores mais vibrantes com fundo semi-transparente
+4. **Drawer Lateral** (ao clicar no card):
+   - Dados do lead completos
+   - Timeline de atividades
+   - Botoes de acao rapida: registrar contato, agendar visita, criar proposta
+   - Marcar como perdido (com motivo)
 
-**Buttons:**
-- Botao primary com gradiente e sombra colorida
-- Hover com elevacao sutil
-- Botao ghost/outline com transicao mais suave
-
-**Inputs/Selects:**
-- Focus com ring colorido mais pronunciado
-- Bordas mais suaves
-- Transicao de cor no focus
-
-**Progress bars:**
-- Gradiente animado na barra de progresso
-
-**Dialogs/Popovers:**
-- Backdrop blur no overlay
-- Sombra mais pronunciada
-- Bordas mais suaves
-
-**Paginas - layout geral:**
-- Titulos h1/h2 com gradiente de texto (clip)
-- Espacamento levemente maior entre secoes
-
-### 2. `src/components/ui/card.tsx` - Pequeno ajuste
-
-- Remover a necessidade de classe manual `glass-card`
-- O card padrao ja recebera os estilos modernos via CSS global
-
-### 3. `src/components/ui/badge.tsx` - Verificar se precisa ajuste
-
-- Apenas se o seletor CSS nao capturar corretamente
+5. **Filtros** (acima do kanban):
+   - Busca por cliente
+   - Filtro por SDR/vendedor
+   - Periodo
 
 ## Detalhes Tecnicos
 
-Todas as regras serao escritas como seletores descendentes de `.theme-modern`, exemplos:
+### Migracao de Banco
+- Adicionar novos valores ao enum `lead_status`: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`
+- Migrar dados existentes: `novo` → `lead`, `contatado`/`respondeu` → `contato_feito`, `qualificado`/`encaminhado` → `proposta`
+- O campo `pipeline_status` pode ser descontinuado — usar apenas `status`
 
-```text
-.theme-modern [role="tablist"]          -> TabsList
-.theme-modern [role="tab"]              -> TabsTrigger  
-.theme-modern [role="tab"][data-state="active"] -> Tab ativa
-.theme-modern table                     -> Tabelas
-.theme-modern table thead               -> Header da tabela
-.theme-modern table tbody tr:hover      -> Hover nas linhas
-.theme-modern .rounded-lg.border.bg-card -> Cards Shadcn
-.theme-modern [role="dialog"]           -> Dialogs
-.theme-modern .inline-flex.items-center.rounded-full -> Badges
-```
+### Arquivos a Criar
+- `src/pages/CRM.tsx` — pagina principal
+- `src/components/crm/KanbanBoard.tsx` — board com colunas
+- `src/components/crm/KanbanCard.tsx` — card individual do lead
+- `src/components/crm/LeadDrawer.tsx` — drawer lateral com detalhes
+- `src/components/crm/CRMKPIs.tsx` — barra de KPIs
+- `src/components/crm/LostDealsDialog.tsx` — dialog/indicador de perdidos
+- `src/components/crm/QuickActionButtons.tsx` — acoes rapidas no drawer
 
-Essa abordagem garante que:
-- Nenhum arquivo de pagina precisa ser editado
-- Todas as telas recebem o tema automaticamente
-- O toggle continua funcionando instantaneamente
-- Nao ha risco de quebrar layout existente
+### Arquivos a Modificar
+- `src/App.tsx` — adicionar rota `/crm`, redirecionar `/pre-vendas` e `/pipeline` para `/crm`
+- `src/components/AppSidebar.tsx` — substituir 2 itens (Pre-Vendas + Pipeline) por 1 item "CRM"
+- `src/hooks/useUserPermissions.ts` — substituir `prevendas` + `pipeline` por `crm`
+- `src/context/PreVendasContext.tsx` — adaptar para novos status (ou criar novo CRMContext)
 
-## Resultado Esperado
+### Drag & Drop
+- Usar a lib existente ou CSS nativo com `draggable` + `onDragOver`/`onDrop` para manter leve
+- Ao soltar em nova coluna, chamar `supabase.from('leads').update({ status: novoStatus })` 
+- Se soltar em "Perdido", abrir dialog de motivo antes de confirmar
 
-Ao ativar "Design Moderno":
-- **Dashboard Comercial**: KPI cards com glassmorphism, tabs com gradiente, graficos com cores vibrantes
-- **Producao**: Cards de KPI com hover elevado, tabela com header colorido
-- **Clientes**: Tabela estilizada, tabs modernas
-- **Pipeline**: Cards de status com sombras, tabela refinada  
-- **Corte Perfil/Blank**: Tabs com visual moderno, inputs refinados
-- **Politica Comercial**: Badges coloridos, tabs e tabelas modernas
-- **Todas as paginas**: Titulos com destaque, transicoes suaves, visual coeso
+### Mobile
+- Kanban com scroll horizontal (snap) nas colunas
+- Cards empilhados verticalmente dentro de cada coluna
+- Drawer vira sheet de baixo (vaul)
 
-## Quantidade de Mudancas
+### Meta Diaria de Contatos
+- Reutilizar `admin_goals.daily_contacts_goal` ja existente
+- Contar atividades do tipo `contato_inicial` do dia atual
+- Exibir progresso visual no KPI bar
 
-- 1 arquivo principal editado (`src/index.css`) com ~150 linhas de CSS adicionais
-- 0 arquivos de pagina modificados
-- 0 mudancas na logica de negocios
+### Controle de Perdidos
+- Card/badge no topo mostrando total de perdidos no periodo
+- Click abre lista filtrada dos leads perdidos com motivo e data
+- Indicador percentual (perdidos / total do funil)
 

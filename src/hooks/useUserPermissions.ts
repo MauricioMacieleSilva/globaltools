@@ -12,17 +12,11 @@ export const SYSTEM_PAGES = {
     supportsEdit: true,
     route: '/dashboard-comercial'
   },
-  prevendas: { 
-    label: 'Pré-Vendas', 
+  crm: { 
+    label: 'CRM', 
     category: 'Principais',
     supportsEdit: true,
-    route: '/pre-vendas'
-  },
-  pipeline: { 
-    label: 'Pipeline', 
-    category: 'Principais',
-    supportsEdit: true,
-    route: '/pipeline'
+    route: '/crm'
   },
   clientes: { 
     label: 'Clientes', 

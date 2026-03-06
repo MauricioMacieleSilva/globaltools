@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut, DollarSign, Calendar, Truck } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut, DollarSign, Calendar, Truck, Kanban } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,18 +31,11 @@ const menuItems = [
     tourId: 'sidebar-dashboard',
   },
   {
-    title: 'Pré-Vendas',
-    url: '/pre-vendas',
-    icon: Target,
-    pageKey: 'prevendas',
-    tourId: 'sidebar-pre-vendas',
-  },
-  {
-    title: 'Pipeline de Vendas',
-    url: '/pipeline',
-    icon: Target,
-    pageKey: 'pipeline',
-    tourId: 'sidebar-pipeline',
+    title: 'CRM',
+    url: '/crm',
+    icon: Kanban,
+    pageKey: 'crm',
+    tourId: 'sidebar-crm',
   },
   {
     title: 'Clientes',

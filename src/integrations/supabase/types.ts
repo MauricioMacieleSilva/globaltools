@@ -2444,6 +2444,10 @@ export type Database = {
         | "negociacao"
         | "ganho"
         | "perdido"
+        | "lead"
+        | "contato_feito"
+        | "visita_reuniao"
+        | "pedido"
       orcamento_status:
         | "aberto"
         | "enviado"
@@ -2594,6 +2598,10 @@ export const Constants = {
         "negociacao",
         "ganho",
         "perdido",
+        "lead",
+        "contato_feito",
+        "visita_reuniao",
+        "pedido",
       ],
       orcamento_status: [
         "aberto",

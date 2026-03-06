@@ -29,6 +29,8 @@ import AdminAIProactive from "./pages/AdminAIProactive";
 import NotFound from "./pages/NotFound";
 import { Pipeline } from "./pages/Pipeline";
 import Producao from "./pages/Producao";
+import CRM from "./pages/CRM";
+import { Navigate } from "react-router-dom";
 import Fretes from "./pages/Fretes";
 import Auth from "./pages/Auth";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
@@ -46,6 +48,8 @@ function AppContent() {
       case '/':
       case '/dashboard-comercial':
         return 'Vendas';
+      case '/crm':
+        return 'CRM';
       case '/pre-vendas':
         return 'Pré-Vendas';
       case '/clientes':
@@ -81,6 +85,8 @@ function AppContent() {
       case '/':
       case '/dashboard-comercial':
         return 'Análise de Desempenho de Vendas';
+      case '/crm':
+        return 'Gestão de Leads e Pipeline de Vendas';
       case '/pre-vendas':
         return 'Gestão de Leads e Pré-Vendas';
       case '/clientes':
@@ -163,13 +169,15 @@ function AppContent() {
                                   }
                                 />
                                 <Route
-                                  path="/pre-vendas"
+                                  path="/crm"
                                   element={
-                                    <ProtectedRoute requirePageAccess="/pre-vendas">
-                                      <PreVendas />
+                                    <ProtectedRoute requirePageAccess="/crm">
+                                      <CRM />
                                     </ProtectedRoute>
                                   }
                                 />
+                                <Route path="/pre-vendas" element={<Navigate to="/crm" replace />} />
+                                <Route path="/pipeline" element={<Navigate to="/crm" replace />} />
                                 <Route
                                   path="/clientes"
                                   element={
@@ -215,14 +223,6 @@ function AppContent() {
                                   element={
                                     <ProtectedRoute requirePageAccess="/assistente-global">
                                       <AssistenteGlobal />
-                                    </ProtectedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/pipeline"
-                                  element={
-                                    <ProtectedRoute requirePageAccess="/pipeline">
-                                      <Pipeline />
                                     </ProtectedRoute>
                                   }
                                 />

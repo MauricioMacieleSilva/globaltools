@@ -1,14 +1,20 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CRMKPIs } from '@/components/crm/CRMKPIs';
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { LeadDrawer } from '@/components/crm/LeadDrawer';
 import { LostDealsDialog } from '@/components/crm/LostDealsDialog';
 import { CRMFilters } from '@/components/crm/CRMFilters';
+import { NewLeadDialog } from '@/components/crm/NewLeadDialog';
+import { LeadListView } from '@/components/crm/LeadListView';
+import { TeamPerformance } from '@/components/crm/TeamPerformance';
+import { PortfolioHealth } from '@/components/crm/PortfolioHealth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, LayoutGrid, List, BarChart3 } from 'lucide-react';
 
 export interface CRMLead {
   id: string;
@@ -38,10 +44,10 @@ export interface CRMLead {
 }
 
 export const CRM_STAGES = [
-  { key: 'lead', label: 'Lead', color: 'hsl(var(--primary))' },
+  { key: 'lead', label: 'Lead', color: 'hsl(200, 98%, 39%)' },
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
   { key: 'visita_reuniao', label: 'Visita / Reunião', color: 'hsl(262, 52%, 47%)' },
-  { key: 'proposta', label: 'Proposta', color: 'hsl(var(--success))' },
+  { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },
   { key: 'pedido', label: 'Pedido', color: 'hsl(173, 80%, 36%)' },
 ] as const;
 
@@ -57,7 +63,11 @@ export default function CRM() {
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('all');
   const [todayContacts, setTodayContacts] = useState(0);
+  const [todayVisits, setTodayVisits] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(0);
+  const [dailyVisitsGoal, setDailyVisitsGoal] = useState(0);
+  const [newLeadOpen, setNewLeadOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('kanban');
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -67,7 +77,6 @@ export default function CRM() {
         .from('leads')
         .select('*')
         .order('updated_at', { ascending: false });
-
       if (error) throw error;
       setLeads(data || []);
     } catch (error) {
@@ -77,36 +86,39 @@ export default function CRM() {
     }
   }, []);
 
-  const loadTodayContacts = useCallback(async () => {
+  const loadTodayStats = useCallback(async () => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('lead_activities')
-        .select('id')
-        .gte('created_at', today.toISOString())
-        .eq('activity_type', 'contato_inicial');
-      if (!error) setTodayContacts(data?.length || 0);
+        .select('id, activity_type')
+        .gte('created_at', today.toISOString());
+      if (data) {
+        setTodayContacts(data.filter(a => a.activity_type === 'contato_inicial').length);
+        setTodayVisits(data.filter(a => a.activity_type === 'visita').length);
+      }
     } catch {}
   }, []);
 
-  const loadDailyGoal = useCallback(async () => {
+  const loadGoals = useCallback(async () => {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const { data } = await supabase
         .from('admin_goals')
-        .select('daily_contacts_goal')
+        .select('daily_contacts_goal, qualified_leads_goal')
         .eq('month_year', currentMonth)
         .maybeSingle();
       if (data?.daily_contacts_goal) setDailyGoal(data.daily_contacts_goal);
+      if (data?.qualified_leads_goal) setDailyVisitsGoal(data.qualified_leads_goal);
     } catch {}
   }, []);
 
   useEffect(() => {
     loadLeads();
-    loadTodayContacts();
-    loadDailyGoal();
-  }, [loadLeads, loadTodayContacts, loadDailyGoal]);
+    loadTodayStats();
+    loadGoals();
+  }, [loadLeads, loadTodayStats, loadGoals]);
 
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
     const lead = leads.find(l => l.id === leadId);
@@ -123,12 +135,10 @@ export default function CRM() {
         .from('leads')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', leadId);
-
       if (error) throw error;
 
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus, updated_at: new Date().toISOString() } : l));
 
-      // If moved to contato_feito, register activity
       if (newStatus === 'contato_feito') {
         await supabase.from('lead_activities').insert({
           lead_id: leadId,
@@ -136,7 +146,17 @@ export default function CRM() {
           description: 'Contato registrado via CRM',
           user_id: (await supabase.auth.getUser()).data.user?.id,
         } as any);
-        loadTodayContacts();
+        loadTodayStats();
+      }
+
+      if (newStatus === 'visita_reuniao') {
+        await supabase.from('lead_activities').insert({
+          lead_id: leadId,
+          activity_type: 'visita',
+          description: 'Visita/Reunião registrada via CRM',
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+        } as any);
+        loadTodayStats();
       }
 
       toast({ title: 'Status atualizado', description: `Lead movido para ${CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus}` });
@@ -154,10 +174,8 @@ export default function CRM() {
         .from('leads')
         .update({ status: 'perdido', updated_at: new Date().toISOString(), observacoes: reason })
         .eq('id', pendingLostLead.id);
-
       if (error) throw error;
 
-      // Register in lead_dispositions
       await supabase.from('lead_dispositions').insert({
         lead_id: pendingLostLead.id,
         user_id: user?.id || '',
@@ -170,7 +188,7 @@ export default function CRM() {
       setPendingLostLead(null);
       setLostDialogOpen(false);
       toast({ title: 'Lead perdido', description: 'Lead marcado como perdido.' });
-    } catch (error) {
+    } catch {
       toast({ title: 'Erro', description: 'Erro ao marcar lead como perdido', variant: 'destructive' });
     }
   };
@@ -180,7 +198,6 @@ export default function CRM() {
     setDrawerOpen(true);
   };
 
-  // Filter leads
   const filteredLeads = leads.filter(l => {
     if (l.status === 'perdido') return false;
     const name = (l.client_name || l.cliente_nome || '').toLowerCase();
@@ -192,7 +209,6 @@ export default function CRM() {
   const lostLeads = leads.filter(l => l.status === 'perdido');
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
 
-  // Funnel counts
   const funnelCounts = CRM_STAGES.map(stage => ({
     ...stage,
     count: filteredLeads.filter(l => l.status === stage.key).length,
@@ -200,10 +216,24 @@ export default function CRM() {
   }));
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
+      {/* Header with FAB */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold text-foreground">CRM</h1>
+          <p className="text-xs text-muted-foreground">Gestão de Leads e Pipeline de Vendas</p>
+        </div>
+        <Button onClick={() => setNewLeadOpen(true)} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          {!isMobile && 'Novo Lead'}
+        </Button>
+      </div>
+
       <CRMKPIs
         todayContacts={todayContacts}
         dailyGoal={dailyGoal}
+        todayVisits={todayVisits}
+        dailyVisitsGoal={dailyVisitsGoal}
         funnelCounts={funnelCounts}
         lostCount={lostLeads.length}
         lostValue={lostValue}
@@ -211,20 +241,56 @@ export default function CRM() {
         onLostClick={() => setLostDialogOpen(true)}
       />
 
-      <CRMFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        vendorFilter={vendorFilter}
-        onVendorChange={setVendorFilter}
-      />
+      {/* Tabs: Kanban | Lista | Performance */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex items-center justify-between gap-2">
+          <TabsList className="h-8">
+            <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
+              <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+            </TabsTrigger>
+            <TabsTrigger value="lista" className="text-xs gap-1 h-7 px-3">
+              <List className="h-3.5 w-3.5" /> Lista
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="text-xs gap-1 h-7 px-3">
+              <BarChart3 className="h-3.5 w-3.5" /> Performance
+            </TabsTrigger>
+          </TabsList>
+          {activeTab === 'kanban' && (
+            <CRMFilters
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              vendorFilter={vendorFilter}
+              onVendorChange={setVendorFilter}
+            />
+          )}
+        </div>
 
-      <KanbanBoard
-        leads={filteredLeads}
-        stages={CRM_STAGES}
-        loading={loading}
-        onStatusChange={updateLeadStatus}
-        onCardClick={openLeadDrawer}
-      />
+        <TabsContent value="kanban" className="mt-3">
+          <KanbanBoard
+            leads={filteredLeads}
+            stages={CRM_STAGES}
+            loading={loading}
+            onStatusChange={updateLeadStatus}
+            onCardClick={openLeadDrawer}
+          />
+        </TabsContent>
+
+        <TabsContent value="lista" className="mt-3">
+          <LeadListView
+            leads={leads}
+            onLeadClick={openLeadDrawer}
+            onLeadUpdated={loadLeads}
+          />
+        </TabsContent>
+
+        <TabsContent value="performance" className="mt-3 space-y-4">
+          <TeamPerformance leads={leads} />
+          <PortfolioHealth leads={filteredLeads} onLeadClick={openLeadDrawer} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs */}
+      <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />
 
       <LeadDrawer
         lead={selectedLead}
@@ -242,6 +308,16 @@ export default function CRM() {
         onConfirmLost={confirmLostDeal}
         onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
       />
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <button
+          onClick={() => setNewLeadOpen(true)}
+          className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
     </div>
   );
 }

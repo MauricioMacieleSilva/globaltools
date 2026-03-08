@@ -18,7 +18,7 @@ import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, BarChart3, CalendarDays } from 'lucide-react';
+import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart } from 'lucide-react';
 
 export interface CRMLead {
   id: string;

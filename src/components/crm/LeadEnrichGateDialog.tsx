@@ -109,7 +109,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
         produto_interesse: produto || null,
         cliente_cnpj: cleanCnpj.length > 0 ? cleanCnpj : null,
         regime_tributario: regime || null,
-        observacoes: observacoes || null,
+        notes: observacoes || null,
         updated_at: new Date().toISOString(),
       };
       const { error } = await (supabase as any).from('leads').update(updateData).eq('id', lead.id);

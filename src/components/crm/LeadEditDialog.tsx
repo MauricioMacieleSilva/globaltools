@@ -59,6 +59,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         source: lead.source || lead.origem || '',
         notes: lead.notes || lead.observacoes || '',
         cliente_cnpj: lead.cliente_cnpj || '',
+        budget_number: lead.budget_number || '',
         ramo_atuacao: lead.ramo_atuacao || '',
         regime_tributario: lead.regime_tributario || '',
         estado: lead.estado || '',

@@ -164,23 +164,9 @@ export default function CRM() {
 
     // Intercept lead -> contato_feito: require enrichment
     if (newStatus === 'contato_feito' && lead.status === 'lead') {
-      const already = await checkContactAlreadyToday(leadId);
-      if (already) {
-        toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
-        return;
-      }
       setPendingEnrichLead(lead);
       setEnrichGateOpen(true);
       return;
-    }
-
-    // Validate one contact per day for other cases
-    if (newStatus === 'contato_feito') {
-      const already = await checkContactAlreadyToday(leadId);
-      if (already) {
-        toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
-        return;
-      }
     }
 
     try {
@@ -205,12 +191,15 @@ export default function CRM() {
       } as any);
 
       if (newStatus === 'contato_feito') {
-        await supabase.from('lead_activities').insert({
-          lead_id: leadId,
-          activity_type: 'contato_inicial',
-          description: 'Contato registrado via CRM',
-          user_id: user?.id || '',
-        } as any);
+        const alreadyToday = await checkContactAlreadyToday(leadId);
+        if (!alreadyToday) {
+          await supabase.from('lead_activities').insert({
+            lead_id: leadId,
+            activity_type: 'contato_inicial',
+            description: 'Contato registrado via CRM',
+            user_id: user?.id || '',
+          } as any);
+        }
         loadTodayStats();
       }
 
@@ -254,12 +243,15 @@ export default function CRM() {
         description: `Movido de "${oldLabel}" para "Contato Feito"`,
         user_id: user?.id || '',
       } as any);
-      await supabase.from('lead_activities').insert({
-        lead_id: pendingEnrichLead.id,
-        activity_type: 'contato_inicial',
-        description: 'Contato registrado via CRM',
-        user_id: user?.id || '',
-      } as any);
+      const alreadyToday = await checkContactAlreadyToday(pendingEnrichLead.id);
+      if (!alreadyToday) {
+        await supabase.from('lead_activities').insert({
+          lead_id: pendingEnrichLead.id,
+          activity_type: 'contato_inicial',
+          description: 'Contato registrado via CRM',
+          user_id: user?.id || '',
+        } as any);
+      }
 
       loadTodayStats();
       loadLeads();

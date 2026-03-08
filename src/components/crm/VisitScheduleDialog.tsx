@@ -23,9 +23,9 @@ interface VisitScheduleDialogProps {
 
 export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onConfirm }: VisitScheduleDialogProps) {
   const [visitDate, setVisitDate] = useState<Date>();
+  const [visitTime, setVisitTime] = useState('09:00');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     if (!visitDate) {

@@ -26,6 +26,7 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
   const [visitTime, setVisitTime] = useState('09:00');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     if (!visitDate) {

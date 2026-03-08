@@ -237,7 +237,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               )}
               {lead.produto_interesse && (
                 <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Tags className="h-4 w-4 text-muted-foreground" />
                   <span>{lead.produto_interesse}</span>
                 </div>
               )}

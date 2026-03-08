@@ -102,6 +102,9 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
             </Popover>
           </div>
           <div className="space-y-1.5">
+            <Label>Hora *</Label>
+            <Input type="time" value={visitTime} onChange={(e) => setVisitTime(e.target.value)} />
+          <div className="space-y-1.5">
             <Label>Local *</Label>
             <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Endereço ou local da visita" />
           </div>

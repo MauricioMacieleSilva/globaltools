@@ -107,11 +107,14 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           <div className="flex items-center gap-1 text-[10px] font-medium text-primary">
             <Package className="h-3 w-3 shrink-0" />
             <span>Pedido {lead.budget_number}</span>
+            {lead.valor_estimado != null && lead.valor_estimado > 0 && (
+              <span className="font-semibold text-foreground">— R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            )}
           </div>
         )}
 
-        {/* Value - always show if available */}
-        {lead.valor_estimado != null && lead.valor_estimado > 0 && (
+        {/* Value without order */}
+        {!lead.budget_number && lead.valor_estimado != null && lead.valor_estimado > 0 && (
           <p className="text-xs font-semibold text-foreground">
             R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>

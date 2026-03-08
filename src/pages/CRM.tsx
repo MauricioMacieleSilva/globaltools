@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { CRMKPIs } from '@/components/crm/CRMKPIs';
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { LeadDrawer } from '@/components/crm/LeadDrawer';

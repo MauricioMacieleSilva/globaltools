@@ -301,6 +301,102 @@ export type Database = {
           },
         ]
       }
+      crm_business_sectors: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      crm_loss_reasons: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      crm_product_interests: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      crm_visits: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          location: string | null
+          notes: string | null
+          user_id: string
+          visit_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          location?: string | null
+          notes?: string | null
+          user_id: string
+          visit_date: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          location?: string | null
+          notes?: string | null
+          user_id?: string
+          visit_date?: string
+        }
+        Relationships: []
+      }
       default_role_permissions: {
         Row: {
           access_type: Database["public"]["Enums"]["access_type"]
@@ -1248,6 +1344,8 @@ export type Database = {
           origem: string | null
           produto_interesse: string | null
           qualificacao_score: number | null
+          ramo_atuacao: string | null
+          regime_tributario: string | null
           source: string | null
           status: Database["public"]["Enums"]["lead_status"]
           temperatura: number | null
@@ -1278,6 +1376,8 @@ export type Database = {
           origem?: string | null
           produto_interesse?: string | null
           qualificacao_score?: number | null
+          ramo_atuacao?: string | null
+          regime_tributario?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           temperatura?: number | null
@@ -1308,6 +1408,8 @@ export type Database = {
           origem?: string | null
           produto_interesse?: string | null
           qualificacao_score?: number | null
+          ramo_atuacao?: string | null
+          regime_tributario?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           temperatura?: number | null

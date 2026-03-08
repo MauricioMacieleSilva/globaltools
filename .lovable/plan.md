@@ -1,82 +1,108 @@
 
 
-# Plano: Refinamento do CRM -- Regras de Negocio, Enriquecimento e Agenda
+# Plano: Nova Pagina CRM Unificada
 
-## 1. Restricao de Contato Unico por Cliente/Dia
+## Visao Geral
 
-No `registerContact` (LeadDrawer) e no `updateLeadStatus` (CRM.tsx), antes de inserir atividade `contato_inicial`, consultar `lead_activities` filtrando por `lead_id` + `activity_type = 'contato_inicial'` + `created_at >= hoje 00:00`. Se ja existir, exibir toast de aviso e bloquear.
+Unificar as paginas Pre-Vendas (`/pre-vendas`) e Pipeline de Vendas (`/pipeline`) em uma unica pagina CRM (`/crm`) com interface Kanban e funil simplificado.
 
-## 2. Motivos de Perda Gerenciaveis
+## Etapas do Funil
 
-**Migracao**: Criar tabela `crm_loss_reasons` (id, name, is_active, display_order, created_at).
-- RLS: admins gerenciam, authenticated visualizam.
-- Seed com motivos atuais (hardcoded hoje no `LostDealsDialog`).
+As 5 etapas solicitadas mapeadas ao banco de dados:
 
-**UI**: No `LostDealsDialog`, carregar motivos do banco. Adicionar botao "+" para criar novo motivo inline (igual ao padrao de origens no NewLeadDialog).
+```text
+Lead → Contato Feito → Visita/Reuniao → Proposta → Pedido
+         (+ coluna "Perdidos" separada)
+```
 
-## 3. Visita/Reuniao com Data e Local
+Sera necessario alterar o enum `lead_status` no banco para refletir as novas etapas: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`, `perdido`.
 
-**Migracao**: Criar tabela `crm_visits` (id, lead_id, visit_date timestamptz, location text, notes text, user_id, created_at).
-- RLS: comercial/admin/sdr gerenciam e visualizam.
+## Estrutura da Pagina
 
-**UI**: Ao mover lead para `visita_reuniao` (drag-drop ou botao), abrir dialog pedindo data e local antes de confirmar. Salvar em `crm_visits` e registrar atividade.
+```text
+┌─────────────────────────────────────────────────────┐
+│ KPIs: Contatos Hoje (X/meta) │ Funil │ Perdidos     │
+├─────────────────────────────────────────────────────┤
+│  Kanban Board (drag & drop entre colunas)           │
+│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───┐ │
+│  │Lead  │ │Contato   │ │Visita/ │ │Proposta│ │Ped│ │
+│  │      │ │Feito     │ │Reuniao │ │        │ │ido│ │
+│  │card  │ │card      │ │card    │ │card    │ │   │ │
+│  │card  │ │          │ │        │ │        │ │   │ │
+│  └──────┘ └──────────┘ └────────┘ └────────┘ └───┘ │
+└─────────────────────────────────────────────────────┘
+```
 
-## 4. Enriquecimento do Lead Apos Primeiro Contato
+## Componentes Principais
 
-**Migracao**: Criar tabelas de lookup gerenciaveis:
-- `crm_business_sectors` (id, name, is_active, created_at) -- ramos de atuacao
-- `crm_product_interests` (id, name, is_active, created_at) -- produtos de interesse
+1. **KPI Bar** (topo):
+   - Contatos diarios (atual/meta) com barra de progresso
+   - Mini funil visual com contagem por etapa
+   - Indicador de perdidos (quantidade + valor estimado)
 
-Adicionar colunas na tabela `leads`:
-- `ramo_atuacao text`
-- `regime_tributario text` (valores: Simples Nacional, Lucro Presumido, Lucro Real)
+2. **Kanban Board**:
+   - 5 colunas (Lead, Contato Feito, Visita/Reuniao, Proposta, Pedido)
+   - Cards compactos: nome cliente, valor, dias na etapa, proximo passo
+   - Drag & drop para mover entre etapas (atualiza status no banco)
+   - Ao mover para "Perdido", abre dialog pedindo motivo
 
-**UI**: No `LeadDrawer`, apos status `contato_feito` ou superior, exibir secao "Enriquecer Cadastro" com:
-- Ramo de atuacao (select + botao "+" para adicionar novo)
-- Produto de interesse (select + botao "+" para adicionar novo)
-- CNPJ (input com mascara)
-- Regime tributario (select fixo: Simples Nacional, Lucro Presumido, Lucro Real)
-- Botao salvar que atualiza o lead
+3. **Card do Lead** (compacto):
+   - Nome do cliente, cidade/UF
+   - Valor estimado
+   - Dias na etapa atual
+   - Icone de WhatsApp para contato rapido
+   - Click abre drawer lateral com detalhes + historico + acoes
 
-## 5. Gestao de Leads (Edicao Completa)
+4. **Drawer Lateral** (ao clicar no card):
+   - Dados do lead completos
+   - Timeline de atividades
+   - Botoes de acao rapida: registrar contato, agendar visita, criar proposta
+   - Marcar como perdido (com motivo)
 
-No `LeadDrawer`, adicionar botao "Editar Lead" que abre dialog/formulario completo permitindo alterar todos os campos (nome, empresa, telefone, email, origem, produto, CNPJ, ramo, regime). Salva via update no banco.
+5. **Filtros** (acima do kanban):
+   - Busca por cliente
+   - Filtro por SDR/vendedor
+   - Periodo
 
-## 6. Card do Kanban Refinado
+## Detalhes Tecnicos
 
-Atualizar `KanbanCard.tsx`:
-- Nome do cliente (destaque)
-- Ultima atividade registrada (query mais recente de `lead_activities` -- texto curto)
-- Se tiver visita agendada em `crm_visits`, exibir data com icone de calendario
-- Remover valor estimado e "Sem valor"
+### Migracao de Banco
+- Adicionar novos valores ao enum `lead_status`: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`
+- Migrar dados existentes: `novo` → `lead`, `contatado`/`respondeu` → `contato_feito`, `qualificado`/`encaminhado` → `proposta`
+- O campo `pipeline_status` pode ser descontinuado — usar apenas `status`
 
-## 7. Agenda Visual de Visitas/Reunioes
+### Arquivos a Criar
+- `src/pages/CRM.tsx` — pagina principal
+- `src/components/crm/KanbanBoard.tsx` — board com colunas
+- `src/components/crm/KanbanCard.tsx` — card individual do lead
+- `src/components/crm/LeadDrawer.tsx` — drawer lateral com detalhes
+- `src/components/crm/CRMKPIs.tsx` — barra de KPIs
+- `src/components/crm/LostDealsDialog.tsx` — dialog/indicador de perdidos
+- `src/components/crm/QuickActionButtons.tsx` — acoes rapidas no drawer
 
-**Nova aba "Agenda"** no Tabs do CRM (ao lado de Kanban, Lista, Performance).
+### Arquivos a Modificar
+- `src/App.tsx` — adicionar rota `/crm`, redirecionar `/pre-vendas` e `/pipeline` para `/crm`
+- `src/components/AppSidebar.tsx` — substituir 2 itens (Pre-Vendas + Pipeline) por 1 item "CRM"
+- `src/hooks/useUserPermissions.ts` — substituir `prevendas` + `pipeline` por `crm`
+- `src/context/PreVendasContext.tsx` — adaptar para novos status (ou criar novo CRMContext)
 
-Componente `VisitCalendar.tsx`:
-- Carregar `crm_visits` com join no `leads` (nome do cliente)
-- Exibir em formato de lista agrupada por data (proximos 30 dias)
-- Cards com: data/hora, cliente, local, status do lead
-- Click no card abre o LeadDrawer do lead correspondente
-- Indicador visual para visitas de hoje (destaque)
+### Drag & Drop
+- Usar a lib existente ou CSS nativo com `draggable` + `onDragOver`/`onDrop` para manter leve
+- Ao soltar em nova coluna, chamar `supabase.from('leads').update({ status: novoStatus })` 
+- Se soltar em "Perdido", abrir dialog de motivo antes de confirmar
 
-## Resumo de Arquivos
+### Mobile
+- Kanban com scroll horizontal (snap) nas colunas
+- Cards empilhados verticalmente dentro de cada coluna
+- Drawer vira sheet de baixo (vaul)
 
-**Migracoes SQL**:
-- Criar `crm_loss_reasons`, `crm_visits`, `crm_business_sectors`, `crm_product_interests`
-- ALTER TABLE leads ADD `ramo_atuacao`, `regime_tributario`
+### Meta Diaria de Contatos
+- Reutilizar `admin_goals.daily_contacts_goal` ja existente
+- Contar atividades do tipo `contato_inicial` do dia atual
+- Exibir progresso visual no KPI bar
 
-**Criar**:
-- `src/components/crm/VisitScheduleDialog.tsx` -- dialog data+local ao agendar visita
-- `src/components/crm/LeadEnrichForm.tsx` -- formulario de enriquecimento no drawer
-- `src/components/crm/LeadEditDialog.tsx` -- edicao completa do lead
-- `src/components/crm/VisitCalendar.tsx` -- agenda visual (nova aba)
-
-**Modificar**:
-- `src/components/crm/LeadDrawer.tsx` -- validacao contato/dia, enriquecimento, edicao, visitas
-- `src/components/crm/LostDealsDialog.tsx` -- motivos dinamicos do banco + adicionar novo
-- `src/components/crm/KanbanCard.tsx` -- exibir ultima acao e data de visita
-- `src/pages/CRM.tsx` -- interceptar visita_reuniao para dialog, nova aba Agenda
-- `src/components/crm/KanbanBoard.tsx` -- passar dados de visitas/atividades
+### Controle de Perdidos
+- Card/badge no topo mostrando total de perdidos no periodo
+- Click abre lista filtrada dos leads perdidos com motivo e data
+- Indicador percentual (perdidos / total do funil)
 

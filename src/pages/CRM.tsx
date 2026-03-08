@@ -11,10 +11,12 @@ import { NewLeadDialog } from '@/components/crm/NewLeadDialog';
 import { LeadListView } from '@/components/crm/LeadListView';
 import { TeamPerformance } from '@/components/crm/TeamPerformance';
 import { PortfolioHealth } from '@/components/crm/PortfolioHealth';
+import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
+import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, BarChart3 } from 'lucide-react';
+import { Plus, LayoutGrid, List, BarChart3, CalendarDays } from 'lucide-react';
 
 export interface CRMLead {
   id: string;
@@ -41,6 +43,9 @@ export interface CRMLead {
   numero_lead: string | null;
   cliente_telefone: string | null;
   cliente_email: string | null;
+  cliente_cnpj: string | null;
+  ramo_atuacao: string | null;
+  regime_tributario: string | null;
 }
 
 export const CRM_STAGES = [
@@ -68,6 +73,9 @@ export default function CRM() {
   const [dailyVisitsGoal, setDailyVisitsGoal] = useState(0);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
+  // Visit schedule dialog
+  const [visitDialogOpen, setVisitDialogOpen] = useState(false);
+  const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -120,6 +128,19 @@ export default function CRM() {
     loadGoals();
   }, [loadLeads, loadTodayStats, loadGoals]);
 
+  const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { data } = await supabase
+      .from('lead_activities')
+      .select('id')
+      .eq('lead_id', leadId)
+      .eq('activity_type', 'contato_inicial')
+      .gte('created_at', today.toISOString())
+      .limit(1);
+    return (data?.length || 0) > 0;
+  };
+
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return;
@@ -128,6 +149,22 @@ export default function CRM() {
       setPendingLostLead(lead);
       setLostDialogOpen(true);
       return;
+    }
+
+    // Intercept visita_reuniao -> open schedule dialog
+    if (newStatus === 'visita_reuniao') {
+      setPendingVisitLead(lead);
+      setVisitDialogOpen(true);
+      return;
+    }
+
+    // Validate one contact per day
+    if (newStatus === 'contato_feito') {
+      const already = await checkContactAlreadyToday(leadId);
+      if (already) {
+        toast({ title: 'Contato já registrado hoje', description: 'Só é permitido um registro de contato por cliente por dia.', variant: 'destructive' });
+        return;
+      }
     }
 
     try {
@@ -149,21 +186,25 @@ export default function CRM() {
         loadTodayStats();
       }
 
-      if (newStatus === 'visita_reuniao') {
-        await supabase.from('lead_activities').insert({
-          lead_id: leadId,
-          activity_type: 'visita',
-          description: 'Visita/Reunião registrada via CRM',
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-        } as any);
-        loadTodayStats();
-      }
-
       toast({ title: 'Status atualizado', description: `Lead movido para ${CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus}` });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast({ title: 'Erro', description: 'Erro ao atualizar status do lead', variant: 'destructive' });
     }
+  };
+
+  const handleVisitConfirmed = async () => {
+    if (!pendingVisitLead) return;
+    // Update lead status after visit is scheduled
+    try {
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
+        .eq('id', pendingVisitLead.id);
+      setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
+      loadTodayStats();
+    } catch {}
+    setPendingVisitLead(null);
   };
 
   const confirmLostDeal = async (reason: string) => {
@@ -217,7 +258,6 @@ export default function CRM() {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
-      {/* Header with FAB */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg sm:text-xl font-bold text-foreground">CRM</h1>
@@ -241,7 +281,6 @@ export default function CRM() {
         onLostClick={() => setLostDialogOpen(true)}
       />
 
-      {/* Tabs: Kanban | Lista | Performance */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between gap-2">
           <TabsList className="h-8">
@@ -250,6 +289,9 @@ export default function CRM() {
             </TabsTrigger>
             <TabsTrigger value="lista" className="text-xs gap-1 h-7 px-3">
               <List className="h-3.5 w-3.5" /> Lista
+            </TabsTrigger>
+            <TabsTrigger value="agenda" className="text-xs gap-1 h-7 px-3">
+              <CalendarDays className="h-3.5 w-3.5" /> Agenda
             </TabsTrigger>
             <TabsTrigger value="performance" className="text-xs gap-1 h-7 px-3">
               <BarChart3 className="h-3.5 w-3.5" /> Performance
@@ -283,13 +325,16 @@ export default function CRM() {
           />
         </TabsContent>
 
+        <TabsContent value="agenda" className="mt-3">
+          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} />
+        </TabsContent>
+
         <TabsContent value="performance" className="mt-3 space-y-4">
           <TeamPerformance leads={leads} />
           <PortfolioHealth leads={filteredLeads} onLeadClick={openLeadDrawer} />
         </TabsContent>
       </Tabs>
 
-      {/* Dialogs */}
       <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />
 
       <LeadDrawer
@@ -309,7 +354,16 @@ export default function CRM() {
         onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
       />
 
-      {/* Mobile FAB */}
+      {pendingVisitLead && (
+        <VisitScheduleDialog
+          open={visitDialogOpen}
+          onOpenChange={(v) => { setVisitDialogOpen(v); if (!v) setPendingVisitLead(null); }}
+          leadId={pendingVisitLead.id}
+          leadName={pendingVisitLead.client_name || pendingVisitLead.cliente_nome}
+          onConfirm={handleVisitConfirmed}
+        />
+      )}
+
       {isMobile && (
         <button
           onClick={() => setNewLeadOpen(true)}

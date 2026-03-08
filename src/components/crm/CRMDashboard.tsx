@@ -415,24 +415,17 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
             <CardContent className="h-[280px]">
               {productData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={productData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={90}
-                      paddingAngle={3}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      labelLine={{ strokeWidth: 1 }}
-                    >
+                  <BarChart data={productData} layout="vertical" barSize={16}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={120} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                    <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
                       {productData.map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
@@ -443,7 +436,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
         </div>
 
-        {/* Row 3: Sectors + Vendor performance */}
+        {/* Row 3: Sectors + Loss Reasons */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -470,7 +463,35 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
             </CardContent>
           </Card>
 
-          {vendorFilter === 'all' && vendorContactsData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4" /> Motivos de Perda
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[280px]">
+              {lossReasonsData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={lossReasonsData} layout="vertical" barSize={16}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={130} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                    <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                  Nenhum motivo de perda no período
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Row 4: Vendor performance */}
+        {vendorFilter === 'all' && vendorContactsData.length > 0 && (
+          <div className="grid grid-cols-1 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-1.5">
@@ -490,8 +511,8 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

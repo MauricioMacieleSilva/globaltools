@@ -129,7 +129,11 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
 
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button disabled={!selected} onClick={() => selected && onConfirm(selected)}>
+          <Button disabled={!selected} onClick={() => {
+            if (!selected) return;
+            const order = orders.find(o => o.numeropedido === selected);
+            onConfirm(selected, order?.valor || 0);
+          }}>
             Confirmar
           </Button>
         </DialogFooter>

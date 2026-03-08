@@ -302,6 +302,7 @@ const App = () => (
         <AuthProvider>
           <ThemeProvider>
             <AppContent />
+            <Toaster position="top-center" richColors closeButton />
           </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>

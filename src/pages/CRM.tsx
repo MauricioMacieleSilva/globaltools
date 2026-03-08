@@ -168,6 +168,8 @@ export default function CRM() {
     }
 
     try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const oldStatus = lead.status;
       const { error } = await (supabase as any)
         .from('leads')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
@@ -176,17 +178,27 @@ export default function CRM() {
 
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus, updated_at: new Date().toISOString() } : l));
 
+      // Log stage move in activity history
+      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      const newLabel = CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus;
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        activity_type: 'mudanca_status',
+        description: `Movido de "${oldLabel}" para "${newLabel}"`,
+        user_id: user?.id || '',
+      } as any);
+
       if (newStatus === 'contato_feito') {
         await supabase.from('lead_activities').insert({
           lead_id: leadId,
           activity_type: 'contato_inicial',
           description: 'Contato registrado via CRM',
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: user?.id || '',
         } as any);
         loadTodayStats();
       }
 
-      toast.success('Status atualizado', { description: `Lead movido para ${CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus}` });
+      toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast.error('Erro ao atualizar status do lead');

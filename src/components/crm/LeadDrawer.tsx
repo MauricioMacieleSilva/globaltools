@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
@@ -189,6 +189,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       case 'nota': return <FileText className="h-3 w-3" />;
       case 'encaminhamento': return <Send className="h-3 w-3" />;
       case 'visita': return <MapPin className="h-3 w-3" />;
+      case 'mudanca_status': return <ArrowRightLeft className="h-3 w-3" />;
       default: return <Clock className="h-3 w-3" />;
     }
   };

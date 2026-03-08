@@ -369,6 +369,7 @@ export default function CRM() {
               vendorFilter={vendorFilter}
               onVendorChange={setVendorFilter}
             />
+            </div>
           )}
         </div>
 

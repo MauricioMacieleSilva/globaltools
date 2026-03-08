@@ -45,7 +45,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setProduto(lead.produto_interesse || '');
     setCnpj(lead.cliente_cnpj || '');
     setRegime(lead.regime_tributario || '');
-    setEstado(lead.estado || '');
+    setEstado(lead.estado || 'RS');
     setCidade(lead.cidade || '');
   }, [lead.id]);
 

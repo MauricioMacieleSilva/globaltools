@@ -1,13 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { format, isToday, isBefore, startOfDay, isSameDay } from 'date-fns';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays, ChevronLeft, ChevronRight, X, Maximize2 } from 'lucide-react';
+import {
+  format, isToday, isBefore, startOfDay, isSameDay, isSameMonth,
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths
+} from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { CRMLead } from '@/pages/CRM';
 
 interface Visit {
@@ -25,11 +30,15 @@ interface VisitCalendarProps {
   leads: CRMLead[];
 }
 
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
 export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadVisits();
@@ -39,7 +48,7 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
     const { data } = await (supabase as any)
       .from('crm_visits')
       .select('*')
-      .gte('visit_date', new Date(Date.now() - 30 * 86400000).toISOString())
+      .gte('visit_date', new Date(Date.now() - 90 * 86400000).toISOString())
       .order('visit_date', { ascending: true });
 
     if (data) {
@@ -62,13 +71,33 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
 
   const sortedDates = Object.keys(grouped).sort();
 
-  // Dates with visits for calendar dots
-  const visitDates = Object.keys(grouped).map(d => new Date(d + 'T12:00:00'));
+  // Build calendar grid for current month
+  const calendarDays = useMemo(() => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const calStart = startOfWeek(monthStart, { locale: ptBR });
+    const calEnd = endOfWeek(monthEnd, { locale: ptBR });
 
-  // Visits for selected date in calendar view
-  const selectedDateVisits = selectedDate
-    ? visits.filter(v => isSameDay(new Date(v.visit_date), selectedDate))
-    : [];
+    const days: Date[] = [];
+    let day = calStart;
+    while (day <= calEnd) {
+      days.push(day);
+      day = addDays(day, 1);
+    }
+    return days;
+  }, [currentMonth]);
+
+  const getVisitsForDay = (date: Date): Visit[] => {
+    const key = format(date, 'yyyy-MM-dd');
+    return grouped[key] || [];
+  };
+
+  const handleDayClick = (date: Date) => {
+    const dayVisits = getVisitsForDay(date);
+    if (dayVisits.length > 0) {
+      setSelectedDayVisits({ date, visits: dayVisits });
+    }
+  };
 
   if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando agenda...</p>;
 
@@ -151,79 +180,176 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
           })
         )
       ) : (
-        /* CALENDAR VIEW */
-        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4">
-          <Card className="p-2 w-fit">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              locale={ptBR}
-              className="p-3 pointer-events-auto"
-              modifiers={{
-                hasVisit: visitDates,
-              }}
-              modifiersClassNames={{
-                hasVisit: 'bg-primary/20 font-bold text-primary',
-              }}
-            />
-            {/* Legend */}
-            <div className="flex items-center gap-2 px-3 pb-2 text-xs text-muted-foreground">
-              <div className="w-3 h-3 rounded-sm bg-primary/20 border border-primary/30" />
-              <span>Dias com visitas</span>
+        /* FULL CALENDAR GRID VIEW */
+        <div className="space-y-3">
+          {/* Month navigation */}
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h3 className="text-base font-bold text-foreground capitalize">
+              {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+            </h3>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setCurrentMonth(new Date())}>
+                Hoje
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          </Card>
+          </div>
 
-          <div className="space-y-3">
-            {selectedDate && (
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">
-                  {format(selectedDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                </span>
-                <Badge variant="outline" className="text-[10px] h-5">
-                  {selectedDateVisits.length} visita{selectedDateVisits.length !== 1 ? 's' : ''}
-                </Badge>
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 border-b border-border">
+            {WEEKDAYS.map(day => (
+              <div key={day} className="py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {day}
               </div>
-            )}
+            ))}
+          </div>
 
-            {selectedDateVisits.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhuma visita neste dia
-              </p>
-            ) : (
-              selectedDateVisits.map(visit => {
-                const lead = leads.find(l => l.id === visit.lead_id);
-                return (
-                  <Card
-                    key={visit.id}
-                    className="p-3 cursor-pointer hover:shadow-md transition-shadow border-primary/20"
-                    onClick={() => lead && onLeadClick(lead)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{visit.lead_name}</p>
-                        {visit.location && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3 shrink-0" /> {visit.location}
-                          </p>
-                        )}
-                        {visit.notes && (
-                          <p className="text-xs text-muted-foreground truncate">{visit.notes}</p>
-                        )}
+          {/* Day cells */}
+          <div className="grid grid-cols-7 border-l border-border">
+            {calendarDays.map((day, idx) => {
+              const dayVisits = getVisitsForDay(day);
+              const today = isToday(day);
+              const inMonth = isSameMonth(day, currentMonth);
+              const past = isBefore(day, startOfDay(new Date())) && !today;
+              const maxShow = isMobile ? 1 : 3;
+
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    'border-r border-b border-border min-h-[80px] sm:min-h-[100px] p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative',
+                    !inMonth && 'bg-muted/20',
+                    today && 'bg-primary/5',
+                  )}
+                  onClick={() => handleDayClick(day)}
+                >
+                  {/* Day number */}
+                  <div className={cn(
+                    'text-xs sm:text-sm font-medium mb-0.5 w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full',
+                    today && 'bg-primary text-primary-foreground font-bold',
+                    !inMonth && 'text-muted-foreground/40',
+                    inMonth && !today && (past ? 'text-muted-foreground' : 'text-foreground'),
+                  )}>
+                    {format(day, 'd')}
+                  </div>
+
+                  {/* Visit entries */}
+                  <div className="space-y-0.5">
+                    {dayVisits.slice(0, maxShow).map(visit => (
+                      <TooltipProvider key={visit.id} delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={cn(
+                                'text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer',
+                                'bg-primary/15 text-primary border-l-2 border-primary hover:bg-primary/25 transition-colors',
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const lead = leads.find(l => l.id === visit.lead_id);
+                                if (lead) onLeadClick(lead);
+                              }}
+                            >
+                              <span className="font-medium">{format(new Date(visit.visit_date), 'HH:mm')}</span>
+                              {!isMobile && <span className="ml-1">{visit.lead_name}</span>}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px]">
+                            <p className="font-semibold text-xs">{visit.lead_name}</p>
+                            {visit.location && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <MapPin className="h-3 w-3" /> {visit.location}
+                              </p>
+                            )}
+                            {visit.notes && <p className="text-xs mt-0.5">{visit.notes}</p>}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))}
+                    {dayVisits.length > maxShow && (
+                      <div className="text-[10px] text-primary font-semibold px-1 cursor-pointer hover:underline">
+                        +{dayVisits.length - maxShow} mais
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                        <Clock className="h-3 w-3" />
-                        {format(new Date(visit.visit_date), 'HH:mm')}
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })
-            )}
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-primary" />
+              <span>Hoje</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-primary/15 border-l-2 border-primary" />
+              <span>Visita agendada</span>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Day detail dialog */}
+      <Dialog open={!!selectedDayVisits} onOpenChange={(v) => { if (!v) setSelectedDayVisits(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+          {selectedDayVisits && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-primary" />
+                <h3 className="text-base font-bold text-foreground capitalize">
+                  {format(selectedDayVisits.date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                </h3>
+                <Badge variant="outline" className="text-[10px] h-5">
+                  {selectedDayVisits.visits.length} visita{selectedDayVisits.visits.length !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                {selectedDayVisits.visits.map(visit => {
+                  const lead = leads.find(l => l.id === visit.lead_id);
+                  return (
+                    <Card
+                      key={visit.id}
+                      className="p-3 cursor-pointer hover:shadow-md transition-shadow border-primary/20"
+                      onClick={() => {
+                        if (lead) {
+                          setSelectedDayVisits(null);
+                          onLeadClick(lead);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{visit.lead_name}</p>
+                          {visit.location && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3 shrink-0" /> {visit.location}
+                            </p>
+                          )}
+                          {visit.notes && (
+                            <p className="text-xs text-muted-foreground">{visit.notes}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(visit.visit_date), 'HH:mm')}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

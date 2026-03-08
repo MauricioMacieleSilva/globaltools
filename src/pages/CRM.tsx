@@ -171,6 +171,14 @@ export default function CRM() {
       return;
     }
 
+    // Intercept proposta/pedido -> require order link
+    if (newStatus === 'proposta' || newStatus === 'pedido') {
+      setPendingOrderLead(lead);
+      setPendingOrderStage(newStatus);
+      setOrderLinkOpen(true);
+      return;
+    }
+
     // Intercept lead -> contato_feito: require enrichment
     if (newStatus === 'contato_feito' && lead.status === 'lead') {
       setPendingEnrichLead(lead);

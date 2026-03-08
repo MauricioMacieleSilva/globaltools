@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, AlertTriangle } from 'lucide-react';
+import { Plus, AlertTriangle, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locationsService';
@@ -45,7 +46,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
   useEffect(() => {
     if (open) {
       setRamo(lead.ramo_atuacao || '');
-      setProduto(lead.produto_interesse || '');
+      setSelectedProducts(lead.produto_interesse ? lead.produto_interesse.split(',').map(p => p.trim()).filter(Boolean) : []);
       setCnpj(lead.cliente_cnpj || '');
       setRegime(lead.regime_tributario || '');
       setEstado(lead.estado || 'RS');
@@ -103,8 +104,16 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
     await (supabase as any).from('crm_product_interests').insert({ name: trimmed });
     setNewProduct('');
     setAddingProduct(false);
-    setProduto(trimmed);
+    if (!selectedProducts.includes(trimmed)) {
+      setSelectedProducts(prev => [...prev, trimmed]);
+    }
     loadLookups();
+  };
+
+  const toggleProduct = (name: string) => {
+    setSelectedProducts(prev =>
+      prev.includes(name) ? prev.filter(p => p !== name) : [...prev, name]
+    );
   };
 
   const formatCnpj = (value: string) => {
@@ -119,7 +128,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
   const hasAnyData = () => {
     return !!(
       ramo.trim() ||
-      produto.trim() ||
+      selectedProducts.length > 0 ||
       cnpj.replace(/\D/g, '').trim() ||
       regime.trim() ||
       estado.trim() ||
@@ -163,7 +172,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
       const cleanCnpj = cnpj.replace(/\D/g, '');
       const updateData = {
         ramo_atuacao: ramo || null,
-        produto_interesse: produto || null,
+        produto_interesse: selectedProducts.length > 0 ? selectedProducts.join(', ') : null,
         cliente_cnpj: cleanCnpj.length > 0 ? cleanCnpj : null,
         regime_tributario: regime || null,
         estado: estado || null,
@@ -220,9 +229,21 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
             )}
           </div>
 
-          {/* Produto */}
+          {/* Produto - Multi-select */}
           <div className="space-y-1">
-            <Label className="text-xs">Produto de Interesse</Label>
+            <Label className="text-xs">Produtos de Interesse</Label>
+            {selectedProducts.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-1">
+                {selectedProducts.map(p => (
+                  <span key={p} className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">
+                    {p}
+                    <button type="button" onClick={() => toggleProduct(p)} className="hover:text-destructive">
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             {addingProduct ? (
               <div className="flex gap-1">
                 <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Novo produto..." className="h-8 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddProduct()} autoFocus />
@@ -231,11 +252,19 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
               </div>
             ) : (
               <div className="flex gap-1">
-                <Select value={produto} onValueChange={setProduto}>
-                  <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>{products.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
-                </Select>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setAddingProduct(true)}><Plus className="h-3 w-3" /></Button>
+                <div className="flex-1 border rounded-md max-h-28 overflow-y-auto p-1.5 space-y-1">
+                  {products.map(p => (
+                    <label key={p.id} className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">
+                      <Checkbox
+                        checked={selectedProducts.includes(p.name)}
+                        onCheckedChange={() => toggleProduct(p.name)}
+                        className="h-3.5 w-3.5"
+                      />
+                      {p.name}
+                    </label>
+                  ))}
+                </div>
+                <Button size="icon" variant="outline" className="h-8 w-8 self-start" onClick={() => setAddingProduct(true)}><Plus className="h-3 w-3" /></Button>
               </div>
             )}
           </div>

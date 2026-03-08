@@ -338,17 +338,17 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
         </div>
 
         {/* Row 1: Daily contacts + Funnel */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Contatos e Visitas Diárias</CardTitle>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm">Contatos e Visitas Diárias</CardTitle>
             </CardHeader>
-            <CardContent className="h-[260px]">
+            <CardContent className="h-[200px] sm:h-[260px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyContactsData} barGap={2}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="dia" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                  <XAxis dataKey="dia" tick={{ fontSize: 9 }} className="fill-muted-foreground" interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="visitas" name="Visitas" fill="hsl(262, 52%, 47%)" radius={[3, 3, 0, 0]} />
@@ -358,15 +358,15 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Funil de Vendas</CardTitle>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm">Funil de Vendas</CardTitle>
             </CardHeader>
-            <CardContent className="h-[260px]">
+            <CardContent className="h-[200px] sm:h-[260px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnelData} layout="vertical" barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={90} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={75} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
                     {funnelData.map((entry, i) => (

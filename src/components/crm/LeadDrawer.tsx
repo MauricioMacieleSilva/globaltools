@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -7,13 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LeadEnrichForm } from './LeadEnrichForm';
 import { LeadEditDialog } from './LeadEditDialog';
+import { fetchComercialData } from '@/services/googleSheetsService';
 
 interface LeadActivity {
   id: string;
@@ -58,6 +59,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [submitting, setSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ key: string; label: string } | null>(null);
+  const [orderValue, setOrderValue] = useState<number | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -65,6 +67,25 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       loadActivities(lead.id);
     }
   }, [lead?.id, open]);
+
+  // Fetch order value from commercial data if budget_number exists but valor_estimado is missing
+  useEffect(() => {
+    if (!lead?.budget_number || !open) { setOrderValue(null); return; }
+    if (lead.valor_estimado && lead.valor_estimado > 0) { setOrderValue(lead.valor_estimado); return; }
+    fetchComercialData().then((data) => {
+      let total = 0;
+      for (const d of data) {
+        if (d.numeropedido === lead.budget_number) {
+          total += (d.valor || 0);
+        }
+      }
+      setOrderValue(total);
+      // Backfill to DB
+      if (total > 0) {
+        (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
+      }
+    }).catch(() => setOrderValue(null));
+  }, [lead?.budget_number, lead?.id, open]);
 
   const loadActivities = async (leadId: string) => {
     const { data } = await supabase
@@ -237,7 +258,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               )}
               {lead.produto_interesse && (
                 <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Tags className="h-4 w-4 text-muted-foreground" />
                   <span>{lead.produto_interesse}</span>
                 </div>
               )}
@@ -251,12 +272,11 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <div className="flex items-center gap-2 text-sm font-medium text-primary">
                   <Package className="h-4 w-4" />
                   <span>Pedido {lead.budget_number}</span>
-                </div>
-              )}
-              {lead.valor_estimado != null && lead.valor_estimado > 0 && (
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <span className="text-muted-foreground font-normal text-xs">Valor:</span>
-                  R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {orderValue != null && orderValue > 0 && (
+                    <span className="font-semibold text-foreground">
+                      — R$ {orderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

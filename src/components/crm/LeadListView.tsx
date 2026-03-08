@@ -84,6 +84,28 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
     }
   };
 
+  const handleReactivate = async (lead: CRMLead) => {
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'lead', updated_at: new Date().toISOString() })
+        .eq('id', lead.id);
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        activity_type: 'mudanca_status',
+        description: 'Lead reativado — movido de "Perdido" para "Lead"',
+        user_id: user?.id || '',
+      } as any);
+      toast.success('Lead reativado com sucesso', {
+        description: `${lead.client_name || lead.cliente_nome} voltou para a carteira`,
+      });
+      onLeadUpdated();
+    } catch {
+      toast.error('Erro ao reativar lead');
+    }
+  };
+
   const SortHeader = ({ label, sortKeyName }: { label: string; sortKeyName: SortKey }) => (
     <Button variant="ghost" size="sm" className="h-auto p-0 font-medium text-xs hover:bg-transparent" onClick={() => toggleSort(sortKeyName)}>
       {label} <ArrowUpDown className="ml-1 h-3 w-3" />

@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus } from 'lucide-react';
+import { Plus, RotateCcw, Eye, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
@@ -18,18 +18,26 @@ interface LostDealsDialogProps {
   lostLeads: CRMLead[];
   onConfirmLost: (reason: string) => void;
   onCancel: () => void;
+  onLeadClick?: (lead: CRMLead) => void;
+  onLeadReactivated?: () => void;
 }
 
-export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel }: LostDealsDialogProps) {
+export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel, onLeadClick, onLeadReactivated }: LostDealsDialogProps) {
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
   const [reasons, setReasons] = useState<{ id: string; name: string }[]>([]);
   const [addingReason, setAddingReason] = useState(false);
   const [newReason, setNewReason] = useState('');
+  const [search, setSearch] = useState('');
+  const [reactivating, setReactivating] = useState<string | null>(null);
+  const [dispositions, setDispositions] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (open) loadReasons();
-  }, [open]);
+    if (open) {
+      loadReasons();
+      if (!pendingLead) loadDispositions();
+    }
+  }, [open, pendingLead]);
 
   const loadReasons = async () => {
     const { data } = await (supabase as any)
@@ -38,6 +46,20 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
       .eq('is_active', true)
       .order('display_order', { ascending: true });
     setReasons(data || []);
+  };
+
+  const loadDispositions = async () => {
+    const { data } = await (supabase as any)
+      .from('lead_dispositions')
+      .select('lead_id, reason, custom_reason')
+      .eq('disposition_type', 'lost');
+    if (data) {
+      const map: Record<string, string> = {};
+      data.forEach((d: any) => {
+        map[d.lead_id] = d.reason || d.custom_reason || '';
+      });
+      setDispositions(map);
+    }
   };
 
   const handleAddReason = async () => {
@@ -64,6 +86,40 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
     setCustomReason('');
     onCancel();
   };
+
+  const handleReactivate = async (lead: CRMLead) => {
+    setReactivating(lead.id);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'lead', updated_at: new Date().toISOString() })
+        .eq('id', lead.id);
+
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        activity_type: 'mudanca_status',
+        description: 'Lead reativado — movido de "Perdido" para "Lead"',
+        user_id: user?.id || '',
+      } as any);
+
+      toast.success('Lead reativado com sucesso', {
+        description: `${lead.client_name || lead.cliente_nome} voltou para a carteira`,
+      });
+      onLeadReactivated?.();
+    } catch {
+      toast.error('Erro ao reativar lead');
+    } finally {
+      setReactivating(null);
+    }
+  };
+
+  const filteredLostLeads = lostLeads.filter(l => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (l.client_name || l.cliente_nome || '').toLowerCase().includes(q) ||
+      (l.empresa || '').toLowerCase().includes(q);
+  });
 
   if (pendingLead) {
     return (
@@ -128,26 +184,80 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
         <DialogHeader>
           <DialogTitle>Leads Perdidos ({lostLeads.length})</DialogTitle>
         </DialogHeader>
+
+        {lostLeads.length > 3 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar lead perdido..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        )}
+
         <div className="space-y-2 overflow-y-auto max-h-[60vh]">
-          {lostLeads.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhum lead perdido</p>
+          {filteredLostLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {lostLeads.length === 0 ? 'Nenhum lead perdido' : 'Nenhum resultado encontrado'}
+            </p>
           ) : (
-            lostLeads.map(lead => (
-              <div key={lead.id} className="p-3 rounded-lg border bg-card space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{lead.client_name || lead.cliente_nome}</span>
+            filteredLostLeads.map(lead => (
+              <div key={lead.id} className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium text-foreground">{lead.client_name || lead.cliente_nome}</span>
+                    {lead.empresa && (
+                      <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>
+                    )}
+                  </div>
                   {lead.valor_estimado && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs shrink-0">
                       {lead.valor_estimado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })}
                     </Badge>
                   )}
                 </div>
-                {lead.observacoes && (
-                  <p className="text-xs text-muted-foreground">Motivo: {lead.observacoes}</p>
+
+                {(dispositions[lead.id] || lead.notes) && (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Motivo:</span> {dispositions[lead.id] || lead.notes}
+                  </p>
                 )}
-                <p className="text-[10px] text-muted-foreground">
-                  {new Date(lead.updated_at).toLocaleDateString('pt-BR')}
-                </p>
+
+                {(lead.cidade || lead.estado) && (
+                  <p className="text-xs text-muted-foreground">
+                    📍 {[lead.cidade, lead.estado].filter(Boolean).join('/')}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between pt-1">
+                  <p className="text-[10px] text-muted-foreground">
+                    Perdido em {new Date(lead.updated_at).toLocaleDateString('pt-BR')}
+                  </p>
+                  <div className="flex gap-1.5">
+                    {onLeadClick && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs gap-1 px-2"
+                        onClick={() => { onOpenChange(false); onLeadClick(lead); }}
+                      >
+                        <Eye className="h-3.5 w-3.5" /> Detalhes
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 px-2"
+                      disabled={reactivating === lead.id}
+                      onClick={() => handleReactivate(lead)}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      {reactivating === lead.id ? 'Reativando...' : 'Reativar'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             ))
           )}

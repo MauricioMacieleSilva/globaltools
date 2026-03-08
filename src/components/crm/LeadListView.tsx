@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowUpDown, Edit2, Trash2, Eye, MoreHorizontal } from 'lucide-react';
+import { Search, ArrowUpDown, Edit2, Trash2, Eye, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,6 +84,28 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
     }
   };
 
+  const handleReactivate = async (lead: CRMLead) => {
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'lead', updated_at: new Date().toISOString() })
+        .eq('id', lead.id);
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        activity_type: 'mudanca_status',
+        description: 'Lead reativado — movido de "Perdido" para "Lead"',
+        user_id: user?.id || '',
+      } as any);
+      toast.success('Lead reativado com sucesso', {
+        description: `${lead.client_name || lead.cliente_nome} voltou para a carteira`,
+      });
+      onLeadUpdated();
+    } catch {
+      toast.error('Erro ao reativar lead');
+    }
+  };
+
   const SortHeader = ({ label, sortKeyName }: { label: string; sortKeyName: SortKey }) => (
     <Button variant="ghost" size="sm" className="h-auto p-0 font-medium text-xs hover:bg-transparent" onClick={() => toggleSort(sortKeyName)}>
       {label} <ArrowUpDown className="ml-1 h-3 w-3" />
@@ -137,6 +159,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onLeadClick(lead)}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditLead(lead)}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
+                        {lead.status === 'perdido' && (
+                          <DropdownMenuItem onClick={() => handleReactivate(lead)}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
+                        )}
                         <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -234,6 +259,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onLeadClick(lead); }}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditLead(lead); }}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
+                        {lead.status === 'perdido' && (
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReactivate(lead); }}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
+                        )}
                         <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

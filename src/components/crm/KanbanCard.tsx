@@ -26,7 +26,7 @@ function getDaysInStage(updatedAt: string): number {
 
 export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
   const [lastActivity, setLastActivity] = useState<LastActivityInfo | null>(null);
-  const [nextVisitDate, setNextVisitDate] = useState<string | null>(null);
+  const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -62,13 +62,13 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     // Load next visit
     (supabase as any)
       .from('crm_visits')
-      .select('visit_date')
+      .select('visit_date, location')
       .eq('lead_id', lead.id)
       .gte('visit_date', new Date().toISOString())
       .order('visit_date', { ascending: true })
       .limit(1)
       .then(({ data }: any) => {
-        if (data?.[0]) setNextVisitDate(data[0].visit_date);
+        if (data?.[0]) setNextVisit({ date: data[0].visit_date, location: data[0].location });
       });
   }, [lead.id, lead.updated_at]);
 
@@ -117,10 +117,10 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {nextVisitDate && (
-          <p className="text-[10px] text-primary flex items-center gap-1 font-medium">
-            <Calendar className="h-3 w-3" />
-            Visita: {new Date(nextVisitDate).toLocaleDateString('pt-BR')}
+        {nextVisit && (
+          <p className="text-[10px] text-primary flex items-center gap-1 font-medium truncate">
+            <Calendar className="h-3 w-3 shrink-0" />
+            {new Date(nextVisit.date).toLocaleDateString('pt-BR')} {new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}{nextVisit.location ? ` · ${nextVisit.location}` : ''}
           </p>
         )}
 

@@ -189,6 +189,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       case 'nota': return <FileText className="h-3 w-3" />;
       case 'encaminhamento': return <Send className="h-3 w-3" />;
       case 'visita': return <MapPin className="h-3 w-3" />;
+      case 'mudanca_status': return <ArrowRightLeft className="h-3 w-3" />;
       default: return <Clock className="h-3 w-3" />;
     }
   };

@@ -14,6 +14,7 @@ import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LeadEnrichForm } from './LeadEnrichForm';
 import { LeadEditDialog } from './LeadEditDialog';
+import { fetchComercialData } from '@/services/googleSheetsService';
 
 interface LeadActivity {
   id: string;

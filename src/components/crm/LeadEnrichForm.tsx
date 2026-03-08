@@ -49,6 +49,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setRegime(lead.regime_tributario || '');
     setEstado(lead.estado || 'RS');
     setCidade(lead.cidade || '');
+    setCidadeSearch(lead.cidade || '');
   }, [lead.id]);
 
   useEffect(() => {

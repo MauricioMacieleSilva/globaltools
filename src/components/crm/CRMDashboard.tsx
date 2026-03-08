@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { cn } from '@/lib/utils';
 import { AlertTriangle } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, subMonths } from 'date-fns';
@@ -350,8 +350,12 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                   <XAxis dataKey="dia" tick={{ fontSize: 9 }} className="fill-muted-foreground" interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                  <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="visitas" name="Visitas" fill="hsl(262, 52%, 47%)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]}>
+                    <LabelList dataKey="contatos" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                  </Bar>
+                  <Bar dataKey="visitas" name="Visitas" fill="hsl(262, 52%, 47%)" radius={[3, 3, 0, 0]}>
+                    <LabelList dataKey="visitas" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -369,6 +373,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={75} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
+                    <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
                     {funnelData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
@@ -395,7 +400,9 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={90} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Leads" fill="hsl(200, 98%, 39%)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="value" name="Leads" fill="hsl(200, 98%, 39%)" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -421,6 +428,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={90} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
                       {productData.map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
@@ -452,7 +460,9 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                     <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-35} textAnchor="end" height={55} interval={0} />
                     <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Leads" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="value" name="Leads" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]}>
+                      <LabelList dataKey="value" position="top" fontSize={10} className="fill-foreground" />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -477,7 +487,9 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} className="fill-muted-foreground" width={100} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -504,8 +516,12 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                   <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-20} textAnchor="end" height={45} />
                   <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                  <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="visitas" name="Visitas" fill="hsl(142, 76%, 36%)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]}>
+                    <LabelList dataKey="contatos" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                  </Bar>
+                  <Bar dataKey="visitas" name="Visitas" fill="hsl(142, 76%, 36%)" radius={[3, 3, 0, 0]}>
+                    <LabelList dataKey="visitas" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

@@ -487,7 +487,9 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} className="fill-muted-foreground" width={100} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

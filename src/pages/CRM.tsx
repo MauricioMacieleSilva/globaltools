@@ -235,6 +235,41 @@ export default function CRM() {
     setPendingVisitLead(null);
   };
 
+  const handleEnrichConfirmed = async () => {
+    if (!pendingEnrichLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const oldStatus = pendingEnrichLead.status;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'contato_feito', updated_at: new Date().toISOString() })
+        .eq('id', pendingEnrichLead.id);
+
+      setLeads(prev => prev.map(l => l.id === pendingEnrichLead.id ? { ...l, status: 'contato_feito', updated_at: new Date().toISOString() } : l));
+
+      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingEnrichLead.id,
+        activity_type: 'mudanca_status',
+        description: `Movido de "${oldLabel}" para "Contato Feito"`,
+        user_id: user?.id || '',
+      } as any);
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingEnrichLead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via CRM',
+        user_id: user?.id || '',
+      } as any);
+
+      loadTodayStats();
+      loadLeads();
+      toast.success('Status atualizado', { description: 'Lead movido para Contato Feito' });
+    } catch {
+      toast.error('Erro ao mover lead');
+    }
+    setPendingEnrichLead(null);
+  };
+
   const confirmLostDeal = async (reason: string) => {
     if (!pendingLostLead) return;
     try {

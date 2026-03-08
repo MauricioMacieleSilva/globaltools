@@ -31,6 +31,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
+  const [lossReasons, setLossReasons] = useState<any[]>([]);
   const [vendorFilter, setVendorFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
   const [loading, setLoading] = useState(true);

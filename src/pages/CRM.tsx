@@ -362,6 +362,7 @@ export default function CRM() {
             </TabsTrigger>
           </TabsList>
           {activeTab === 'kanban' && (
+            <div data-tour="crm-filters">
             <CRMFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}

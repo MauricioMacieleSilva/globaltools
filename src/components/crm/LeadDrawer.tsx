@@ -251,11 +251,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <div className="flex items-center gap-2 text-sm font-medium text-primary">
                   <Package className="h-4 w-4" />
                   <span>Pedido {lead.budget_number}</span>
-                  {lead.valor_estimado != null && lead.valor_estimado > 0 && (
-                    <span className="text-muted-foreground font-normal">
-                      • R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  )}
+                </div>
+              )}
+              {lead.valor_estimado != null && lead.valor_estimado > 0 && (
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <span className="text-muted-foreground font-normal text-xs">Valor:</span>
+                  R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
               )}
             </div>

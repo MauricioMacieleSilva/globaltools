@@ -58,6 +58,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       className={`p-3 cursor-pointer hover:shadow-md transition-all select-none ${isDragging ? 'opacity-40 scale-95' : ''}`}
     >
       <div className="space-y-1.5">
+        {/* Header: empresa + whatsapp */}
         <div className="flex items-start justify-between gap-1">
           <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{lead.empresa || name}</h4>
           {whatsappUrl && (
@@ -74,22 +75,12 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           )}
         </div>
 
+        {/* Contact name */}
         {(lead.empresa ? name : null) && (
           <p className="text-xs text-muted-foreground truncate">{name}</p>
         )}
 
-        {/* Vendor info */}
-        {vendorName && (
-          <div className="flex items-center gap-1.5">
-            <Avatar className="h-4 w-4">
-              <AvatarImage src={vendorAvatar || undefined} alt={vendorName} />
-              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">{vendorInitials}</AvatarFallback>
-            </Avatar>
-            <span className="text-[10px] text-muted-foreground truncate">{vendorName}</span>
-          </div>
-        )}
-
-        {/* Enrichment info */}
+        {/* Client info */}
         {lead.ramo_atuacao && (
           <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
             <Briefcase className="h-3 w-3 shrink-0" />
@@ -112,16 +103,21 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         )}
 
         {/* Order/Budget number & value */}
-        {lead.budget_number && (lead.status === 'proposta' || lead.status === 'pedido') && (
+        {lead.budget_number && (
           <div className="flex items-center gap-1 text-[10px] font-medium text-primary">
             <Package className="h-3 w-3 shrink-0" />
             <span>Pedido {lead.budget_number}</span>
-            {lead.valor_estimado != null && lead.valor_estimado > 0 && (
-              <span className="text-muted-foreground">• R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            )}
           </div>
         )}
 
+        {/* Value - always show if available */}
+        {lead.valor_estimado != null && lead.valor_estimado > 0 && (
+          <p className="text-xs font-semibold text-foreground">
+            R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+        )}
+
+        {/* Products + days */}
         <div className="flex items-center justify-between gap-1">
           <div className="flex flex-wrap gap-1 flex-1 min-w-0">
             {produtos.length > 0 ? (
@@ -139,6 +135,17 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
             {days}d
           </span>
         </div>
+
+        {/* Vendor - separated at bottom, discrete */}
+        {vendorName && (
+          <div className="flex items-center gap-1.5 pt-1 border-t border-border/50">
+            <Avatar className="h-4 w-4">
+              <AvatarImage src={vendorAvatar || undefined} alt={vendorName} />
+              <AvatarFallback className="text-[7px] bg-muted text-muted-foreground">{vendorInitials}</AvatarFallback>
+            </Avatar>
+            <span className="text-[10px] text-muted-foreground/70 truncate">{vendorName}</span>
+          </div>
+        )}
       </div>
     </Card>
   );

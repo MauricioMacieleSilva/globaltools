@@ -27,7 +27,7 @@ const DEFAULT_ORIGENS = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita'
 export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEditDialogProps) {
   const [form, setForm] = useState({
     cliente_nome: '', empresa: '', cliente_telefone: '', cliente_email: '',
-    source: '', notes: '', cliente_cnpj: '',
+    source: '', notes: '', cliente_cnpj: '', budget_number: '',
     ramo_atuacao: '', regime_tributario: '', estado: '', cidade: '',
   });
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -59,6 +59,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         source: lead.source || lead.origem || '',
         notes: lead.notes || lead.observacoes || '',
         cliente_cnpj: lead.cliente_cnpj || '',
+        budget_number: lead.budget_number || '',
         ramo_atuacao: lead.ramo_atuacao || '',
         regime_tributario: lead.regime_tributario || '',
         estado: lead.estado || '',
@@ -165,6 +166,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         produto_interesse: selectedProducts.length > 0 ? selectedProducts.join(', ') : null,
         notes: form.notes || null,
         cliente_cnpj: form.cliente_cnpj.replace(/\D/g, '') || null,
+        budget_number: form.budget_number.trim() || null,
         ramo_atuacao: form.ramo_atuacao || null,
         regime_tributario: form.regime_tributario || null,
         estado: form.estado || null,
@@ -214,6 +216,11 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
             <div className="space-y-1">
               <Label className="text-xs">CNPJ</Label>
               <Input value={formatCnpj(form.cliente_cnpj)} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
+            </div>
+            {/* Nº Pedido / Orçamento */}
+            <div className="space-y-1">
+              <Label className="text-xs">Nº Pedido / Orçamento</Label>
+              <Input value={form.budget_number} onChange={(e) => setForm(f => ({ ...f, budget_number: e.target.value }))} placeholder="Ex: 11970" />
             </div>
             {/* Origem */}
             <div className="space-y-1">

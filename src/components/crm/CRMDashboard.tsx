@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
+import { AlertTriangle } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { CRMLead } from '@/pages/CRM';
@@ -30,6 +31,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
+  const [lossReasons, setLossReasons] = useState<any[]>([]);
   const [vendorFilter, setVendorFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
   const [loading, setLoading] = useState(true);
@@ -67,6 +69,18 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
 
     const { data } = await query;
     setActivities(data || []);
+
+    // Load loss reasons from lead_dispositions for the period
+    let lossQuery = (supabase as any)
+      .from('lead_dispositions')
+      .select('reason, custom_reason, disposition_type')
+      .eq('disposition_type', 'lost')
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString());
+
+    const { data: lossData } = await lossQuery;
+    setLossReasons(lossData || []);
+
     setLoading(false);
   }, [periodFilter, vendorFilter]);
 
@@ -150,6 +164,19 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
       .slice(0, 8)
       .map(([name, value]) => ({ name, value }));
   }, [filteredLeads]);
+
+  // Loss reasons chart
+  const lossReasonsData = useMemo(() => {
+    const map: Record<string, number> = {};
+    lossReasons.forEach(lr => {
+      const reason = lr.reason || lr.custom_reason || 'Não informado';
+      map[reason] = (map[reason] || 0) + 1;
+    });
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, value]) => ({ name, value }));
+  }, [lossReasons]);
 
   // Contacts per vendor
   const vendorContactsData = useMemo(() => {
@@ -388,24 +415,17 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
             <CardContent className="h-[280px]">
               {productData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={productData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={90}
-                      paddingAngle={3}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      labelLine={{ strokeWidth: 1 }}
-                    >
+                  <BarChart data={productData} layout="vertical" barSize={16}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={120} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                    <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
                       {productData.map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
@@ -416,7 +436,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
         </div>
 
-        {/* Row 3: Sectors + Vendor performance */}
+        {/* Row 3: Sectors + Loss Reasons */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -443,7 +463,35 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
             </CardContent>
           </Card>
 
-          {vendorFilter === 'all' && vendorContactsData.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4" /> Motivos de Perda
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[280px]">
+              {lossReasonsData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={lossReasonsData} layout="vertical" barSize={16}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={130} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                    <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                  Nenhum motivo de perda no período
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Row 4: Vendor performance */}
+        {vendorFilter === 'all' && vendorContactsData.length > 0 && (
+          <div className="grid grid-cols-1 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-1.5">
@@ -463,8 +511,8 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

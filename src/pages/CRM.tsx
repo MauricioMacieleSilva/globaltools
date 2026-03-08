@@ -13,6 +13,7 @@ import { TeamPerformance } from '@/components/crm/TeamPerformance';
 import { PortfolioHealth } from '@/components/crm/PortfolioHealth';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
+import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -76,6 +77,9 @@ export default function CRM() {
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
+  // Enrich gate dialog
+  const [enrichGateOpen, setEnrichGateOpen] = useState(false);
+  const [pendingEnrichLead, setPendingEnrichLead] = useState<CRMLead | null>(null);
   
   const isMobile = useIsMobile();
 
@@ -158,7 +162,19 @@ export default function CRM() {
       return;
     }
 
-    // Validate one contact per day
+    // Intercept lead -> contato_feito: require enrichment
+    if (newStatus === 'contato_feito' && lead.status === 'lead') {
+      const already = await checkContactAlreadyToday(leadId);
+      if (already) {
+        toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
+        return;
+      }
+      setPendingEnrichLead(lead);
+      setEnrichGateOpen(true);
+      return;
+    }
+
+    // Validate one contact per day for other cases
     if (newStatus === 'contato_feito') {
       const already = await checkContactAlreadyToday(leadId);
       if (already) {
@@ -217,6 +233,41 @@ export default function CRM() {
       loadTodayStats();
     } catch {}
     setPendingVisitLead(null);
+  };
+
+  const handleEnrichConfirmed = async () => {
+    if (!pendingEnrichLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const oldStatus = pendingEnrichLead.status;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'contato_feito', updated_at: new Date().toISOString() })
+        .eq('id', pendingEnrichLead.id);
+
+      setLeads(prev => prev.map(l => l.id === pendingEnrichLead.id ? { ...l, status: 'contato_feito', updated_at: new Date().toISOString() } : l));
+
+      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingEnrichLead.id,
+        activity_type: 'mudanca_status',
+        description: `Movido de "${oldLabel}" para "Contato Feito"`,
+        user_id: user?.id || '',
+      } as any);
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingEnrichLead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via CRM',
+        user_id: user?.id || '',
+      } as any);
+
+      loadTodayStats();
+      loadLeads();
+      toast.success('Status atualizado', { description: 'Lead movido para Contato Feito' });
+    } catch {
+      toast.error('Erro ao mover lead');
+    }
+    setPendingEnrichLead(null);
   };
 
   const confirmLostDeal = async (reason: string) => {
@@ -373,6 +424,15 @@ export default function CRM() {
           leadId={pendingVisitLead.id}
           leadName={pendingVisitLead.client_name || pendingVisitLead.cliente_nome}
           onConfirm={handleVisitConfirmed}
+      />
+      )}
+
+      {pendingEnrichLead && (
+        <LeadEnrichGateDialog
+          open={enrichGateOpen}
+          onOpenChange={(v) => { setEnrichGateOpen(v); if (!v) setPendingEnrichLead(null); }}
+          lead={pendingEnrichLead}
+          onConfirm={handleEnrichConfirmed}
         />
       )}
 

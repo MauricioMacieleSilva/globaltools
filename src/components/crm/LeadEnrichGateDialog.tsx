@@ -131,7 +131,24 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
   const handleEstadoChange = (uf: string) => {
     setEstado(uf);
     setCidade('');
+    setCidadeSearch('');
   };
+
+  const handleCidadeSelect = (c: string) => {
+    setCidade(c);
+    setCidadeSearch(c);
+    setShowCidadeDropdown(false);
+  };
+
+  const handleCidadeSearchChange = (value: string) => {
+    setCidadeSearch(value);
+    setCidade(value);
+    setShowCidadeDropdown(true);
+  };
+
+  const filteredCidades = cidadeSearch
+    ? cidades.filter(c => c.toLowerCase().includes(cidadeSearch.toLowerCase())).slice(0, 15)
+    : cidades.slice(0, 15);
 
   const handleSave = async () => {
     if (!hasAnyData()) {

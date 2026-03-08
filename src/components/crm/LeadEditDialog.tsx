@@ -6,8 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { locationsService } from '@/services/locationsService';
+import { Plus, ChevronsUpDown, X } from 'lucide-react';
 import type { CRMLead } from '@/pages/CRM';
 
 interface LeadEditDialogProps {
@@ -18,31 +22,132 @@ interface LeadEditDialogProps {
 }
 
 const REGIMES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real'];
+const DEFAULT_ORIGENS = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];
 
 export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEditDialogProps) {
   const [form, setForm] = useState({
     cliente_nome: '', empresa: '', cliente_telefone: '', cliente_email: '',
-    source: '', produto_interesse: '', notes: '', cliente_cnpj: '',
-    ramo_atuacao: '', regime_tributario: '',
+    source: '', notes: '', cliente_cnpj: '',
+    ramo_atuacao: '', regime_tributario: '', estado: '', cidade: '',
   });
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Lookups
+  const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
+  const [estados, setEstados] = useState<{ uf: string; nome: string }[]>([]);
+  const [cidades, setCidades] = useState<string[]>([]);
+  const [loadingCidades, setLoadingCidades] = useState(false);
+  const [cidadeSearch, setCidadeSearch] = useState('');
+  const [showCidadeDropdown, setShowCidadeDropdown] = useState(false);
+  const [addingSector, setAddingSector] = useState(false);
+  const [newSector, setNewSector] = useState('');
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [newProduct, setNewProduct] = useState('');
+  const [addingOrigem, setAddingOrigem] = useState(false);
+  const [novaOrigem, setNovaOrigem] = useState('');
+  const [origens, setOrigens] = useState(DEFAULT_ORIGENS);
+
   useEffect(() => {
-    if (lead) {
+    if (lead && open) {
       setForm({
         cliente_nome: lead.cliente_nome || '',
         empresa: lead.empresa || '',
         cliente_telefone: lead.cliente_telefone || lead.contact_phone || '',
         cliente_email: lead.cliente_email || lead.contact_email || '',
         source: lead.source || lead.origem || '',
-        produto_interesse: lead.produto_interesse || '',
         notes: lead.notes || lead.observacoes || '',
         cliente_cnpj: lead.cliente_cnpj || '',
-        ramo_atuacao: (lead as any).ramo_atuacao || '',
-        regime_tributario: (lead as any).regime_tributario || '',
+        ramo_atuacao: lead.ramo_atuacao || '',
+        regime_tributario: lead.regime_tributario || '',
+        estado: lead.estado || '',
+        cidade: lead.cidade || '',
       });
+      setSelectedProducts(
+        lead.produto_interesse ? lead.produto_interesse.split(',').map(p => p.trim()).filter(Boolean) : []
+      );
+      setCidadeSearch(lead.cidade || '');
+      loadLookups();
+      loadEstados();
     }
-  }, [lead]);
+  }, [lead, open]);
+
+  useEffect(() => {
+    if (form.estado) {
+      loadCidades(form.estado);
+    } else {
+      setCidades([]);
+    }
+  }, [form.estado]);
+
+  const loadEstados = async () => {
+    const data = await locationsService.getEstados();
+    setEstados(data.map(e => ({ uf: e.uf, nome: e.nome })));
+  };
+
+  const loadCidades = async (uf: string) => {
+    setLoadingCidades(true);
+    const data = await locationsService.getCidadesPorEstado(uf);
+    setCidades(data);
+    setLoadingCidades(false);
+  };
+
+  const loadLookups = async () => {
+    const [s, p] = await Promise.all([
+      (supabase as any).from('crm_business_sectors').select('id, name').eq('is_active', true).order('name'),
+      (supabase as any).from('crm_product_interests').select('id, name').eq('is_active', true).order('name'),
+    ]);
+    setSectors(s.data || []);
+    setProducts(p.data || []);
+  };
+
+  const handleAddSector = async () => {
+    const trimmed = newSector.trim();
+    if (!trimmed) return;
+    await (supabase as any).from('crm_business_sectors').insert({ name: trimmed });
+    setNewSector('');
+    setAddingSector(false);
+    setForm(f => ({ ...f, ramo_atuacao: trimmed }));
+    loadLookups();
+  };
+
+  const handleAddProduct = async () => {
+    const trimmed = newProduct.trim();
+    if (!trimmed) return;
+    await (supabase as any).from('crm_product_interests').insert({ name: trimmed });
+    setNewProduct('');
+    setAddingProduct(false);
+    if (!selectedProducts.includes(trimmed)) setSelectedProducts(prev => [...prev, trimmed]);
+    loadLookups();
+  };
+
+  const handleAddOrigem = () => {
+    const trimmed = novaOrigem.trim();
+    if (trimmed && !origens.includes(trimmed)) {
+      setOrigens(prev => [...prev, trimmed]);
+      setForm(f => ({ ...f, source: trimmed }));
+    }
+    setNovaOrigem('');
+    setAddingOrigem(false);
+  };
+
+  const toggleProduct = (name: string) => {
+    setSelectedProducts(prev => prev.includes(name) ? prev.filter(p => p !== name) : [...prev, name]);
+  };
+
+  const formatCnpj = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 14);
+    return digits
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2');
+  };
+
+  const filteredCidades = cidadeSearch
+    ? cidades.filter(c => c.toLowerCase().includes(cidadeSearch.toLowerCase())).slice(0, 15)
+    : cidades.slice(0, 15);
 
   const handleSave = async () => {
     if (!lead || !form.cliente_nome.trim()) return;
@@ -57,11 +162,13 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         cliente_email: form.cliente_email || null,
         contact_email: form.cliente_email || null,
         source: form.source || null,
-        produto_interesse: form.produto_interesse || null,
+        produto_interesse: selectedProducts.length > 0 ? selectedProducts.join(', ') : null,
         notes: form.notes || null,
         cliente_cnpj: form.cliente_cnpj.replace(/\D/g, '') || null,
         ramo_atuacao: form.ramo_atuacao || null,
         regime_tributario: form.regime_tributario || null,
+        estado: form.estado || null,
+        cidade: form.cidade || null,
         updated_at: new Date().toISOString(),
       }).eq('id', lead.id);
       if (error) throw error;
@@ -83,38 +190,70 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         </DialogHeader>
         <div className="grid gap-3 py-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Nome */}
             <div className="space-y-1 sm:col-span-2">
               <Label className="text-xs">Nome do Cliente *</Label>
               <Input value={form.cliente_nome} onChange={(e) => setForm(f => ({ ...f, cliente_nome: e.target.value }))} />
             </div>
+            {/* Empresa */}
             <div className="space-y-1">
               <Label className="text-xs">Empresa</Label>
               <Input value={form.empresa} onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))} />
             </div>
+            {/* Telefone */}
             <div className="space-y-1">
               <Label className="text-xs">Telefone</Label>
               <Input value={form.cliente_telefone} onChange={(e) => setForm(f => ({ ...f, cliente_telefone: e.target.value }))} />
             </div>
+            {/* Email */}
             <div className="space-y-1">
               <Label className="text-xs">Email</Label>
               <Input value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} />
             </div>
+            {/* CNPJ */}
             <div className="space-y-1">
               <Label className="text-xs">CNPJ</Label>
-              <Input value={form.cliente_cnpj} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
+              <Input value={formatCnpj(form.cliente_cnpj)} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
             </div>
+            {/* Origem */}
             <div className="space-y-1">
               <Label className="text-xs">Origem</Label>
-              <Input value={form.source} onChange={(e) => setForm(f => ({ ...f, source: e.target.value }))} />
+              {addingOrigem ? (
+                <div className="flex gap-1">
+                  <Input value={novaOrigem} onChange={(e) => setNovaOrigem(e.target.value)} placeholder="Nova origem..." className="h-9 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddOrigem()} autoFocus />
+                  <Button size="sm" className="h-9 text-xs" onClick={handleAddOrigem}>OK</Button>
+                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => { setAddingOrigem(false); setNovaOrigem(''); }}>✕</Button>
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  <Select value={form.source} onValueChange={(v) => setForm(f => ({ ...f, source: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>{origens.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={() => setAddingOrigem(true)}><Plus className="h-3 w-3" /></Button>
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Produto de Interesse</Label>
-              <Input value={form.produto_interesse} onChange={(e) => setForm(f => ({ ...f, produto_interesse: e.target.value }))} />
-            </div>
+            {/* Ramo de Atuação */}
             <div className="space-y-1">
               <Label className="text-xs">Ramo de Atuação</Label>
-              <Input value={form.ramo_atuacao} onChange={(e) => setForm(f => ({ ...f, ramo_atuacao: e.target.value }))} />
+              {addingSector ? (
+                <div className="flex gap-1">
+                  <Input value={newSector} onChange={(e) => setNewSector(e.target.value)} placeholder="Novo ramo..." className="h-9 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddSector()} autoFocus />
+                  <Button size="sm" className="h-9 text-xs" onClick={handleAddSector}>OK</Button>
+                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => { setAddingSector(false); setNewSector(''); }}>✕</Button>
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  <Select value={form.ramo_atuacao} onValueChange={(v) => setForm(f => ({ ...f, ramo_atuacao: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>{sectors.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={() => setAddingSector(true)}><Plus className="h-3 w-3" /></Button>
+                </div>
+              )}
             </div>
+            {/* Regime Tributário */}
             <div className="space-y-1">
               <Label className="text-xs">Regime Tributário</Label>
               <Select value={form.regime_tributario} onValueChange={(v) => setForm(f => ({ ...f, regime_tributario: v }))}>
@@ -122,6 +261,91 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
                 <SelectContent>{REGIMES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {/* Estado / Cidade */}
+            <div className="space-y-1">
+              <Label className="text-xs">Estado (UF)</Label>
+              <Select value={form.estado} onValueChange={(v) => { setForm(f => ({ ...f, estado: v, cidade: '' })); setCidadeSearch(''); }}>
+                <SelectTrigger><SelectValue placeholder="UF..." /></SelectTrigger>
+                <SelectContent>
+                  {estados.map(e => <SelectItem key={e.uf} value={e.uf}>{e.uf} - {e.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1 relative">
+              <Label className="text-xs">Cidade</Label>
+              <Input
+                value={cidadeSearch}
+                onChange={(e) => { setCidadeSearch(e.target.value); setForm(f => ({ ...f, cidade: e.target.value })); setShowCidadeDropdown(true); }}
+                onFocus={() => setShowCidadeDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCidadeDropdown(false), 200)}
+                placeholder={loadingCidades ? 'Carregando...' : 'Digite a cidade...'}
+                disabled={!form.estado || loadingCidades}
+              />
+              {showCidadeDropdown && filteredCidades.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-md border bg-popover shadow-md">
+                  {filteredCidades.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onMouseDown={() => { setCidadeSearch(c); setForm(f => ({ ...f, cidade: c })); setShowCidadeDropdown(false); }}
+                      className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent cursor-pointer"
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Produtos de Interesse - Multi-select */}
+            <div className="space-y-1 sm:col-span-2">
+              <Label className="text-xs">Produtos de Interesse</Label>
+              {selectedProducts.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {selectedProducts.map(p => (
+                    <span key={p} className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">
+                      {p}
+                      <button type="button" onClick={() => toggleProduct(p)} className="hover:text-destructive">
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {addingProduct ? (
+                <div className="flex gap-1">
+                  <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Novo produto..." className="h-9 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddProduct()} autoFocus />
+                  <Button size="sm" className="h-9 text-xs" onClick={handleAddProduct}>OK</Button>
+                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => { setAddingProduct(false); setNewProduct(''); }}>✕</Button>
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="h-9 text-xs flex-1 justify-between font-normal">
+                        {selectedProducts.length > 0 ? `${selectedProducts.length} selecionado(s)` : 'Selecione...'}
+                        <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-1.5" align="start">
+                      <div className="max-h-40 overflow-y-auto space-y-0.5">
+                        {products.map(p => (
+                          <label key={p.id} className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-accent/50 rounded px-1.5 py-1">
+                            <Checkbox
+                              checked={selectedProducts.includes(p.name)}
+                              onCheckedChange={() => toggleProduct(p.name)}
+                              className="h-3.5 w-3.5"
+                            />
+                            {p.name}
+                          </label>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" onClick={() => setAddingProduct(true)}><Plus className="h-3 w-3" /></Button>
+                </div>
+              )}
+            </div>
+            {/* Observações */}
             <div className="space-y-1 sm:col-span-2">
               <Label className="text-xs">Observações</Label>
               <Textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />

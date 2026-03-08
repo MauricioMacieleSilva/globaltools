@@ -166,6 +166,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         produto_interesse: selectedProducts.length > 0 ? selectedProducts.join(', ') : null,
         notes: form.notes || null,
         cliente_cnpj: form.cliente_cnpj.replace(/\D/g, '') || null,
+        budget_number: form.budget_number.trim() || null,
         ramo_atuacao: form.ramo_atuacao || null,
         regime_tributario: form.regime_tributario || null,
         estado: form.estado || null,

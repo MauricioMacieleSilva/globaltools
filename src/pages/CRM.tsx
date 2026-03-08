@@ -47,6 +47,8 @@ export interface CRMLead {
   cliente_cnpj: string | null;
   ramo_atuacao: string | null;
   regime_tributario: string | null;
+  estado: string | null;
+  cidade: string | null;
 }
 
 export const CRM_STAGES = [

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { locationsService } from '@/services/locationsService';
 import type { CRMLead } from '@/pages/CRM';
 
 interface LeadEnrichGateDialogProps {
@@ -27,12 +28,17 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
   const [produto, setProduto] = useState('');
   const [cnpj, setCnpj] = useState('');
   const [regime, setRegime] = useState('');
+  const [estado, setEstado] = useState('');
+  const [cidade, setCidade] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
   const [addingSector, setAddingSector] = useState(false);
   const [newSector, setNewSector] = useState('');
   const [addingProduct, setAddingProduct] = useState(false);
   const [newProduct, setNewProduct] = useState('');
+  const [estados, setEstados] = useState<{ uf: string; nome: string }[]>([]);
+  const [cidades, setCidades] = useState<string[]>([]);
+  const [loadingCidades, setLoadingCidades] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -40,10 +46,34 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
       setProduto(lead.produto_interesse || '');
       setCnpj(lead.cliente_cnpj || '');
       setRegime(lead.regime_tributario || '');
+      setEstado(lead.estado || '');
+      setCidade(lead.cidade || '');
       setObservacoes(lead.observacoes || lead.notes || '');
       loadLookups();
+      loadEstados();
     }
   }, [open, lead.id]);
+
+  useEffect(() => {
+    if (estado) {
+      loadCidades(estado);
+    } else {
+      setCidades([]);
+      setCidade('');
+    }
+  }, [estado]);
+
+  const loadEstados = async () => {
+    const data = await locationsService.getEstados();
+    setEstados(data.map(e => ({ uf: e.uf, nome: e.nome })));
+  };
+
+  const loadCidades = async (uf: string) => {
+    setLoadingCidades(true);
+    const data = await locationsService.getCidadesPorEstado(uf);
+    setCidades(data);
+    setLoadingCidades(false);
+  };
 
   const loadLookups = async () => {
     const [s, p] = await Promise.all([
@@ -89,8 +119,15 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
       produto.trim() ||
       cnpj.replace(/\D/g, '').trim() ||
       regime.trim() ||
+      estado.trim() ||
+      cidade.trim() ||
       observacoes.trim()
     );
+  };
+
+  const handleEstadoChange = (uf: string) => {
+    setEstado(uf);
+    setCidade('');
   };
 
   const handleSave = async () => {
@@ -109,6 +146,8 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
         produto_interesse: produto || null,
         cliente_cnpj: cleanCnpj.length > 0 ? cleanCnpj : null,
         regime_tributario: regime || null,
+        estado: estado || null,
+        cidade: cidade || null,
         notes: observacoes || null,
         updated_at: new Date().toISOString(),
       };
@@ -194,6 +233,34 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>{REGIMES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
             </Select>
+          </div>
+
+          {/* Estado / Cidade */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Estado (UF)</Label>
+              <Select value={estado} onValueChange={handleEstadoChange}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF..." /></SelectTrigger>
+                <SelectContent>
+                  {estados.map(e => (
+                    <SelectItem key={e.uf} value={e.uf}>{e.uf} - {e.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Cidade</Label>
+              <Select value={cidade} onValueChange={setCidade} disabled={!estado || loadingCidades}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder={loadingCidades ? 'Carregando...' : 'Cidade...'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {cidades.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Observações / Notas */}

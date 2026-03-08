@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { locationsService } from '@/services/locationsService';
 import type { CRMLead } from '@/pages/CRM';
 
 interface LeadEnrichFormProps {
@@ -23,14 +24,20 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const [produto, setProduto] = useState(lead.produto_interesse || '');
   const [cnpj, setCnpj] = useState(lead.cliente_cnpj || '');
   const [regime, setRegime] = useState(lead.regime_tributario || '');
+  const [estado, setEstado] = useState(lead.estado || '');
+  const [cidade, setCidade] = useState(lead.cidade || '');
   const [saving, setSaving] = useState(false);
   const [addingSector, setAddingSector] = useState(false);
   const [newSector, setNewSector] = useState('');
   const [addingProduct, setAddingProduct] = useState(false);
   const [newProduct, setNewProduct] = useState('');
+  const [estados, setEstados] = useState<{ uf: string; nome: string }[]>([]);
+  const [cidades, setCidades] = useState<string[]>([]);
+  const [loadingCidades, setLoadingCidades] = useState(false);
 
   useEffect(() => {
     loadLookups();
+    loadEstados();
   }, []);
 
   useEffect(() => {
@@ -38,7 +45,29 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setProduto(lead.produto_interesse || '');
     setCnpj(lead.cliente_cnpj || '');
     setRegime(lead.regime_tributario || '');
+    setEstado(lead.estado || '');
+    setCidade(lead.cidade || '');
   }, [lead.id]);
+
+  useEffect(() => {
+    if (estado) {
+      loadCidades(estado);
+    } else {
+      setCidades([]);
+    }
+  }, [estado]);
+
+  const loadEstados = async () => {
+    const data = await locationsService.getEstados();
+    setEstados(data.map(e => ({ uf: e.uf, nome: e.nome })));
+  };
+
+  const loadCidades = async (uf: string) => {
+    setLoadingCidades(true);
+    const data = await locationsService.getCidadesPorEstado(uf);
+    setCidades(data);
+    setLoadingCidades(false);
+  };
 
   const loadLookups = async () => {
     const [s, p] = await Promise.all([
@@ -80,14 +109,22 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
       .replace(/(\d{4})(\d)/, '$1-$2');
   };
 
+  const handleEstadoChange = (uf: string) => {
+    setEstado(uf);
+    setCidade('');
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
+      const cleanCnpj = cnpj.replace(/\D/g, '');
       const { error } = await (supabase as any).from('leads').update({
         ramo_atuacao: ramo || null,
         produto_interesse: produto || null,
-        cliente_cnpj: cnpj.replace(/\D/g, '') || null,
+        cliente_cnpj: cleanCnpj.length > 0 ? cleanCnpj : null,
         regime_tributario: regime || null,
+        estado: estado || null,
+        cidade: cidade || null,
         updated_at: new Date().toISOString(),
       }).eq('id', lead.id);
       if (error) throw error;
@@ -157,6 +194,34 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
           <SelectContent>{REGIMES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
         </Select>
+      </div>
+
+      {/* Estado / Cidade */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Estado (UF)</Label>
+          <Select value={estado} onValueChange={handleEstadoChange}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF..." /></SelectTrigger>
+            <SelectContent>
+              {estados.map(e => (
+                <SelectItem key={e.uf} value={e.uf}>{e.uf} - {e.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Cidade</Label>
+          <Select value={cidade} onValueChange={setCidade} disabled={!estado || loadingCidades}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder={loadingCidades ? 'Carregando...' : 'Cidade...'} />
+            </SelectTrigger>
+            <SelectContent>
+              {cidades.map(c => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Button size="sm" onClick={handleSave} disabled={saving} className="w-full">

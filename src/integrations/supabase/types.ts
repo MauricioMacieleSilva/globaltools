@@ -1323,6 +1323,7 @@ export type Database = {
       leads: {
         Row: {
           budget_number: string | null
+          cidade: string | null
           client_code: string | null
           client_name: string | null
           cliente_cnpj: string | null
@@ -1337,6 +1338,7 @@ export type Database = {
           data_fechamento: string | null
           empresa: string | null
           especialista_id: string | null
+          estado: string | null
           id: string
           notes: string | null
           numero_lead: string | null
@@ -1355,6 +1357,7 @@ export type Database = {
         }
         Insert: {
           budget_number?: string | null
+          cidade?: string | null
           client_code?: string | null
           client_name?: string | null
           cliente_cnpj?: string | null
@@ -1369,6 +1372,7 @@ export type Database = {
           data_fechamento?: string | null
           empresa?: string | null
           especialista_id?: string | null
+          estado?: string | null
           id?: string
           notes?: string | null
           numero_lead?: string | null
@@ -1387,6 +1391,7 @@ export type Database = {
         }
         Update: {
           budget_number?: string | null
+          cidade?: string | null
           client_code?: string | null
           client_name?: string | null
           cliente_cnpj?: string | null
@@ -1401,6 +1406,7 @@ export type Database = {
           data_fechamento?: string | null
           empresa?: string | null
           especialista_id?: string | null
+          estado?: string | null
           id?: string
           notes?: string | null
           numero_lead?: string | null

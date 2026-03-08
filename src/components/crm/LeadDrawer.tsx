@@ -315,7 +315,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                     size="sm"
                     variant="outline"
                     className="text-xs h-7"
-                    onClick={() => onStatusChange(lead.id, stage.key)}
+                    onClick={() => setPendingMove({ key: stage.key, label: stage.label })}
                   >
                     <div className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: stage.color }} />
                     {stage.label}
@@ -325,7 +325,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   size="sm"
                   variant="outline"
                   className="text-xs h-7 text-warning border-warning/30"
-                  onClick={() => onStatusChange(lead.id, 'perdido')}
+                  onClick={() => setPendingMove({ key: 'perdido', label: 'Perdido' })}
                 >
                   Perdido
                 </Button>

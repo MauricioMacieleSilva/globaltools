@@ -77,6 +77,9 @@ export default function CRM() {
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
+  // Enrich gate dialog
+  const [enrichGateOpen, setEnrichGateOpen] = useState(false);
+  const [pendingEnrichLead, setPendingEnrichLead] = useState<CRMLead | null>(null);
   
   const isMobile = useIsMobile();
 

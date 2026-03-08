@@ -322,12 +322,13 @@ export default function CRM() {
           <h1 className="text-lg sm:text-xl font-bold text-foreground">CRM</h1>
           <p className="text-xs text-muted-foreground">Gestão de Leads e Pipeline de Vendas</p>
         </div>
-        <Button onClick={() => setNewLeadOpen(true)} className="gap-1.5">
+        <Button data-tour="crm-new-lead" onClick={() => setNewLeadOpen(true)} className="gap-1.5">
           <Plus className="h-4 w-4" />
           {!isMobile && 'Novo Lead'}
         </Button>
       </div>
 
+      <div data-tour="crm-kpis">
       <CRMKPIs
         todayContacts={todayContacts}
         dailyGoal={dailyGoal}
@@ -339,10 +340,11 @@ export default function CRM() {
         totalLeads={filteredLeads.length}
         onLostClick={() => setLostDialogOpen(true)}
       />
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between gap-2">
-          <TabsList className="h-8">
+          <TabsList data-tour="crm-tabs" className="h-8">
             <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
               <LayoutGrid className="h-3.5 w-3.5" /> Kanban
             </TabsTrigger>
@@ -360,16 +362,18 @@ export default function CRM() {
             </TabsTrigger>
           </TabsList>
           {activeTab === 'kanban' && (
+            <div data-tour="crm-filters">
             <CRMFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               vendorFilter={vendorFilter}
               onVendorChange={setVendorFilter}
             />
+            </div>
           )}
         </div>
 
-        <TabsContent value="kanban" className="mt-3">
+        <TabsContent value="kanban" className="mt-3" data-tour="crm-kanban">
           <KanbanBoard
             leads={filteredLeads}
             stages={CRM_STAGES}

@@ -162,7 +162,7 @@ export default function CRM() {
     if (newStatus === 'contato_feito') {
       const already = await checkContactAlreadyToday(leadId);
       if (already) {
-        toast({ title: 'Contato já registrado hoje', description: 'Só é permitido um registro de contato por cliente por dia.', variant: 'destructive' });
+        toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
         return;
       }
     }

@@ -165,6 +165,19 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
       .map(([name, value]) => ({ name, value }));
   }, [filteredLeads]);
 
+  // Loss reasons chart
+  const lossReasonsData = useMemo(() => {
+    const map: Record<string, number> = {};
+    lossReasons.forEach(lr => {
+      const reason = lr.reason || lr.custom_reason || 'Não informado';
+      map[reason] = (map[reason] || 0) + 1;
+    });
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, value]) => ({ name, value }));
+  }, [lossReasons]);
+
   // Contacts per vendor
   const vendorContactsData = useMemo(() => {
     if (vendorFilter !== 'all') return [];

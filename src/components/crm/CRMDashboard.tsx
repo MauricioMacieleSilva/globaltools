@@ -69,6 +69,18 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
 
     const { data } = await query;
     setActivities(data || []);
+
+    // Load loss reasons from lead_dispositions for the period
+    let lossQuery = (supabase as any)
+      .from('lead_dispositions')
+      .select('reason, custom_reason, disposition_type')
+      .eq('disposition_type', 'lost')
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString());
+
+    const { data: lossData } = await lossQuery;
+    setLossReasons(lossData || []);
+
     setLoading(false);
   }, [periodFilter, vendorFilter]);
 

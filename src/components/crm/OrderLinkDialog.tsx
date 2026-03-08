@@ -37,7 +37,8 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
         const seen = new Set<string>();
         const unique: OrderOption[] = [];
         for (const d of data) {
-          if (d.numeropedido && !seen.has(d.numeropedido)) {
+          const sit = (d.situacao || '').toLowerCase();
+          if (d.numeropedido && !seen.has(d.numeropedido) && (sit.includes('orçamento') || sit.includes('orcamento') || sit.includes('pedido'))) {
             seen.add(d.numeropedido);
             unique.push({
               numeropedido: d.numeropedido,

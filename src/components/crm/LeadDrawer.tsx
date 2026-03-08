@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
@@ -245,6 +245,19 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <Calendar className="h-4 w-4" />
                 <span>Aberto em {new Date(lead.data_abertura).toLocaleDateString('pt-BR')}</span>
               </div>
+
+              {/* Order/Budget linked */}
+              {lead.budget_number && (
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <Package className="h-4 w-4" />
+                  <span>Pedido {lead.budget_number}</span>
+                  {lead.valor_estimado != null && lead.valor_estimado > 0 && (
+                    <span className="text-muted-foreground font-normal">
+                      • R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Contact Responsibility */}

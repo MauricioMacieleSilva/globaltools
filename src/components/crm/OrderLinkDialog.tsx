@@ -10,7 +10,7 @@ interface OrderLinkDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   targetStage: string;
-  onConfirm: (orderNumber: string) => void;
+  onConfirm: (orderNumber: string, orderValue: number) => void;
   onCancel: () => void;
 }
 
@@ -34,21 +34,24 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
     setLoading(true);
     fetchComercialData()
       .then((data) => {
-        const seen = new Set<string>();
-        const unique: OrderOption[] = [];
+        const orderMap = new Map<string, OrderOption>();
         for (const d of data) {
           const sit = (d.situacao || '').toLowerCase();
-          if (d.numeropedido && !seen.has(d.numeropedido) && (sit.includes('orçamento') || sit.includes('orcamento') || sit.includes('pedido'))) {
-            seen.add(d.numeropedido);
-            unique.push({
-              numeropedido: d.numeropedido,
-              cliente: d.cli_nomefantasia || d.cliente || '',
-              valor: d.valor || 0,
-              situacao: d.situacao || '',
-            });
+          if (d.numeropedido && (sit.includes('orçamento') || sit.includes('orcamento') || sit.includes('pedido'))) {
+            const existing = orderMap.get(d.numeropedido);
+            if (existing) {
+              existing.valor += (d.valor || 0);
+            } else {
+              orderMap.set(d.numeropedido, {
+                numeropedido: d.numeropedido,
+                cliente: d.cli_nomefantasia || d.cliente || '',
+                valor: d.valor || 0,
+                situacao: d.situacao || '',
+              });
+            }
           }
         }
-        setOrders(unique);
+        setOrders(Array.from(orderMap.values()));
       })
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
@@ -129,7 +132,11 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
 
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button disabled={!selected} onClick={() => selected && onConfirm(selected)}>
+          <Button disabled={!selected} onClick={() => {
+            if (!selected) return;
+            const order = orders.find(o => o.numeropedido === selected);
+            onConfirm(selected, order?.valor || 0);
+          }}>
             Confirmar
           </Button>
         </DialogFooter>

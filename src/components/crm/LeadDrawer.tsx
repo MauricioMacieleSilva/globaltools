@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LeadEnrichForm } from './LeadEnrichForm';
@@ -34,7 +34,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [newNote, setNewNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const { toast } = useToast();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -81,9 +80,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       } as any);
       setNewNote('');
       loadActivities(lead.id);
-      toast({ title: 'Nota adicionada' });
+      toast.success('Nota adicionada com sucesso');
     } catch {
-      toast({ title: 'Erro', description: 'Erro ao adicionar nota', variant: 'destructive' });
+      toast.error('Erro ao adicionar nota');
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +92,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     if (!lead) return;
     const already = await checkContactAlreadyToday(lead.id);
     if (already) {
-      toast({ title: 'Contato já registrado hoje', description: 'Só é permitido um registro de contato por cliente por dia.', variant: 'destructive' });
+      toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
       return;
     }
     try {
@@ -112,9 +111,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       }
 
       loadActivities(lead.id);
-      toast({ title: 'Contato registrado' });
+      toast.success('Contato registrado com sucesso');
     } catch {
-      toast({ title: 'Erro', variant: 'destructive' });
+      toast.error('Erro ao registrar contato');
     }
   };
 
@@ -125,7 +124,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const email = lead.contact_email || lead.cliente_email;
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
   const currentStage = CRM_STAGES.find(s => s.key === lead.status);
-  const showEnrich = lead.status !== 'lead'; // After first contact
+  const showEnrich = lead.status !== 'lead';
 
   const getActivityIcon = (type: string) => {
     switch (type) {

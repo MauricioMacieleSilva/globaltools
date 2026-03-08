@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
 
 interface LostDealsDialogProps {
@@ -46,6 +48,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
     setAddingReason(false);
     setSelectedReason(trimmed);
     loadReasons();
+    toast.success('Motivo de perda adicionado com sucesso');
   };
 
   const handleConfirm = () => {

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
 
 interface LeadEnrichFormProps {
@@ -27,7 +28,6 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const [newSector, setNewSector] = useState('');
   const [addingProduct, setAddingProduct] = useState(false);
   const [newProduct, setNewProduct] = useState('');
-  const { toast } = useToast();
 
   useEffect(() => {
     loadLookups();
@@ -57,6 +57,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setAddingSector(false);
     setRamo(trimmed);
     loadLookups();
+    toast.success('Ramo de atuação adicionado com sucesso');
   };
 
   const handleAddProduct = async () => {
@@ -67,6 +68,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setAddingProduct(false);
     setProduto(trimmed);
     loadLookups();
+    toast.success('Produto de interesse adicionado com sucesso');
   };
 
   const formatCnpj = (value: string) => {
@@ -89,10 +91,10 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
         updated_at: new Date().toISOString(),
       }).eq('id', lead.id);
       if (error) throw error;
-      toast({ title: 'Cadastro enriquecido!' });
+      toast.success('Cadastro enriquecido com sucesso');
       onUpdated();
     } catch {
-      toast({ title: 'Erro ao salvar', variant: 'destructive' });
+      toast.error('Erro ao salvar enriquecimento');
     } finally {
       setSaving(false);
     }

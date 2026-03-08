@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface VisitScheduleDialogProps {
   open: boolean;
@@ -24,15 +25,14 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   const handleConfirm = async () => {
     if (!visitDate) {
-      toast({ title: 'Selecione a data da visita', variant: 'destructive' });
+      toast.error('Selecione a data da visita');
       return;
     }
     if (!location.trim()) {
-      toast({ title: 'Informe o local da visita', variant: 'destructive' });
+      toast.error('Informe o local da visita');
       return;
     }
     setLoading(true);
@@ -51,14 +51,14 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
         description: `Visita agendada: ${format(visitDate, 'dd/MM/yyyy')} - ${location.trim()}`,
         user_id: user?.id || '',
       } as any);
-      toast({ title: 'Visita agendada com sucesso!' });
+      toast.success('Visita agendada com sucesso');
       setVisitDate(undefined);
       setLocation('');
       setNotes('');
       onOpenChange(false);
       onConfirm();
     } catch (err: any) {
-      toast({ title: 'Erro ao agendar visita', description: err.message, variant: 'destructive' });
+      toast.error('Erro ao agendar visita', { description: err.message });
     } finally {
       setLoading(false);
     }

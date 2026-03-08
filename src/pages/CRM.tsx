@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { CRMKPIs } from '@/components/crm/CRMKPIs';
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { LeadDrawer } from '@/components/crm/LeadDrawer';
@@ -76,7 +76,7 @@ export default function CRM() {
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
-  const { toast } = useToast();
+  
   const isMobile = useIsMobile();
 
   const loadLeads = useCallback(async () => {
@@ -162,7 +162,7 @@ export default function CRM() {
     if (newStatus === 'contato_feito') {
       const already = await checkContactAlreadyToday(leadId);
       if (already) {
-        toast({ title: 'Contato já registrado hoje', description: 'Só é permitido um registro de contato por cliente por dia.', variant: 'destructive' });
+        toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
         return;
       }
     }
@@ -186,10 +186,10 @@ export default function CRM() {
         loadTodayStats();
       }
 
-      toast({ title: 'Status atualizado', description: `Lead movido para ${CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus}` });
+      toast.success('Status atualizado', { description: `Lead movido para ${CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus}` });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
-      toast({ title: 'Erro', description: 'Erro ao atualizar status do lead', variant: 'destructive' });
+      toast.error('Erro ao atualizar status do lead');
     }
   };
 
@@ -228,9 +228,9 @@ export default function CRM() {
       setLeads(prev => prev.map(l => l.id === pendingLostLead.id ? { ...l, status: 'perdido' } : l));
       setPendingLostLead(null);
       setLostDialogOpen(false);
-      toast({ title: 'Lead perdido', description: 'Lead marcado como perdido.' });
+      toast.success('Lead marcado como perdido');
     } catch {
-      toast({ title: 'Erro', description: 'Erro ao marcar lead como perdido', variant: 'destructive' });
+      toast.error('Erro ao marcar lead como perdido');
     }
   };
 

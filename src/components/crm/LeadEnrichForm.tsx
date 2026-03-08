@@ -216,20 +216,30 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
           </div>
         ) : (
           <div className="flex gap-1">
-            <div className="flex-1 border rounded-md max-h-28 overflow-y-auto p-1.5 space-y-1">
-              {products.map(p => (
-                <label key={p.id} className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-accent/50 rounded px-1 py-0.5">
-                  <Checkbox
-                    checked={selectedProducts.includes(p.name)}
-                    onCheckedChange={() => toggleProduct(p.name)}
-                    className="h-3.5 w-3.5"
-                  />
-                  {p.name}
-                </label>
-              ))}
-            </div>
-            <Button size="icon" variant="outline" className="h-8 w-8 self-start" onClick={() => setAddingProduct(true)}><Plus className="h-3 w-3" /></Button>
-          </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-8 text-xs flex-1 justify-between font-normal">
+                      {selectedProducts.length > 0 ? `${selectedProducts.length} selecionado(s)` : 'Selecione...'}
+                      <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1.5" align="start">
+                    <div className="max-h-40 overflow-y-auto space-y-0.5">
+                      {products.map(p => (
+                        <label key={p.id} className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-accent/50 rounded px-1.5 py-1">
+                          <Checkbox
+                            checked={selectedProducts.includes(p.name)}
+                            onCheckedChange={() => toggleProduct(p.name)}
+                            className="h-3.5 w-3.5"
+                          />
+                          {p.name}
+                        </label>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button size="icon" variant="outline" className="h-8 w-8 self-start" onClick={() => setAddingProduct(true)}><Plus className="h-3 w-3" /></Button>
+              </div>
         )}
       </div>
 

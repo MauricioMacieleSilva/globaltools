@@ -26,6 +26,8 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const [regime, setRegime] = useState(lead.regime_tributario || '');
   const [estado, setEstado] = useState(lead.estado || 'RS');
   const [cidade, setCidade] = useState(lead.cidade || '');
+  const [cidadeSearch, setCidadeSearch] = useState(lead.cidade || '');
+  const [showCidadeDropdown, setShowCidadeDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const [addingSector, setAddingSector] = useState(false);
   const [newSector, setNewSector] = useState('');

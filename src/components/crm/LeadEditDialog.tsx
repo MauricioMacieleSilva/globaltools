@@ -27,7 +27,7 @@ const DEFAULT_ORIGENS = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita'
 export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEditDialogProps) {
   const [form, setForm] = useState({
     cliente_nome: '', empresa: '', cliente_telefone: '', cliente_email: '',
-    source: '', notes: '', cliente_cnpj: '',
+    source: '', notes: '', cliente_cnpj: '', budget_number: '',
     ramo_atuacao: '', regime_tributario: '', estado: '', cidade: '',
   });
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);

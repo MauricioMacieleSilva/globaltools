@@ -317,6 +317,7 @@ export default function CRM() {
   };
 
 
+  const confirmLostDeal = async (reason: string) => {
     if (!pendingLostLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;

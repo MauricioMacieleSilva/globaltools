@@ -236,8 +236,8 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
         {/* Filters bar */}
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-[180px] h-8 text-xs">
-              <Calendar className="h-3 w-3 mr-1.5" />
+            <SelectTrigger className="w-[140px] sm:w-[180px] h-8 text-xs">
+              <Calendar className="h-3 w-3 mr-1.5 shrink-0" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -248,8 +248,8 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Select>
 
           <Select value={vendorFilter} onValueChange={setVendorFilter}>
-            <SelectTrigger className="w-[160px] h-8 text-xs">
-              <Users className="h-3 w-3 mr-1.5" />
+            <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
+              <Users className="h-3 w-3 mr-1.5 shrink-0" />
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>

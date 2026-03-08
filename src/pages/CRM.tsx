@@ -395,6 +395,10 @@ export default function CRM() {
           <TeamPerformance leads={leads} />
           <PortfolioHealth leads={filteredLeads} onLeadClick={openLeadDrawer} />
         </TabsContent>
+
+        <TabsContent value="dashboard" className="mt-3">
+          <CRMDashboard leads={leads} />
+        </TabsContent>
       </Tabs>
 
       <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />

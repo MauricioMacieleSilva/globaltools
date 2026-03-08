@@ -380,26 +380,26 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
         </div>
 
         {/* Row 2: Locations + Products */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <MapPin className="h-4 w-4" /> Cidades / Estados com mais Leads
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Cidades / Estados com mais Leads
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[280px]">
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
               {locationData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={locationData} layout="vertical" barSize={16}>
+                  <BarChart data={locationData} layout="vertical" barSize={14}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={120} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={90} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" fill="hsl(200, 98%, 39%)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs sm:text-sm">
                   Nenhum dado de localização disponível
                 </div>
               )}
@@ -407,18 +407,18 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <Package className="h-4 w-4" /> Produtos de Interesse
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Produtos de Interesse
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[280px]">
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
               {productData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={productData} layout="vertical" barSize={16}>
+                  <BarChart data={productData} layout="vertical" barSize={14}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={120} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={90} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
                       {productData.map((_, i) => (
@@ -428,7 +428,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs sm:text-sm">
                   Nenhum dado de produto disponível
                 </div>
               )}

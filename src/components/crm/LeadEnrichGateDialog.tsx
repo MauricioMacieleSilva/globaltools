@@ -268,18 +268,31 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 relative">
               <Label className="text-xs">Cidade</Label>
-              <Select value={cidade} onValueChange={setCidade} disabled={!estado || loadingCidades}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder={loadingCidades ? 'Carregando...' : 'Cidade...'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {cidades.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+              <Input
+                value={cidadeSearch}
+                onChange={(e) => handleCidadeSearchChange(e.target.value)}
+                onFocus={() => setShowCidadeDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCidadeDropdown(false), 200)}
+                placeholder={loadingCidades ? 'Carregando...' : 'Digite a cidade...'}
+                className="h-8 text-xs"
+                disabled={!estado || loadingCidades}
+              />
+              {showCidadeDropdown && filteredCidades.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-md border bg-popover shadow-md">
+                  {filteredCidades.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onMouseDown={() => handleCidadeSelect(c)}
+                      className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent cursor-pointer"
+                    >
+                      {c}
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
             </div>
           </div>
 

@@ -38,11 +38,8 @@
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
+              registration.update().catch(() => {});
               
-              // Check for updates immediately
-              registration.update();
-              
-              // Set up update checking
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 console.log('Nova versão encontrada, instalando...');
@@ -51,20 +48,18 @@
                   newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                       console.log('Nova versão pronta para uso');
-                      // The UpdateNotification component will handle showing the notification
                     }
                   });
                 }
               });
 
-              // Listen for controlling service worker change
               navigator.serviceWorker.addEventListener('controllerchange', () => {
                 console.log('Service worker updated, reloading...');
               });
               
             })
             .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
+              console.warn('SW registration failed (expected in dev/preview): ', registrationError);
             });
         });
       }

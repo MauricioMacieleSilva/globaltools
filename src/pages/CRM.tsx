@@ -15,6 +15,7 @@ import { PortfolioHealth } from '@/components/crm/PortfolioHealth';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
+import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -84,6 +85,10 @@ export default function CRM() {
   // Enrich gate dialog
   const [enrichGateOpen, setEnrichGateOpen] = useState(false);
   const [pendingEnrichLead, setPendingEnrichLead] = useState<CRMLead | null>(null);
+  // Order link dialog
+  const [orderLinkOpen, setOrderLinkOpen] = useState(false);
+  const [pendingOrderLead, setPendingOrderLead] = useState<CRMLead | null>(null);
+  const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
   
   const isMobile = useIsMobile();
 
@@ -163,6 +168,14 @@ export default function CRM() {
     if (newStatus === 'visita_reuniao') {
       setPendingVisitLead(lead);
       setVisitDialogOpen(true);
+      return;
+    }
+
+    // Intercept proposta/pedido -> require order link
+    if (newStatus === 'proposta' || newStatus === 'pedido') {
+      setPendingOrderLead(lead);
+      setPendingOrderStage(newStatus);
+      setOrderLinkOpen(true);
       return;
     }
 
@@ -265,6 +278,44 @@ export default function CRM() {
     }
     setPendingEnrichLead(null);
   };
+
+  const handleOrderLinked = async (orderNumber: string) => {
+    if (!pendingOrderLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const oldStatus = pendingOrderLead.status;
+      await (supabase as any)
+        .from('leads')
+        .update({ 
+          status: pendingOrderStage, 
+          budget_number: orderNumber,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', pendingOrderLead.id);
+
+      setLeads(prev => prev.map(l => l.id === pendingOrderLead.id 
+        ? { ...l, status: pendingOrderStage, budget_number: orderNumber, updated_at: new Date().toISOString() } 
+        : l
+      ));
+
+      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      const newLabel = CRM_STAGES.find(s => s.key === pendingOrderStage)?.label || pendingOrderStage;
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingOrderLead.id,
+        activity_type: 'mudanca_status',
+        description: `Movido de "${oldLabel}" para "${newLabel}" — Pedido ${orderNumber}`,
+        user_id: user?.id || '',
+      } as any);
+
+      toast.success('Status atualizado', { description: `Lead vinculado ao Pedido ${orderNumber}` });
+      loadLeads();
+    } catch {
+      toast.error('Erro ao vincular pedido');
+    }
+    setPendingOrderLead(null);
+    setOrderLinkOpen(false);
+  };
+
 
   const confirmLostDeal = async (reason: string) => {
     if (!pendingLostLead) return;
@@ -444,6 +495,14 @@ export default function CRM() {
           onConfirm={handleEnrichConfirmed}
         />
       )}
+
+      <OrderLinkDialog
+        open={orderLinkOpen}
+        onOpenChange={setOrderLinkOpen}
+        targetStage={pendingOrderStage}
+        onConfirm={handleOrderLinked}
+        onCancel={() => { setPendingOrderLead(null); setOrderLinkOpen(false); }}
+      />
 
       {isMobile && (
         <button

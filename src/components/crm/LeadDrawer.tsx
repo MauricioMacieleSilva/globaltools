@@ -406,6 +406,28 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         onOpenChange={setEditOpen}
         onUpdated={onLeadUpdated}
       />
+
+      <AlertDialog open={!!pendingMove} onOpenChange={(v) => { if (!v) setPendingMove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja mover o lead <strong>{lead?.client_name || lead?.cliente_nome}</strong> para <strong>{pendingMove?.label}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (lead && pendingMove) {
+                onStatusChange(lead.id, pendingMove.key);
+              }
+              setPendingMove(null);
+            }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

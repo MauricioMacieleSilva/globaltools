@@ -59,7 +59,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     >
       <div className="space-y-1.5">
         <div className="flex items-start justify-between gap-1">
-          <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{name}</h4>
+          <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{lead.empresa || name}</h4>
           {whatsappUrl && (
             <a
               href={whatsappUrl}
@@ -74,8 +74,8 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           )}
         </div>
 
-        {lead.empresa && (
-          <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>
+        {(lead.empresa ? name : null) && (
+          <p className="text-xs text-muted-foreground truncate">{name}</p>
         )}
 
         {/* Vendor info */}

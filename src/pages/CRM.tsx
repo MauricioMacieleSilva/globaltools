@@ -228,7 +228,7 @@ export default function CRM() {
       setLeads(prev => prev.map(l => l.id === pendingLostLead.id ? { ...l, status: 'perdido' } : l));
       setPendingLostLead(null);
       setLostDialogOpen(false);
-      toast({ title: 'Lead perdido', description: 'Lead marcado como perdido.' });
+      toast.success('Lead marcado como perdido');
     } catch {
       toast({ title: 'Erro', description: 'Erro ao marcar lead como perdido', variant: 'destructive' });
     }

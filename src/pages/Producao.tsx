@@ -67,7 +67,7 @@ export default function Producao() {
         <div className="container mx-auto p-2 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" data-tour="producao-header">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Produção</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Fábrica</h1>
               <LastUpdatedIndicator lastUpdated={lastUpdated} onRefresh={refetchData} loading={loading} />
             </div>
             <div className="flex gap-2 w-full sm:w-auto flex-wrap">

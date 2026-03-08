@@ -45,7 +45,7 @@ const menuItems = [
     tourId: 'sidebar-clientes',
   },
   {
-    title: 'Produção',
+    title: 'Fábrica',
     url: '/producao',
     icon: Factory,
     pageKey: 'producao',

@@ -272,7 +272,9 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
                       {p.name}
                     </label>
                   ))}
-                </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Button size="icon" variant="outline" className="h-8 w-8 self-start" onClick={() => setAddingProduct(true)}><Plus className="h-3 w-3" /></Button>
               </div>
             )}

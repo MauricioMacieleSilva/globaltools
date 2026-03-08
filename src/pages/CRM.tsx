@@ -90,7 +90,7 @@ export default function CRM() {
     try {
       const { data, error } = await (supabase as any)
         .from('leads')
-        .select('*')
+        .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, avatar_url)')
         .order('updated_at', { ascending: false });
       if (error) throw error;
       setLeads(data || []);

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 
 interface KanbanCardProps {
@@ -29,6 +30,10 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const localidade = lead.cidade && lead.estado
     ? `${lead.cidade}/${lead.estado}`
     : lead.cidade || lead.estado || null;
+
+  const vendorName = lead.vendedor?.full_name || null;
+  const vendorAvatar = lead.vendedor?.avatar_url || null;
+  const vendorInitials = vendorName ? vendorName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : '';
 
   useEffect(() => {
     import('@/integrations/supabase/client').then(({ supabase }) => {
@@ -71,6 +76,17 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
 
         {lead.empresa && (
           <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>
+        )}
+
+        {/* Vendor info */}
+        {vendorName && (
+          <div className="flex items-center gap-1.5">
+            <Avatar className="h-4 w-4">
+              <AvatarImage src={vendorAvatar || undefined} alt={vendorName} />
+              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">{vendorInitials}</AvatarFallback>
+            </Avatar>
+            <span className="text-[10px] text-muted-foreground truncate">{vendorName}</span>
+          </div>
         )}
 
         {/* Enrichment info */}

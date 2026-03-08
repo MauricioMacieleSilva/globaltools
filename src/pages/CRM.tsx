@@ -164,23 +164,9 @@ export default function CRM() {
 
     // Intercept lead -> contato_feito: require enrichment
     if (newStatus === 'contato_feito' && lead.status === 'lead') {
-      const already = await checkContactAlreadyToday(leadId);
-      if (already) {
-        toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
-        return;
-      }
       setPendingEnrichLead(lead);
       setEnrichGateOpen(true);
       return;
-    }
-
-    // Validate one contact per day for other cases
-    if (newStatus === 'contato_feito') {
-      const already = await checkContactAlreadyToday(leadId);
-      if (already) {
-        toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
-        return;
-      }
     }
 
     try {

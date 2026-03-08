@@ -189,7 +189,7 @@ export default function CRM() {
       toast.success('Status atualizado', { description: `Lead movido para ${CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus}` });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
-      toast({ title: 'Erro', description: 'Erro ao atualizar status do lead', variant: 'destructive' });
+      toast.error('Erro ao atualizar status do lead');
     }
   };
 

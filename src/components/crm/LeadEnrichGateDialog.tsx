@@ -103,15 +103,20 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
 
     setSaving(true);
     try {
-      const { error } = await (supabase as any).from('leads').update({
+      const cleanCnpj = cnpj.replace(/\D/g, '');
+      const updateData = {
         ramo_atuacao: ramo || null,
         produto_interesse: produto || null,
-        cliente_cnpj: cnpj.replace(/\D/g, '') || null,
+        cliente_cnpj: cleanCnpj.length > 0 ? cleanCnpj : null,
         regime_tributario: regime || null,
         observacoes: observacoes || null,
         updated_at: new Date().toISOString(),
-      }).eq('id', lead.id);
-      if (error) throw error;
+      };
+      const { error } = await (supabase as any).from('leads').update(updateData).eq('id', lead.id);
+      if (error) {
+        console.error('Erro ao salvar enriquecimento:', error);
+        throw error;
+      }
       toast.success('Dados salvos com sucesso');
       onConfirm();
       onOpenChange(false);

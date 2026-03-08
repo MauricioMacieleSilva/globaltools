@@ -59,6 +59,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [submitting, setSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ key: string; label: string } | null>(null);
+  const [orderValue, setOrderValue] = useState<number | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -66,6 +67,25 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       loadActivities(lead.id);
     }
   }, [lead?.id, open]);
+
+  // Fetch order value from commercial data if budget_number exists but valor_estimado is missing
+  useEffect(() => {
+    if (!lead?.budget_number || !open) { setOrderValue(null); return; }
+    if (lead.valor_estimado && lead.valor_estimado > 0) { setOrderValue(lead.valor_estimado); return; }
+    fetchComercialData().then((data) => {
+      let total = 0;
+      for (const d of data) {
+        if (d.numeropedido === lead.budget_number) {
+          total += (d.valor || 0);
+        }
+      }
+      setOrderValue(total);
+      // Backfill to DB
+      if (total > 0) {
+        (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
+      }
+    }).catch(() => setOrderValue(null));
+  }, [lead?.budget_number, lead?.id, open]);
 
   const loadActivities = async (leadId: string) => {
     const { data } = await supabase

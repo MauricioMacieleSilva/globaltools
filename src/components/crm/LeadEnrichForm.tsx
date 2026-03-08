@@ -21,7 +21,9 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [ramo, setRamo] = useState(lead.ramo_atuacao || '');
-  const [produto, setProduto] = useState(lead.produto_interesse || '');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>(
+    lead.produto_interesse ? lead.produto_interesse.split(',').map(p => p.trim()).filter(Boolean) : []
+  );
   const [cnpj, setCnpj] = useState(lead.cliente_cnpj || '');
   const [regime, setRegime] = useState(lead.regime_tributario || '');
   const [estado, setEstado] = useState(lead.estado || 'RS');

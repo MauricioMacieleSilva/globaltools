@@ -25,7 +25,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
   const [ramo, setRamo] = useState('');
-  const [produto, setProduto] = useState('');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [cnpj, setCnpj] = useState('');
   const [regime, setRegime] = useState('');
   const [estado, setEstado] = useState('');

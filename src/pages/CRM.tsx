@@ -340,10 +340,11 @@ export default function CRM() {
         totalLeads={filteredLeads.length}
         onLostClick={() => setLostDialogOpen(true)}
       />
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between gap-2">
-          <TabsList className="h-8">
+          <TabsList data-tour="crm-tabs" className="h-8">
             <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
               <LayoutGrid className="h-3.5 w-3.5" /> Kanban
             </TabsTrigger>

@@ -322,12 +322,13 @@ export default function CRM() {
           <h1 className="text-lg sm:text-xl font-bold text-foreground">CRM</h1>
           <p className="text-xs text-muted-foreground">Gestão de Leads e Pipeline de Vendas</p>
         </div>
-        <Button onClick={() => setNewLeadOpen(true)} className="gap-1.5">
+        <Button data-tour="crm-new-lead" onClick={() => setNewLeadOpen(true)} className="gap-1.5">
           <Plus className="h-4 w-4" />
           {!isMobile && 'Novo Lead'}
         </Button>
       </div>
 
+      <div data-tour="crm-kpis">
       <CRMKPIs
         todayContacts={todayContacts}
         dailyGoal={dailyGoal}

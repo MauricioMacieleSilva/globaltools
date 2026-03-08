@@ -50,6 +50,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
       setRegime(lead.regime_tributario || '');
       setEstado(lead.estado || 'RS');
       setCidade(lead.cidade || '');
+      setCidadeSearch(lead.cidade || '');
       setObservacoes(lead.observacoes || lead.notes || '');
       loadLookups();
       loadEstados();

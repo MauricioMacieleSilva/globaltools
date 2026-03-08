@@ -23,6 +23,7 @@ interface VisitScheduleDialogProps {
 
 export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onConfirm }: VisitScheduleDialogProps) {
   const [visitDate, setVisitDate] = useState<Date>();
+  const [visitTime, setVisitTime] = useState('09:00');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,9 +40,12 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
     setLoading(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
+      const [hours, minutes] = visitTime.split(':').map(Number);
+      const combined = new Date(visitDate);
+      combined.setHours(hours, minutes, 0, 0);
       await (supabase as any).from('crm_visits').insert({
         lead_id: leadId,
-        visit_date: visitDate.toISOString(),
+        visit_date: combined.toISOString(),
         location: location.trim(),
         notes: notes.trim() || null,
         user_id: user?.id,
@@ -49,7 +53,7 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
       await supabase.from('lead_activities').insert({
         lead_id: leadId,
         activity_type: 'visita',
-        description: `Visita agendada: ${format(visitDate, 'dd/MM/yyyy')} - ${location.trim()}`,
+        description: `Visita agendada: ${format(combined, 'dd/MM/yyyy HH:mm')} - ${location.trim()}`,
         user_id: user?.id || '',
       } as any);
       toast.success('Visita agendada com sucesso');
@@ -96,6 +100,10 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
                 />
               </PopoverContent>
             </Popover>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Hora *</Label>
+            <Input type="time" value={visitTime} onChange={(e) => setVisitTime(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Local *</Label>

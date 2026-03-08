@@ -217,6 +217,11 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
               <Label className="text-xs">CNPJ</Label>
               <Input value={formatCnpj(form.cliente_cnpj)} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
             </div>
+            {/* Nº Pedido / Orçamento */}
+            <div className="space-y-1">
+              <Label className="text-xs">Nº Pedido / Orçamento</Label>
+              <Input value={form.budget_number} onChange={(e) => setForm(f => ({ ...f, budget_number: e.target.value }))} placeholder="Ex: 11970" />
+            </div>
             {/* Origem */}
             <div className="space-y-1">
               <Label className="text-xs">Origem</Label>

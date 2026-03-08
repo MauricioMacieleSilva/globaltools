@@ -1,4 +1,5 @@
 
+import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
@@ -302,6 +303,7 @@ const App = () => (
         <AuthProvider>
           <ThemeProvider>
             <AppContent />
+            <Toaster position="top-center" richColors closeButton />
           </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>

@@ -236,8 +236,8 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
         {/* Filters bar */}
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-[180px] h-8 text-xs">
-              <Calendar className="h-3 w-3 mr-1.5" />
+            <SelectTrigger className="w-[140px] sm:w-[180px] h-8 text-xs">
+              <Calendar className="h-3 w-3 mr-1.5 shrink-0" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -248,8 +248,8 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Select>
 
           <Select value={vendorFilter} onValueChange={setVendorFilter}>
-            <SelectTrigger className="w-[160px] h-8 text-xs">
-              <Users className="h-3 w-3 mr-1.5" />
+            <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
+              <Users className="h-3 w-3 mr-1.5 shrink-0" />
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
@@ -338,17 +338,17 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
         </div>
 
         {/* Row 1: Daily contacts + Funnel */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Contatos e Visitas Diárias</CardTitle>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm">Contatos e Visitas Diárias</CardTitle>
             </CardHeader>
-            <CardContent className="h-[260px]">
+            <CardContent className="h-[200px] sm:h-[260px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyContactsData} barGap={2}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="dia" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                  <XAxis dataKey="dia" tick={{ fontSize: 9 }} className="fill-muted-foreground" interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="visitas" name="Visitas" fill="hsl(262, 52%, 47%)" radius={[3, 3, 0, 0]} />
@@ -358,15 +358,15 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Funil de Vendas</CardTitle>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm">Funil de Vendas</CardTitle>
             </CardHeader>
-            <CardContent className="h-[260px]">
+            <CardContent className="h-[200px] sm:h-[260px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnelData} layout="vertical" barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={90} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={75} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
                     {funnelData.map((entry, i) => (
@@ -380,26 +380,26 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
         </div>
 
         {/* Row 2: Locations + Products */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <MapPin className="h-4 w-4" /> Cidades / Estados com mais Leads
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Cidades / Estados com mais Leads
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[280px]">
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
               {locationData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={locationData} layout="vertical" barSize={16}>
+                  <BarChart data={locationData} layout="vertical" barSize={14}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={120} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={90} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" fill="hsl(200, 98%, 39%)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs sm:text-sm">
                   Nenhum dado de localização disponível
                 </div>
               )}
@@ -407,18 +407,18 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <Package className="h-4 w-4" /> Produtos de Interesse
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Produtos de Interesse
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[280px]">
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
               {productData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={productData} layout="vertical" barSize={16}>
+                  <BarChart data={productData} layout="vertical" barSize={14}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} className="fill-muted-foreground" width={120} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={90} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
                       {productData.map((_, i) => (
@@ -428,7 +428,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs sm:text-sm">
                   Nenhum dado de produto disponível
                 </div>
               )}
@@ -437,26 +437,26 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
         </div>
 
         {/* Row 3: Sectors + Loss Reasons */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <Briefcase className="h-4 w-4" /> Ramo de Atuação
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Ramo de Atuação
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[280px]">
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
               {sectorData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={sectorData} barSize={24}>
+                  <BarChart data={sectorData} barSize={20}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9 }} className="fill-muted-foreground" angle={-30} textAnchor="end" height={60} />
-                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-35} textAnchor="end" height={55} interval={0} />
+                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs sm:text-sm">
                   Nenhum dado de ramo disponível
                 </div>
               )}
@@ -464,24 +464,24 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
 
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4" /> Motivos de Perda
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Motivos de Perda
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[280px]">
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
               {lossReasonsData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={lossReasonsData} layout="vertical" barSize={16}>
+                  <BarChart data={lossReasonsData} layout="vertical" barSize={14}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={130} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} className="fill-muted-foreground" width={100} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs sm:text-sm">
                   Nenhum motivo de perda no período
                 </div>
               )}
@@ -491,27 +491,25 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
 
         {/* Row 4: Vendor performance */}
         {vendorFilter === 'all' && vendorContactsData.length > 0 && (
-          <div className="grid grid-cols-1 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <Users className="h-4 w-4" /> Contatos por Vendedor
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={vendorContactsData} barSize={18} barGap={2}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9 }} className="fill-muted-foreground" angle={-20} textAnchor="end" height={50} />
-                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="visitas" name="Visitas" fill="hsl(142, 76%, 36%)" radius={[3, 3, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Contatos por Vendedor
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={vendorContactsData} barSize={16} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-20} textAnchor="end" height={45} />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="visitas" name="Visitas" fill="hsl(142, 76%, 36%)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

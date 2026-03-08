@@ -422,6 +422,8 @@ export default function CRM() {
         lostLeads={lostLeads}
         onConfirmLost={confirmLostDeal}
         onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
+        onLeadClick={openLeadDrawer}
+        onLeadReactivated={loadLeads}
       />
 
       {pendingVisitLead && (

@@ -5,14 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays, ChevronLeft, ChevronRight, X, Maximize2 } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import {
-  format, isToday, isBefore, startOfDay, isSameDay, isSameMonth,
+  format, isToday, isBefore, startOfDay, isSameMonth,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { VisitEditDialog } from './VisitEditDialog';
 import type { CRMLead } from '@/pages/CRM';
 
 interface Visit {
@@ -38,6 +39,7 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
+  const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -59,6 +61,19 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
       setVisits(enriched);
     }
     setLoading(false);
+  };
+
+  const handleEditClick = (e: React.MouseEvent, visit: Visit) => {
+    e.stopPropagation();
+    setEditingVisit(visit);
+  };
+
+  const handleVisitUpdated = () => {
+    loadVisits();
+    // Refresh day detail dialog if open
+    if (selectedDayVisits) {
+      setSelectedDayVisits(null);
+    }
   };
 
   // Group by date
@@ -100,6 +115,48 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
   };
 
   if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando agenda...</p>;
+
+  const VisitCard = ({ visit, showEdit = true }: { visit: Visit; showEdit?: boolean }) => {
+    const lead = leads.find(l => l.id === visit.lead_id);
+    const today = isToday(new Date(visit.visit_date));
+    return (
+      <Card
+        className={`p-3 cursor-pointer hover:shadow-md transition-shadow ${today ? 'border-primary/30' : ''}`}
+        onClick={() => lead && onLeadClick(lead)}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">{visit.lead_name}</p>
+            {visit.location && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3 shrink-0" /> {visit.location}
+              </p>
+            )}
+            {visit.notes && (
+              <p className="text-xs text-muted-foreground truncate">{visit.notes}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {format(new Date(visit.visit_date), 'HH:mm')}
+            </div>
+            {showEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => handleEditClick(e, visit)}
+                title="Editar visita"
+              >
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -146,34 +203,9 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
                   </Badge>
                 </div>
                 <div className="grid gap-2 pl-6">
-                  {grouped[dateKey].map(visit => {
-                    const lead = leads.find(l => l.id === visit.lead_id);
-                    return (
-                      <Card
-                        key={visit.id}
-                        className={`p-3 cursor-pointer hover:shadow-md transition-shadow ${today ? 'border-primary/30' : ''}`}
-                        onClick={() => lead && onLeadClick(lead)}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate">{visit.lead_name}</p>
-                            {visit.location && (
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3 shrink-0" /> {visit.location}
-                              </p>
-                            )}
-                            {visit.notes && (
-                              <p className="text-xs text-muted-foreground truncate">{visit.notes}</p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                            <Clock className="h-3 w-3" />
-                            {format(new Date(visit.visit_date), 'HH:mm')}
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
+                  {grouped[dateKey].map(visit => (
+                    <VisitCard key={visit.id} visit={visit} />
+                  ))}
                 </div>
               </div>
             );
@@ -312,44 +344,22 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
               </div>
 
               <div className="space-y-2">
-                {selectedDayVisits.visits.map(visit => {
-                  const lead = leads.find(l => l.id === visit.lead_id);
-                  return (
-                    <Card
-                      key={visit.id}
-                      className="p-3 cursor-pointer hover:shadow-md transition-shadow border-primary/20"
-                      onClick={() => {
-                        if (lead) {
-                          setSelectedDayVisits(null);
-                          onLeadClick(lead);
-                        }
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground truncate">{visit.lead_name}</p>
-                          {visit.location && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3 shrink-0" /> {visit.location}
-                            </p>
-                          )}
-                          {visit.notes && (
-                            <p className="text-xs text-muted-foreground">{visit.notes}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(visit.visit_date), 'HH:mm')}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
+                {selectedDayVisits.visits.map(visit => (
+                  <VisitCard key={visit.id} visit={visit} />
+                ))}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit visit dialog */}
+      <VisitEditDialog
+        open={!!editingVisit}
+        onOpenChange={(v) => { if (!v) setEditingVisit(null); }}
+        visit={editingVisit}
+        onUpdated={handleVisitUpdated}
+      />
     </div>
   );
 }

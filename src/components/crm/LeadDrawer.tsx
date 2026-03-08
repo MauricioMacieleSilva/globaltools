@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -56,6 +57,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [newNote, setNewNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{ key: string; label: string } | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -313,7 +315,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                     size="sm"
                     variant="outline"
                     className="text-xs h-7"
-                    onClick={() => onStatusChange(lead.id, stage.key)}
+                    onClick={() => setPendingMove({ key: stage.key, label: stage.label })}
                   >
                     <div className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: stage.color }} />
                     {stage.label}
@@ -323,7 +325,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   size="sm"
                   variant="outline"
                   className="text-xs h-7 text-warning border-warning/30"
-                  onClick={() => onStatusChange(lead.id, 'perdido')}
+                  onClick={() => setPendingMove({ key: 'perdido', label: 'Perdido' })}
                 >
                   Perdido
                 </Button>
@@ -404,6 +406,28 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         onOpenChange={setEditOpen}
         onUpdated={onLeadUpdated}
       />
+
+      <AlertDialog open={!!pendingMove} onOpenChange={(v) => { if (!v) setPendingMove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja mover o lead <strong>{lead?.client_name || lead?.cliente_nome}</strong> para <strong>{pendingMove?.label}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (lead && pendingMove) {
+                onStatusChange(lead.id, pendingMove.key);
+              }
+              setPendingMove(null);
+            }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

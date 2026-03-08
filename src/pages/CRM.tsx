@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRMKPIs } from '@/components/crm/CRMKPIs';
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
+import { CRMDashboard } from '@/components/crm/CRMDashboard';
 import { LeadDrawer } from '@/components/crm/LeadDrawer';
 import { LostDealsDialog } from '@/components/crm/LostDealsDialog';
 import { CRMFilters } from '@/components/crm/CRMFilters';

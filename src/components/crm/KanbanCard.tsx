@@ -117,10 +117,10 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {nextVisitDate && (
-          <p className="text-[10px] text-primary flex items-center gap-1 font-medium">
-            <Calendar className="h-3 w-3" />
-            Visita: {new Date(nextVisitDate).toLocaleDateString('pt-BR')}
+        {nextVisit && (
+          <p className="text-[10px] text-primary flex items-center gap-1 font-medium truncate">
+            <Calendar className="h-3 w-3 shrink-0" />
+            {new Date(nextVisit.date).toLocaleDateString('pt-BR')} {new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}{nextVisit.location ? ` · ${nextVisit.location}` : ''}
           </p>
         )}
 

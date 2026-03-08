@@ -46,7 +46,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
       setProduto(lead.produto_interesse || '');
       setCnpj(lead.cliente_cnpj || '');
       setRegime(lead.regime_tributario || '');
-      setEstado(lead.estado || '');
+      setEstado(lead.estado || 'RS');
       setCidade(lead.cidade || '');
       setObservacoes(lead.observacoes || lead.notes || '');
       loadLookups();

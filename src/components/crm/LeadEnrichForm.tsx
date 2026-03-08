@@ -24,7 +24,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const [produto, setProduto] = useState(lead.produto_interesse || '');
   const [cnpj, setCnpj] = useState(lead.cliente_cnpj || '');
   const [regime, setRegime] = useState(lead.regime_tributario || '');
-  const [estado, setEstado] = useState(lead.estado || '');
+  const [estado, setEstado] = useState(lead.estado || 'RS');
   const [cidade, setCidade] = useState(lead.cidade || '');
   const [saving, setSaving] = useState(false);
   const [addingSector, setAddingSector] = useState(false);

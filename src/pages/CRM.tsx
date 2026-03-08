@@ -76,7 +76,7 @@ export default function CRM() {
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
-  const { toast } = useToast();
+  
   const isMobile = useIsMobile();
 
   const loadLeads = useCallback(async () => {

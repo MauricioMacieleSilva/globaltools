@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
@@ -19,6 +20,12 @@ interface LeadActivity {
   description: string;
   created_at: string;
   sdr_name?: string;
+  user_id: string;
+}
+
+interface UserProfileInfo {
+  full_name: string;
+  avatar_url: string | null;
 }
 
 interface LeadDrawerProps {
@@ -29,8 +36,23 @@ interface LeadDrawerProps {
   onLeadUpdated: () => void;
 }
 
+function UserAvatar({ name, avatarUrl, size = 'sm' }: { name: string; avatarUrl?: string | null; size?: 'sm' | 'xs' }) {
+  const initials = name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+  const sizeClass = size === 'sm' ? 'h-6 w-6' : 'h-4 w-4';
+  const textClass = size === 'sm' ? 'text-[9px]' : 'text-[7px]';
+  return (
+    <Avatar className={sizeClass}>
+      <AvatarImage src={avatarUrl || undefined} alt={name} />
+      <AvatarFallback className={`bg-primary text-primary-foreground ${textClass}`}>
+        {initials}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
 export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated }: LeadDrawerProps) {
   const [activities, setActivities] = useState<LeadActivity[]>([]);
+  const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileInfo>>({});
   const [newNote, setNewNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -49,7 +71,22 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       .eq('lead_id', leadId)
       .order('created_at', { ascending: false })
       .limit(20);
-    setActivities((data as LeadActivity[]) || []);
+    const acts = (data as LeadActivity[]) || [];
+    setActivities(acts);
+
+    // Load user profiles for all unique user_ids
+    const userIds = [...new Set(acts.map(a => a.user_id).filter(Boolean))];
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
+      if (profiles) {
+        const map: Record<string, UserProfileInfo> = {};
+        profiles.forEach((p: any) => { map[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url }; });
+        setUserProfiles(map);
+      }
+    }
   };
 
   const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
@@ -126,6 +163,11 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const currentStage = CRM_STAGES.find(s => s.key === lead.status);
   const showEnrich = lead.status !== 'lead';
 
+  // Find first contact and last contact activities
+  const contactActivities = activities.filter(a => a.activity_type === 'contato_inicial');
+  const firstContact = contactActivities.length > 0 ? contactActivities[contactActivities.length - 1] : null;
+  const lastContact = contactActivities.length > 0 ? contactActivities[0] : null;
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'contato_inicial': return <Phone className="h-3 w-3" />;
@@ -186,6 +228,48 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <span>Aberto em {new Date(lead.data_abertura).toLocaleDateString('pt-BR')}</span>
               </div>
             </div>
+
+            {/* Contact Responsibility */}
+            {(firstContact || lastContact) && (
+              <div className="space-y-2 rounded-lg border p-3 bg-accent/30">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  Responsáveis pelo contato
+                </p>
+                {firstContact && (
+                  <div className="flex items-center gap-2">
+                    <UserAvatar
+                      name={userProfiles[firstContact.user_id]?.full_name || firstContact.sdr_name || 'Usuário'}
+                      avatarUrl={userProfiles[firstContact.user_id]?.avatar_url}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {userProfiles[firstContact.user_id]?.full_name || firstContact.sdr_name || 'Usuário'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Primeiro contato • {new Date(firstContact.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {lastContact && lastContact.id !== firstContact?.id && (
+                  <div className="flex items-center gap-2">
+                    <UserAvatar
+                      name={userProfiles[lastContact.user_id]?.full_name || lastContact.sdr_name || 'Usuário'}
+                      avatarUrl={userProfiles[lastContact.user_id]?.avatar_url}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">
+                        {userProfiles[lastContact.user_id]?.full_name || lastContact.sdr_name || 'Usuário'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Último contato • {new Date(lastContact.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
@@ -264,24 +348,33 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <p className="text-xs text-muted-foreground text-center py-4">Nenhuma atividade registrada</p>
               ) : (
                 <div className="space-y-3">
-                  {activities.map(activity => (
-                    <div key={activity.id} className="flex gap-2">
-                      <div className="mt-1 p-1 rounded bg-accent text-accent-foreground">
-                        {getActivityIcon(activity.activity_type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-foreground">{activity.description}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                  {activities.map(activity => {
+                    const profile = userProfiles[activity.user_id];
+                    const displayName = profile?.full_name || activity.sdr_name || 'Usuário';
+                    return (
+                      <div key={activity.id} className="flex gap-2">
+                        <div className="mt-0.5">
+                          <UserAvatar
+                            name={displayName}
+                            avatarUrl={profile?.avatar_url}
+                            size="sm"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-medium text-foreground">{displayName}</span>
+                            <div className="p-0.5 rounded bg-accent text-accent-foreground">
+                              {getActivityIcon(activity.activity_type)}
+                            </div>
+                          </div>
+                          <p className="text-xs text-foreground mt-0.5">{activity.description}</p>
                           <span className="text-[10px] text-muted-foreground">
                             {new Date(activity.created_at).toLocaleDateString('pt-BR')} {new Date(activity.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          {activity.sdr_name && (
-                            <span className="text-[10px] text-muted-foreground">• {activity.sdr_name}</span>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

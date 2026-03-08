@@ -159,6 +159,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onLeadClick(lead)}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditLead(lead)}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
+                        {lead.status === 'perdido' && (
+                          <DropdownMenuItem onClick={() => handleReactivate(lead)}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
+                        )}
                         <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRMKPIs } from '@/components/crm/CRMKPIs';
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
+import { CRMDashboard } from '@/components/crm/CRMDashboard';
 import { LeadDrawer } from '@/components/crm/LeadDrawer';
 import { LostDealsDialog } from '@/components/crm/LostDealsDialog';
 import { CRMFilters } from '@/components/crm/CRMFilters';
@@ -17,7 +18,7 @@ import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, BarChart3, CalendarDays } from 'lucide-react';
+import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart } from 'lucide-react';
 
 export interface CRMLead {
   id: string;
@@ -354,6 +355,9 @@ export default function CRM() {
             <TabsTrigger value="performance" className="text-xs gap-1 h-7 px-3">
               <BarChart3 className="h-3.5 w-3.5" /> Performance
             </TabsTrigger>
+            <TabsTrigger value="dashboard" className="text-xs gap-1 h-7 px-3">
+              <PieChart className="h-3.5 w-3.5" /> Dashboard
+            </TabsTrigger>
           </TabsList>
           {activeTab === 'kanban' && (
             <CRMFilters
@@ -390,6 +394,10 @@ export default function CRM() {
         <TabsContent value="performance" className="mt-3 space-y-4">
           <TeamPerformance leads={leads} />
           <PortfolioHealth leads={filteredLeads} onLeadClick={openLeadDrawer} />
+        </TabsContent>
+
+        <TabsContent value="dashboard" className="mt-3">
+          <CRMDashboard leads={leads} />
         </TabsContent>
       </Tabs>
 

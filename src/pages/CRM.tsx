@@ -191,12 +191,15 @@ export default function CRM() {
       } as any);
 
       if (newStatus === 'contato_feito') {
-        await supabase.from('lead_activities').insert({
-          lead_id: leadId,
-          activity_type: 'contato_inicial',
-          description: 'Contato registrado via CRM',
-          user_id: user?.id || '',
-        } as any);
+        const alreadyToday = await checkContactAlreadyToday(leadId);
+        if (!alreadyToday) {
+          await supabase.from('lead_activities').insert({
+            lead_id: leadId,
+            activity_type: 'contato_inicial',
+            description: 'Contato registrado via CRM',
+            user_id: user?.id || '',
+          } as any);
+        }
         loadTodayStats();
       }
 

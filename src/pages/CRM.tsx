@@ -355,6 +355,9 @@ export default function CRM() {
             <TabsTrigger value="performance" className="text-xs gap-1 h-7 px-3">
               <BarChart3 className="h-3.5 w-3.5" /> Performance
             </TabsTrigger>
+            <TabsTrigger value="dashboard" className="text-xs gap-1 h-7 px-3">
+              <PieChart className="h-3.5 w-3.5" /> Dashboard
+            </TabsTrigger>
           </TabsList>
           {activeTab === 'kanban' && (
             <CRMFilters

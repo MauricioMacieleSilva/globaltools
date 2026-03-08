@@ -279,7 +279,7 @@ export default function CRM() {
     setPendingEnrichLead(null);
   };
 
-  const handleOrderLinked = async (orderNumber: string) => {
+  const handleOrderLinked = async (orderNumber: string, orderValue: number) => {
     if (!pendingOrderLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;
@@ -289,12 +289,13 @@ export default function CRM() {
         .update({ 
           status: pendingOrderStage, 
           budget_number: orderNumber,
+          valor_estimado: orderValue,
           updated_at: new Date().toISOString() 
         })
         .eq('id', pendingOrderLead.id);
 
       setLeads(prev => prev.map(l => l.id === pendingOrderLead.id 
-        ? { ...l, status: pendingOrderStage, budget_number: orderNumber, updated_at: new Date().toISOString() } 
+        ? { ...l, status: pendingOrderStage, budget_number: orderNumber, valor_estimado: orderValue, updated_at: new Date().toISOString() } 
         : l
       ));
 

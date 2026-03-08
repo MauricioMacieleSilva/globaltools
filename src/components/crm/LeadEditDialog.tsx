@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
 
 interface LeadEditDialogProps {
@@ -25,7 +26,6 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
     ramo_atuacao: '', regime_tributario: '',
   });
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (lead) {
@@ -65,11 +65,11 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         updated_at: new Date().toISOString(),
       }).eq('id', lead.id);
       if (error) throw error;
-      toast({ title: 'Lead atualizado!' });
+      toast.success('Lead atualizado com sucesso');
       onOpenChange(false);
       onUpdated();
     } catch (err: any) {
-      toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
+      toast.error('Erro ao atualizar lead', { description: err.message });
     } finally {
       setLoading(false);
     }

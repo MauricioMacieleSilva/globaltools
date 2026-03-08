@@ -161,6 +161,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         onStatusChange(lead.id, 'contato_feito');
       }
 
+      setNewNote('');
       loadActivities(lead.id);
       toast.success('Contato registrado com sucesso');
     } catch {

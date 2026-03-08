@@ -268,7 +268,7 @@ export default function CRM() {
       const user = (await supabase.auth.getUser()).data.user;
       const { error } = await (supabase as any)
         .from('leads')
-        .update({ status: 'perdido', updated_at: new Date().toISOString(), observacoes: reason })
+        .update({ status: 'perdido', updated_at: new Date().toISOString(), notes: reason })
         .eq('id', pendingLostLead.id);
       if (error) throw error;
 

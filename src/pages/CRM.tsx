@@ -13,6 +13,7 @@ import { TeamPerformance } from '@/components/crm/TeamPerformance';
 import { PortfolioHealth } from '@/components/crm/PortfolioHealth';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
+import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

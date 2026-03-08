@@ -41,6 +41,9 @@ export interface CRMLead {
   numero_lead: string | null;
   cliente_telefone: string | null;
   cliente_email: string | null;
+  cliente_cnpj: string | null;
+  ramo_atuacao: string | null;
+  regime_tributario: string | null;
 }
 
 export const CRM_STAGES = [

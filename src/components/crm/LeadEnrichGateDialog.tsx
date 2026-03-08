@@ -30,6 +30,8 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
   const [regime, setRegime] = useState('');
   const [estado, setEstado] = useState('');
   const [cidade, setCidade] = useState('');
+  const [cidadeSearch, setCidadeSearch] = useState('');
+  const [showCidadeDropdown, setShowCidadeDropdown] = useState(false);
   const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
   const [addingSector, setAddingSector] = useState(false);

@@ -24,8 +24,10 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const [produto, setProduto] = useState(lead.produto_interesse || '');
   const [cnpj, setCnpj] = useState(lead.cliente_cnpj || '');
   const [regime, setRegime] = useState(lead.regime_tributario || '');
-  const [estado, setEstado] = useState(lead.estado || '');
+  const [estado, setEstado] = useState(lead.estado || 'RS');
   const [cidade, setCidade] = useState(lead.cidade || '');
+  const [cidadeSearch, setCidadeSearch] = useState(lead.cidade || '');
+  const [showCidadeDropdown, setShowCidadeDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const [addingSector, setAddingSector] = useState(false);
   const [newSector, setNewSector] = useState('');
@@ -45,8 +47,9 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setProduto(lead.produto_interesse || '');
     setCnpj(lead.cliente_cnpj || '');
     setRegime(lead.regime_tributario || '');
-    setEstado(lead.estado || '');
+    setEstado(lead.estado || 'RS');
     setCidade(lead.cidade || '');
+    setCidadeSearch(lead.cidade || '');
   }, [lead.id]);
 
   useEffect(() => {
@@ -112,7 +115,24 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const handleEstadoChange = (uf: string) => {
     setEstado(uf);
     setCidade('');
+    setCidadeSearch('');
   };
+
+  const handleCidadeSelect = (c: string) => {
+    setCidade(c);
+    setCidadeSearch(c);
+    setShowCidadeDropdown(false);
+  };
+
+  const handleCidadeSearchChange = (value: string) => {
+    setCidadeSearch(value);
+    setCidade(value);
+    setShowCidadeDropdown(true);
+  };
+
+  const filteredCidades = cidadeSearch
+    ? cidades.filter(c => c.toLowerCase().includes(cidadeSearch.toLowerCase())).slice(0, 15)
+    : cidades.slice(0, 15);
 
   const handleSave = async () => {
     setSaving(true);
@@ -209,18 +229,31 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 relative">
           <Label className="text-xs">Cidade</Label>
-          <Select value={cidade} onValueChange={setCidade} disabled={!estado || loadingCidades}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder={loadingCidades ? 'Carregando...' : 'Cidade...'} />
-            </SelectTrigger>
-            <SelectContent>
-              {cidades.map(c => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
+          <Input
+            value={cidadeSearch}
+            onChange={(e) => handleCidadeSearchChange(e.target.value)}
+            onFocus={() => setShowCidadeDropdown(true)}
+            onBlur={() => setTimeout(() => setShowCidadeDropdown(false), 200)}
+            placeholder={loadingCidades ? 'Carregando...' : 'Digite a cidade...'}
+            className="h-8 text-xs"
+            disabled={!estado || loadingCidades}
+          />
+          {showCidadeDropdown && filteredCidades.length > 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-md border bg-popover shadow-md">
+              {filteredCidades.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onMouseDown={() => handleCidadeSelect(c)}
+                  className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent cursor-pointer"
+                >
+                  {c}
+                </button>
               ))}
-            </SelectContent>
-          </Select>
+            </div>
+          )}
         </div>
       </div>
 

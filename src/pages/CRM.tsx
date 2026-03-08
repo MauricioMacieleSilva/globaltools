@@ -424,6 +424,15 @@ export default function CRM() {
           leadId={pendingVisitLead.id}
           leadName={pendingVisitLead.client_name || pendingVisitLead.cliente_nome}
           onConfirm={handleVisitConfirmed}
+      />
+      )}
+
+      {pendingEnrichLead && (
+        <LeadEnrichGateDialog
+          open={enrichGateOpen}
+          onOpenChange={(v) => { setEnrichGateOpen(v); if (!v) setPendingEnrichLead(null); }}
+          lead={pendingEnrichLead}
+          onConfirm={handleEnrichConfirmed}
         />
       )}
 

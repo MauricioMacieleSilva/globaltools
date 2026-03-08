@@ -373,7 +373,7 @@ export default function CRM() {
           )}
         </div>
 
-        <TabsContent value="kanban" className="mt-3">
+        <TabsContent value="kanban" className="mt-3" data-tour="crm-kanban">
           <KanbanBoard
             leads={filteredLeads}
             stages={CRM_STAGES}

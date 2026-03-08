@@ -60,6 +60,10 @@ export const tourStepsByRoute: Record<string, TourConfig> = {
   '/assistente-global': {
     steps: assistenteSteps,
     title: 'Assistente Global'
+  },
+  '/crm': {
+    steps: crmSteps,
+    title: 'CRM'
   }
 };
 

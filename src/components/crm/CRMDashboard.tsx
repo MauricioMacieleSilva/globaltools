@@ -373,6 +373,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={75} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
+                    <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
                     {funnelData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}

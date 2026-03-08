@@ -495,6 +495,14 @@ export default function CRM() {
         />
       )}
 
+      <OrderLinkDialog
+        open={orderLinkOpen}
+        onOpenChange={setOrderLinkOpen}
+        targetStage={pendingOrderStage}
+        onConfirm={handleOrderLinked}
+        onCancel={() => { setPendingOrderLead(null); setOrderLinkOpen(false); }}
+      />
+
       {isMobile && (
         <button
           onClick={() => setNewLeadOpen(true)}

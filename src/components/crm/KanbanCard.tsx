@@ -62,13 +62,13 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     // Load next visit
     (supabase as any)
       .from('crm_visits')
-      .select('visit_date')
+      .select('visit_date, location')
       .eq('lead_id', lead.id)
       .gte('visit_date', new Date().toISOString())
       .order('visit_date', { ascending: true })
       .limit(1)
       .then(({ data }: any) => {
-        if (data?.[0]) setNextVisitDate(data[0].visit_date);
+        if (data?.[0]) setNextVisit({ date: data[0].visit_date, location: data[0].location });
       });
   }, [lead.id, lead.updated_at]);
 

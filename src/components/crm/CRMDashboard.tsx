@@ -428,6 +428,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={90} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
                       {productData.map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}

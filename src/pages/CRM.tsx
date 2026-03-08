@@ -230,7 +230,7 @@ export default function CRM() {
       setLostDialogOpen(false);
       toast.success('Lead marcado como perdido');
     } catch {
-      toast({ title: 'Erro', description: 'Erro ao marcar lead como perdido', variant: 'destructive' });
+      toast.error('Erro ao marcar lead como perdido');
     }
   };
 

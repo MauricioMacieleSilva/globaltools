@@ -85,6 +85,10 @@ export default function CRM() {
   // Enrich gate dialog
   const [enrichGateOpen, setEnrichGateOpen] = useState(false);
   const [pendingEnrichLead, setPendingEnrichLead] = useState<CRMLead | null>(null);
+  // Order link dialog
+  const [orderLinkOpen, setOrderLinkOpen] = useState(false);
+  const [pendingOrderLead, setPendingOrderLead] = useState<CRMLead | null>(null);
+  const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
   
   const isMobile = useIsMobile();
 

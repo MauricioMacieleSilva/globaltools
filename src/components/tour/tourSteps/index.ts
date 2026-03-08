@@ -9,6 +9,7 @@ import { politicaSteps } from './politicaSteps';
 import { cortePerfilSteps } from './cortePerfilSteps';
 import { corteBlankSteps } from './corteBlankSteps';
 import { assistenteSteps } from './assistenteSteps';
+import { crmSteps } from './crmSteps';
 
 export interface TourConfig {
   steps: DriveStep[];

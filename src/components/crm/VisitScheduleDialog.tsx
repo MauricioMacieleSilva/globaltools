@@ -89,6 +89,7 @@ export function VisitScheduleDialog({ open, onOpenChange, leadId, leadName, onCo
                   mode="single"
                   selected={visitDate}
                   onSelect={setVisitDate}
+                  locale={ptBR}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}

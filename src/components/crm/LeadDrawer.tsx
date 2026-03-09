@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [orderValue, setOrderValue] = useState<number | null>(null);
   const [nextVisit, setNextVisit] = useState<{ id: string; date: string; location: string | null } | null>(null);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (lead?.id && open) {
@@ -358,7 +360,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
               {/* Order/Budget linked */}
               {lead.budget_number && (
-                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                <div
+                  className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
+                  onClick={() => navigate(`/dashboard-comercial?pedido=${lead.budget_number}`)}
+                >
                   <Package className="h-4 w-4" />
                   <span>Pedido {lead.budget_number}</span>
                   {orderValue != null && orderValue > 0 && (

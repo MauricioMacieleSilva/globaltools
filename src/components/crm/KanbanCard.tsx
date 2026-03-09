@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,6 +18,7 @@ function getDaysInStage(updatedAt: string): number {
 }
 
 export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
+  const navigate = useNavigate();
   const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.client_name || lead.cliente_nome;
@@ -109,7 +111,13 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
 
         {/* Order/Budget number & value */}
         {lead.budget_number && (
-          <div className="flex items-center gap-1 text-[10px] font-medium text-primary">
+          <div
+            className="flex items-center gap-1 text-[10px] font-medium text-primary cursor-pointer hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/dashboard-comercial?pedido=${lead.budget_number}`);
+            }}
+          >
             <Package className="h-3 w-3 shrink-0" />
             <span>Pedido {lead.budget_number}</span>
             {lead.valor_estimado != null && lead.valor_estimado > 0 && (

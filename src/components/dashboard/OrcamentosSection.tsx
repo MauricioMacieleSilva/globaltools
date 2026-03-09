@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,8 +23,19 @@ interface OrcamentosSectionProps {
 
 export function OrcamentosSection({ sharedOrcamentosData }: OrcamentosSectionProps) {
   const { data, filters } = useComercial();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pedidoParam = searchParams.get('pedido');
+  const [searchTerm, setSearchTerm] = useState(pedidoParam || "");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Clear pedido param from URL after using it
+  useEffect(() => {
+    if (pedidoParam) {
+      setSearchTerm(pedidoParam);
+      searchParams.delete('pedido');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [pedidoParam]);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [selectedBudgetForFollowUp, setSelectedBudgetForFollowUp] = useState<{
     number: string;
@@ -169,7 +181,7 @@ export function OrcamentosSection({ sharedOrcamentosData }: OrcamentosSectionPro
   return (
     <div className="space-y-2 sm:space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm sm:text-lg font-semibold">Orçamentos em Aberto</h3>
+        <h3 className="text-sm sm:text-lg font-semibold">Orçamentos</h3>
       </div>
       
       <TemperaturaIndicator stats={temperatureStats} />

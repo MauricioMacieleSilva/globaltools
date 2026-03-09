@@ -144,7 +144,7 @@ export function EstoqueTab() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* KPIs */}
-      <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} />
+      <EstoqueKPIs items={items} precosEspessuraMap={precosEspessuraMap} precosCategoriaMap={precosCategoriaMap} />
 
       {/* Barra de Ações */}
       {!permissionsLoading && canManage && (

@@ -22,8 +22,20 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
     setLoading(true);
     fetchComercialData()
       .then((data) => {
-        const filtered = data.filter(d => String(d.numeropedido).trim() === String(budgetNumber).trim());
-        setItems(filtered);
+        const allMatches = data.filter(d => String(d.numeropedido).trim() === String(budgetNumber).trim());
+        // Se houver duplicatas (filiais diferentes), pegar o pedido mais recente pela data de emissão
+        if (allMatches.length > 0) {
+          const dates = [...new Set(allMatches.map(d => d.data_emissao))].sort((a, b) => {
+            const da = new Date(a).getTime() || 0;
+            const db = new Date(b).getTime() || 0;
+            return db - da;
+          });
+          const mostRecentDate = dates[0];
+          const filtered = allMatches.filter(d => d.data_emissao === mostRecentDate);
+          setItems(filtered.length > 0 ? filtered : allMatches);
+        } else {
+          setItems([]);
+        }
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
@@ -106,7 +118,7 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
             </div>
 
             {/* Items table */}
-            <ScrollArea className="max-h-[40vh] w-full">
+            <ScrollArea className="h-[40vh] w-full">
               <div className="min-w-[500px]">
               <Table>
                 <TableHeader>

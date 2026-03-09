@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays, Maximize2, Minimize2 } from 'lucide-react';
+import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays, Maximize2, Minimize2, Monitor } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { SessionFilters } from '@/components/dashboard/SessionFilters';
 import { cn } from '@/lib/utils';

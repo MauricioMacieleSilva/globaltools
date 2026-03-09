@@ -86,15 +86,6 @@ export default function DashboardComercial({ tvMode = false }: { tvMode?: boolea
   // Handle URL parameter for tab navigation and persist tab changes
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    const pedidoParam = searchParams.get('pedido');
-    
-    // If pedido param exists, switch to orcamentos tab
-    if (pedidoParam) {
-      setActiveTab('orcamentos');
-      localStorage.setItem('dashboard-comercial-tab', 'orcamentos');
-      return;
-    }
-    
     if (tabParam && tabParam !== activeTab) {
       setActiveTab(tabParam);
       localStorage.setItem('dashboard-comercial-tab', tabParam);

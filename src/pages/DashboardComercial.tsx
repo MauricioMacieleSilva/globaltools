@@ -196,18 +196,29 @@ export default function DashboardComercial() {
                   </TabsTrigger>
                 </TabsList>
                 
-                {/* Botão Tela Cheia - escondido no mobile */}
+                {/* Botões Tela Cheia e Modo TV - escondidos no mobile */}
                 {!isFullscreen && (
-                  <Button
-                    data-tour="dashboard-fullscreen"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsFullscreen(true)}
-                    title="Modo tela cheia"
-                    className="shrink-0 hidden sm:flex h-9 w-9"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0 hidden sm:flex">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => navigate('/crm?tv=1')}
+                      title="Modo TV - Alternar dashboards"
+                      className="h-9 w-9"
+                    >
+                      <Monitor className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      data-tour="dashboard-fullscreen"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsFullscreen(true)}
+                      title="Modo tela cheia"
+                      className="h-9 w-9"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
                </div>
 

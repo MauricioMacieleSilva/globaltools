@@ -333,14 +333,6 @@ export default function CRM() {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
-      <div className="flex items-center justify-end">
-        <Button data-tour="crm-new-lead" onClick={() => setNewLeadOpen(true)} className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          {!isMobile && 'Novo Lead'}
-        </Button>
-      </div>
-
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between gap-2">
           <TabsList data-tour="crm-tabs" className="h-8">
@@ -360,16 +352,22 @@ export default function CRM() {
               <PieChart className="h-3.5 w-3.5" /> Dashboard
             </TabsTrigger>
           </TabsList>
-          {activeTab === 'kanban' && (
-            <div data-tour="crm-filters">
-            <CRMFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              vendorFilter={vendorFilter}
-              onVendorChange={setVendorFilter}
-            />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {activeTab === 'kanban' && (
+              <div data-tour="crm-filters">
+                <CRMFilters
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  vendorFilter={vendorFilter}
+                  onVendorChange={setVendorFilter}
+                />
+              </div>
+            )}
+            <Button data-tour="crm-new-lead" size="sm" onClick={() => setNewLeadOpen(true)} className="gap-1.5 h-8">
+              <Plus className="h-3.5 w-3.5" />
+              {!isMobile && 'Novo Lead'}
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="kanban" className="mt-3" data-tour="crm-kanban">

@@ -77,8 +77,8 @@ export const CATEGORIAS_UNIDADE_UN: CategoriaEstoque[] = [
 // Categorias que permanecem em KG (peso direto)
 export const CATEGORIAS_UNIDADE_KG: CategoriaEstoque[] = ['BOBINAS'];
 
-// Densidade do aço em kg/mm³ (7850 kg/m³ = 0.00000785 kg/mm³)
-const DENSIDADE_ACO = 0.00000785;
+// Densidade do aço em kg/mm³ (8000 kg/m³ = 0.000008 kg/mm³) - mesmo valor usado no Corte Perfil
+const DENSIDADE_ACO = 0.000008;
 
 // Função para obter unidade padrão por categoria
 export function getUnidadePadrao(categoria: CategoriaEstoque): string {
@@ -98,40 +98,37 @@ export function calcularPesoPeca(
 ): number | null {
   if (!espessura) return null;
   
-  // Para perfis, calcular baseado no desenvolvimento
+  // Para perfis, calcular baseado no desenvolvimento (tira) - mesma fórmula do Corte Perfil
+  // Cada dobra desconta 2*espessura do desenvolvimento
   if (categoria === 'PERFIS' && tipoPerfil) {
     let desenvolvimento = 0;
     
     switch (tipoPerfil) {
       case 'U':
-        // Desenvolvimento: base + 2*aba
-        desenvolvimento = (base || 0) + 2 * (aba1 || 0);
+      case 'Z':
+        // U/Z: aba1 + base + aba2 com 2 dobras em cada lado = 4 dobras total
+        // tira = aba1 + base + aba2 - (4 * espessura)
+        desenvolvimento = (aba1 || 0) + (base || 0) + (aba2 || 0) - (4 * espessura);
         break;
       case 'L':
-        // Desenvolvimento: aba1 + aba2
-        desenvolvimento = (aba1 || 0) + (aba2 || 0);
+        // L: aba + base com 1 dobra = 2*espessura
+        // tira = aba1 + (aba2 ou base) - (2 * espessura)
+        desenvolvimento = (aba1 || 0) + ((aba2 || 0) || (base || 0)) - (2 * espessura);
         break;
       case 'CARTOLA':
-        // Desenvolvimento: base + 2*aba
-        desenvolvimento = (base || 0) + 2 * (aba1 || 0);
+        // Cartola simples: base + 2*aba com 2 dobras = 4*espessura
+        desenvolvimento = (base || 0) + 2 * (aba1 || 0) - (4 * espessura);
         break;
       case 'U_ENRIJECIDO':
       case 'U_SEMI_ENRIJECIDO':
-        // Desenvolvimento: base + 2*aba1 + 2*aba2
-        desenvolvimento = (base || 0) + 2 * (aba1 || 0) + 2 * (aba2 || 0);
-        break;
       case 'Z_ENRIJECIDO':
-        // Desenvolvimento: aba1 + base + aba2 + 2*enrijecedor (aba2 usado como enrijecedor)
-        desenvolvimento = (aba1 || 0) + (base || 0) + (aba2 || 0) + 2 * (aba2 || 0);
+        // Enrijecidos: base + 2*aba1 + 2*aba2 com 4 dobras = 8*espessura
+        desenvolvimento = (base || 0) + 2 * (aba1 || 0) + 2 * (aba2 || 0) - (8 * espessura);
         break;
       case 'CARTOLA_ENRIJECIDO':
       case 'CARTOLA_SEMI_ENRIJECIDO':
-        // Desenvolvimento: base + 2*aba1 + 2*aba2
-        desenvolvimento = (base || 0) + 2 * (aba1 || 0) + 2 * (aba2 || 0);
-        break;
-      case 'Z':
-        // Desenvolvimento: aba1 + base + aba2
-        desenvolvimento = (aba1 || 0) + (base || 0) + (aba2 || 0);
+        // Cartola enrijecido: base + 2*aba1 + 2*aba2 com 4 dobras = 8*espessura
+        desenvolvimento = (base || 0) + 2 * (aba1 || 0) + 2 * (aba2 || 0) - (8 * espessura);
         break;
       default:
         desenvolvimento = largura || 0;

@@ -257,14 +257,8 @@ function AppContent() {
                                     </ProtectedRoute>
                                   }
                                 />
-                                <Route
-                                  path="/admin/ia-proativa"
-                                  element={
-                                    <ProtectedRoute requireRole="admin">
-                                      <AdminAIProactive />
-                                    </ProtectedRoute>
-                                  }
-                                />
+
+
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                                 <Route path="*" element={<NotFound />} />
                                 </Routes>

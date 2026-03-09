@@ -34,7 +34,8 @@ export function EstoqueTab() {
     getItemsByCategoria,
     getItemCount,
     items,
-    precosEspessuraMap
+    precosEspessuraMap,
+    precosCategoriaMap
   } = useEstoque();
   const { isAdmin, checkPageAccess, loading: permissionsLoading } = useUserPermissions();
   const isMobile = useIsMobile();

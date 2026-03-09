@@ -112,7 +112,6 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         client_name: contactName,
         empresa: form.empresa.trim(),
         source: form.source || null,
-        origem: form.source || null,
         cliente_telefone: form.cliente_telefone || null,
         contact_phone: form.cliente_telefone || null,
         cliente_email: form.cliente_email || null,

@@ -61,26 +61,26 @@ export function DashboardCarousel({ open, onClose, children, labels }: Dashboard
   return (
     <div className="fixed inset-0 z-[100] bg-background overflow-hidden">
       {/* Controls */}
-      <div className="fixed top-4 right-4 z-[110] flex items-center gap-2">
-        <Button variant="secondary" size="icon" className="shadow-lg" onClick={() => setPaused(p => !p)} title={paused ? 'Retomar' : 'Pausar'}>
-          {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+      <div className="fixed top-2 right-2 z-[110] flex items-center gap-1 opacity-30 hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setPaused(p => !p)} title={paused ? 'Retomar' : 'Pausar'}>
+          {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
         </Button>
-        <Button variant="secondary" size="icon" className="shadow-lg" onClick={() => { setTempDurations([...durations]); setSettingsOpen(true); }} title="Configurar tempos">
-          <Settings className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setTempDurations([...durations]); setSettingsOpen(true); }} title="Configurar tempos">
+          <Settings className="h-3 w-3" />
         </Button>
-        <Button variant="secondary" size="icon" className="shadow-lg" onClick={onClose} title="Sair">
-          <Minimize2 className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose} title="Sair">
+          <Minimize2 className="h-3 w-3" />
         </Button>
       </div>
 
       {/* Tab indicator */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] flex items-center gap-2 bg-card/80 backdrop-blur rounded-full px-3 py-1.5 shadow-lg">
+      <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[110] flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity bg-card/60 backdrop-blur rounded-full px-2 py-1 shadow-sm">
         {labels.map((label, i) => (
           <button
             key={i}
             onClick={() => setActiveIndex(i)}
             className={cn(
-              "text-xs px-3 py-1 rounded-full transition-all font-medium",
+              "text-[10px] px-2 py-0.5 rounded-full transition-all font-medium",
               activeIndex === i
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground"

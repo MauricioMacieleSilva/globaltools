@@ -226,15 +226,17 @@ export default function DashboardComercial({ tvMode = false }: { tvMode?: boolea
               )}
 
               {/* Indicador de última atualização */}
-              <div className="flex justify-end mt-1">
-                <LastUpdatedIndicator 
-                  lastUpdated={comercialData?.cacheStatus?.lastUpdate || null} 
-                  onRefresh={comercialData?.refreshData} 
-                  loading={comercialData?.isLoading} 
-                />
-              </div>
-              {/* Filtros - Abaixo das abas (escondidos em tela cheia) */}
-              {!isFullscreen && (
+              {!tvMode && (
+                <div className="flex justify-end mt-1">
+                  <LastUpdatedIndicator 
+                    lastUpdated={comercialData?.cacheStatus?.lastUpdate || null} 
+                    onRefresh={comercialData?.refreshData} 
+                    loading={comercialData?.isLoading} 
+                  />
+                </div>
+              )}
+              {/* Filtros - Abaixo das abas (escondidos em tela cheia e modo TV) */}
+              {!isFullscreen && !tvMode && (
                 <ErrorBoundary>
                   <div data-tour="dashboard-filters">
                     <SessionFilters />

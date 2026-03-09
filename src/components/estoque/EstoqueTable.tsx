@@ -69,11 +69,11 @@ export function EstoqueTable({
   const [isLoading, setIsLoading] = useState(false);
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const { precosEspessuraMap } = useEstoque();
+  const { precosEspessuraMap, precosCategoriaMap } = useEstoque();
 
   const showDimensionColumns = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS'].includes(categoria);
   const showPerfilColumns = categoria === 'PERFIS';
-  const showValorColumn = CATEGORIAS_PRECO_ESPESSURA.includes(categoria);
+  const showValorColumn = true; // Mostrar valor para todas as categorias
 
   // Função para buscar preço por espessura
   const getPrecoByEspessura = (espessura: number | null): number => {

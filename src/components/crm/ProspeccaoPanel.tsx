@@ -49,7 +49,11 @@ interface BusinessSector {
   name: string;
 }
 
-export function ProspeccaoPanel() {
+interface ProspeccaoPanelProps {
+  onLeadsApproved?: () => void;
+}
+
+export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [config, setConfig] = useState<ProspectingConfig | null>(null);
   const [logs, setLogs] = useState<ProspectingLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -585,7 +589,7 @@ export function ProspeccaoPanel() {
       </div>
 
       {/* Review Panel */}
-      <ProspeccaoReviewPanel onLeadsApproved={loadData} />
+      <ProspeccaoReviewPanel onLeadsApproved={() => { loadData(); onLeadsApproved?.(); }} />
 
       {/* History */}
       <Card>

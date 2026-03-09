@@ -500,7 +500,54 @@ serve(async (req) => {
       }
     }
 
-    // Process ObrasGov results
+    // ====== Firecrawl Search: find real PNCP URLs (max 5 to save credits) ======
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+    if (FIRECRAWL_API_KEY && pncpItemsForFirecrawl.length > 0) {
+      const itemsToSearch = pncpItemsForFirecrawl.slice(0, 5);
+      console.log(`🔎 [Firecrawl] Buscando ${itemsToSearch.length} URLs reais do PNCP...`);
+      
+      for (const item of itemsToSearch) {
+        try {
+          const searchQuery = `site:pncp.gov.br "${item.cnpj}" "${item.objeto}"`;
+          const fcResponse = await fetchWithTimeout("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: searchQuery,
+              limit: 1,
+              lang: "pt-br",
+              country: "br",
+            }),
+          }, 10000);
+
+          if (fcResponse.ok) {
+            const fcData = await fcResponse.json();
+            const foundUrl = fcData?.data?.[0]?.url;
+            if (foundUrl && foundUrl.includes('pncp.gov.br')) {
+              console.log(`✅ [Firecrawl] Found real URL for CNPJ ${item.cnpj}: ${foundUrl}`);
+              // Replace the Google fallback URL in the corresponding search result
+              const resultText = allSearchResults[item.index];
+              if (resultText) {
+                allSearchResults[item.index] = resultText.replace(
+                  /URL_FONTE:\s*https?:\/\/[^\s\n]+/i,
+                  `URL_FONTE: ${foundUrl}`
+                );
+              }
+            } else {
+              await fcResponse.text(); // consume body
+            }
+          } else {
+            await fcResponse.text(); // consume body
+          }
+        } catch (e) {
+          console.warn(`Firecrawl PNCP search failed for ${item.cnpj}:`, e);
+        }
+      }
+    }
+
     for (const results of obrasgovResults) {
       const items = Array.isArray(results) ? results : [];
       for (const item of items) {

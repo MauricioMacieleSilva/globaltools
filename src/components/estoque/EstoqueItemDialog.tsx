@@ -273,7 +273,7 @@ export function EstoqueItemDialog({
     if (form.comprimento) partes.push(`x ${form.comprimento}mm`);
     
     return partes.join(' ');
-  }, [form.categoria, form.tipo_perfil, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, form.enrij1, form.enrij2, autoDescricao]);
+  }, [form.categoria, form.tipo_perfil, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, form.enrij1, form.enrij2, form.enrij3, form.enrij4, autoDescricao]);
 
   // Calcula peso automaticamente para categorias UN
   const pesoCalculado = useMemo(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Loader2, Play, Sparkles, CheckCircle2, XCircle, Clock,
-  Info, RefreshCw
+  Info, RefreshCw, ChevronsUpDown, X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { locationsService } from '@/services/locationsService';
 
 interface ProspectingConfig {
   id: string;
@@ -46,12 +50,38 @@ export function ProspeccaoPanel() {
   const [running, setRunning] = useState(false);
 
   const [ramosInput, setRamosInput] = useState('');
-  const [estadosInput, setEstadosInput] = useState('');
-  const [cidadesInput, setCidadesInput] = useState('');
-  const [produtosInput, setProdutosInput] = useState('');
+  const [selectedUF, setSelectedUF] = useState('RS');
+  const [selectedCidades, setSelectedCidades] = useState<string[]>([]);
   const [maxLeads, setMaxLeads] = useState('10');
   const [scheduleTime, setScheduleTime] = useState('08:00');
   const [isActive, setIsActive] = useState(false);
+
+  const [estados, setEstados] = useState<Array<{ uf: string; nome: string }>>([]);
+  const [cidades, setCidades] = useState<string[]>([]);
+  const [loadingCidades, setLoadingCidades] = useState(false);
+  const [cidadePopoverOpen, setCidadePopoverOpen] = useState(false);
+  const [cidadeSearch, setCidadeSearch] = useState('');
+
+  // Load estados on mount
+  useEffect(() => {
+    locationsService.getEstados().then(data => setEstados(data));
+  }, []);
+
+  // Load cidades when UF changes
+  useEffect(() => {
+    if (!selectedUF) { setCidades([]); return; }
+    setLoadingCidades(true);
+    locationsService.getCidadesPorEstado(selectedUF).then(data => {
+      setCidades(data);
+      setLoadingCidades(false);
+    });
+  }, [selectedUF]);
+
+  const filteredCidades = useMemo(() => {
+    if (!cidadeSearch) return cidades.slice(0, 50);
+    const q = cidadeSearch.toLowerCase();
+    return cidades.filter(c => c.toLowerCase().includes(q)).slice(0, 50);
+  }, [cidades, cidadeSearch]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -65,9 +95,8 @@ export function ProspeccaoPanel() {
         const cfg = configs[0] as ProspectingConfig;
         setConfig(cfg);
         setRamosInput(cfg.ramos_atuacao?.join(', ') || '');
-        setEstadosInput(cfg.estados?.join(', ') || '');
-        setCidadesInput(cfg.cidades?.join(', ') || '');
-        setProdutosInput(cfg.produtos_interesse?.join(', ') || '');
+        setSelectedUF(cfg.estados?.[0] || 'RS');
+        setSelectedCidades(cfg.cidades || []);
         setMaxLeads(String(cfg.max_leads_per_run || 10));
         setScheduleTime(cfg.schedule_time || '08:00');
         setIsActive(cfg.is_active || false);
@@ -86,20 +115,22 @@ export function ProspeccaoPanel() {
   const parseArray = (input: string): string[] =>
     input.split(',').map(s => s.trim()).filter(Boolean);
 
+  const buildPayload = () => ({
+    is_active: isActive,
+    ramos_atuacao: parseArray(ramosInput),
+    estados: [selectedUF],
+    cidades: selectedCidades,
+    produtos_interesse: [] as string[],
+    max_leads_per_run: parseInt(maxLeads) || 10,
+    schedule_time: scheduleTime,
+    updated_at: new Date().toISOString(),
+  });
+
   const saveConfig = async () => {
     setSaving(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
-      const payload = {
-        is_active: isActive,
-        ramos_atuacao: parseArray(ramosInput),
-        estados: parseArray(estadosInput),
-        cidades: parseArray(cidadesInput),
-        produtos_interesse: parseArray(produtosInput),
-        max_leads_per_run: parseInt(maxLeads) || 10,
-        schedule_time: scheduleTime,
-        updated_at: new Date().toISOString(),
-      };
+      const payload = buildPayload();
 
       if (config?.id) {
         const { error } = await (supabase as any)
@@ -127,16 +158,7 @@ export function ProspeccaoPanel() {
   const persistConfig = async (): Promise<string | null> => {
     try {
       const user = (await supabase.auth.getUser()).data.user;
-      const payload = {
-        is_active: isActive,
-        ramos_atuacao: parseArray(ramosInput),
-        estados: parseArray(estadosInput),
-        cidades: parseArray(cidadesInput),
-        produtos_interesse: parseArray(produtosInput),
-        max_leads_per_run: parseInt(maxLeads) || 10,
-        schedule_time: scheduleTime,
-        updated_at: new Date().toISOString(),
-      };
+      const payload = buildPayload();
 
       if (config?.id) {
         const { error } = await (supabase as any)
@@ -266,7 +288,6 @@ export function ProspeccaoPanel() {
         <Card className="lg:col-span-3">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-sm font-medium">Critérios de Busca</CardTitle>
-            <CardDescription className="text-xs">Separe múltiplos valores por vírgula</CardDescription>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3">
             <div className="space-y-1">
@@ -277,34 +298,101 @@ export function ProspeccaoPanel() {
                 onChange={e => setRamosInput(e.target.value)}
                 className="h-8 text-xs"
               />
+              <p className="text-[10px] text-muted-foreground">Separe múltiplos valores por vírgula</p>
             </div>
+
+            {/* Estado (UF) */}
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Estados (UF)</Label>
-              <Input
-                placeholder="SP, MG, RJ, PR, SC, RS"
-                value={estadosInput}
-                onChange={e => setEstadosInput(e.target.value)}
-                className="h-8 text-xs"
-              />
+              <Label className="text-xs font-medium">Estado (UF)</Label>
+              <Select value={selectedUF} onValueChange={(v) => { setSelectedUF(v); setSelectedCidades([]); }}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {estados.map(e => (
+                    <SelectItem key={e.uf} value={e.uf} className="text-xs">
+                      {e.uf} - {e.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Cidades */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">Cidades (opcional)</Label>
-              <Input
-                placeholder="São Paulo, Belo Horizonte, Curitiba"
-                value={cidadesInput}
-                onChange={e => setCidadesInput(e.target.value)}
-                className="h-8 text-xs"
-              />
+              <Popover open={cidadePopoverOpen} onOpenChange={setCidadePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between h-8 text-xs font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedCidades.length > 0
+                        ? `${selectedCidades.length} cidade${selectedCidades.length > 1 ? 's' : ''} selecionada${selectedCidades.length > 1 ? 's' : ''}`
+                        : 'Buscar e selecionar cidades...'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Buscar cidade..."
+                      value={cidadeSearch}
+                      onValueChange={setCidadeSearch}
+                      className="text-xs"
+                    />
+                    <CommandList>
+                      {loadingCidades ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <>
+                          <CommandEmpty className="text-xs py-3 text-center">Nenhuma cidade encontrada</CommandEmpty>
+                          <CommandGroup>
+                            {filteredCidades.map(cidade => (
+                              <CommandItem
+                                key={cidade}
+                                value={cidade}
+                                className="text-xs"
+                                onSelect={() => {
+                                  setSelectedCidades(prev =>
+                                    prev.includes(cidade)
+                                      ? prev.filter(c => c !== cidade)
+                                      : [...prev, cidade]
+                                  );
+                                }}
+                              >
+                                <div className={`mr-2 h-3 w-3 rounded-sm border flex items-center justify-center ${selectedCidades.includes(cidade) ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}`}>
+                                  {selectedCidades.includes(cidade) && <CheckCircle2 className="h-2.5 w-2.5" />}
+                                </div>
+                                {cidade}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedCidades.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {selectedCidades.map(cidade => (
+                    <Badge key={cidade} variant="secondary" className="text-[10px] h-5 gap-0.5 px-1.5">
+                      {cidade}
+                      <button onClick={() => setSelectedCidades(prev => prev.filter(c => c !== cidade))}>
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Produtos de Interesse</Label>
-              <Input
-                placeholder="bobinas, chapas, perfis metálicos, tubos"
-                value={produtosInput}
-                onChange={e => setProdutosInput(e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs font-medium">Máx. leads por execução</Label>
@@ -411,7 +499,7 @@ export function ProspeccaoPanel() {
                       <div className="text-[10px] text-muted-foreground">gerados</div>
                     </div>
                     <div className="text-center">
-      <div className="font-semibold text-primary">{log.leads_criados}</div>
+                      <div className="font-semibold text-primary">{log.leads_criados}</div>
                       <div className="text-[10px] text-muted-foreground">criados</div>
                     </div>
                     <div className="text-center">

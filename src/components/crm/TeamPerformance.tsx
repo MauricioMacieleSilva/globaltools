@@ -26,7 +26,7 @@ interface UserPerf {
 export function TeamPerformance({ leads }: TeamPerformanceProps) {
   const [period, setPeriod] = useState('30d');
   const [vendors, setVendors] = useState<{ id: string; full_name: string }[]>([]);
-  const [activities, setActivities] = useState<{ user_id: string; activity_type: string }[]>([]);
+  const [activities, setActivities] = useState<{ user_id: string; activity_type: string; lead_id: string; created_at: string }[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -35,7 +35,7 @@ export function TeamPerformance({ leads }: TeamPerformanceProps) {
 
       const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
       const cutoff = new Date(Date.now() - days * 86400000).toISOString();
-      const { data: a } = await supabase.from('lead_activities').select('user_id, activity_type').gte('created_at', cutoff);
+      const { data: a } = await supabase.from('lead_activities').select('user_id, activity_type, lead_id, created_at').gte('created_at', cutoff);
       if (a) setActivities(a);
     };
     load();
@@ -47,7 +47,15 @@ export function TeamPerformance({ leads }: TeamPerformanceProps) {
   const perfData: UserPerf[] = vendors.map(v => {
     const userLeads = leads.filter(l => l.vendedor_id === v.id && new Date(l.created_at) >= cutoff);
     const userActivities = activities.filter(a => a.user_id === v.id);
-    const contacts = userActivities.filter(a => a.activity_type === 'contato_inicial').length;
+    // Only count first contact per lead per day
+    const contactActivities = userActivities.filter(a => a.activity_type === 'contato_inicial');
+    const uniqueContactKeys = new Set<string>();
+    contactActivities.forEach(a => {
+      const day = a.created_at.substring(0, 10);
+      const key = `${a.lead_id}_${day}`;
+      uniqueContactKeys.add(key);
+    });
+    const contacts = uniqueContactKeys.size;
     const conversions = userLeads.filter(l => l.status === 'pedido_fechado').length;
     const totalValue = userLeads.filter(l => l.status === 'pedido_fechado').reduce((s, l) => s + (l.valor_estimado || 0), 0);
     return {

@@ -6,7 +6,7 @@ import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays,
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { SessionFilters } from '@/components/dashboard/SessionFilters';
 import { cn } from '@/lib/utils';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { ComercialKPIs } from '@/components/dashboard/ComercialKPIs';
 import { ComercialCharts } from '@/components/dashboard/ComercialCharts';
 import { AnalisePrecos } from '@/components/dashboard/AnalisePrecos';

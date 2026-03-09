@@ -123,12 +123,9 @@ export function ProspeccaoPanel() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const parseArray = (input: string): string[] =>
-    input.split(',').map(s => s.trim()).filter(Boolean);
-
   const buildPayload = () => ({
     is_active: isActive,
-    ramos_atuacao: parseArray(ramosInput),
+    ramos_atuacao: selectedRamos,
     estados: [selectedUF],
     cidades: selectedCidades,
     produtos_interesse: [] as string[],

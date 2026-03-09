@@ -411,7 +411,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
 
     await Promise.all(enrichPromises);
 
-    // ====== STEP 4: Insert leads ======
+    // ====== STEP 4: Insert into staging table for review ======
     let created = 0;
     let duplicates = 0;
 
@@ -429,33 +429,29 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         continue;
       }
 
-      // Build source string with specific API name
       const fonteLabel = lead.fonte_dados || "IA";
       const sourceValue = `prospeccao_${fonteLabel.toLowerCase()}`;
 
-      // Map empresa to empresa field, contact_name to cliente_nome
-      // If no contact_name, use empresa as cliente_nome (required field)
       const empresaNome = lead.empresa || lead.cliente_nome || '';
       const contactName = lead.contact_name || '';
 
-      const { error: insertError } = await supabaseAdmin.from("leads").insert({
+      const { error: insertError } = await supabaseAdmin.from("lead_prospecting_results").insert({
+        log_id: logId || null,
         cliente_nome: contactName || empresaNome,
-        client_name: contactName || empresaNome,
         empresa: empresaNome || null,
-        cliente_cnpj: lead.cliente_cnpj || null,
         contact_name: lead.contact_name || null,
-        contact_phone: lead.contact_phone || lead.cliente_telefone || null,
-        contact_email: lead.contact_email || lead.cliente_email || null,
         cliente_telefone: lead.cliente_telefone || lead.contact_phone || null,
         cliente_email: lead.cliente_email || lead.contact_email || null,
+        cliente_cnpj: lead.cliente_cnpj || null,
         cidade: lead.cidade || null,
         estado: lead.estado || null,
         ramo_atuacao: lead.ramo_atuacao || null,
         produto_interesse: lead.produto_interesse || null,
         valor_estimado: lead.valor_estimado || null,
         notes: lead.notes || null,
+        fonte_dados: fonteLabel,
         source: sourceValue,
-        status: "lead",
+        status: "pending",
       });
 
       if (!insertError) {
@@ -464,7 +460,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         if (cnpjKey) existingNames.add(cnpjKey);
         created++;
       } else {
-        console.error("Insert lead error:", insertError);
+        console.error("Insert staging lead error:", insertError);
       }
     }
 

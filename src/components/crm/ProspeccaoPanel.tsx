@@ -245,7 +245,7 @@ export function ProspeccaoPanel() {
           </div>
           <Button
             onClick={runNow}
-            disabled={running || !config?.id}
+            disabled={running}
             size="sm"
             className="gap-1.5 h-8"
           >

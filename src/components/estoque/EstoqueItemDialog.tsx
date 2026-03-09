@@ -556,7 +556,14 @@ export function EstoqueItemDialog({
                         type="number"
                         step="0.01"
                         value={form.enrij1}
-                        onChange={(e) => setForm({ ...form, enrij1: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const updates: Partial<FormData> = { enrij1: val };
+                          if (perfilConfig?.enrij2 && !enrij2ManualEdit) {
+                            updates.enrij2 = val;
+                          }
+                          setForm(prev => ({ ...prev, ...updates }));
+                        }}
                         placeholder="0"
                       />
                     </div>

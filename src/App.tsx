@@ -23,10 +23,10 @@ import { PreVendas } from '@/pages/PreVendas';
 import Clientes from "./pages/Clientes";
 import PoliticaComercial from "./pages/PoliticaComercial";
 import AssistenteGlobal from "./pages/AssistenteGlobal";
-import KnowledgeManagement from "./pages/KnowledgeManagement";
+
 import { UserManagement } from "./pages/UserManagement";
 import ReportsConfig from "./pages/ReportsConfig";
-import AdminAIProactive from "./pages/AdminAIProactive";
+
 import NotFound from "./pages/NotFound";
 import { Pipeline } from "./pages/Pipeline";
 import Producao from "./pages/Producao";
@@ -70,12 +70,9 @@ function AppContent() {
         return 'Produção';
       case '/fretes':
         return 'Controle de Fretes';
-      case '/admin/conhecimento':
-        return 'Gestão de Conhecimento';
+      case '/admin/usuarios':
       case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
-      case '/admin/ia-proativa':
-        return 'IA Proativa - Teste';
       default:
         return 'Global Aço';
     }
@@ -107,8 +104,6 @@ function AppContent() {
         return 'Acompanhamento de pedidos em produção';
       case '/fretes':
         return 'Gestão de fretes e entregas por pedido';
-      case '/admin/conhecimento':
-        return 'Base de conhecimento e artigos do Zé da Global';
       case '/admin/usuarios':
         return 'Controle de usuários e permissões do sistema';
       default:
@@ -243,14 +238,8 @@ function AppContent() {
                                     </ProtectedRoute>
                                   }
                                 />
-                                <Route
-                                  path="/admin/conhecimento"
-                                  element={
-                                    <ProtectedRoute requireRole="admin">
-                                      <KnowledgeManagement />
-                                    </ProtectedRoute>
-                                  }
-                                />
+
+
                                 <Route
                                   path="/admin/usuarios"
                                   element={
@@ -267,14 +256,8 @@ function AppContent() {
                                     </ProtectedRoute>
                                   }
                                 />
-                                <Route
-                                  path="/admin/ia-proativa"
-                                  element={
-                                    <ProtectedRoute requireRole="admin">
-                                      <AdminAIProactive />
-                                    </ProtectedRoute>
-                                  }
-                                />
+
+
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                                 <Route path="*" element={<NotFound />} />
                                 </Routes>

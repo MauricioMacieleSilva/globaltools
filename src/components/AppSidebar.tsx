@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Brain, Target, Factory, Zap, LogOut, DollarSign, Calendar, Truck, Kanban } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -106,12 +106,6 @@ const menuItems = [
 
 const adminMenuItems = [
   {
-    title: 'Gestão de Conhecimento',
-    url: '/admin/conhecimento',
-    icon: Brain,
-    pageKey: 'conhecimento',
-  },
-  {
     title: 'Gerenciar Usuários',
     url: '/admin/usuarios',
     icon: Settings,
@@ -122,12 +116,6 @@ const adminMenuItems = [
     url: '/admin/relatorios',
     icon: Mail,
     pageKey: 'relatorios',
-  },
-  {
-    title: 'IA Proativa - Teste',
-    url: '/admin/ia-proativa',
-    icon: Zap,
-    pageKey: 'ia_proativa',
   },
 ];
 

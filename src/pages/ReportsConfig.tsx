@@ -5,10 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReportConfigTable } from "@/components/admin/ReportConfigTable";
 import { ReportHistoryTable } from "@/components/admin/ReportHistoryTable";
 import { MonthlyClosingReportDialog } from "@/components/admin/MonthlyClosingReportDialog";
-import { Mail, History, Settings, Factory, Calendar, Clock, Loader2, Save } from "lucide-react";
+import { Mail, History, Settings, Factory, Calendar, Clock, Loader2, Save, Package } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -117,6 +118,110 @@ function ProductionConfig() {
   );
 }
 
+const DAY_OPTIONS = [
+  { value: 'monday', label: 'Segunda-feira' },
+  { value: 'tuesday', label: 'Terça-feira' },
+  { value: 'wednesday', label: 'Quarta-feira' },
+  { value: 'thursday', label: 'Quinta-feira' },
+  { value: 'friday', label: 'Sexta-feira' },
+  { value: 'saturday', label: 'Sábado' },
+  { value: 'sunday', label: 'Domingo' },
+];
+
+function EstoqueConfig() {
+  const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string; send_day: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('estoque_report_schedule' as any)
+          .select('*')
+          .limit(1)
+          .single();
+        if (error) throw error;
+        setConfig(data as any);
+      } catch (e) {
+        console.error('Erro ao carregar configuração de estoque:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleSave = async () => {
+    if (!config) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('estoque_report_schedule' as any)
+        .update({ is_active: config.is_active, send_time: config.send_time, send_day: config.send_day, updated_at: new Date().toISOString() } as any)
+        .eq('id', config.id);
+      if (error) throw error;
+      const dayLabel = DAY_OPTIONS.find(d => d.value === config.send_day)?.label || config.send_day;
+      toast({
+        title: 'Configuração salva',
+        description: config.is_active
+          ? `Relatório de estoque será enviado toda ${dayLabel} às ${config.send_time}.`
+          : 'Envio automático de estoque desativado.',
+      });
+    } catch (error: any) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (!config) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <Label>Envio automático</Label>
+          <p className="text-sm text-muted-foreground">Enviar relatório semanal de estoque para os destinatários configurados</p>
+        </div>
+        <Switch checked={config.is_active} onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })} />
+      </div>
+      {config.is_active && (
+        <div className="flex flex-wrap gap-4">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> Dia da Semana
+            </Label>
+            <Select value={config.send_day} onValueChange={(value) => setConfig({ ...config, send_day: value })}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DAY_OPTIONS.map(day => (
+                  <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="estoque-send-time" className="flex items-center gap-1">
+              <Clock className="h-3 w-3" /> Horário de Envio
+            </Label>
+            <Input id="estoque-send-time" type="time" value={config.send_time} onChange={(e) => setConfig({ ...config, send_time: e.target.value })} className="w-40" />
+          </div>
+        </div>
+      )}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Salvar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function ReportsConfig() {
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -156,6 +261,15 @@ export default function ReportsConfig() {
             badge="Seg a Sex"
           >
             <ProductionConfig />
+          </ReportCard>
+
+          <ReportCard
+            icon={<Package className="h-5 w-5 text-primary" />}
+            title="Relatório de Estoque"
+            description="Configure o envio automático do relatório de estoque semanal"
+            badge="Semanal"
+          >
+            <EstoqueConfig />
           </ReportCard>
 
           <ReportCard

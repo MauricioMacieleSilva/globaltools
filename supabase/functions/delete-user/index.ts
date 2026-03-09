@@ -36,14 +36,15 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // Verificar se usuário é admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('user_profiles')
+    // Verificar se usuário é admin via user_roles
+    const { data: roles, error: rolesError } = await supabaseClient
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
-      .single()
+      .eq('user_id', user.id)
 
-    if (profileError || profile?.role !== 'admin') {
+    const isAdmin = !rolesError && roles?.some((r: any) => r.role === 'admin')
+
+    if (!isAdmin) {
       throw new Error('Forbidden: Only admins can delete users')
     }
 

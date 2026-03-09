@@ -12,6 +12,7 @@ interface OrderDetailDialogProps {
   open: boolean;
   onClose: () => void;
   budgetNumber: string;
+  clientName?: string;
 }
 
 export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDialogProps) {

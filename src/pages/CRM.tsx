@@ -370,6 +370,9 @@ export default function CRM() {
         user_id: user?.id || '',
       } as any);
 
+      // Register contact on first movement
+      await ensureContactRegistered(pendingOrderLead.id, user?.id || '');
+
       toast.success('Status atualizado', { description: `Lead vinculado ao Pedido ${orderNumber}` });
       loadLeads();
     } catch {

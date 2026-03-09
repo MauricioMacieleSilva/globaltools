@@ -201,6 +201,24 @@ export default function CRM() {
     return (data?.length || 0) > 0;
   };
 
+  /** Registra contato_inicial se nunca foi registrado para este lead */
+  const ensureContactRegistered = async (leadId: string, userId: string) => {
+    const { data } = await supabase
+      .from('lead_activities')
+      .select('id')
+      .eq('lead_id', leadId)
+      .eq('activity_type', 'contato_inicial')
+      .limit(1);
+    if (!data || data.length === 0) {
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado automaticamente via movimentação CRM',
+        user_id: userId,
+      } as any);
+    }
+  };
+
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return;
@@ -259,16 +277,10 @@ export default function CRM() {
         user_id: user?.id || '',
       } as any);
 
-      if (newStatus === 'contato_feito') {
-        const alreadyToday = await checkContactAlreadyToday(leadId);
-        if (!alreadyToday) {
-          await supabase.from('lead_activities').insert({
-            lead_id: leadId,
-            activity_type: 'contato_inicial',
-            description: 'Contato registrado via CRM',
-            user_id: user?.id || '',
-          } as any);
-        }
+      // Register contact if moving to contato_feito or any later stage (first time only)
+      const advancedStages = ['contato_feito', 'visita_reuniao', 'proposta', 'pedido_fechado'];
+      if (advancedStages.includes(newStatus)) {
+        await ensureContactRegistered(leadId, user?.id || '');
       }
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
@@ -280,13 +292,14 @@ export default function CRM() {
 
   const handleVisitConfirmed = async () => {
     if (!pendingVisitLead) return;
-    // Update lead status after visit is scheduled
     try {
+      const user = (await supabase.auth.getUser()).data.user;
       await (supabase as any)
         .from('leads')
         .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
         .eq('id', pendingVisitLead.id);
       setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
+      await ensureContactRegistered(pendingVisitLead.id, user?.id || '');
     } catch {}
     setPendingVisitLead(null);
   };
@@ -310,15 +323,7 @@ export default function CRM() {
         description: `Movido de "${oldLabel}" para "Contato Feito"`,
         user_id: user?.id || '',
       } as any);
-      const alreadyToday = await checkContactAlreadyToday(pendingEnrichLead.id);
-      if (!alreadyToday) {
-        await supabase.from('lead_activities').insert({
-          lead_id: pendingEnrichLead.id,
-          activity_type: 'contato_inicial',
-          description: 'Contato registrado via CRM',
-          user_id: user?.id || '',
-        } as any);
-      }
+      await ensureContactRegistered(pendingEnrichLead.id, user?.id || '');
 
       loadLeads();
       toast.success('Status atualizado', { description: 'Lead movido para Contato Feito' });
@@ -356,6 +361,9 @@ export default function CRM() {
         description: `Movido de "${oldLabel}" para "${newLabel}" — Pedido ${orderNumber}`,
         user_id: user?.id || '',
       } as any);
+
+      // Register contact on first movement
+      await ensureContactRegistered(pendingOrderLead.id, user?.id || '');
 
       toast.success('Status atualizado', { description: `Lead vinculado ao Pedido ${orderNumber}` });
       loadLeads();

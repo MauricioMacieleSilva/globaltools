@@ -563,6 +563,9 @@ export function ProspeccaoPanel() {
         </Card>
       </div>
 
+      {/* Review Panel */}
+      <ProspeccaoReviewPanel onLeadsApproved={loadData} />
+
       {/* History */}
       <Card>
         <CardHeader className="pb-2 pt-4 px-4">

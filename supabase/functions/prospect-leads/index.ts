@@ -197,15 +197,17 @@ IMPORTANTE: Para cada lead, identifique a fonte de dados original:
 - Resultados marcados [OBRAS PRIVADAS] → fonte_dados: "Google"
 
 PRIORIDADES DE EXTRAÇÃO (em ordem):
-1. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante.
-2. SOURCE_URL - SEMPRE extraia a URL/link da fonte original. OBRIGATÓRIO quando disponível.
+1. SOURCE_URL - OBRIGATÓRIO! Cada resultado tem um campo "URL_FONTE:" — copie esse valor EXATAMENTE para o campo "source_url". TODO lead DEVE ter source_url. Sem exceção.
+2. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante depois da URL.
 3. EMAIL - extraia emails de contato.
 4. SITE - extraia URLs de sites das empresas.
 5. CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
 
+REGRA CRÍTICA: O campo "source_url" é OBRIGATÓRIO para TODOS os leads. Procure "URL_FONTE:" nos dados e copie esse valor.
+
 CAMPO "empresa": Nome da empresa/razão social.
 CAMPO "contact_name": Nome de uma PESSOA (comprador, engenheiro, gerente). Se não encontrar, deixe VAZIO.
-CAMPO "source_url": URL da fonte original. SEMPRE preencha quando houver URL nos dados.
+CAMPO "source_url": OBRIGATÓRIO. Copie o valor de "URL_FONTE:" dos dados. NUNCA deixe vazio.
 No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, potencial de compra, se veio de alvará/diário oficial, etc.`;
 
   try {
@@ -442,7 +444,7 @@ serve(async (req) => {
         const text = [
           r.title && `Título: ${r.title}`,
           r.description && `Descrição: ${r.description}`,
-          r.url && `URL: ${r.url}`,
+          r.url && `URL_FONTE: ${r.url}`,
           r.markdown && `Conteúdo: ${r.markdown.slice(0, 1500)}`,
         ].filter(Boolean).join("\n");
         if (text) allSearchResults.push(`${tag}\n${text}`);
@@ -464,6 +466,15 @@ serve(async (req) => {
         const numControle = item.numeroControlePNCP || "";
         const linkOrigem = item.linkSistemaOrigem || "";
 
+        // Build a PNCP portal link as fallback when linkSistemaOrigem is empty
+        const cnpjOrgao = item.orgaoEntidade?.cnpj?.replace(/\D/g, '') || '';
+        const anoCompra = item.anoCompra || '';
+        const seqCompra = item.sequencialCompra || '';
+        const pncpPortalLink = (cnpjOrgao && anoCompra && seqCompra)
+          ? `https://pncp.gov.br/app/editais/${cnpjOrgao}/${anoCompra}/${seqCompra}`
+          : `https://pncp.gov.br/app/editais?q=${encodeURIComponent(objeto.slice(0, 80))}`;
+        const finalLink = linkOrigem || pncpPortalLink;
+
         const text = [
           orgao && `Órgão/Empresa: ${orgao}`,
           objeto && `Objeto da Contratação: ${objeto}`,
@@ -473,7 +484,7 @@ serve(async (req) => {
           modalidade && `Modalidade: ${modalidade}`,
           valor && `Valor Estimado: R$ ${valor}`,
           numControle && `Nº Controle PNCP: ${numControle}`,
-          linkOrigem && `Link: ${linkOrigem}`,
+          `URL_FONTE: ${finalLink}`,
           item.informacaoComplementar && `Info Complementar: ${item.informacaoComplementar}`,
           item.justificativaPresencial && `Justificativa: ${item.justificativaPresencial}`,
         ].filter(Boolean).join("\n");
@@ -500,6 +511,31 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
     );
 
     console.log(`🤖 AI extraiu ${generatedLeads.length} leads`);
+
+    // ====== POST-AI: Ensure every lead has a source_url ======
+    for (const lead of generatedLeads) {
+      if (!lead.source_url) {
+        // Try to find a matching URL from the original search results
+        const nameToMatch = (lead.empresa || lead.cliente_nome || '').toLowerCase();
+        if (nameToMatch) {
+          for (const resultText of allSearchResults) {
+            const urlMatch = resultText.match(/URL_FONTE:\s*(https?:\/\/[^\s\n]+)/i);
+            if (urlMatch && resultText.toLowerCase().includes(nameToMatch.slice(0, 15))) {
+              lead.source_url = urlMatch[1];
+              break;
+            }
+          }
+        }
+        // If still no URL, assign a generic search URL based on fonte_dados
+        if (!lead.source_url) {
+          if (lead.fonte_dados === 'PNCP') {
+            lead.source_url = `https://pncp.gov.br/app/editais?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
+          } else {
+            lead.source_url = `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '') + ' ' + (lead.cidade || '') + ' ' + (lead.estado || ''))}`;
+          }
+        }
+      }
+    }
 
     // ====== STEP 3: Enrich with BrasilAPI (enhanced) ======
     const leadsToEnrich = generatedLeads.filter(

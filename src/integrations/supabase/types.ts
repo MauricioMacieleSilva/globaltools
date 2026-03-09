@@ -730,6 +730,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          last_sent_date: string | null
           send_day: string
           send_time: string
           updated_at: string
@@ -738,6 +739,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          last_sent_date?: string | null
           send_day?: string
           send_time?: string
           updated_at?: string
@@ -746,6 +748,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          last_sent_date?: string | null
           send_day?: string
           send_time?: string
           updated_at?: string

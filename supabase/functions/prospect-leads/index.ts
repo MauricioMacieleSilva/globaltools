@@ -460,6 +460,7 @@ serve(async (req) => {
     }
 
     // Process PNCP results
+    const pncpItemsForFirecrawl: { cnpj: string; objeto: string; index: number }[] = [];
     for (const results of pncpResults) {
       const items = Array.isArray(results) ? results : [];
       for (const item of items) {

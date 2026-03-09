@@ -26,7 +26,7 @@ interface UserPerf {
 export function TeamPerformance({ leads }: TeamPerformanceProps) {
   const [period, setPeriod] = useState('30d');
   const [vendors, setVendors] = useState<{ id: string; full_name: string }[]>([]);
-  const [activities, setActivities] = useState<{ user_id: string; activity_type: string }[]>([]);
+  const [activities, setActivities] = useState<{ user_id: string; activity_type: string; lead_id: string; created_at: string }[]>([]);
 
   useEffect(() => {
     const load = async () => {

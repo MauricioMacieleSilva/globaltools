@@ -90,7 +90,45 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }).catch(() => setOrderValue(null));
   }, [lead?.budget_number, lead?.id, open]);
 
-  const loadActivities = async (leadId: string) => {
+  const loadNextVisit = async (leadId: string) => {
+    const { data } = await (supabase as any)
+      .from('crm_visits')
+      .select('id, visit_date, location')
+      .eq('lead_id', leadId)
+      .gte('visit_date', new Date().toISOString())
+      .order('visit_date', { ascending: true })
+      .limit(1);
+    setNextVisit(data?.[0] ? { id: data[0].id, date: data[0].visit_date, location: data[0].location } : null);
+  };
+
+  const cancelVisit = async () => {
+    if (!nextVisit || !lead) return;
+    try {
+      await (supabase as any).from('crm_visits').delete().eq('id', nextVisit.id);
+      // Log activity
+      const user = (await supabase.auth.getUser()).data.user;
+      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        user_id: user?.id || '',
+        activity_type: 'visita',
+        description: `Reunião desmarcada: ${new Date(nextVisit.date).toLocaleDateString('pt-BR')} ${new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${nextVisit.location ? ` em ${nextVisit.location}` : ''}`,
+        sdr_name: (profile as any)?.full_name || 'Usuário',
+      });
+      // If status is visita_reuniao, revert to contato_feito
+      if (lead.status === 'visita_reuniao') {
+        await (supabase as any).from('leads').update({ status: 'contato_feito', updated_at: new Date().toISOString() }).eq('id', lead.id);
+      }
+      setNextVisit(null);
+      toast.success('Reunião desmarcada');
+      onLeadUpdated();
+      loadActivities(lead.id);
+    } catch (err: any) {
+      toast.error('Erro ao desmarcar reunião', { description: err.message });
+    }
+  };
+
+
     const { data } = await supabase
       .from('lead_activities')
       .select('*')

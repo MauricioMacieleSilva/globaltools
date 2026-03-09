@@ -21,6 +21,7 @@ interface CRMDashboardProps {
   lastUpdated?: Date | null;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  tvMode?: boolean;
 }
 
 const CHART_COLORS = [

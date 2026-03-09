@@ -181,15 +181,21 @@ REGRAS:
 - "empresa" = NOME DA EMPRESA (razão social ou nome fantasia)
 - "contact_name" = nome de PESSOA de contato. Se não encontrar, deixe VAZIO.
 - PRIORIZE encontrar TELEFONE, EMAIL e SITE.
-- "source_url" é OBRIGATÓRIO. Copie de "URL_FONTE:" nos dados.`;
+- "source_url" é OBRIGATÓRIO. Copie de "URL_FONTE:" nos dados.
+- "fonte_dados" DEVE corresponder EXATAMENTE à tag da seção de onde o lead foi extraído:
+  - Se o bloco começa com [GOOGLE], use fonte_dados = "Google"
+  - Se o bloco começa com [PNCP - LICITAÇÃO], use fonte_dados = "PNCP"
+  - NÃO misture as fontes. Cada lead deve ter a fonte correta de onde foi extraído.`;
 
   const userPrompt = `Extraia até ${maxLeads} leads reais dos dados abaixo.
 Ramos: ${ramos} | Estados: ${estados}
 
+IMPORTANTE: O campo "fonte_dados" de cada lead DEVE corresponder à tag [GOOGLE] ou [PNCP - LICITAÇÃO] do bloco de onde a informação foi extraída. NÃO atribua "Google" a leads extraídos de blocos [PNCP].
+
 DADOS:
 ${searchResults}
 
-Cada lead DEVE ter source_url (copie de "URL_FONTE:").`;
+Cada lead DEVE ter source_url (copie de "URL_FONTE:") e fonte_dados correto.`;
 
   try {
     const aiResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {

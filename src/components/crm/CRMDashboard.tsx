@@ -309,6 +309,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing }: CR
       )}
 
       <div className={cn("space-y-3 sm:space-y-4", isFullscreen && "p-4 sm:p-6")}>
+        {/* Last updated indicator */}
+        {lastUpdated && (
+          <div className="flex justify-end">
+            <LastUpdatedIndicator 
+              lastUpdated={lastUpdated} 
+              onRefresh={onRefresh} 
+              loading={isRefreshing} 
+            />
+          </div>
+        )}
         {/* Filters bar */}
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodFilter} onValueChange={setPeriodFilter}>

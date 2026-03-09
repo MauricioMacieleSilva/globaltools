@@ -1478,6 +1478,7 @@ export type Database = {
           notes: string | null
           produto_interesse: string | null
           ramo_atuacao: string | null
+          regime_tributario: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           source: string | null
@@ -1501,6 +1502,7 @@ export type Database = {
           notes?: string | null
           produto_interesse?: string | null
           ramo_atuacao?: string | null
+          regime_tributario?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source?: string | null
@@ -1524,6 +1526,7 @@ export type Database = {
           notes?: string | null
           produto_interesse?: string | null
           ramo_atuacao?: string | null
+          regime_tributario?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           source?: string | null

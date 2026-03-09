@@ -251,9 +251,9 @@ export function EstoqueItemDialog({
           dimensoes = `${Math.round(parseFloat(form.enrij3))}x${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}x${Math.round(parseFloat(form.enrij4))}`;
         }
       } else if (form.tipo_perfil === 'CARTOLA_SEMI_ENRIJECIDO') {
-        // Cartola Semi: enrij1 x aba1 x base x aba2
-        if (form.enrij1 && form.aba1 && form.base && form.aba2) {
-          dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}`;
+        // Cartola Semi: enrij3 x enrij1 x aba1 x base x aba2 x enrij2
+        if (form.enrij3 && form.enrij1 && form.aba1 && form.base && form.aba2 && form.enrij2) {
+          dimensoes = `${Math.round(parseFloat(form.enrij3))}x${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}`;
         }
       }
       

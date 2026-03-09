@@ -172,13 +172,14 @@ export function EstoqueItemDialog({
   const isUnidadeUN = CATEGORIAS_UNIDADE_UN.includes(form.categoria);
   const showProfileFields = ['PERFIS'].includes(form.categoria);
   const showTubeFields = form.categoria === 'TUBOS';
+  const showTelhaFields = form.categoria === 'TELHAS';
   const showDimensionFields = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS', 'BLANK', 'LAMINADOS', 'TUBOS', 'ARAMES', 'VERGALHAO'].includes(form.categoria);
   
   // Configuração de campos dinâmica baseada no tipo de perfil
   const perfilConfig = form.tipo_perfil ? PERFIL_FIELDS_CONFIG[form.tipo_perfil] : null;
   
   // Categorias que geram descrição automaticamente a partir das dimensões
-  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK', 'TUBOS'].includes(form.categoria);
+  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK', 'TUBOS', 'TELHAS'].includes(form.categoria);
 
   // Gera descrição automática baseada nas dimensões
   const gerarDescricaoAutomatica = useMemo(() => {

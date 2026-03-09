@@ -617,6 +617,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           open={orderDialogOpen}
           onClose={() => setOrderDialogOpen(false)}
           budgetNumber={lead.budget_number}
+          clientName={lead.empresa || lead.cliente_nome || lead.client_name}
         />
       )}
     </>

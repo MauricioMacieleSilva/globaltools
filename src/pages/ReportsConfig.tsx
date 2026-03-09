@@ -182,7 +182,7 @@ function EstoqueConfig() {
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <Label>Envio automático</Label>
-          <p className="text-sm text-muted-foreground">Enviar relatório semanal de estoque para os destinatários configurados</p>
+          <p className="text-sm text-muted-foreground">Enviar relatório de seg a sex para os destinatários configurados</p>
         </div>
         <Switch checked={config.is_active} onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })} />
       </div>

@@ -1612,6 +1612,7 @@ export type Database = {
           updated_at: string
           valor_estimado: number | null
           vendedor_id: string | null
+          website: string | null
         }
         Insert: {
           budget_number?: string | null
@@ -1646,6 +1647,7 @@ export type Database = {
           updated_at?: string
           valor_estimado?: number | null
           vendedor_id?: string | null
+          website?: string | null
         }
         Update: {
           budget_number?: string | null
@@ -1680,6 +1682,7 @@ export type Database = {
           updated_at?: string
           valor_estimado?: number | null
           vendedor_id?: string | null
+          website?: string | null
         }
         Relationships: [
           {

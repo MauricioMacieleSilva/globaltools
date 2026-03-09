@@ -128,6 +128,12 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
               <Input id="email" type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
             </div>
 
+            {/* Website / URL */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="website">Site / URL</Label>
+              <Input id="website" value={form.website} onChange={(e) => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.empresa.com.br" />
+            </div>
+
             {/* Origem */}
             <div className="space-y-1.5">
               <Label htmlFor="origem">Origem</Label>

@@ -159,12 +159,12 @@ export function ProspeccaoPanel() {
 
   const getStatusBadge = (status: string) => {
     if (status === 'success') return (
-      <Badge variant="outline" className="gap-1 text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950 dark:border-emerald-800">
+      <Badge variant="outline" className="gap-1 text-primary border-primary/20 bg-primary/5">
         <CheckCircle2 className="h-3 w-3" /> Sucesso
       </Badge>
     );
     if (status === 'running') return (
-      <Badge variant="outline" className="gap-1 text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+      <Badge variant="outline" className="gap-1 text-secondary-foreground border-secondary bg-secondary">
         <Clock className="h-3 w-3" /> Executando
       </Badge>
     );

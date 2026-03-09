@@ -258,9 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false)
       }
 
-      if (event === 'SIGNED_IN') {
-        toast.success('Login realizado com sucesso!')
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         toast.success('Logout realizado com sucesso!')
       }
     })

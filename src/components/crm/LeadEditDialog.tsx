@@ -206,7 +206,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         notes: form.notes || null,
         cliente_cnpj: form.cliente_cnpj.replace(/\D/g, '') || null,
         budget_number: form.budget_number.trim() || null,
-        valor_estimado: form.budget_number.trim() ? undefined : null,
+        ...(form.budget_number.trim() ? {} : { valor_estimado: null }),
         ramo_atuacao: form.ramo_atuacao || null,
         regime_tributario: form.regime_tributario || null,
         estado: form.estado || null,

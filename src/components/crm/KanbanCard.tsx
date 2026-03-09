@@ -113,12 +113,6 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {/* Value without order */}
-        {!lead.budget_number && lead.valor_estimado != null && lead.valor_estimado > 0 && (
-          <p className="text-xs font-semibold text-foreground">
-            R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </p>
-        )}
 
         {/* Products + days */}
         <div className="flex items-center justify-between gap-1">

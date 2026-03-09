@@ -507,6 +507,15 @@ export default function CRM() {
           <Plus className="h-6 w-6" />
         </button>
       )}
+
+      <DashboardCarousel
+        open={carouselOpen}
+        onClose={() => setCarouselOpen(false)}
+        labels={['Dashboard CRM', 'Dashboard Comercial']}
+      >
+        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
+        <DashboardComercial />
+      </DashboardCarousel>
     </div>
   );
 }

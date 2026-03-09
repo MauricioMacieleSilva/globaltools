@@ -105,8 +105,6 @@ function AppContent() {
         return 'Acompanhamento de pedidos em produção';
       case '/fretes':
         return 'Gestão de fretes e entregas por pedido';
-      case '/admin/conhecimento':
-        return 'Base de conhecimento e artigos do Zé da Global';
       case '/admin/usuarios':
         return 'Controle de usuários e permissões do sistema';
       default:

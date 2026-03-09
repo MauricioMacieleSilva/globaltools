@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import {
   Loader2, CheckCircle2, XCircle, Building2, Phone, Mail,
-  MapPin, FileText, Sparkles, CheckCheck, Trash2
+  MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink
 } from 'lucide-react';
 
 interface StagedLead {
@@ -29,6 +29,7 @@ interface StagedLead {
   notes: string | null;
   fonte_dados: string | null;
   source: string | null;
+  source_url: string | null;
   created_at: string;
 }
 
@@ -254,6 +255,18 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                     {lead.empresa || lead.cliente_nome}
                   </span>
                   {getSourceBadge(lead.fonte_dados)}
+                  {lead.source_url && (
+                    <a
+                      href={lead.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-2.5 w-2.5" />
+                      Ver fonte
+                    </a>
+                  )}
                 </div>
 
                 {lead.contact_name && (

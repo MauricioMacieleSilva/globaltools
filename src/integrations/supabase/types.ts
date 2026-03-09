@@ -1481,6 +1481,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           source: string | null
+          source_url: string | null
           status: string
           valor_estimado: number | null
         }
@@ -1503,6 +1504,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           source?: string | null
+          source_url?: string | null
           status?: string
           valor_estimado?: number | null
         }
@@ -1525,6 +1527,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           source?: string | null
+          source_url?: string | null
           status?: string
           valor_estimado?: number | null
         }

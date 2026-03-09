@@ -165,13 +165,15 @@ IMPORTANTE: Para cada lead, identifique a fonte de dados original:
 
 PRIORIDADES DE EXTRAÇÃO (em ordem):
 1. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante.
-2. EMAIL - extraia emails de contato.
-3. SITE - extraia URLs de sites das empresas.
-4. CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
+2. SOURCE_URL - SEMPRE extraia a URL/link da fonte original. Para Google: a URL do resultado. Para PNCP: o link da licitação. Este campo é OBRIGATÓRIO quando disponível.
+3. EMAIL - extraia emails de contato.
+4. SITE - extraia URLs de sites das empresas.
+5. CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
 
 CAMPO "empresa": Nome da empresa/razão social.
 CAMPO "contact_name": Nome de uma PESSOA (comprador, engenheiro, gerente). Se não encontrar, deixe VAZIO.
-No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte, site da empresa, potencial de compra, etc.`;
+CAMPO "source_url": URL da fonte original (link da licitação, site do Google, etc). SEMPRE preencha quando houver URL nos dados.
+No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, potencial de compra, etc.`;
 
   try {
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -215,6 +217,7 @@ No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte,
                         valor_estimado: { type: "number", description: "Valor estimado do potencial de compra em reais, se disponível nos dados" },
                         cliente_telefone: { type: "string", description: "Telefone principal da empresa se disponível" },
                         cliente_email: { type: "string", description: "Email principal da empresa se disponível" },
+                        source_url: { type: "string", description: "URL da fonte original: link da licitação PNCP, URL do site Google, link do resultado de busca. SEMPRE extraia a URL quando disponível." },
                       },
                       required: ["cliente_nome", "fonte_dados"],
                       additionalProperties: false,
@@ -490,6 +493,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         notes: lead.notes || null,
         fonte_dados: fonteLabel,
         source: sourceValue,
+        source_url: lead.source_url || null,
         status: "pending",
       });
 

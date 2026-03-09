@@ -43,7 +43,8 @@ interface CategoriaStats {
 }
 
 const CATEGORIAS_UNIDADE_KG = ['BOBINAS', 'TELHAS'];
-const CATEGORIAS_PRECO_ESPESSURA = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK'];
+const CATEGORIAS_PRECO_ESPESSURA = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK', 'BOBINAS'];
+const CATEGORIAS_PRECO_POLITICA = ['ARAMES', 'TELHAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO'];
 
 const CATEGORIA_LABELS: Record<string, string> = {
   'ARAMES': 'Arames',
@@ -190,16 +191,20 @@ function getPrecoByEspessura(espessura: number | null, precosMap: Record<number,
   return precosMap[closest] || 0;
 }
 
-function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, number>): string {
+function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, number>, precosCategoriaMap: Record<string, number>): string {
   const categoria = cat.itens[0]?.categoria || '';
   const colors = CATEGORIA_COLORS[categoria] || CATEGORIA_COLORS['BLANK'];
   const imageUrl = CATEGORIA_IMAGES[categoria] || '';
-  const isPrecoCategoria = CATEGORIAS_PRECO_ESPESSURA.includes(categoria);
+  const showValor = CATEGORIAS_PRECO_ESPESSURA.includes(categoria) || CATEGORIAS_PRECO_POLITICA.includes(categoria);
 
   const itemRows = cat.itens.map((item, idx) => {
     const peso = calcularPesoTotal(item);
-    const isPreco = CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria);
-    const precoKg = isPreco ? getPrecoByEspessura(item.espessura, precosMap) : 0;
+    let precoKg = 0;
+    if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria)) {
+      precoKg = getPrecoByEspessura(item.espessura, precosMap);
+    } else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria)) {
+      precoKg = precosCategoriaMap[item.categoria] || 0;
+    }
     const valor = peso * precoKg;
     const bgColor = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
     const tipoPerfil = item.tipo_perfil ? (TIPO_PERFIL_LABELS[item.tipo_perfil] || item.tipo_perfil) : '';
@@ -210,7 +215,7 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
         ${categoria === 'PERFIS' ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${tipoPerfil}</td>` : ''}
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#2d3748;font-weight:600;text-align:center;">${item.quantidade}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;text-align:right;">${formatWeight(peso)}</td>
-        ${isPreco ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#059669;font-weight:600;text-align:right;">${valor > 0 ? formatCurrency(valor) : '-'}</td>` : ''}
+        ${showValor ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#059669;font-weight:600;text-align:right;">${valor > 0 ? formatCurrency(valor) : '-'}</td>` : ''}
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:11px;color:#718096;">${item.localizacao || '-'}</td>
       </tr>
     `;
@@ -246,7 +251,7 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
             <div style="font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Peso Total</div>
             <div style="font-size:22px;font-weight:700;color:#2d3748;margin-top:2px;">${formatWeight(cat.totalPeso)}</div>
           </td>
-          ${isPrecoCategoria ? `
+          ${showValor ? `
           <td style="padding:12px 16px;text-align:center;background:${colors.bg};border-left:1px solid #e2e8f0;">
             <div style="font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Valor Est.</div>
             <div style="font-size:22px;font-weight:700;color:#059669;margin-top:2px;">${formatCurrency(cat.totalValor)}</div>
@@ -264,7 +269,7 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
               ${categoria === 'PERFIS' ? `<th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Tipo</th>` : ''}
               <th style="padding:10px 12px;text-align:center;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Qtd</th>
               <th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Peso</th>
-              ${isPrecoCategoria ? `<th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Valor</th>` : ''}
+              ${showValor ? `<th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Valor</th>` : ''}
               <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Local</th>
             </tr>
           </thead>
@@ -275,11 +280,11 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
   `;
 }
 
-function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { totalItens: number; totalPeso: number; totalValor: number }): string {
+function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { totalItens: number; totalPeso: number; totalValor: number }, precosCategoriaMap: Record<string, number>): string {
   const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const categoriaSections = categorias.map(cat => generateCategorySection(cat, (cat as any)._precosMap || {})).join('');
+  const categoriaSections = categorias.map(cat => generateCategorySection(cat, (cat as any)._precosMap || {}, precosCategoriaMap)).join('');
 
   // Category summary cards - rows of 5
   const summaryRows: string[] = [];
@@ -432,6 +437,38 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
+    // Fetch politica comercial prices for non-espessura categories
+    const { data: politicaItens } = await supabaseAdmin
+      .from('politica_comercial_itens')
+      .select('classe, preco, preco_kg')
+      .eq('ativo', true);
+
+    // Build average price per category (preco_kg if available, otherwise preco as R$/kg)
+    const precosCategoriaMap: Record<string, number> = {};
+    const categoriaPrices: Record<string, number[]> = {};
+    (politicaItens || []).forEach((p: any) => {
+      const classe = p.classe?.toUpperCase();
+      if (!classe) return;
+      // Map politica classes to estoque categories
+      const catMap: Record<string, string> = {
+        'ARAMES': 'ARAMES', 'TELHAS': 'TELHAS', 'TUBOS': 'TUBOS',
+        'LAMINADOS': 'LAMINADOS', 'VERGALHAO': 'VERGALHAO',
+        'BOBINAS': 'BOBINAS', 'CHAPAS': 'CHAPAS',
+      };
+      const estoqueCat = catMap[classe];
+      if (estoqueCat && CATEGORIAS_PRECO_POLITICA.includes(estoqueCat)) {
+        if (!categoriaPrices[estoqueCat]) categoriaPrices[estoqueCat] = [];
+        const price = p.preco_kg || p.preco || 0;
+        if (price > 0) categoriaPrices[estoqueCat].push(price);
+      }
+    });
+    // Use average price per category
+    for (const [cat, prices] of Object.entries(categoriaPrices)) {
+      if (prices.length > 0) {
+        precosCategoriaMap[cat] = prices.reduce((a, b) => a + b, 0) / prices.length;
+      }
+    }
+
     // Group by category and filter empty ones
     const categoriasMap = new Map<string, EstoqueItem[]>();
     (estoqueItems || []).forEach((item: any) => {
@@ -463,6 +500,9 @@ const handler = async (req: Request): Promise<Response> => {
         if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria)) {
           const precoKg = getPrecoByEspessura(item.espessura, precosMap);
           totalValor += peso * precoKg;
+        } else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria)) {
+          const precoKg = precosCategoriaMap[item.categoria] || 0;
+          totalValor += peso * precoKg;
         }
       });
 
@@ -492,7 +532,7 @@ const handler = async (req: Request): Promise<Response> => {
       totalItens: globalTotalItens,
       totalPeso: globalTotalPeso,
       totalValor: globalTotalValor,
-    });
+    }, precosCategoriaMap);
 
     // Get recipients
     const { data: configs } = await supabaseAdmin.from('email_reports_config').select('email, full_name').eq('is_active', true);

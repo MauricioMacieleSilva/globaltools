@@ -112,7 +112,13 @@ async function extractLeadsWithAI(
 Analise os resultados de busca fornecidos e extraia leads de empresas REAIS que podem ser potenciais compradores de aço.
 Foque em: construtoras, metalúrgicas, fabricantes de estruturas metálicas, indústrias que usam aço.
 Extraia APENAS empresas que realmente aparecem nos dados. NÃO invente dados.
-Se encontrar CNPJ nos resultados, inclua-o. Se não encontrar dados suficientes, retorne menos leads.`;
+Se encontrar CNPJ nos resultados, inclua-o. Se não encontrar dados suficientes, retorne menos leads.
+
+REGRAS IMPORTANTES DE MAPEAMENTO:
+- O campo "empresa" deve conter o NOME DA EMPRESA (razão social ou nome fantasia).
+- O campo "contact_name" deve conter o nome de uma PESSOA de contato (comprador, engenheiro, gerente, etc). Se não encontrar o nome de uma pessoa, deixe em BRANCO.
+- PRIORIZE sempre encontrar TELEFONE de contato. Telefone é a informação mais importante depois do nome da empresa.
+- Tente também encontrar EMAIL e SITE da empresa.`;
 
   const userPrompt = `Analise estes resultados de busca e extraia até ${maxLeads} leads de empresas reais:
 
@@ -127,8 +133,16 @@ Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.
 IMPORTANTE: Para cada lead, identifique a fonte de dados original:
 - Resultados marcados [GOOGLE] → fonte_dados: "Google"  
 - Resultados marcados [PNCP - LICITAÇÃO] → fonte_dados: "PNCP"
-Preencha o máximo de campos possível: telefone, email, CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
-No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte, potencial de compra, etc.`;
+
+PRIORIDADES DE EXTRAÇÃO (em ordem):
+1. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante.
+2. EMAIL - extraia emails de contato.
+3. SITE - extraia URLs de sites das empresas.
+4. CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
+
+CAMPO "empresa": Nome da empresa/razão social.
+CAMPO "contact_name": Nome de uma PESSOA (comprador, engenheiro, gerente). Se não encontrar, deixe VAZIO.
+No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte, site da empresa, potencial de compra, etc.`;
 
   try {
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -221,9 +235,13 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let bodyConfigId: string | null = null;
+    let enabledSources: string[] = ['google', 'pncp'];
     try {
       const body = await req.json();
       bodyConfigId = body?.config_id ?? null;
+      if (Array.isArray(body?.sources) && body.sources.length > 0) {
+        enabledSources = body.sources;
+      }
     } catch { /* no body */ }
 
     // Load config
@@ -302,9 +320,9 @@ serve(async (req) => {
       `licitações obras construção civil aço ${locationStr}`,
     ];
 
-    // Parallel: Google searches + PNCP for each state
-    const googlePromises = googleQueries.map(q => searchGoogle(q, 5));
-    const pncpPromises = estados.map((uf: string) => searchPNCP(ramos, uf, 10));
+    // Parallel: Google searches + PNCP for each state (based on enabled sources)
+    const googlePromises = enabledSources.includes('google') ? googleQueries.map(q => searchGoogle(q, 5)) : [];
+    const pncpPromises = enabledSources.includes('pncp') ? estados.map((uf: string) => searchPNCP(ramos, uf, 10)) : [];
 
     const [googleResults, pncpResults] = await Promise.all([
       Promise.all(googlePromises),
@@ -415,9 +433,15 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       const fonteLabel = lead.fonte_dados || "IA";
       const sourceValue = `prospeccao_${fonteLabel.toLowerCase()}`;
 
+      // Map empresa to empresa field, contact_name to cliente_nome
+      // If no contact_name, use empresa as cliente_nome (required field)
+      const empresaNome = lead.empresa || lead.cliente_nome || '';
+      const contactName = lead.contact_name || '';
+
       const { error: insertError } = await supabaseAdmin.from("leads").insert({
-        cliente_nome: lead.cliente_nome,
-        empresa: lead.empresa || null,
+        cliente_nome: contactName || empresaNome,
+        client_name: contactName || empresaNome,
+        empresa: empresaNome || null,
         cliente_cnpj: lead.cliente_cnpj || null,
         contact_name: lead.contact_name || null,
         contact_phone: lead.contact_phone || lead.cliente_telefone || null,

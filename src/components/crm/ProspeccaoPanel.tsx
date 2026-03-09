@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -69,6 +70,7 @@ export function ProspeccaoPanel() {
   const [cidadeSearch, setCidadeSearch] = useState('');
   const [ramoPopoverOpen, setRamoPopoverOpen] = useState(false);
   const [ramoSearch, setRamoSearch] = useState('');
+  const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp']);
 
   // Load estados and business sectors on mount
   useEffect(() => {
@@ -133,6 +135,8 @@ export function ProspeccaoPanel() {
     schedule_time: scheduleTime,
     updated_at: new Date().toISOString(),
   });
+
+  const getSelectedSourcesForRun = () => selectedSources;
 
   const saveConfig = async () => {
     setSaving(true);
@@ -201,7 +205,7 @@ export function ProspeccaoPanel() {
       }
 
       const { data, error } = await supabase.functions.invoke('prospect-leads', {
-        body: { config_id: configId },
+        body: { config_id: configId, sources: getSelectedSourcesForRun() },
       });
 
       if (error) throw error;
@@ -457,6 +461,33 @@ export function ProspeccaoPanel() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Fontes de Dados */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Fontes de Dados</Label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={selectedSources.includes('google')}
+                    onCheckedChange={(checked) => {
+                      setSelectedSources(prev => checked ? [...prev, 'google'] : prev.filter(s => s !== 'google'));
+                    }}
+                    className="h-3.5 w-3.5"
+                  />
+                  Google (Firecrawl)
+                </label>
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={selectedSources.includes('pncp')}
+                    onCheckedChange={(checked) => {
+                      setSelectedSources(prev => checked ? [...prev, 'pncp'] : prev.filter(s => s !== 'pncp'));
+                    }}
+                    className="h-3.5 w-3.5"
+                  />
+                  PNCP (Licitações)
+                </label>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

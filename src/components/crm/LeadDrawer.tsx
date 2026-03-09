@@ -270,6 +270,26 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   <span>{lead.produto_interesse}</span>
                 </div>
               )}
+              {lead.ramo_atuacao && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Ramo:</span>
+                  <span>{lead.ramo_atuacao}</span>
+                </div>
+              )}
+              {(lead.cidade || lead.estado) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{[lead.cidade, lead.estado].filter(Boolean).join(' - ')}</span>
+                </div>
+              )}
+              {lead.cliente_cnpj && (
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">CNPJ:</span>
+                  <span>{lead.cliente_cnpj}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 <span>Aberto em {new Date(lead.data_abertura).toLocaleDateString('pt-BR')}</span>

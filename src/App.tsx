@@ -23,7 +23,7 @@ import { PreVendas } from '@/pages/PreVendas';
 import Clientes from "./pages/Clientes";
 import PoliticaComercial from "./pages/PoliticaComercial";
 import AssistenteGlobal from "./pages/AssistenteGlobal";
-import KnowledgeManagement from "./pages/KnowledgeManagement";
+
 import { UserManagement } from "./pages/UserManagement";
 import ReportsConfig from "./pages/ReportsConfig";
 import AdminAIProactive from "./pages/AdminAIProactive";

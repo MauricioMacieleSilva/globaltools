@@ -124,15 +124,54 @@ export function ProspeccaoPanel() {
     }
   };
 
-  const runNow = async () => {
-    if (!config?.id) {
-      toast.error('Salve a configuração antes de executar');
-      return;
+  const persistConfig = async (): Promise<string | null> => {
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const payload = {
+        is_active: isActive,
+        ramos_atuacao: parseArray(ramosInput),
+        estados: parseArray(estadosInput),
+        cidades: parseArray(cidadesInput),
+        produtos_interesse: parseArray(produtosInput),
+        max_leads_per_run: parseInt(maxLeads) || 10,
+        schedule_time: scheduleTime,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (config?.id) {
+        const { error } = await (supabase as any)
+          .from('lead_prospecting_configs')
+          .update(payload)
+          .eq('id', config.id);
+        if (error) throw error;
+        return config.id;
+      } else {
+        const { data, error } = await (supabase as any)
+          .from('lead_prospecting_configs')
+          .insert({ ...payload, created_by: user?.id })
+          .select('id')
+          .single();
+        if (error) throw error;
+        return data?.id ?? null;
+      }
+    } catch (error) {
+      console.error('Persist config error:', error);
+      return null;
     }
+  };
+
+  const runNow = async () => {
     setRunning(true);
     try {
+      toast.info('Salvando configuração e iniciando prospecção...');
+      const configId = await persistConfig();
+      if (!configId) {
+        toast.error('Erro ao salvar configuração');
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('prospect-leads', {
-        body: { config_id: config.id },
+        body: { config_id: configId },
       });
 
       if (error) throw error;

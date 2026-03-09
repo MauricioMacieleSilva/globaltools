@@ -119,10 +119,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         description: `Reunião desmarcada: ${new Date(nextVisit.date).toLocaleDateString('pt-BR')} ${new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${nextVisit.location ? ` em ${nextVisit.location}` : ''}`,
         sdr_name: (profile as any)?.full_name || 'Usuário',
       });
-      // If status is visita_reuniao, revert to contato_feito
+      // Always touch updated_at so cards refresh; revert status if in visita_reuniao
+      const updatePayload: any = { updated_at: new Date().toISOString() };
       if (lead.status === 'visita_reuniao') {
-        await (supabase as any).from('leads').update({ status: 'contato_feito', updated_at: new Date().toISOString() }).eq('id', lead.id);
+        updatePayload.status = 'contato_feito';
       }
+      await (supabase as any).from('leads').update(updatePayload).eq('id', lead.id);
       setNextVisit(null);
       toast.success('Reunião desmarcada');
       onLeadUpdated();

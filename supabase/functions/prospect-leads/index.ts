@@ -512,6 +512,31 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
 
     console.log(`🤖 AI extraiu ${generatedLeads.length} leads`);
 
+    // ====== POST-AI: Ensure every lead has a source_url ======
+    for (const lead of generatedLeads) {
+      if (!lead.source_url) {
+        // Try to find a matching URL from the original search results
+        const nameToMatch = (lead.empresa || lead.cliente_nome || '').toLowerCase();
+        if (nameToMatch) {
+          for (const resultText of allSearchResults) {
+            const urlMatch = resultText.match(/URL_FONTE:\s*(https?:\/\/[^\s\n]+)/i);
+            if (urlMatch && resultText.toLowerCase().includes(nameToMatch.slice(0, 15))) {
+              lead.source_url = urlMatch[1];
+              break;
+            }
+          }
+        }
+        // If still no URL, assign a generic search URL based on fonte_dados
+        if (!lead.source_url) {
+          if (lead.fonte_dados === 'PNCP') {
+            lead.source_url = `https://pncp.gov.br/app/editais?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
+          } else {
+            lead.source_url = `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '') + ' ' + (lead.cidade || '') + ' ' + (lead.estado || ''))}`;
+          }
+        }
+      }
+    }
+
     // ====== STEP 3: Enrich with BrasilAPI (enhanced) ======
     const leadsToEnrich = generatedLeads.filter(
       (l: any) => l.cliente_cnpj && l.cliente_cnpj.replace(/\D/g, "").length === 14

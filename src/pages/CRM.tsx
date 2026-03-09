@@ -23,8 +23,6 @@ import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart, Sparkles, Mo
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
 import DashboardComercial from '@/pages/DashboardComercial';
-import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart, Sparkles } from 'lucide-react';
-import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 
 export interface CRMLead {
   id: string;

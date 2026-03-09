@@ -187,28 +187,11 @@ function EstoqueConfig() {
         <Switch checked={config.is_active} onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })} />
       </div>
       {config.is_active && (
-        <div className="flex flex-wrap gap-4">
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" /> Dia da Semana
-            </Label>
-            <Select value={config.send_day} onValueChange={(value) => setConfig({ ...config, send_day: value })}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DAY_OPTIONS.map(day => (
-                  <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="estoque-send-time" className="flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Horário de Envio
-            </Label>
-            <Input id="estoque-send-time" type="time" value={config.send_time} onChange={(e) => setConfig({ ...config, send_time: e.target.value })} className="w-40" />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="estoque-send-time" className="flex items-center gap-1">
+            <Clock className="h-3 w-3" /> Horário de Envio
+          </Label>
+          <Input id="estoque-send-time" type="time" value={config.send_time} onChange={(e) => setConfig({ ...config, send_time: e.target.value })} className="w-40" />
         </div>
       )}
       <div className="flex justify-end">

@@ -27,13 +27,14 @@ import { TemperaturaIndicatorVendas } from '@/components/dashboard/TemperaturaIn
 import { useComercial } from '@/context/ComercialContext';
 import { useOrcamentosData } from '@/hooks/useOrcamentosData';
 
-export default function DashboardComercial() {
+export default function DashboardComercial({ tvMode = false }: { tvMode?: boolean }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Initialize active tab from localStorage, URL params, or default to "dashboard"
   const [activeTab, setActiveTab] = useState(() => {
+    if (tvMode) return 'dashboard';
     const urlTab = new URLSearchParams(window.location.search).get('tab');
     if (urlTab) {
       return urlTab;
@@ -180,58 +181,62 @@ export default function DashboardComercial() {
           <div className="container mx-auto px-2 sm:px-4 py-2 space-y-2">
             {/* Navegação por Abas */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full overflow-hidden">
-              <div className="flex items-center gap-1 sm:gap-2 w-full overflow-hidden">
-                <TabsList data-tour="dashboard-tabs" className="grid grid-cols-3 gap-0.5 sm:gap-1 h-9 sm:h-10 flex-1 min-w-0">
-                  <TabsTrigger value="dashboard" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
-                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Dashboard</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="perdidos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
-                    <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Perdidos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="orcamentos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
-                    <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Orçamentos</span>
-                  </TabsTrigger>
-                </TabsList>
-                
-                {/* Botões Tela Cheia e Modo TV - escondidos no mobile */}
-                {!isFullscreen && (
-                  <div className="flex items-center gap-1 shrink-0 hidden sm:flex">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => navigate('/crm?tv=1')}
-                      title="Modo TV - Alternar dashboards"
-                      className="h-9 w-9"
-                    >
-                      <Monitor className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      data-tour="dashboard-fullscreen"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setIsFullscreen(true)}
-                      title="Modo tela cheia"
-                      className="h-9 w-9"
-                    >
-                      <Maximize2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-               </div>
+              {!tvMode && (
+                <div className="flex items-center gap-1 sm:gap-2 w-full overflow-hidden">
+                  <TabsList data-tour="dashboard-tabs" className="grid grid-cols-3 gap-0.5 sm:gap-1 h-9 sm:h-10 flex-1 min-w-0">
+                    <TabsTrigger value="dashboard" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
+                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="truncate">Dashboard</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="perdidos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
+                      <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="truncate">Perdidos</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="orcamentos" className="flex items-center justify-center gap-1 text-[10px] sm:text-sm px-1 sm:px-3 h-7 sm:h-8 min-w-0">
+                      <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="truncate">Orçamentos</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  {/* Botões Tela Cheia e Modo TV - escondidos no mobile */}
+                  {!isFullscreen && (
+                    <div className="flex items-center gap-1 shrink-0 hidden sm:flex">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => navigate('/crm?tv=1')}
+                        title="Modo TV - Alternar dashboards"
+                        className="h-9 w-9"
+                      >
+                        <Monitor className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        data-tour="dashboard-fullscreen"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setIsFullscreen(true)}
+                        title="Modo tela cheia"
+                        className="h-9 w-9"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Indicador de última atualização */}
-              <div className="flex justify-end mt-1">
-                <LastUpdatedIndicator 
-                  lastUpdated={comercialData?.cacheStatus?.lastUpdate || null} 
-                  onRefresh={comercialData?.refreshData} 
-                  loading={comercialData?.isLoading} 
-                />
-              </div>
-              {/* Filtros - Abaixo das abas (escondidos em tela cheia) */}
-              {!isFullscreen && (
+              {!tvMode && (
+                <div className="flex justify-end mt-1">
+                  <LastUpdatedIndicator 
+                    lastUpdated={comercialData?.cacheStatus?.lastUpdate || null} 
+                    onRefresh={comercialData?.refreshData} 
+                    loading={comercialData?.isLoading} 
+                  />
+                </div>
+              )}
+              {/* Filtros - Abaixo das abas (escondidos em tela cheia e modo TV) */}
+              {!isFullscreen && !tvMode && (
                 <ErrorBoundary>
                   <div data-tour="dashboard-filters">
                     <SessionFilters />

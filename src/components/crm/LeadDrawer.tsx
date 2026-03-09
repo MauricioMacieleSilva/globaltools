@@ -425,6 +425,11 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               </div>
             )}
 
+            {/* Attachments */}
+            <LeadAttachments leadId={lead.id} />
+
+            <Separator />
+
             {/* Add Note */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Adicionar nota</p>

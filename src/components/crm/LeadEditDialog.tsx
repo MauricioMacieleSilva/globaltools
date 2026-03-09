@@ -28,7 +28,7 @@ const DEFAULT_ORIGENS = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita'
 export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEditDialogProps) {
   const [form, setForm] = useState({
     empresa: '', cliente_nome: '', cliente_telefone: '', cliente_email: '',
-    source: '', status: 'lead', produto_interesse: '', notes: '',
+    website: '', source: '', status: 'lead', produto_interesse: '', notes: '',
     cliente_cnpj: '', budget_number: '',
     ramo_atuacao: '', regime_tributario: '', estado: '', cidade: '',
   });
@@ -58,6 +58,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         cliente_nome: lead.cliente_nome || '',
         cliente_telefone: lead.cliente_telefone || lead.contact_phone || '',
         cliente_email: lead.cliente_email || lead.contact_email || '',
+        website: (lead as any).website || '',
         source: lead.source || lead.origem || '',
         status: lead.status || 'lead',
         produto_interesse: '',
@@ -185,6 +186,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         regime_tributario: form.regime_tributario || null,
         estado: form.estado || null,
         cidade: form.cidade || null,
+        website: form.website.trim() || null,
         updated_at: new Date().toISOString(),
       }).eq('id', lead.id);
       if (error) throw error;
@@ -228,6 +230,12 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
             <div className="space-y-1.5">
               <Label>Email</Label>
               <Input type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
+            </div>
+
+            {/* Website / URL */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Site / URL</Label>
+              <Input value={form.website} onChange={(e) => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.empresa.com.br" />
             </div>
 
             {/* CNPJ */}

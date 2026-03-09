@@ -30,6 +30,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     source: '',
     cliente_telefone: '',
     cliente_email: '',
+    website: '',
     status: 'lead',
     produto_interesse: '',
     notes: '',
@@ -39,7 +40,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   const resetForm = () => {
     setForm({
       empresa: '', cliente_nome: '', source: '', cliente_telefone: '',
-      cliente_email: '', status: 'lead', produto_interesse: '', notes: '',
+      cliente_email: '', website: '', status: 'lead', produto_interesse: '', notes: '',
     });
     setAddingOrigem(false);
     setNovaOrigem('');
@@ -79,6 +80,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         contact_email: form.cliente_email || null,
         status: form.status,
         produto_interesse: form.produto_interesse || null,
+        website: form.website.trim() || null,
         notes: form.notes || null,
         vendedor_id: user?.id,
       });
@@ -124,6 +126,12 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
+            </div>
+
+            {/* Website / URL */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="website">Site / URL</Label>
+              <Input id="website" value={form.website} onChange={(e) => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.empresa.com.br" />
             </div>
 
             {/* Origem */}

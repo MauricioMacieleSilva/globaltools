@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Loader2, Package } from 'lucide-react';
 import { fetchComercialData } from '@/services/googleSheetsService';
 import type { ComercialData } from '@/context/ComercialContext';

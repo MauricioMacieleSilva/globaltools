@@ -91,14 +91,18 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   }, [lead?.budget_number, lead?.id, open]);
 
   const loadNextVisit = async (leadId: string) => {
+    // Load upcoming visits first
     const { data } = await (supabase as any)
       .from('crm_visits')
       .select('id, visit_date, location')
       .eq('lead_id', leadId)
-      .gte('visit_date', new Date().toISOString())
-      .order('visit_date', { ascending: true })
+      .order('visit_date', { ascending: false })
       .limit(1);
-    setNextVisit(data?.[0] ? { id: data[0].id, date: data[0].visit_date, location: data[0].location } : null);
+    if (data?.[0]) {
+      setNextVisit({ id: data[0].id, date: data[0].visit_date, location: data[0].location });
+    } else {
+      setNextVisit(null);
+    }
   };
 
   const cancelVisit = async () => {

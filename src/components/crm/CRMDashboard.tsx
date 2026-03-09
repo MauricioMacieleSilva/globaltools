@@ -312,7 +312,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
       <div className={cn("space-y-3 sm:space-y-4", isFullscreen && "p-4 sm:p-6")}>
         {/* Last updated indicator */}
-        {lastUpdated && (
+        {lastUpdated && !tvMode && (
           <div className="flex justify-end">
             <LastUpdatedIndicator 
               lastUpdated={lastUpdated} 
@@ -322,52 +322,54 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           </div>
         )}
         {/* Filters bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-[140px] sm:w-[180px] h-8 text-xs">
-              <Calendar className="h-3 w-3 mr-1.5 shrink-0" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map(m => (
-                <SelectItem key={m.value} value={m.value} className="text-xs capitalize">{m.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {!tvMode && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={periodFilter} onValueChange={setPeriodFilter}>
+              <SelectTrigger className="w-[140px] sm:w-[180px] h-8 text-xs">
+                <Calendar className="h-3 w-3 mr-1.5 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map(m => (
+                  <SelectItem key={m.value} value={m.value} className="text-xs capitalize">{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={vendorFilter} onValueChange={setVendorFilter}>
-            <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
-              <Users className="h-3 w-3 mr-1.5 shrink-0" />
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Vendedores</SelectItem>
-              {vendors.map(v => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={vendorFilter} onValueChange={setVendorFilter}>
+              <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
+                <Users className="h-3 w-3 mr-1.5 shrink-0" />
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Vendedores</SelectItem>
+                {vendors.map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {hasFilters && (
-            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearFilters}>
-              <X className="h-3 w-3" /> Limpar
-            </Button>
-          )}
-
-          <div className="ml-auto">
-            {!isFullscreen && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsFullscreen(true)}
-                title="Modo tela cheia"
-                className="h-8 w-8 hidden sm:flex"
-              >
-                <Maximize2 className="h-4 w-4" />
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearFilters}>
+                <X className="h-3 w-3" /> Limpar
               </Button>
             )}
+
+            <div className="ml-auto">
+              {!isFullscreen && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsFullscreen(true)}
+                  title="Modo tela cheia"
+                  className="h-8 w-8 hidden sm:flex"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Row 1: KPI Cards - styled like commercial dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

@@ -191,16 +191,20 @@ function getPrecoByEspessura(espessura: number | null, precosMap: Record<number,
   return precosMap[closest] || 0;
 }
 
-function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, number>): string {
+function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, number>, precosCategoriaMap: Record<string, number>): string {
   const categoria = cat.itens[0]?.categoria || '';
   const colors = CATEGORIA_COLORS[categoria] || CATEGORIA_COLORS['BLANK'];
   const imageUrl = CATEGORIA_IMAGES[categoria] || '';
-  const isPrecoCategoria = CATEGORIAS_PRECO_ESPESSURA.includes(categoria);
+  const showValor = CATEGORIAS_PRECO_ESPESSURA.includes(categoria) || CATEGORIAS_PRECO_POLITICA.includes(categoria);
 
   const itemRows = cat.itens.map((item, idx) => {
     const peso = calcularPesoTotal(item);
-    const isPreco = CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria);
-    const precoKg = isPreco ? getPrecoByEspessura(item.espessura, precosMap) : 0;
+    let precoKg = 0;
+    if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria)) {
+      precoKg = getPrecoByEspessura(item.espessura, precosMap);
+    } else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria)) {
+      precoKg = precosCategoriaMap[item.categoria] || 0;
+    }
     const valor = peso * precoKg;
     const bgColor = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
     const tipoPerfil = item.tipo_perfil ? (TIPO_PERFIL_LABELS[item.tipo_perfil] || item.tipo_perfil) : '';
@@ -211,7 +215,7 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
         ${categoria === 'PERFIS' ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;">${tipoPerfil}</td>` : ''}
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:13px;color:#2d3748;font-weight:600;text-align:center;">${item.quantidade}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#4a5568;text-align:right;">${formatWeight(peso)}</td>
-        ${isPreco ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#059669;font-weight:600;text-align:right;">${valor > 0 ? formatCurrency(valor) : '-'}</td>` : ''}
+        ${showValor ? `<td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:12px;color:#059669;font-weight:600;text-align:right;">${valor > 0 ? formatCurrency(valor) : '-'}</td>` : ''}
         <td style="padding:8px 12px;border-bottom:1px solid #edf2f7;font-size:11px;color:#718096;">${item.localizacao || '-'}</td>
       </tr>
     `;

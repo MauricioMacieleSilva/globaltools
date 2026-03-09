@@ -161,7 +161,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
               <AvatarImage src={vendorAvatar || undefined} alt={vendorName} />
               <AvatarFallback className="text-[7px] bg-muted text-muted-foreground">{vendorInitials}</AvatarFallback>
             </Avatar>
-            <span className="text-[10px] text-muted-foreground/70 truncate">{vendorName}</span>
+            <span className="text-[10px] text-muted-foreground/70 truncate">{toTitleCase(vendorName)}</span>
           </div>
         )}
       </div>

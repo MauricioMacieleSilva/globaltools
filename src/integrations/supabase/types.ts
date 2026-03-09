@@ -2844,6 +2844,7 @@ export type Database = {
         | "contato_feito"
         | "visita_reuniao"
         | "pedido"
+        | "pedido_fechado"
       orcamento_status:
         | "aberto"
         | "enviado"
@@ -2998,6 +2999,7 @@ export const Constants = {
         "contato_feito",
         "visita_reuniao",
         "pedido",
+        "pedido_fechado",
       ],
       orcamento_status: [
         "aberto",

@@ -61,7 +61,7 @@ export const CRM_STAGES = [
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
   { key: 'visita_reuniao', label: 'Visita / Reunião', color: 'hsl(262, 52%, 47%)' },
   { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },
-  { key: 'pedido', label: 'Pedido', color: 'hsl(173, 80%, 36%)' },
+  { key: 'pedido_fechado', label: 'Pedido Fechado', color: 'hsl(173, 80%, 36%)' },
 ] as const;
 
 export type CRMStageKey = typeof CRM_STAGES[number]['key'];
@@ -141,7 +141,7 @@ export default function CRM() {
     }
 
     // Intercept proposta/pedido -> require order link only if not already linked
-    if (newStatus === 'proposta' || newStatus === 'pedido') {
+    if (newStatus === 'proposta' || newStatus === 'pedido_fechado') {
       if (lead.budget_number) {
         // Already has a linked order — skip dialog, move directly
         // falls through to normal update below

@@ -42,6 +42,11 @@ interface ProspectingLog {
   error_message: string | null;
 }
 
+interface BusinessSector {
+  id: string;
+  name: string;
+}
+
 export function ProspeccaoPanel() {
   const [config, setConfig] = useState<ProspectingConfig | null>(null);
   const [logs, setLogs] = useState<ProspectingLog[]>([]);
@@ -49,22 +54,28 @@ export function ProspeccaoPanel() {
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
 
-  const [ramosInput, setRamosInput] = useState('');
+  const [selectedRamos, setSelectedRamos] = useState<string[]>([]);
   const [selectedUF, setSelectedUF] = useState('RS');
   const [selectedCidades, setSelectedCidades] = useState<string[]>([]);
   const [maxLeads, setMaxLeads] = useState('10');
   const [scheduleTime, setScheduleTime] = useState('08:00');
   const [isActive, setIsActive] = useState(false);
 
+  const [businessSectors, setBusinessSectors] = useState<BusinessSector[]>([]);
   const [estados, setEstados] = useState<Array<{ uf: string; nome: string }>>([]);
   const [cidades, setCidades] = useState<string[]>([]);
   const [loadingCidades, setLoadingCidades] = useState(false);
   const [cidadePopoverOpen, setCidadePopoverOpen] = useState(false);
   const [cidadeSearch, setCidadeSearch] = useState('');
+  const [ramoPopoverOpen, setRamoPopoverOpen] = useState(false);
+  const [ramoSearch, setRamoSearch] = useState('');
 
-  // Load estados on mount
+  // Load estados and business sectors on mount
   useEffect(() => {
     locationsService.getEstados().then(data => setEstados(data));
+    (supabase as any).from('crm_business_sectors').select('id, name').eq('is_active', true).order('name').then(({ data }: any) => {
+      setBusinessSectors(data || []);
+    });
   }, []);
 
   // Load cidades when UF changes

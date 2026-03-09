@@ -89,6 +89,9 @@ export default function CRM() {
   const [orderLinkOpen, setOrderLinkOpen] = useState(false);
   const [pendingOrderLead, setPendingOrderLead] = useState<CRMLead | null>(null);
   const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [carouselOpen, setCarouselOpen] = useState(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   const isMobile = useIsMobile();
 
@@ -100,6 +103,7 @@ export default function CRM() {
         .order('updated_at', { ascending: false });
       if (error) throw error;
       setLeads(data || []);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Erro ao carregar leads:', error);
     } finally {
@@ -110,6 +114,11 @@ export default function CRM() {
 
   useEffect(() => {
     loadLeads();
+    // Auto-refresh every 15 minutes
+    refreshTimerRef.current = setInterval(() => {
+      loadLeads();
+    }, 15 * 60 * 1000);
+    return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
   }, [loadLeads]);
 
   const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {

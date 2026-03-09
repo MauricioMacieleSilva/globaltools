@@ -316,9 +316,29 @@ export default function CRM() {
 
   const filteredLeads = leads.filter(l => {
     if (l.status === 'perdido') return false;
-    const name = (l.client_name || l.cliente_nome || '').toLowerCase();
-    if (searchQuery && !name.includes(searchQuery.toLowerCase())) return false;
     if (vendorFilter !== 'all' && l.vendedor_id !== vendorFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const fields = [
+        l.client_name,
+        l.cliente_nome,
+        l.contact_name,
+        l.empresa,
+        l.cliente_cnpj,
+        l.budget_number,
+        l.numero_lead,
+        l.ramo_atuacao,
+        l.produto_interesse,
+        l.cidade,
+        l.estado,
+        l.contact_phone,
+        l.cliente_telefone,
+        l.contact_email,
+        l.cliente_email,
+      ];
+      const matches = fields.some(f => f && f.toLowerCase().includes(q));
+      if (!matches) return false;
+    }
     return true;
   });
 

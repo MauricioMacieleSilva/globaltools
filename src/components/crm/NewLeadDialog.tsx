@@ -80,6 +80,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         contact_email: form.cliente_email || null,
         status: form.status,
         produto_interesse: form.produto_interesse || null,
+        website: form.website.trim() || null,
         notes: form.notes || null,
         vendedor_id: user?.id,
       });

@@ -112,7 +112,13 @@ async function extractLeadsWithAI(
 Analise os resultados de busca fornecidos e extraia leads de empresas REAIS que podem ser potenciais compradores de aço.
 Foque em: construtoras, metalúrgicas, fabricantes de estruturas metálicas, indústrias que usam aço.
 Extraia APENAS empresas que realmente aparecem nos dados. NÃO invente dados.
-Se encontrar CNPJ nos resultados, inclua-o. Se não encontrar dados suficientes, retorne menos leads.`;
+Se encontrar CNPJ nos resultados, inclua-o. Se não encontrar dados suficientes, retorne menos leads.
+
+REGRAS IMPORTANTES DE MAPEAMENTO:
+- O campo "empresa" deve conter o NOME DA EMPRESA (razão social ou nome fantasia).
+- O campo "contact_name" deve conter o nome de uma PESSOA de contato (comprador, engenheiro, gerente, etc). Se não encontrar o nome de uma pessoa, deixe em BRANCO.
+- PRIORIZE sempre encontrar TELEFONE de contato. Telefone é a informação mais importante depois do nome da empresa.
+- Tente também encontrar EMAIL e SITE da empresa.`;
 
   const userPrompt = `Analise estes resultados de busca e extraia até ${maxLeads} leads de empresas reais:
 

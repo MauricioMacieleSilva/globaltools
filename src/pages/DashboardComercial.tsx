@@ -27,7 +27,7 @@ import { TemperaturaIndicatorVendas } from '@/components/dashboard/TemperaturaIn
 import { useComercial } from '@/context/ComercialContext';
 import { useOrcamentosData } from '@/hooks/useOrcamentosData';
 
-export default function DashboardComercial() {
+export default function DashboardComercial({ tvMode = false }: { tvMode?: boolean }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isFullscreen, setIsFullscreen] = useState(false);

@@ -135,6 +135,8 @@ export function ProspeccaoPanel() {
     updated_at: new Date().toISOString(),
   });
 
+  const getSelectedSourcesForRun = () => selectedSources;
+
   const saveConfig = async () => {
     setSaving(true);
     try {

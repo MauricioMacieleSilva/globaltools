@@ -577,7 +577,7 @@ export function EstoqueItemDialog({
                         type="number"
                         step="0.01"
                         value={form.enrij2}
-                        onChange={(e) => setForm({ ...form, enrij2: e.target.value })}
+                        onChange={(e) => { setEnrij2ManualEdit(true); setForm({ ...form, enrij2: e.target.value }); }}
                         placeholder="0"
                       />
                     </div>

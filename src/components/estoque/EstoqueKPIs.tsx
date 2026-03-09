@@ -5,7 +5,7 @@ import { EstoqueItem, calcularPesoTotal, CategoriaEstoque, CATEGORIAS_ESTOQUE } 
 import { formatCurrency } from '@/lib/utils-comercial';
 
 // Categorias que usam preço por espessura (baseado em perfil_precos)
-const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK'];
+const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK', 'BOBINAS'];
 
 interface EstoqueKPIsProps {
   items: EstoqueItem[];

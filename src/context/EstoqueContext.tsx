@@ -33,7 +33,7 @@ interface EstoqueContextType {
 const EstoqueContext = createContext<EstoqueContextType | undefined>(undefined);
 
 // Categorias que usam preço por espessura (baseado em perfil_precos)
-const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK'];
+const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK', 'BOBINAS'];
 
 export function EstoqueProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<EstoqueItem[]>([]);

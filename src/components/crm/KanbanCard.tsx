@@ -115,7 +115,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
             className="flex items-center gap-1 text-[10px] font-medium text-primary cursor-pointer hover:underline"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/dashboard-comercial?pedido=${lead.budget_number}`);
+              setOrderDialogOpen(true);
             }}
           >
             <Package className="h-3 w-3 shrink-0" />

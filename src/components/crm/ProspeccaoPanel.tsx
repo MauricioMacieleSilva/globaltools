@@ -492,7 +492,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
             {/* Fontes de Dados */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">Fontes de Dados</Label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                   <Checkbox
                     checked={selectedSources.includes('google')}
@@ -512,6 +512,16 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
                     className="h-3.5 w-3.5"
                   />
                   PNCP (Licitações)
+                </label>
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={selectedSources.includes('obrasgov')}
+                    onCheckedChange={(checked) => {
+                      setSelectedSources(prev => checked ? [...prev, 'obrasgov'] : prev.filter(s => s !== 'obrasgov'));
+                    }}
+                    className="h-3.5 w-3.5"
+                  />
+                  ObrasGov (Obras Federais)
                 </label>
               </div>
             </div>

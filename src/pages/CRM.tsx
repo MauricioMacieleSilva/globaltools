@@ -106,9 +106,7 @@ export default function CRM() {
 
   useEffect(() => {
     loadLeads();
-    loadTodayStats();
-    loadGoals();
-  }, [loadLeads, loadTodayStats, loadGoals]);
+  }, [loadLeads]);
 
   const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
     const today = new Date();

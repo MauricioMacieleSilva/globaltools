@@ -6,6 +6,7 @@ import {
   calcularPesoTotal
 } from '@/services/estoqueService';
 import { fetchPerfilPrecos, PerfilPreco } from '@/services/perfilPrecosService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EstoqueStats {
   totalItens: number;
@@ -17,6 +18,9 @@ interface EstoqueStats {
 // Mapa de espessura -> preço por kg
 type PrecosEspessuraMap = Record<number, number>;
 
+// Mapa de categoria -> preço médio por kg (da política comercial)
+type PrecosCategoriaMap = Record<string, number>;
+
 interface EstoqueContextType {
   items: EstoqueItem[];
   loading: boolean;
@@ -27,6 +31,7 @@ interface EstoqueContextType {
   getItemsByCategoria: (categoria: CategoriaEstoque) => EstoqueItem[];
   getItemCount: (categoria: CategoriaEstoque) => number;
   precosEspessuraMap: PrecosEspessuraMap;
+  precosCategoriaMap: PrecosCategoriaMap;
   stats: EstoqueStats;
 }
 
@@ -35,12 +40,16 @@ const EstoqueContext = createContext<EstoqueContextType | undefined>(undefined);
 // Categorias que usam preço por espessura (baseado em perfil_precos)
 const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK', 'BOBINAS'];
 
+// Categorias que usam preço da política comercial
+const CATEGORIAS_PRECO_POLITICA: CategoriaEstoque[] = ['ARAMES', 'TELHAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO'];
+
 export function EstoqueProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<EstoqueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaEstoque>('PERFIS');
   const [precosEspessuraMap, setPrecosEspessuraMap] = useState<PrecosEspessuraMap>({});
+  const [precosCategoriaMap, setPrecosCategoriaMap] = useState<PrecosCategoriaMap>({});
 
   // Buscar preços de perfil por espessura
   const fetchPrecos = useCallback(async () => {
@@ -49,19 +58,48 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       
       if (data) {
         const precos: PrecosEspessuraMap = {};
-        
-        // Agrupar por espessura, usando preço padrão preferencialmente
         data.forEach((preco: PerfilPreco) => {
-          // Se já existe um preço para essa espessura, prioriza 'padrao'
           if (!precos[preco.espessura] || preco.tipo === 'padrao') {
             precos[preco.espessura] = preco.preco_kg;
           }
         });
-        
         setPrecosEspessuraMap(precos);
       }
     } catch (err) {
       console.error('Error fetching precos:', err);
+    }
+  }, []);
+
+  // Buscar preços médios por categoria da política comercial
+  const fetchPrecosPolitica = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('politica_comercial_itens')
+        .select('classe, preco_kg')
+        .eq('ativo', true)
+        .not('preco_kg', 'is', null);
+
+      if (data && !error) {
+        const precosCategoria: PrecosCategoriaMap = {};
+        const somasPorCategoria: Record<string, { soma: number; count: number }> = {};
+
+        data.forEach((item: any) => {
+          const classe = item.classe as string;
+          if (!somasPorCategoria[classe]) {
+            somasPorCategoria[classe] = { soma: 0, count: 0 };
+          }
+          somasPorCategoria[classe].soma += Number(item.preco_kg);
+          somasPorCategoria[classe].count += 1;
+        });
+
+        Object.entries(somasPorCategoria).forEach(([classe, { soma, count }]) => {
+          precosCategoria[classe] = soma / count;
+        });
+
+        setPrecosCategoriaMap(precosCategoria);
+      }
+    } catch (err) {
+      console.error('Error fetching precos politica comercial:', err);
     }
   }, []);
 
@@ -72,7 +110,8 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
     try {
       const [estoqueResult] = await Promise.all([
         fetchEstoqueItems(),
-        fetchPrecos()
+        fetchPrecos(),
+        fetchPrecosPolitica()
       ]);
       
       if (estoqueResult.error) {
@@ -86,7 +125,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [fetchPrecos]);
+  }, [fetchPrecos, fetchPrecosPolitica]);
 
   useEffect(() => {
     refreshData();
@@ -155,12 +194,16 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       const pesoItem = peso || 0;
       totalPeso += pesoItem;
       
-      // Para PERFIS, TIRAS, CHAPAS, BLANK: usar preço por espessura
+      // Para PERFIS, TIRAS, CHAPAS, BLANK, BOBINAS: usar preço por espessura
       if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria)) {
         const precoKg = getPrecoByEspessura(item.espessura);
         totalValor += pesoItem * precoKg;
       }
-      // Outras categorias: valor zero por enquanto (sem preço definido)
+      // Para ARAMES, TELHAS, TUBOS, LAMINADOS, VERGALHAO: usar preço da política comercial
+      else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria)) {
+        const precoKg = precosCategoriaMap[item.categoria] || 0;
+        totalValor += pesoItem * precoKg;
+      }
     });
 
     return {
@@ -169,7 +212,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       totalPeso,
       totalValor
     };
-  }, [items, getPrecoByEspessura]);
+  }, [items, getPrecoByEspessura, precosCategoriaMap]);
 
   return (
     <EstoqueContext.Provider value={{
@@ -182,6 +225,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       getItemsByCategoria,
       getItemCount,
       precosEspessuraMap,
+      precosCategoriaMap,
       stats
     }}>
       {children}

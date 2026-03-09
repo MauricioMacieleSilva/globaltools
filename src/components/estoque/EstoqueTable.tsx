@@ -69,11 +69,11 @@ export function EstoqueTable({
   const [isLoading, setIsLoading] = useState(false);
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const { precosEspessuraMap } = useEstoque();
+  const { precosEspessuraMap, precosCategoriaMap } = useEstoque();
 
   const showDimensionColumns = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS'].includes(categoria);
   const showPerfilColumns = categoria === 'PERFIS';
-  const showValorColumn = CATEGORIAS_PRECO_ESPESSURA.includes(categoria);
+  const showValorColumn = true; // Mostrar valor para todas as categorias
 
   // Função para buscar preço por espessura
   const getPrecoByEspessura = (espessura: number | null): number => {
@@ -117,14 +117,23 @@ export function EstoqueTable({
   };
 
   // Calcular valor de cada item
+  const CATEGORIAS_PRECO_POLITICA: CategoriaEstoque[] = ['ARAMES', 'TELHAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO'];
+  
   const calcularValorItem = (item: EstoqueItem): number => {
-    if (!CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) return 0;
-    
     const peso = calcularPesoItem(item);
     if (!peso) return 0;
     
-    const precoKg = getPrecoByEspessura(item.espessura);
-    return peso * precoKg;
+    if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) {
+      const precoKg = getPrecoByEspessura(item.espessura);
+      return peso * precoKg;
+    }
+    
+    if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria as CategoriaEstoque)) {
+      const precoKg = precosCategoriaMap[item.categoria] || 0;
+      return peso * precoKg;
+    }
+    
+    return 0;
   };
 
   // Formatar peso

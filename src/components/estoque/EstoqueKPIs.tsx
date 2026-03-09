@@ -7,12 +7,16 @@ import { formatCurrency } from '@/lib/utils-comercial';
 // Categorias que usam preço por espessura (baseado em perfil_precos)
 const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK', 'BOBINAS'];
 
+// Categorias que usam preço da política comercial
+const CATEGORIAS_PRECO_POLITICA: CategoriaEstoque[] = ['ARAMES', 'TELHAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO'];
+
 interface EstoqueKPIsProps {
   items: EstoqueItem[];
-  precosEspessuraMap: Record<number, number>; // espessura -> preço por kg
+  precosEspessuraMap: Record<number, number>;
+  precosCategoriaMap: Record<string, number>;
 }
 
-export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
+export function EstoqueKPIs({ items, precosEspessuraMap, precosCategoriaMap }: EstoqueKPIsProps) {
   // Função para encontrar o preço mais próximo por espessura
   const getPrecoByEspessura = (espessura: number | null): number => {
     if (!espessura || Object.keys(precosEspessuraMap).length === 0) return 0;
@@ -80,10 +84,15 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
       const pesoItem = peso || 0;
       totalPeso += pesoItem;
       
-      // Calcular valor baseado na espessura para PERFIS, TIRAS, CHAPAS, BLANK
+      // Calcular valor baseado na espessura para PERFIS, TIRAS, CHAPAS, BLANK, BOBINAS
       let valorItem = 0;
       if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) {
         const precoKg = getPrecoByEspessura(item.espessura);
+        valorItem = pesoItem * precoKg;
+      }
+      // Para ARAMES, TELHAS, TUBOS, LAMINADOS, VERGALHAO: usar preço da política comercial
+      else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria as CategoriaEstoque)) {
+        const precoKg = precosCategoriaMap[item.categoria] || 0;
         valorItem = pesoItem * precoKg;
       }
       totalValor += valorItem;
@@ -110,7 +119,7 @@ export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
       porCategoria,
       categoriasComItens
     };
-  }, [items, precosEspessuraMap]);
+  }, [items, precosEspessuraMap, precosCategoriaMap]);
 
   const formatWeight = (peso: number) => {
     if (peso >= 1000) {

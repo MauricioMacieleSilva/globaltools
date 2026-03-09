@@ -194,12 +194,16 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       const pesoItem = peso || 0;
       totalPeso += pesoItem;
       
-      // Para PERFIS, TIRAS, CHAPAS, BLANK: usar preço por espessura
+      // Para PERFIS, TIRAS, CHAPAS, BLANK, BOBINAS: usar preço por espessura
       if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria)) {
         const precoKg = getPrecoByEspessura(item.espessura);
         totalValor += pesoItem * precoKg;
       }
-      // Outras categorias: valor zero por enquanto (sem preço definido)
+      // Para ARAMES, TELHAS, TUBOS, LAMINADOS, VERGALHAO: usar preço da política comercial
+      else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria)) {
+        const precoKg = precosCategoriaMap[item.categoria] || 0;
+        totalValor += pesoItem * precoKg;
+      }
     });
 
     return {
@@ -208,7 +212,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       totalPeso,
       totalValor
     };
-  }, [items, getPrecoByEspessura]);
+  }, [items, getPrecoByEspessura, precosCategoriaMap]);
 
   return (
     <EstoqueContext.Provider value={{
@@ -221,6 +225,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       getItemsByCategoria,
       getItemCount,
       precosEspessuraMap,
+      precosCategoriaMap,
       stats
     }}>
       {children}

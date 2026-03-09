@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Timeout helper for fetch calls
+function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 25000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 // ====== SOURCE 1: Google Search via Firecrawl ======
 async function searchGoogle(query: string, maxResults: number): Promise<any[]> {
   const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
@@ -16,7 +23,7 @@ async function searchGoogle(query: string, maxResults: number): Promise<any[]> {
 
   try {
     console.log(`🔍 [Firecrawl] Searching: "${query}"`);
-    const response = await fetch("https://api.firecrawl.dev/v1/search", {
+    const response = await fetchWithTimeout("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
@@ -29,7 +36,7 @@ async function searchGoogle(query: string, maxResults: number): Promise<any[]> {
         country: "br",
         scrapeOptions: { formats: ["markdown"] },
       }),
-    });
+    }, 30000);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -40,7 +47,11 @@ async function searchGoogle(query: string, maxResults: number): Promise<any[]> {
     const data = await response.json();
     return data?.data ?? [];
   } catch (e) {
-    console.error("Firecrawl search error:", e);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      console.warn(`Firecrawl timeout for query: "${query}"`);
+    } else {
+      console.error("Firecrawl search error:", e);
+    }
     return [];
   }
 }
@@ -62,49 +73,46 @@ async function searchPNCP(keywords: string, uf: string, maxResults: number): Pro
     const dateFrom = formatDate(thirtyDaysAgo);
     const dateTo = formatDate(today);
 
-    const modalities = [6, 8, 5];
-    const allResults: any[] = [];
+    // Only use one modality to reduce time
+    const pageSize = Math.max(10, Math.min(maxResults, 20));
+    const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dateFrom}&dataFinal=${dateTo}&codigoModalidadeContratacao=6&uf=${uf}&pagina=1&tamanhoPagina=${pageSize}`;
 
-    for (const modalidade of modalities) {
-      const pageSize = Math.max(10, Math.min(maxResults, 20));
-      const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dateFrom}&dataFinal=${dateTo}&codigoModalidadeContratacao=${modalidade}&uf=${uf}&pagina=1&tamanhoPagina=${pageSize}`;
+    console.log(`🏛️ [PNCP] Buscando em ${uf}...`);
+    const response = await fetchWithTimeout(url, { headers: { "Accept": "application/json" } }, 15000);
 
-      console.log(`🏛️ [PNCP] Buscando modalidade ${modalidade} em ${uf}...`);
-      const response = await fetch(url, { headers: { "Accept": "application/json" } });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error(`PNCP error ${response.status} (mod ${modalidade}): ${errText}`);
-        continue;
-      }
-
-      const data = await response.json();
-      const items = data?.data ?? [];
-      const filtered = items.filter((item: any) => {
-        const objeto = (item.objetoCompra || '').toLowerCase();
-        return PNCP_STEEL_KEYWORDS.some(kw => objeto.includes(kw));
-      });
-
-      console.log(`🏛️ [PNCP] Modalidade ${modalidade}: ${items.length} total, ${filtered.length} relevantes`);
-      allResults.push(...filtered);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`PNCP error ${response.status}: ${errText}`);
+      return [];
     }
 
-    console.log(`🏛️ [PNCP] Total relevantes em ${uf}: ${allResults.length}`);
-    return allResults;
+    const data = await response.json();
+    const items = data?.data ?? [];
+    const filtered = items.filter((item: any) => {
+      const objeto = (item.objetoCompra || '').toLowerCase();
+      return PNCP_STEEL_KEYWORDS.some(kw => objeto.includes(kw));
+    });
+
+    console.log(`🏛️ [PNCP] ${uf}: ${items.length} total, ${filtered.length} relevantes`);
+    return filtered;
   } catch (e) {
-    console.error("PNCP search error:", e);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      console.warn(`PNCP timeout for UF: ${uf}`);
+    } else {
+      console.error("PNCP search error:", e);
+    }
     return [];
   }
 }
 
-// ====== SOURCE 3: BrasilAPI - CNPJ enrichment (enhanced) ======
+// ====== SOURCE 3: BrasilAPI - CNPJ enrichment ======
 async function enrichCNPJ(cnpj: string): Promise<any | null> {
   try {
     const cleanCnpj = cnpj.replace(/\D/g, "");
     if (cleanCnpj.length !== 14) return null;
 
     console.log(`📋 [BrasilAPI] Enriching CNPJ: ${cleanCnpj}`);
-    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+    const response = await fetchWithTimeout(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`, {}, 10000);
 
     if (!response.ok) {
       await response.text();
@@ -118,18 +126,15 @@ async function enrichCNPJ(cnpj: string): Promise<any | null> {
   }
 }
 
-// Infer regime tributário from BrasilAPI response
 function inferRegimeTributario(enriched: any): string | null {
   if (enriched.opcao_pelo_mei) return "MEI";
   if (enriched.opcao_pelo_simples) return "Simples Nacional";
-  // Large companies are typically Lucro Real/Presumido
   const porte = (enriched.porte || '').toLowerCase();
   if (porte.includes('grande')) return "Lucro Real";
   if (porte.includes('médio') || porte.includes('medio')) return "Lucro Presumido";
   return null;
 }
 
-// Format phone from BrasilAPI ddd_telefone fields
 function formatBrasilAPIPhone(dddPhone: string | null): string | null {
   if (!dddPhone || dddPhone.trim().length < 8) return null;
   const clean = dddPhone.replace(/\D/g, "");
@@ -141,7 +146,6 @@ function formatBrasilAPIPhone(dddPhone: string | null): string | null {
   return dddPhone.trim();
 }
 
-// Build CNAE description string
 function buildCNAEDescription(enriched: any): string {
   const parts: string[] = [];
   if (enriched.cnae_fiscal_descricao) {
@@ -158,7 +162,7 @@ function buildCNAEDescription(enriched: any): string {
   return parts.join(' | ');
 }
 
-// ====== AI: Extract structured leads from search results ======
+// ====== AI: Extract structured leads ======
 async function extractLeadsWithAI(
   searchResults: string,
   ramos: string,
@@ -166,59 +170,36 @@ async function extractLeadsWithAI(
   maxLeads: number,
   LOVABLE_API_KEY: string
 ): Promise<any[]> {
-  console.log("🤖 [AI] Extracting structured leads from search results...");
+  console.log("🤖 [AI] Extracting structured leads...");
 
   const systemPrompt = `Você é um especialista em prospecção B2B para a Global Aço, distribuidora de aço.
-Analise os resultados de busca fornecidos e extraia leads de empresas REAIS que podem ser potenciais compradores de aço.
+Analise os resultados de busca e extraia leads de empresas REAIS que podem ser potenciais compradores de aço.
 Foque em: construtoras, metalúrgicas, fabricantes de estruturas metálicas, indústrias que usam aço.
 Extraia APENAS empresas que realmente aparecem nos dados. NÃO invente dados.
-Se encontrar CNPJ nos resultados, inclua-o. Se não encontrar dados suficientes, retorne menos leads.
 
-REGRAS IMPORTANTES DE MAPEAMENTO:
-- O campo "empresa" deve conter o NOME DA EMPRESA (razão social ou nome fantasia).
-- O campo "contact_name" deve conter o nome de uma PESSOA de contato (comprador, engenheiro, gerente, etc). Se não encontrar o nome de uma pessoa, deixe em BRANCO.
-- PRIORIZE sempre encontrar TELEFONE de contato. Telefone é a informação mais importante depois do nome da empresa.
-- Tente também encontrar EMAIL e SITE da empresa.`;
+REGRAS:
+- "empresa" = NOME DA EMPRESA (razão social ou nome fantasia)
+- "contact_name" = nome de PESSOA de contato. Se não encontrar, deixe VAZIO.
+- PRIORIZE encontrar TELEFONE, EMAIL e SITE.
+- "source_url" é OBRIGATÓRIO. Copie de "URL_FONTE:" nos dados.`;
 
-  const userPrompt = `Analise estes resultados de busca e extraia até ${maxLeads} leads de empresas reais:
+  const userPrompt = `Extraia até ${maxLeads} leads reais dos dados abaixo.
+Ramos: ${ramos} | Estados: ${estados}
 
-CRITÉRIOS:
-- Ramos de atuação: ${ramos}
-- Estados: ${estados}
-
-DADOS DE BUSCA:
+DADOS:
 ${searchResults}
 
-Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.
-IMPORTANTE: Para cada lead, identifique a fonte de dados original:
-- Resultados marcados [GOOGLE] → fonte_dados: "Google"  
-- Resultados marcados [PNCP - LICITAÇÃO] → fonte_dados: "PNCP"
-- Resultados marcados [DIÁRIO OFICIAL] → fonte_dados: "Google"
-- Resultados marcados [OBRAS PRIVADAS] → fonte_dados: "Google"
-
-PRIORIDADES DE EXTRAÇÃO (em ordem):
-1. SOURCE_URL - OBRIGATÓRIO! Cada resultado tem um campo "URL_FONTE:" — copie esse valor EXATAMENTE para o campo "source_url". TODO lead DEVE ter source_url. Sem exceção.
-2. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante depois da URL.
-3. EMAIL - extraia emails de contato.
-4. SITE - extraia URLs de sites das empresas.
-5. CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
-
-REGRA CRÍTICA: O campo "source_url" é OBRIGATÓRIO para TODOS os leads. Procure "URL_FONTE:" nos dados e copie esse valor.
-
-CAMPO "empresa": Nome da empresa/razão social.
-CAMPO "contact_name": Nome de uma PESSOA (comprador, engenheiro, gerente). Se não encontrar, deixe VAZIO.
-CAMPO "source_url": OBRIGATÓRIO. Copie o valor de "URL_FONTE:" dos dados. NUNCA deixe vazio.
-No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, potencial de compra, se veio de alvará/diário oficial, etc.`;
+Cada lead DEVE ter source_url (copie de "URL_FONTE:").`;
 
   try {
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -237,22 +218,22 @@ No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, potencial de 
                     items: {
                       type: "object",
                       properties: {
-                        cliente_nome: { type: "string", description: "Razão social ou nome da empresa" },
-                        empresa: { type: "string", description: "Nome fantasia" },
-                        cliente_cnpj: { type: "string", description: "CNPJ se disponível" },
-                        contact_name: { type: "string", description: "Nome do contato se disponível" },
-                        contact_phone: { type: "string", description: "Telefone se disponível" },
-                        contact_email: { type: "string", description: "Email se disponível" },
+                        cliente_nome: { type: "string" },
+                        empresa: { type: "string" },
+                        cliente_cnpj: { type: "string" },
+                        contact_name: { type: "string" },
+                        contact_phone: { type: "string" },
+                        contact_email: { type: "string" },
                         cidade: { type: "string" },
-                        estado: { type: "string", description: "UF (ex: RS)" },
+                        estado: { type: "string" },
                         ramo_atuacao: { type: "string" },
                         produto_interesse: { type: "string" },
-                        notes: { type: "string", description: "Observações detalhadas" },
+                        notes: { type: "string" },
                         fonte_dados: { type: "string", enum: ["Google", "PNCP", "BrasilAPI"] },
                         valor_estimado: { type: "number" },
                         cliente_telefone: { type: "string" },
                         cliente_email: { type: "string" },
-                        source_url: { type: "string", description: "URL da fonte original" },
+                        source_url: { type: "string" },
                       },
                       required: ["cliente_nome", "fonte_dados"],
                       additionalProperties: false,
@@ -267,7 +248,7 @@ No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, potencial de 
         ],
         tool_choice: { type: "function", function: { name: "submit_leads" } },
       }),
-    });
+    }, 60000); // 60s timeout for AI
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
@@ -283,53 +264,36 @@ No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, potencial de 
       return parsed.leads ?? [];
     }
   } catch (e) {
-    console.error("AI extraction error:", e);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      console.error("AI extraction timeout");
+    } else {
+      console.error("AI extraction error:", e);
+    }
   }
 
   return [];
 }
 
-// ====== Build Google search queries (commercial + private construction + official gazettes) ======
-function buildGoogleQueries(locationStr: string, ramos: string, cidades: string[], estados: string[]): string[] {
-  const queries: string[] = [];
-
-  // Original commercial queries
-  queries.push(`construtoras obras aço ${locationStr} ${ramos}`);
-  queries.push(`empresas metalúrgicas estruturas metálicas ${locationStr}`);
-  queries.push(`licitações obras construção civil aço ${locationStr}`);
-
-  // Private construction: building permits (alvarás)
-  const cidadesAlvo = cidades.length > 0 ? cidades : estados;
-  for (const local of cidadesAlvo.slice(0, 2)) {
-    queries.push(`alvará construção obras privadas ${local} construtora galpão estrutura metálica`);
-  }
-
-  // Private construction: industrial/commercial projects
-  queries.push(`obras industriais galpão barracão construção ${locationStr} estrutura metálica`);
-  queries.push(`empreendimentos construção civil ${locationStr} construtora incorporadora`);
-
-  // Diários Oficiais: building permits published in official gazettes
-  for (const local of cidadesAlvo.slice(0, 2)) {
-    queries.push(`diário oficial alvará construção demolição ${local} obra`);
-  }
-
-  // Municipal portals: specific city hall portals publishing permits
-  for (const local of cidadesAlvo.slice(0, 2)) {
-    queries.push(`site:prefeitura OR site:pmpa OR site:portoalegre alvará licença construção ${local}`);
-  }
-
-  return queries;
+// ====== Build Google search queries (reduced to 3 max) ======
+function buildGoogleQueries(locationStr: string, ramos: string): string[] {
+  return [
+    `construtoras metalúrgicas obras aço estruturas metálicas ${locationStr}`,
+    `licitações obras construção civil aço galpão ${locationStr}`,
+    `empresas serralheria industrial estrutura metálica ${locationStr} ${ramos}`,
+  ];
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
+  let logId: string | null = null;
+
+  try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -374,7 +338,7 @@ serve(async (req) => {
       .select("id")
       .single();
 
-    const logId = logData?.id;
+    logId = logData?.id;
 
     // Get existing leads for dedup
     const { data: existingLeads } = await supabaseAdmin
@@ -389,6 +353,17 @@ serve(async (req) => {
       ]).filter(Boolean)
     );
 
+    // Also check existing staging results to avoid re-creating
+    const { data: existingStaging } = await supabaseAdmin
+      .from("lead_prospecting_results")
+      .select("cliente_nome, empresa, cliente_cnpj");
+
+    for (const s of existingStaging ?? []) {
+      if (s.cliente_nome) existingNames.add(s.cliente_nome.toLowerCase().trim());
+      if (s.empresa) existingNames.add(s.empresa.toLowerCase().trim());
+      if (s.cliente_cnpj) existingNames.add(s.cliente_cnpj.replace(/\D/g, ""));
+    }
+
     const ramos = config.ramos_atuacao?.length > 0
       ? config.ramos_atuacao.join(", ")
       : "construção civil, metalúrgica, estruturas metálicas";
@@ -397,8 +372,7 @@ serve(async (req) => {
     const cidades = config.cidades?.length > 0 ? config.cidades : [];
     const maxLeads = Math.min(config.max_leads_per_run || 10, 30);
 
-    // ====== STEP 1: Collect data from all sources in parallel ======
-    console.log("🚀 Iniciando prospecção com fontes de dados...");
+    console.log("🚀 Iniciando prospecção...");
 
     const allSearchResults: string[] = [];
 
@@ -406,16 +380,15 @@ serve(async (req) => {
       ? cidades.join(" OR ") + " " + estados.join(" ")
       : estados.join(" OR ");
 
-    // Build expanded queries (including private construction + diários oficiais + portais)
+    // Build queries (max 3 Google queries to stay within timeout)
     const googleQueries = enabledSources.includes('google')
-      ? buildGoogleQueries(locationStr, ramos, cidades, estados)
+      ? buildGoogleQueries(locationStr, ramos)
       : [];
 
     const pncpPromises = enabledSources.includes('pncp')
-      ? estados.map((uf: string) => searchPNCP(ramos, uf, 10))
+      ? estados.slice(0, 2).map((uf: string) => searchPNCP(ramos, uf, 10))
       : [];
 
-    // Execute Google queries in batches (limit concurrent to avoid rate limits)
     const googlePromises = googleQueries.map(q => searchGoogle(q, 5));
 
     const [googleResults, pncpResults] = await Promise.all([
@@ -423,31 +396,17 @@ serve(async (req) => {
       Promise.all(pncpPromises),
     ]);
 
-    // Process Google results with category tags
+    // Process Google results
     for (let i = 0; i < googleResults.length; i++) {
       const results = googleResults[i];
-      const query = googleQueries[i] || '';
-      
-      // Determine sub-category tag
-      let tag = "[GOOGLE]";
-      if (query.includes('alvará') || query.includes('obras privadas')) {
-        tag = "[OBRAS PRIVADAS - ALVARÁ]";
-      } else if (query.includes('diário oficial')) {
-        tag = "[DIÁRIO OFICIAL]";
-      } else if (query.includes('site:prefeitura') || query.includes('site:pmpa')) {
-        tag = "[PORTAL MUNICIPAL]";
-      } else if (query.includes('galpão') || query.includes('empreendimentos')) {
-        tag = "[OBRAS PRIVADAS]";
-      }
-
       for (const r of results) {
         const text = [
           r.title && `Título: ${r.title}`,
           r.description && `Descrição: ${r.description}`,
           r.url && `URL_FONTE: ${r.url}`,
-          r.markdown && `Conteúdo: ${r.markdown.slice(0, 1500)}`,
+          r.markdown && `Conteúdo: ${r.markdown.slice(0, 1000)}`,
         ].filter(Boolean).join("\n");
-        if (text) allSearchResults.push(`${tag}\n${text}`);
+        if (text) allSearchResults.push(`[GOOGLE]\n${text}`);
       }
     }
 
@@ -461,12 +420,8 @@ serve(async (req) => {
         const unidade = item.unidadeOrgao || {};
         const uf = unidade.ufSigla || "";
         const municipio = unidade.municipioNome || "";
-        const modalidade = item.modalidadeNome || "";
         const valor = item.valorTotalEstimado || item.valorTotalHomologado || "";
-        const numControle = item.numeroControlePNCP || "";
         const linkOrigem = item.linkSistemaOrigem || "";
-
-        // Build a PNCP portal link as fallback when linkSistemaOrigem is empty
         const cnpjOrgao = item.orgaoEntidade?.cnpj?.replace(/\D/g, '') || '';
         const anoCompra = item.anoCompra || '';
         const seqCompra = item.sequencialCompra || '';
@@ -477,16 +432,12 @@ serve(async (req) => {
 
         const text = [
           orgao && `Órgão/Empresa: ${orgao}`,
-          objeto && `Objeto da Contratação: ${objeto}`,
+          objeto && `Objeto: ${objeto}`,
           cnpj && `CNPJ: ${cnpj}`,
           uf && `UF: ${uf}`,
           municipio && `Município: ${municipio}`,
-          modalidade && `Modalidade: ${modalidade}`,
           valor && `Valor Estimado: R$ ${valor}`,
-          numControle && `Nº Controle PNCP: ${numControle}`,
           `URL_FONTE: ${finalLink}`,
-          item.informacaoComplementar && `Info Complementar: ${item.informacaoComplementar}`,
-          item.justificativaPresencial && `Justificativa: ${item.justificativaPresencial}`,
         ].filter(Boolean).join("\n");
         if (text) allSearchResults.push(`[PNCP - LICITAÇÃO]\n${text}`);
       }
@@ -495,27 +446,25 @@ serve(async (req) => {
     console.log(`📊 Total de resultados coletados: ${allSearchResults.length}`);
 
     if (allSearchResults.length === 0) {
-      console.log("⚠️ Nenhum resultado das fontes. Usando IA para gerar leads baseados em critérios...");
+      console.log("⚠️ Nenhum resultado. Usando critérios base...");
       allSearchResults.push(`[CRITÉRIOS DE BUSCA]
-Gere leads realistas de empresas nos seguintes ramos: ${ramos}
+Gere leads realistas nos ramos: ${ramos}
 Estados: ${estados.join(", ")}
 ${cidades.length > 0 ? `Cidades: ${cidades.join(", ")}` : ""}
-Foco: empresas que compram aço, perfis metálicos, chapas, bobinas, tubos.
 Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias industriais.`);
     }
 
-    // ====== STEP 2: Extract leads with AI ======
-    const combinedText = allSearchResults.slice(0, 50).join("\n\n---\n\n");
+    // Extract leads with AI (limit input to avoid token overflow)
+    const combinedText = allSearchResults.slice(0, 30).join("\n\n---\n\n");
     const generatedLeads = await extractLeadsWithAI(
       combinedText, ramos, estados.join(", "), maxLeads, LOVABLE_API_KEY
     );
 
     console.log(`🤖 AI extraiu ${generatedLeads.length} leads`);
 
-    // ====== POST-AI: Ensure every lead has a source_url ======
+    // Ensure every lead has source_url
     for (const lead of generatedLeads) {
       if (!lead.source_url) {
-        // Try to find a matching URL from the original search results
         const nameToMatch = (lead.empresa || lead.cliente_nome || '').toLowerCase();
         if (nameToMatch) {
           for (const resultText of allSearchResults) {
@@ -526,7 +475,6 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
             }
           }
         }
-        // If still no URL, assign a generic search URL based on fonte_dados
         if (!lead.source_url) {
           if (lead.fonte_dados === 'PNCP') {
             lead.source_url = `https://pncp.gov.br/app/editais?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
@@ -537,67 +485,54 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       }
     }
 
-    // ====== STEP 3: Enrich with BrasilAPI (enhanced) ======
+    // Enrich with BrasilAPI (limit to 3)
     const leadsToEnrich = generatedLeads.filter(
       (l: any) => l.cliente_cnpj && l.cliente_cnpj.replace(/\D/g, "").length === 14
-    ).slice(0, 5);
+    ).slice(0, 3);
 
     const enrichPromises = leadsToEnrich.map(async (lead: any) => {
       const enriched = await enrichCNPJ(lead.cliente_cnpj);
       if (!enriched) return;
 
-      // Company name
       lead.cliente_nome = enriched.razao_social || lead.cliente_nome;
       lead.empresa = enriched.nome_fantasia || lead.empresa;
 
-      // Phone (fixed formatting)
       const phone = formatBrasilAPIPhone(enriched.ddd_telefone_1);
       if (phone) lead.cliente_telefone = phone;
-      // Try secondary phone if primary missing
       if (!phone) {
         const phone2 = formatBrasilAPIPhone(enriched.ddd_telefone_2);
         if (phone2) lead.cliente_telefone = phone2;
       }
 
-      // Email
       if (enriched.email && enriched.email !== 'null') {
         lead.cliente_email = enriched.email;
       }
 
-      // Location
       lead.cidade = enriched.municipio || lead.cidade;
       lead.estado = enriched.uf || lead.estado;
 
-      // Regime tributário (inferred)
       const regime = inferRegimeTributario(enriched);
       if (regime) lead.regime_tributario = regime;
 
-      // CNAE and business sector
       const cnaeInfo = buildCNAEDescription(enriched);
       if (cnaeInfo) {
         lead.ramo_atuacao = enriched.cnae_fiscal_descricao || lead.ramo_atuacao;
       }
 
-      // Porte (company size)
       const porte = enriched.porte || '';
       const situacao = enriched.descricao_situacao_cadastral || '';
-      const natureza = enriched.natureza_juridica || '';
-
-      // Enrich notes with additional data
       const enrichNotes: string[] = [];
       if (porte) enrichNotes.push(`Porte: ${porte}`);
       if (situacao) enrichNotes.push(`Situação: ${situacao}`);
-      if (natureza) enrichNotes.push(`Natureza Jurídica: ${natureza}`);
-      if (cnaeInfo) enrichNotes.push(cnaeInfo);
       if (regime) enrichNotes.push(`Regime: ${regime}`);
-      enrichNotes.push('Enriquecido via ReceitaFederal/BrasilAPI');
+      enrichNotes.push('Enriquecido via BrasilAPI');
 
       lead.notes = (lead.notes || "") + " | " + enrichNotes.join(' | ');
     });
 
     await Promise.all(enrichPromises);
 
-    // ====== STEP 4: Insert into staging table for review ======
+    // Insert into staging table
     let created = 0;
     let duplicates = 0;
 
@@ -615,8 +550,6 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         continue;
       }
 
-      const fonteLabel = lead.fonte_dados || "IA";
-      const sourceValue = "Auto Prospecção";
       const empresaNome = lead.empresa || lead.cliente_nome || '';
       const contactName = lead.contact_name || '';
 
@@ -634,8 +567,8 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         produto_interesse: lead.produto_interesse || null,
         valor_estimado: lead.valor_estimado || null,
         notes: lead.notes || null,
-        fonte_dados: fonteLabel,
-        source: sourceValue,
+        fonte_dados: lead.fonte_dados || "IA",
+        source: "Auto Prospecção",
         source_url: lead.source_url || null,
         regime_tributario: lead.regime_tributario || null,
         status: "pending",
@@ -651,7 +584,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       }
     }
 
-    // Update log
+    // Update log as success
     const executionDetails = {
       sources: {
         google_queries: googleQueries.length,
@@ -690,6 +623,23 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
   } catch (error: unknown) {
     console.error("Prospect leads error:", error);
     const message = error instanceof Error ? error.message : String(error);
+
+    // Mark log as failed so it doesn't stay stuck as "running"
+    if (logId) {
+      try {
+        await supabaseAdmin
+          .from("lead_prospecting_logs")
+          .update({
+            status: "error",
+            error_message: message,
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+      } catch (e) {
+        console.error("Failed to update log status:", e);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

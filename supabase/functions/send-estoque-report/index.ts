@@ -280,11 +280,11 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
   `;
 }
 
-function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { totalItens: number; totalPeso: number; totalValor: number }): string {
+function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { totalItens: number; totalPeso: number; totalValor: number }, precosCategoriaMap: Record<string, number>): string {
   const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const categoriaSections = categorias.map(cat => generateCategorySection(cat, (cat as any)._precosMap || {})).join('');
+  const categoriaSections = categorias.map(cat => generateCategorySection(cat, (cat as any)._precosMap || {}, precosCategoriaMap)).join('');
 
   // Category summary cards - rows of 5
   const summaryRows: string[] = [];

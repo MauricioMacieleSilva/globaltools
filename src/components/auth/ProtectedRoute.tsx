@@ -91,8 +91,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             </div>
             <Button 
               onClick={async () => {
-                const { signOut } = await import('@/context/AuthContext').then(m => ({ signOut: () => supabase.auth.signOut() }))
-                await signOut()
+                await supabase.auth.signOut()
                 window.location.href = '/auth'
               }} 
               variant="outline" 

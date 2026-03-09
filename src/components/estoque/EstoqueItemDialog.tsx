@@ -96,7 +96,7 @@ const PERFIL_FIELDS_CONFIG: Record<string, {
   'U': { base: true, aba1: true, aba2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2' },
   'Z': { base: true, aba1: true, aba2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2' },
   'L': { base: true, aba1: true, aba2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2' },
-  'CARTOLA': { base: true, aba1: true, enrij1: true, aba1Label: 'Aba', enrij1Label: 'Enrij.' },
+  'CARTOLA': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
   'U_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
   'U_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
   'Z_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },

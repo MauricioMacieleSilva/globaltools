@@ -760,6 +760,46 @@ export function EstoqueItemDialog({
             </>
           )}
 
+          {/* Campos específicos para Telhas */}
+          {showTelhaFields && (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="espessura">Espessura (mm)</Label>
+                <Input
+                  id="espessura"
+                  type="number"
+                  step="0.01"
+                  value={form.espessura}
+                  onChange={(e) => setForm({ ...form, espessura: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="largura">Largura (mm)</Label>
+                <Input
+                  id="largura"
+                  type="number"
+                  value="1000"
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="comprimento">Comprimento (mm)</Label>
+                <Input
+                  id="comprimento"
+                  type="number"
+                  step="0.01"
+                  value={form.comprimento}
+                  onChange={(e) => setForm({ ...form, comprimento: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Campos de dimensão para outras categorias (não perfis e não tubos) */}
           {showDimensionFields && !showProfileFields && !showTubeFields && (
             <div className="grid grid-cols-3 gap-4">

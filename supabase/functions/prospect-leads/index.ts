@@ -491,6 +491,45 @@ serve(async (req) => {
       }
     }
 
+    // Process ObrasGov results
+    for (const results of obrasgovResults) {
+      const items = Array.isArray(results) ? results : [];
+      for (const item of items) {
+        const nome = item.nome || '';
+        const descricao = item.descricao || '';
+        const especie = item.especie || '';
+        const situacao = item.situacao || '';
+        const uf = item.uf || '';
+        const endereco = item.endereco || '';
+        const cep = item.cep || '';
+        const executor = item.executores?.[0] || {};
+        const executorNome = executor.nome || '';
+        const executorCodigo = executor.codigo ? String(executor.codigo) : '';
+        const valor = item.fontesDeRecurso?.[0]?.valorInvestimentoPrevisto || '';
+        const tipo = item.tipos?.[0]?.descricao || '';
+        const subTipo = item.subTipos?.[0]?.descricao || '';
+        const idUnico = item.idUnico || '';
+        const portalLink = `https://obrasgov.gestao.gov.br/obrasgov/painel/projeto-investimento/${encodeURIComponent(idUnico)}`;
+
+        const text = [
+          executorNome && `Empresa/Executor: ${executorNome}`,
+          executorCodigo && `CNPJ: ${executorCodigo}`,
+          nome && `Obra: ${nome}`,
+          descricao && descricao !== nome && `Descrição: ${descricao}`,
+          especie && `Espécie: ${especie}`,
+          situacao && `Situação: ${situacao}`,
+          tipo && `Tipo: ${tipo}`,
+          subTipo && `SubTipo: ${subTipo}`,
+          uf && `UF: ${uf}`,
+          endereco && `Endereço: ${endereco}`,
+          cep && `CEP: ${cep}`,
+          valor && `Valor Investimento: R$ ${valor}`,
+          `URL_FONTE: ${portalLink}`,
+        ].filter(Boolean).join("\n");
+        if (text) allSearchResults.push(`[OBRASGOV - OBRA PÚBLICA]\n${text}`);
+      }
+    }
+
     console.log(`📊 Total de resultados coletados: ${allSearchResults.length}`);
 
     if (allSearchResults.length === 0) {

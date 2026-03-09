@@ -26,12 +26,15 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
         const allMatches = data.filter(d => String(d.numeropedido).trim() === String(budgetNumber).trim());
         // Se houver duplicatas (filiais diferentes), pegar o pedido mais recente pela data de emissão
         if (allMatches.length > 0) {
-          const dates = [...new Set(allMatches.map(d => d.data_emissao))].sort((a, b) => {
-            const da = new Date(a).getTime() || 0;
-            const db = new Date(b).getTime() || 0;
+          // Agrupar por cliente para identificar filiais diferentes
+          // Ordenar todos os itens pela data de emissão (mais recente primeiro)
+          const sorted = [...allMatches].sort((a, b) => {
+            const da = parseDate(a.data_emissao)?.getTime() || 0;
+            const db = parseDate(b.data_emissao)?.getTime() || 0;
             return db - da;
           });
-          const mostRecentDate = dates[0];
+          // Pegar a data mais recente e filtrar apenas itens dessa data
+          const mostRecentDate = sorted[0]?.data_emissao;
           const filtered = allMatches.filter(d => d.data_emissao === mostRecentDate);
           setItems(filtered.length > 0 ? filtered : allMatches);
         } else {

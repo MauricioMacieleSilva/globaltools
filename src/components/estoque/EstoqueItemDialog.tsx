@@ -143,6 +143,8 @@ export function EstoqueItemDialog({
         aba2: item.aba2?.toString() || '',
         enrij1: '',
         enrij2: '',
+        enrij3: '',
+        enrij4: '',
         imagem_url: item.imagem_url,
         localizacao: item.localizacao || '',
         observacoes: item.observacoes || '',

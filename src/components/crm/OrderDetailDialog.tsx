@@ -22,7 +22,7 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
     setLoading(true);
     fetchComercialData()
       .then((data) => {
-        const filtered = data.filter(d => d.numeropedido === budgetNumber);
+        const filtered = data.filter(d => String(d.numeropedido).trim() === String(budgetNumber).trim());
         setItems(filtered);
       })
       .catch(() => setItems([]))

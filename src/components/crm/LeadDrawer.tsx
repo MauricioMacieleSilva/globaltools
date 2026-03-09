@@ -284,6 +284,20 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   <span>{[lead.cidade, lead.estado].filter(Boolean).join(' - ')}</span>
                 </div>
               )}
+              {(lead as any).website && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <a
+                    href={(lead as any).website.startsWith('http') ? (lead as any).website : `https://${(lead as any).website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline truncate flex items-center gap-1"
+                  >
+                    {(lead as any).website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                  </a>
+                </div>
+              )}
               {lead.cliente_cnpj && (
                 <div className="flex items-center gap-2 text-sm">
                   <FileText className="h-4 w-4 text-muted-foreground" />

@@ -52,6 +52,7 @@ export interface CRMLead {
   regime_tributario: string | null;
   estado: string | null;
   cidade: string | null;
+  website: string | null;
   vendedor?: { full_name: string; avatar_url: string | null } | null;
 }
 

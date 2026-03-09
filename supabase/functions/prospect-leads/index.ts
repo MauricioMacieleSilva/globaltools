@@ -580,7 +580,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       }
 
       const fonteLabel = lead.fonte_dados || "IA";
-      const sourceValue = `prospeccao_${fonteLabel.toLowerCase()}`;
+      const sourceValue = "Auto Prospecção";
       const empresaNome = lead.empresa || lead.cliente_nome || '';
       const contactName = lead.contact_name || '';
 

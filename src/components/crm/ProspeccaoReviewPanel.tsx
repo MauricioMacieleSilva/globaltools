@@ -105,6 +105,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
           notes: lead.notes || null,
           source: lead.source || null,
           website: lead.source_url || null,
+          regime_tributario: (lead as any).regime_tributario || null,
           status: 'lead',
           vendedor_id: user?.id,
         });

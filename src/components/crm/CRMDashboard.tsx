@@ -21,6 +21,7 @@ interface CRMDashboardProps {
   lastUpdated?: Date | null;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  tvMode?: boolean;
 }
 
 const CHART_COLORS = [
@@ -34,7 +35,7 @@ const CHART_COLORS = [
   'hsl(210, 40%, 60%)',
 ];
 
-export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing }: CRMDashboardProps) {
+export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
@@ -311,7 +312,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing }: CR
 
       <div className={cn("space-y-3 sm:space-y-4", isFullscreen && "p-4 sm:p-6")}>
         {/* Last updated indicator */}
-        {lastUpdated && (
+        {lastUpdated && !tvMode && (
           <div className="flex justify-end">
             <LastUpdatedIndicator 
               lastUpdated={lastUpdated} 
@@ -321,52 +322,54 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing }: CR
           </div>
         )}
         {/* Filters bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-[140px] sm:w-[180px] h-8 text-xs">
-              <Calendar className="h-3 w-3 mr-1.5 shrink-0" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map(m => (
-                <SelectItem key={m.value} value={m.value} className="text-xs capitalize">{m.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {!tvMode && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={periodFilter} onValueChange={setPeriodFilter}>
+              <SelectTrigger className="w-[140px] sm:w-[180px] h-8 text-xs">
+                <Calendar className="h-3 w-3 mr-1.5 shrink-0" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map(m => (
+                  <SelectItem key={m.value} value={m.value} className="text-xs capitalize">{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={vendorFilter} onValueChange={setVendorFilter}>
-            <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
-              <Users className="h-3 w-3 mr-1.5 shrink-0" />
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Vendedores</SelectItem>
-              {vendors.map(v => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={vendorFilter} onValueChange={setVendorFilter}>
+              <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
+                <Users className="h-3 w-3 mr-1.5 shrink-0" />
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Vendedores</SelectItem>
+                {vendors.map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {hasFilters && (
-            <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearFilters}>
-              <X className="h-3 w-3" /> Limpar
-            </Button>
-          )}
-
-          <div className="ml-auto">
-            {!isFullscreen && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsFullscreen(true)}
-                title="Modo tela cheia"
-                className="h-8 w-8 hidden sm:flex"
-              >
-                <Maximize2 className="h-4 w-4" />
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearFilters}>
+                <X className="h-3 w-3" /> Limpar
               </Button>
             )}
+
+            <div className="ml-auto">
+              {!isFullscreen && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsFullscreen(true)}
+                  title="Modo tela cheia"
+                  className="h-8 w-8 hidden sm:flex"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Row 1: KPI Cards - styled like commercial dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -484,16 +487,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing }: CR
             </CardHeader>
             <CardContent className="h-[200px] sm:h-[260px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyContactsData} barGap={2}>
+                <BarChart data={dailyContactsData} barGap={1} barSize={12}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="dia" tick={{ fontSize: 9 }} className="fill-muted-foreground" interval="preserveStartEnd" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 10 }} className="fill-muted-foreground" interval={0} />
                   <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]}>
-                    <LabelList dataKey="contatos" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                    <LabelList dataKey="contatos" position="top" fontSize={10} fontWeight={600} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
                   </Bar>
                   <Bar dataKey="visitas" name="Visitas" fill="hsl(262, 52%, 47%)" radius={[3, 3, 0, 0]}>
-                    <LabelList dataKey="visitas" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                    <LabelList dataKey="visitas" position="top" fontSize={10} fontWeight={600} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

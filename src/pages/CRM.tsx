@@ -19,7 +19,8 @@ import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart } from 'lucide-react';
+import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart, Sparkles } from 'lucide-react';
+import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 
 export interface CRMLead {
   id: string;
@@ -371,6 +372,9 @@ export default function CRM() {
             <TabsTrigger value="dashboard" className="text-xs gap-1 h-7 px-3">
               <PieChart className="h-3.5 w-3.5" /> Dashboard
             </TabsTrigger>
+            <TabsTrigger value="prospeccao" className="text-xs gap-1 h-7 px-3">
+              <Sparkles className="h-3.5 w-3.5" /> Prospecção IA
+            </TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">
             {activeTab === 'kanban' && (
@@ -419,6 +423,10 @@ export default function CRM() {
 
         <TabsContent value="dashboard" className="mt-3">
           <CRMDashboard leads={leads} />
+        </TabsContent>
+
+        <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
+          <ProspeccaoPanel />
         </TabsContent>
       </Tabs>
 

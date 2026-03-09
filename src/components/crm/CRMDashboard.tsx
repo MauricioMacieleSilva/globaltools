@@ -17,6 +17,9 @@ import { CRM_STAGES } from '@/pages/CRM';
 
 interface CRMDashboardProps {
   leads: CRMLead[];
+  lastUpdated?: Date | null;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 const CHART_COLORS = [

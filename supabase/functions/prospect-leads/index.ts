@@ -320,9 +320,9 @@ serve(async (req) => {
       `licitações obras construção civil aço ${locationStr}`,
     ];
 
-    // Parallel: Google searches + PNCP for each state
-    const googlePromises = googleQueries.map(q => searchGoogle(q, 5));
-    const pncpPromises = estados.map((uf: string) => searchPNCP(ramos, uf, 10));
+    // Parallel: Google searches + PNCP for each state (based on enabled sources)
+    const googlePromises = enabledSources.includes('google') ? googleQueries.map(q => searchGoogle(q, 5)) : [];
+    const pncpPromises = enabledSources.includes('pncp') ? estados.map((uf: string) => searchPNCP(ramos, uf, 10)) : [];
 
     const [googleResults, pncpResults] = await Promise.all([
       Promise.all(googlePromises),

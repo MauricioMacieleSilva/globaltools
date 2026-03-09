@@ -202,7 +202,6 @@ export default function CRM() {
         .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
         .eq('id', pendingVisitLead.id);
       setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
-      loadTodayStats();
     } catch {}
     setPendingVisitLead(null);
   };

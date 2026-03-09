@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Camera, Loader2, Sparkles } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Smartphone, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function UserAvatarMenu() {

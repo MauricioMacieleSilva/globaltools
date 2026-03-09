@@ -248,8 +248,8 @@ export default function ReportsConfig() {
           <ReportCard
             icon={<Package className="h-5 w-5 text-primary" />}
             title="Relatório de Estoque"
-            description="Configure o envio automático do relatório de estoque semanal"
-            badge="Semanal"
+            description="Configure o envio automático do relatório de estoque diário"
+            badge="Seg a Sex"
           >
             <EstoqueConfig />
           </ReportCard>

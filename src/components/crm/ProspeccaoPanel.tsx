@@ -372,7 +372,7 @@ export function ProspeccaoPanel() {
                       <div className="text-[10px] text-muted-foreground">gerados</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-semibold text-emerald-600">{log.leads_criados}</div>
+      <div className="font-semibold text-primary">{log.leads_criados}</div>
                       <div className="text-[10px] text-muted-foreground">criados</div>
                     </div>
                     <div className="text-center">

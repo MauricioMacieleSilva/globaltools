@@ -118,15 +118,8 @@ function ProductionConfig() {
   );
 }
 
-const DAY_OPTIONS = [
-  { value: 'monday', label: 'Segunda-feira' },
-  { value: 'tuesday', label: 'Terça-feira' },
-  { value: 'wednesday', label: 'Quarta-feira' },
-  { value: 'thursday', label: 'Quinta-feira' },
-  { value: 'friday', label: 'Sexta-feira' },
-  { value: 'saturday', label: 'Sábado' },
-  { value: 'sunday', label: 'Domingo' },
-];
+
+
 
 function EstoqueConfig() {
   const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string } | null>(null);

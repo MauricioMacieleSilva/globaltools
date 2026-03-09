@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Loader2, Package } from 'lucide-react';
 import { fetchComercialData } from '@/services/googleSheetsService';
 import type { ComercialData } from '@/context/ComercialContext';
@@ -22,7 +22,7 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
     setLoading(true);
     fetchComercialData()
       .then((data) => {
-        const filtered = data.filter(d => d.numeropedido === budgetNumber);
+        const filtered = data.filter(d => String(d.numeropedido).trim() === String(budgetNumber).trim());
         setItems(filtered);
       })
       .catch(() => setItems([]))
@@ -106,7 +106,8 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
             </div>
 
             {/* Items table */}
-            <ScrollArea className="max-h-[40vh]">
+            <ScrollArea className="max-h-[40vh] w-full">
+              <div className="min-w-[500px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -139,6 +140,8 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
                   ))}
                 </TableBody>
               </Table>
+              </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
             {/* Totals */}

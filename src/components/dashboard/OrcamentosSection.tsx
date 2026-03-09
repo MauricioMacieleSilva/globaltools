@@ -169,7 +169,7 @@ export function OrcamentosSection({ sharedOrcamentosData }: OrcamentosSectionPro
   return (
     <div className="space-y-2 sm:space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm sm:text-lg font-semibold">Orçamentos em Aberto</h3>
+        <h3 className="text-sm sm:text-lg font-semibold">Orçamentos</h3>
       </div>
       
       <TemperaturaIndicator stats={temperatureStats} />

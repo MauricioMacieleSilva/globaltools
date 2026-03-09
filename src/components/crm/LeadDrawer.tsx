@@ -360,7 +360,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
               {/* Order/Budget linked */}
               {lead.budget_number && (
-                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                <div
+                  className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
+                  onClick={() => navigate(`/dashboard-comercial?pedido=${lead.budget_number}`)}
+                >
                   <Package className="h-4 w-4" />
                   <span>Pedido {lead.budget_number}</span>
                   {orderValue != null && orderValue > 0 && (

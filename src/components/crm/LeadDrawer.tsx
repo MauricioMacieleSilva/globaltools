@@ -14,6 +14,7 @@ import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { LeadEnrichForm } from './LeadEnrichForm';
 import { LeadEditDialog } from './LeadEditDialog';
+import { LeadAttachments } from './LeadAttachments';
 import { fetchComercialData } from '@/services/googleSheetsService';
 
 interface LeadActivity {
@@ -423,6 +424,11 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 )}
               </div>
             )}
+
+            {/* Attachments */}
+            <LeadAttachments leadId={lead.id} />
+
+            <Separator />
 
             {/* Add Note */}
             <div className="space-y-2">

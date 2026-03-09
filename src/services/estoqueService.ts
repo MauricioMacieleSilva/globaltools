@@ -71,11 +71,11 @@ export const TIPOS_TUBO = [
 
 // Categorias que usam unidade UN (peças) com cálculo automático de peso
 export const CATEGORIAS_UNIDADE_UN: CategoriaEstoque[] = [
-  'ARAMES', 'PERFIS', 'CHAPAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO', 'BLANK', 'TIRAS'
+  'ARAMES', 'PERFIS', 'CHAPAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO', 'BLANK', 'TIRAS', 'TELHAS'
 ];
 
 // Categorias que permanecem em KG (peso direto)
-export const CATEGORIAS_UNIDADE_KG: CategoriaEstoque[] = ['BOBINAS', 'TELHAS'];
+export const CATEGORIAS_UNIDADE_KG: CategoriaEstoque[] = ['BOBINAS'];
 
 // Densidade do aço em kg/mm³ (7850 kg/m³ = 0.00000785 kg/mm³)
 const DENSIDADE_ACO = 0.00000785;
@@ -143,6 +143,13 @@ export function calcularPesoPeca(
     return desenvolvimento * espessura * comprimento * DENSIDADE_ACO;
   }
   
+  // Para telhas: largura fixa 1000mm
+  if (categoria === 'TELHAS') {
+    if (!comprimento) return null;
+    const larguraTelha = 1000; // sempre 1000mm
+    return larguraTelha * comprimento * espessura * DENSIDADE_ACO;
+  }
+
   // Para chapas, blanks, tiras, laminados
   if (['CHAPAS', 'BLANK', 'TIRAS', 'LAMINADOS'].includes(categoria)) {
     if (!largura || !comprimento) return null;

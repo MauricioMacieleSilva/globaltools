@@ -172,17 +172,26 @@ export function EstoqueItemDialog({
   const isUnidadeUN = CATEGORIAS_UNIDADE_UN.includes(form.categoria);
   const showProfileFields = ['PERFIS'].includes(form.categoria);
   const showTubeFields = form.categoria === 'TUBOS';
+  const showTelhaFields = form.categoria === 'TELHAS';
   const showDimensionFields = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS', 'BLANK', 'LAMINADOS', 'TUBOS', 'ARAMES', 'VERGALHAO'].includes(form.categoria);
   
   // Configuração de campos dinâmica baseada no tipo de perfil
   const perfilConfig = form.tipo_perfil ? PERFIL_FIELDS_CONFIG[form.tipo_perfil] : null;
   
   // Categorias que geram descrição automaticamente a partir das dimensões
-  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK', 'TUBOS'].includes(form.categoria);
+  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK', 'TUBOS', 'TELHAS'].includes(form.categoria);
 
   // Gera descrição automática baseada nas dimensões
   const gerarDescricaoAutomatica = useMemo(() => {
     if (!autoDescricao) return '';
+
+    // Formato para TELHAS: TELHA #0,43 1000x2500mm
+    if (form.categoria === 'TELHAS') {
+      const espessuraFormatada = form.espessura ? `#${parseFloat(form.espessura).toFixed(2).replace('.', ',')}` : '';
+      const comprimentoFormatado = form.comprimento ? `1000x${Math.round(parseFloat(form.comprimento))}mm` : '';
+      const partes = ['TELHA', espessuraFormatada, comprimentoFormatado].filter(Boolean);
+      return partes.join(' ');
+    }
     
     // Formato para TUBOS: TB QD #4,75 100×100 6000mm ou TB RT #1,55 30×50 6000mm
     if (form.categoria === 'TUBOS' && form.tipo_perfil) {
@@ -751,8 +760,48 @@ export function EstoqueItemDialog({
             </>
           )}
 
+          {/* Campos específicos para Telhas */}
+          {showTelhaFields && (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="espessura">Espessura (mm)</Label>
+                <Input
+                  id="espessura"
+                  type="number"
+                  step="0.01"
+                  value={form.espessura}
+                  onChange={(e) => setForm({ ...form, espessura: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="largura">Largura (mm)</Label>
+                <Input
+                  id="largura"
+                  type="number"
+                  value="1000"
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="comprimento">Comprimento (mm)</Label>
+                <Input
+                  id="comprimento"
+                  type="number"
+                  step="0.01"
+                  value={form.comprimento}
+                  onChange={(e) => setForm({ ...form, comprimento: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Campos de dimensão para outras categorias (não perfis e não tubos) */}
-          {showDimensionFields && !showProfileFields && !showTubeFields && (
+          {showDimensionFields && !showProfileFields && !showTubeFields && !showTelhaFields && (
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="espessura">Espessura (mm)</Label>

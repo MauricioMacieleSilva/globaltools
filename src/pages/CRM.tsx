@@ -432,7 +432,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
-          <ProspeccaoPanel />
+          <ProspeccaoPanel onLeadsApproved={loadLeads} />
         </TabsContent>
       </Tabs>
 

@@ -589,7 +589,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
       </div>
 
       {/* Review Panel */}
-      <ProspeccaoReviewPanel onLeadsApproved={loadData} />
+      <ProspeccaoReviewPanel onLeadsApproved={() => { loadData(); onLeadsApproved?.(); }} />
 
       {/* History */}
       <Card>

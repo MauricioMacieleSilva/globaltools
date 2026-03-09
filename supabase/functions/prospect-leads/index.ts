@@ -50,8 +50,11 @@ async function searchPNCP(keywords: string, uf: string, maxResults: number): Pro
   try {
     const today = new Date();
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const dateFrom = thirtyDaysAgo.toISOString().split("T")[0] + "T00:00:00";
-    const dateTo = today.toISOString().split("T")[0] + "T23:59:59";
+    
+    // Format as yyyyMMdd (PNCP requires this format)
+    const formatDate = (d: Date) => d.toISOString().split("T")[0].replace(/-/g, "");
+    const dateFrom = formatDate(thirtyDaysAgo);
+    const dateTo = formatDate(today);
 
     const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dateFrom}&dataFinal=${dateTo}&codigoModalidadeContratacao=8&uf=${uf}&pagina=1&tamanhoPagina=${Math.min(maxResults, 20)}`;
 
@@ -399,7 +402,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         continue;
       }
 
-      // Note: 'observacoes' is a generated column (= notes), so we use 'notes' instead
+      // Note: 'observacoes' is generated from 'notes', and 'origem' is generated from 'source'
       const { error: insertError } = await supabaseAdmin.from("leads").insert({
         cliente_nome: lead.cliente_nome,
         empresa: lead.empresa || null,
@@ -412,7 +415,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         ramo_atuacao: lead.ramo_atuacao || null,
         produto_interesse: lead.produto_interesse || null,
         notes: lead.notes || null,
-        origem: "prospeccao_automatica",
+        source: "prospeccao_automatica",
         status: "lead",
       });
 

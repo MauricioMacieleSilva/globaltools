@@ -593,6 +593,41 @@ export function EstoqueItemDialog({
                       />
                     </div>
                   )}
+
+                  {perfilConfig.enrij3 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="enrij3">{perfilConfig.enrij3Label || 'Enrij. 3'} (mm)</Label>
+                      <Input
+                        id="enrij3"
+                        type="number"
+                        step="0.01"
+                        value={form.enrij3}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const updates: Partial<FormData> = { enrij3: val };
+                          if (perfilConfig?.enrij4 && !enrij4ManualEdit) {
+                            updates.enrij4 = val;
+                          }
+                          setForm(prev => ({ ...prev, ...updates }));
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+
+                  {perfilConfig.enrij4 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="enrij4">{perfilConfig.enrij4Label || 'Enrij. 4'} (mm)</Label>
+                      <Input
+                        id="enrij4"
+                        type="number"
+                        step="0.01"
+                        value={form.enrij4}
+                        onChange={(e) => { setEnrij4ManualEdit(true); setForm({ ...form, enrij4: e.target.value }); }}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

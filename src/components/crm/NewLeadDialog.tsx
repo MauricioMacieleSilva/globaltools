@@ -40,7 +40,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   const resetForm = () => {
     setForm({
       empresa: '', cliente_nome: '', source: '', cliente_telefone: '',
-      cliente_email: '', status: 'lead', produto_interesse: '', notes: '',
+      cliente_email: '', website: '', status: 'lead', produto_interesse: '', notes: '',
     });
     setAddingOrigem(false);
     setNovaOrigem('');

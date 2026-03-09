@@ -6,6 +6,7 @@ import {
   calcularPesoTotal
 } from '@/services/estoqueService';
 import { fetchPerfilPrecos, PerfilPreco } from '@/services/perfilPrecosService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EstoqueStats {
   totalItens: number;
@@ -17,6 +18,9 @@ interface EstoqueStats {
 // Mapa de espessura -> preço por kg
 type PrecosEspessuraMap = Record<number, number>;
 
+// Mapa de categoria -> preço médio por kg (da política comercial)
+type PrecosCategoriaMap = Record<string, number>;
+
 interface EstoqueContextType {
   items: EstoqueItem[];
   loading: boolean;
@@ -27,6 +31,7 @@ interface EstoqueContextType {
   getItemsByCategoria: (categoria: CategoriaEstoque) => EstoqueItem[];
   getItemCount: (categoria: CategoriaEstoque) => number;
   precosEspessuraMap: PrecosEspessuraMap;
+  precosCategoriaMap: PrecosCategoriaMap;
   stats: EstoqueStats;
 }
 

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locationsService';
 import { Plus, ChevronsUpDown, X } from 'lucide-react';
+import { CRM_STAGES } from '@/pages/CRM';
 import type { CRMLead } from '@/pages/CRM';
 
 interface LeadEditDialogProps {
@@ -26,8 +27,9 @@ const DEFAULT_ORIGENS = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita'
 
 export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEditDialogProps) {
   const [form, setForm] = useState({
-    cliente_nome: '', empresa: '', cliente_telefone: '', cliente_email: '',
-    source: '', notes: '', cliente_cnpj: '', budget_number: '',
+    empresa: '', cliente_nome: '', cliente_telefone: '', cliente_email: '',
+    source: '', status: 'lead', produto_interesse: '', notes: '',
+    cliente_cnpj: '', budget_number: '',
     ramo_atuacao: '', regime_tributario: '', estado: '', cidade: '',
   });
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -52,11 +54,13 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
   useEffect(() => {
     if (lead && open) {
       setForm({
-        cliente_nome: lead.cliente_nome || '',
         empresa: lead.empresa || '',
+        cliente_nome: lead.cliente_nome || '',
         cliente_telefone: lead.cliente_telefone || lead.contact_phone || '',
         cliente_email: lead.cliente_email || lead.contact_email || '',
         source: lead.source || lead.origem || '',
+        status: lead.status || 'lead',
+        produto_interesse: '',
         notes: lead.notes || lead.observacoes || '',
         cliente_cnpj: lead.cliente_cnpj || '',
         budget_number: lead.budget_number || '',
@@ -151,18 +155,28 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
     : cidades.slice(0, 15);
 
   const handleSave = async () => {
-    if (!lead || !form.cliente_nome.trim()) return;
+    if (!lead) return;
+    if (!form.empresa.trim()) {
+      toast.error('Empresa é obrigatória');
+      return;
+    }
+    if (!form.cliente_telefone.trim()) {
+      toast.error('Telefone é obrigatório');
+      return;
+    }
     setLoading(true);
     try {
+      const contactName = form.cliente_nome.trim() || form.empresa.trim();
       const { error } = await (supabase as any).from('leads').update({
-        cliente_nome: form.cliente_nome.trim(),
-        client_name: form.cliente_nome.trim(),
-        empresa: form.empresa || null,
+        cliente_nome: contactName,
+        client_name: contactName,
+        empresa: form.empresa.trim(),
         cliente_telefone: form.cliente_telefone || null,
         contact_phone: form.cliente_telefone || null,
         cliente_email: form.cliente_email || null,
         contact_email: form.cliente_email || null,
         source: form.source || null,
+        status: form.status,
         produto_interesse: selectedProducts.length > 0 ? selectedProducts.join(', ') : null,
         notes: form.notes || null,
         cliente_cnpj: form.cliente_cnpj.replace(/\D/g, '') || null,
@@ -190,41 +204,47 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         <DialogHeader>
           <DialogTitle>Editar Lead</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-3 py-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Nome */}
-            <div className="space-y-1 sm:col-span-2">
-              <Label className="text-xs">Nome do Cliente *</Label>
-              <Input value={form.cliente_nome} onChange={(e) => setForm(f => ({ ...f, cliente_nome: e.target.value }))} />
+        <div className="grid gap-4 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Empresa - FIRST and required */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Empresa *</Label>
+              <Input value={form.empresa} onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))} placeholder="Nome da empresa" />
             </div>
-            {/* Empresa */}
-            <div className="space-y-1">
-              <Label className="text-xs">Empresa</Label>
-              <Input value={form.empresa} onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))} />
+
+            {/* Nome do Contato */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Nome do Contato</Label>
+              <Input value={form.cliente_nome} onChange={(e) => setForm(f => ({ ...f, cliente_nome: e.target.value }))} placeholder="Ex: João, Maria, Compras..." />
             </div>
-            {/* Telefone */}
-            <div className="space-y-1">
-              <Label className="text-xs">Telefone</Label>
-              <Input value={form.cliente_telefone} onChange={(e) => setForm(f => ({ ...f, cliente_telefone: e.target.value }))} />
+
+            {/* Telefone - required */}
+            <div className="space-y-1.5">
+              <Label>Telefone *</Label>
+              <Input value={form.cliente_telefone} onChange={(e) => setForm(f => ({ ...f, cliente_telefone: e.target.value }))} placeholder="(00) 00000-0000" />
             </div>
+
             {/* Email */}
-            <div className="space-y-1">
-              <Label className="text-xs">Email</Label>
-              <Input value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} />
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
             </div>
+
             {/* CNPJ */}
-            <div className="space-y-1">
-              <Label className="text-xs">CNPJ</Label>
+            <div className="space-y-1.5">
+              <Label>CNPJ</Label>
               <Input value={formatCnpj(form.cliente_cnpj)} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
             </div>
+
             {/* Nº Pedido / Orçamento */}
-            <div className="space-y-1">
-              <Label className="text-xs">Nº Pedido / Orçamento</Label>
+            <div className="space-y-1.5">
+              <Label>Nº Pedido / Orçamento</Label>
               <Input value={form.budget_number} onChange={(e) => setForm(f => ({ ...f, budget_number: e.target.value }))} placeholder="Ex: 11970" />
             </div>
+
             {/* Origem */}
-            <div className="space-y-1">
-              <Label className="text-xs">Origem</Label>
+            <div className="space-y-1.5">
+              <Label>Origem</Label>
               {addingOrigem ? (
                 <div className="flex gap-1">
                   <Input value={novaOrigem} onChange={(e) => setNovaOrigem(e.target.value)} placeholder="Nova origem..." className="h-9 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddOrigem()} autoFocus />
@@ -241,9 +261,21 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
                 </div>
               )}
             </div>
+
+            {/* Status */}
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CRM_STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Ramo de Atuação */}
-            <div className="space-y-1">
-              <Label className="text-xs">Ramo de Atuação</Label>
+            <div className="space-y-1.5">
+              <Label>Ramo de Atuação</Label>
               {addingSector ? (
                 <div className="flex gap-1">
                   <Input value={newSector} onChange={(e) => setNewSector(e.target.value)} placeholder="Novo ramo..." className="h-9 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddSector()} autoFocus />
@@ -260,17 +292,19 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
                 </div>
               )}
             </div>
+
             {/* Regime Tributário */}
-            <div className="space-y-1">
-              <Label className="text-xs">Regime Tributário</Label>
+            <div className="space-y-1.5">
+              <Label>Regime Tributário</Label>
               <Select value={form.regime_tributario} onValueChange={(v) => setForm(f => ({ ...f, regime_tributario: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>{REGIMES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+
             {/* Estado / Cidade */}
-            <div className="space-y-1">
-              <Label className="text-xs">Estado (UF)</Label>
+            <div className="space-y-1.5">
+              <Label>Estado (UF)</Label>
               <Select value={form.estado} onValueChange={(v) => { setForm(f => ({ ...f, estado: v, cidade: '' })); setCidadeSearch(''); }}>
                 <SelectTrigger><SelectValue placeholder="UF..." /></SelectTrigger>
                 <SelectContent>
@@ -278,8 +312,8 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1 relative">
-              <Label className="text-xs">Cidade</Label>
+            <div className="space-y-1.5 relative">
+              <Label>Cidade</Label>
               <Input
                 value={cidadeSearch}
                 onChange={(e) => { setCidadeSearch(e.target.value); setForm(f => ({ ...f, cidade: e.target.value })); setShowCidadeDropdown(true); }}
@@ -303,9 +337,10 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
                 </div>
               )}
             </div>
-            {/* Produtos de Interesse - Multi-select */}
-            <div className="space-y-1 sm:col-span-2">
-              <Label className="text-xs">Produtos de Interesse</Label>
+
+            {/* Produto de Interesse - Multi-select */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Produto de Interesse</Label>
               {selectedProducts.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-1">
                   {selectedProducts.map(p => (
@@ -352,10 +387,11 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
                 </div>
               )}
             </div>
+
             {/* Observações */}
-            <div className="space-y-1 sm:col-span-2">
-              <Label className="text-xs">Observações</Label>
-              <Textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Observações</Label>
+              <Textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notas iniciais..." rows={2} />
             </div>
           </div>
         </div>

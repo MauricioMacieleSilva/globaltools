@@ -433,9 +433,15 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       const fonteLabel = lead.fonte_dados || "IA";
       const sourceValue = `prospeccao_${fonteLabel.toLowerCase()}`;
 
+      // Map empresa to empresa field, contact_name to cliente_nome
+      // If no contact_name, use empresa as cliente_nome (required field)
+      const empresaNome = lead.empresa || lead.cliente_nome || '';
+      const contactName = lead.contact_name || '';
+
       const { error: insertError } = await supabaseAdmin.from("leads").insert({
-        cliente_nome: lead.cliente_nome,
-        empresa: lead.empresa || null,
+        cliente_nome: contactName || empresaNome,
+        client_name: contactName || empresaNome,
+        empresa: empresaNome || null,
         cliente_cnpj: lead.cliente_cnpj || null,
         contact_name: lead.contact_name || null,
         contact_phone: lead.contact_phone || lead.cliente_telefone || null,

@@ -462,6 +462,33 @@ export function ProspeccaoPanel() {
               )}
             </div>
 
+            {/* Fontes de Dados */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Fontes de Dados</Label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={selectedSources.includes('google')}
+                    onCheckedChange={(checked) => {
+                      setSelectedSources(prev => checked ? [...prev, 'google'] : prev.filter(s => s !== 'google'));
+                    }}
+                    className="h-3.5 w-3.5"
+                  />
+                  Google (Firecrawl)
+                </label>
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={selectedSources.includes('pncp')}
+                    onCheckedChange={(checked) => {
+                      setSelectedSources(prev => checked ? [...prev, 'pncp'] : prev.filter(s => s !== 'pncp'));
+                    }}
+                    className="h-3.5 w-3.5"
+                  />
+                  PNCP (Licitações)
+                </label>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs font-medium">Máx. leads por execução</Label>

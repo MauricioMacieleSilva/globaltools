@@ -371,23 +371,33 @@ serve(async (req) => {
       }
     }
 
-    // Process PNCP results
+    // Process PNCP results - extract rich data from the actual API structure
     for (const results of pncpResults) {
       const items = Array.isArray(results) ? results : [];
       for (const item of items) {
-        const orgao = item.orgaoEntidade ?? item.nomeOrgao ?? "";
-        const objeto = item.objetoCompra ?? item.objeto ?? "";
-        const cnpj = item.cnpjCompra ?? item.cnpj ?? "";
-        const uf = item.ufCompra ?? item.uf ?? "";
-        const municipio = item.municipioCompra ?? item.municipio ?? "";
+        const orgao = item.orgaoEntidade?.razaoSocial || "";
+        const cnpj = item.orgaoEntidade?.cnpj || "";
+        const objeto = item.objetoCompra || "";
+        const unidade = item.unidadeOrgao || {};
+        const uf = unidade.ufSigla || "";
+        const municipio = unidade.municipioNome || "";
+        const modalidade = item.modalidadeNome || "";
+        const valor = item.valorTotalEstimado || item.valorTotalHomologado || "";
+        const numControle = item.numeroControlePNCP || "";
+        const linkOrigem = item.linkSistemaOrigem || "";
 
         const text = [
           orgao && `Órgão/Empresa: ${orgao}`,
-          objeto && `Objeto: ${objeto}`,
+          objeto && `Objeto da Contratação: ${objeto}`,
           cnpj && `CNPJ: ${cnpj}`,
           uf && `UF: ${uf}`,
           municipio && `Município: ${municipio}`,
-          item.valorTotalEstimado && `Valor Estimado: R$ ${item.valorTotalEstimado}`,
+          modalidade && `Modalidade: ${modalidade}`,
+          valor && `Valor Estimado: R$ ${valor}`,
+          numControle && `Nº Controle PNCP: ${numControle}`,
+          linkOrigem && `Link: ${linkOrigem}`,
+          item.informacaoComplementar && `Info Complementar: ${item.informacaoComplementar}`,
+          item.justificativaPresencial && `Justificativa: ${item.justificativaPresencial}`,
         ].filter(Boolean).join("\n");
         if (text) allSearchResults.push(`[PNCP - LICITAÇÃO]\n${text}`);
       }

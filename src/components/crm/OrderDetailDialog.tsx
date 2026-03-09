@@ -140,6 +140,8 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
                   ))}
                 </TableBody>
               </Table>
+              </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
             {/* Totals */}

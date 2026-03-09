@@ -69,6 +69,7 @@ export function ProspeccaoPanel() {
   const [cidadeSearch, setCidadeSearch] = useState('');
   const [ramoPopoverOpen, setRamoPopoverOpen] = useState(false);
   const [ramoSearch, setRamoSearch] = useState('');
+  const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp']);
 
   // Load estados and business sectors on mount
   useEffect(() => {

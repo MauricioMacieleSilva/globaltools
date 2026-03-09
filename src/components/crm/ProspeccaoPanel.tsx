@@ -204,7 +204,7 @@ export function ProspeccaoPanel() {
       }
 
       const { data, error } = await supabase.functions.invoke('prospect-leads', {
-        body: { config_id: configId },
+        body: { config_id: configId, sources: getSelectedSourcesForRun() },
       });
 
       if (error) throw error;

@@ -232,6 +232,12 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
               <Input type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
             </div>
 
+            {/* Website / URL */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Site / URL</Label>
+              <Input value={form.website} onChange={(e) => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.empresa.com.br" />
+            </div>
+
             {/* CNPJ */}
             <div className="space-y-1.5">
               <Label>CNPJ</Label>

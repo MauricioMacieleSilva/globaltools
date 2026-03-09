@@ -333,11 +333,7 @@ export default function CRM() {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-foreground">CRM</h1>
-          <p className="text-xs text-muted-foreground">Gestão de Leads e Pipeline de Vendas</p>
-        </div>
+      <div className="flex items-center justify-end">
         <Button data-tour="crm-new-lead" onClick={() => setNewLeadOpen(true)} className="gap-1.5">
           <Plus className="h-4 w-4" />
           {!isMobile && 'Novo Lead'}

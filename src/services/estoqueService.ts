@@ -143,6 +143,13 @@ export function calcularPesoPeca(
     return desenvolvimento * espessura * comprimento * DENSIDADE_ACO;
   }
   
+  // Para telhas: largura fixa 1000mm
+  if (categoria === 'TELHAS') {
+    if (!comprimento) return null;
+    const larguraTelha = 1000; // sempre 1000mm
+    return larguraTelha * comprimento * espessura * DENSIDADE_ACO;
+  }
+
   // Para chapas, blanks, tiras, laminados
   if (['CHAPAS', 'BLANK', 'TIRAS', 'LAMINADOS'].includes(categoria)) {
     if (!largura || !comprimento) return null;

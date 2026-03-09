@@ -580,7 +580,7 @@ export default function CRM() {
         onClose={() => setCarouselOpen(false)}
         labels={['Dashboard CRM', 'Dashboard Comercial']}
       >
-        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
+        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode />
         <DashboardComercial tvMode />
       </DashboardCarousel>
     </div>

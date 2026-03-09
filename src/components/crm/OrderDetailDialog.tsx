@@ -118,7 +118,7 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
             </div>
 
             {/* Items table */}
-            <ScrollArea className="max-h-[40vh] w-full">
+            <ScrollArea className="h-[40vh] w-full">
               <div className="min-w-[500px]">
               <Table>
                 <TableHeader>

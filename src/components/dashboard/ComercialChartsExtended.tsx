@@ -245,16 +245,20 @@ export function ComercialChartsExtended() {
                     tick={{ fontSize: 10 }}
                     tickFormatter={formatLabel}
                   />
-                  <Tooltip 
-                    formatter={(value: number) => [
+                   <Tooltip 
+                    formatter={(value: number, name: string) => [
                       new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
                         currency: 'BRL'
                       }).format(value),
-                      'Valor'
+                      name === 'faturado' ? 'Faturado' : 'Pedido (não faturado)'
                     ]}
                     labelStyle={{ fontSize: '12px' }}
                     contentStyle={{ fontSize: '12px' }}
+                  />
+                  <Legend 
+                    formatter={(value: string) => value === 'faturado' ? 'Faturado' : 'Pedido'}
+                    wrapperStyle={{ fontSize: '11px' }}
                   />
                   <ReferenceLine 
                     y={drillDown.isMonthView ? metas.metaMensal : visualizationMode === 'quarterly' ? metas.metaMensal * 3 : metas.metaDiaria} 
@@ -263,17 +267,17 @@ export function ComercialChartsExtended() {
                     strokeWidth={2}
                   />
                   <Bar 
-                    dataKey="valor" 
-                    fill="#3b82f6"
+                    dataKey="faturado" 
+                    stackId="a"
+                    fill="hsl(var(--primary))"
+                    radius={[0, 0, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="pedido" 
+                    stackId="a"
+                    fill="hsl(142 76% 36%)"
                     radius={[2, 2, 0, 0]}
-                  >
-                    {faturamentoTemporalData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.atingiuMeta ? '#10b981' : '#3b82f6'} 
-                      />
-                    ))}
-                  </Bar>
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

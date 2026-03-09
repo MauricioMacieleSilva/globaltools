@@ -255,6 +255,18 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                     {lead.empresa || lead.cliente_nome}
                   </span>
                   {getSourceBadge(lead.fonte_dados)}
+                  {lead.source_url && (
+                    <a
+                      href={lead.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-2.5 w-2.5" />
+                      Ver fonte
+                    </a>
+                  )}
                 </div>
 
                 {lead.contact_name && (

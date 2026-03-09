@@ -479,7 +479,7 @@ export function EstoqueItemDialog({
                 <Label htmlFor="tipo_perfil">Tipo de Perfil *</Label>
                 <Select
                   value={form.tipo_perfil}
-                  onValueChange={(value) => { setForm({ ...form, tipo_perfil: value, aba1: '', aba2: '', base: '', enrij1: '', enrij2: '' }); setAba2ManualEdit(false); setEnrij2ManualEdit(false); }}
+                  onValueChange={(value) => { setForm({ ...form, tipo_perfil: value, aba1: '', aba2: '', base: '', enrij1: '', enrij2: '', enrij3: '', enrij4: '' }); setAba2ManualEdit(false); setEnrij2ManualEdit(false); setEnrij4ManualEdit(false); }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />

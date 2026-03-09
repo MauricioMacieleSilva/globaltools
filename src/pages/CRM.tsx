@@ -73,10 +73,6 @@ export default function CRM() {
   const [pendingLostLead, setPendingLostLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('all');
-  const [todayContacts, setTodayContacts] = useState(0);
-  const [todayVisits, setTodayVisits] = useState(0);
-  const [dailyGoal, setDailyGoal] = useState(0);
-  const [dailyVisitsGoal, setDailyVisitsGoal] = useState(0);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
   // Visit schedule dialog

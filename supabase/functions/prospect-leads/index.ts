@@ -353,10 +353,11 @@ serve(async (req) => {
       ]).filter(Boolean)
     );
 
-    // Also check existing staging results to avoid re-creating
+    // Only consider APPROVED staging results as duplicates — pending/discarded leads can reappear
     const { data: existingStaging } = await supabaseAdmin
       .from("lead_prospecting_results")
-      .select("cliente_nome, empresa, cliente_cnpj");
+      .select("cliente_nome, empresa, cliente_cnpj")
+      .eq("status", "approved");
 
     for (const s of existingStaging ?? []) {
       if (s.cliente_nome) existingNames.add(s.cliente_nome.toLowerCase().trim());

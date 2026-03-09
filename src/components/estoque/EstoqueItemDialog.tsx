@@ -801,7 +801,7 @@ export function EstoqueItemDialog({
           )}
 
           {/* Campos de dimensão para outras categorias (não perfis e não tubos) */}
-          {showDimensionFields && !showProfileFields && !showTubeFields && (
+          {showDimensionFields && !showProfileFields && !showTubeFields && !showTelhaFields && (
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="espessura">Espessura (mm)</Label>

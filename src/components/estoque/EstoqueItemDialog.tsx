@@ -109,7 +109,7 @@ const PERFIL_FIELDS_CONFIG: Record<string, {
   'U_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
   'Z_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
   'CARTOLA_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, enrij3: true, enrij4: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2', enrij3Label: 'Enrij. 3', enrij4Label: 'Enrij. 4' },
-  'CARTOLA_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
+  'CARTOLA_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, enrij3: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2', enrij3Label: 'Enrij. 3' },
 };
 
 export function EstoqueItemDialog({

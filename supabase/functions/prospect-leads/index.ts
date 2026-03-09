@@ -221,9 +221,13 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let bodyConfigId: string | null = null;
+    let enabledSources: string[] = ['google', 'pncp'];
     try {
       const body = await req.json();
       bodyConfigId = body?.config_id ?? null;
+      if (Array.isArray(body?.sources) && body.sources.length > 0) {
+        enabledSources = body.sources;
+      }
     } catch { /* no body */ }
 
     // Load config

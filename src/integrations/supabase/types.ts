@@ -701,6 +701,33 @@ export type Database = {
           },
         ]
       }
+      estoque_report_schedule: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          send_day: string
+          send_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          send_day?: string
+          send_time?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          send_day?: string
+          send_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       excluded_orders: {
         Row: {
           created_at: string

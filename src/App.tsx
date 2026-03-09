@@ -70,8 +70,7 @@ function AppContent() {
         return 'Produção';
       case '/fretes':
         return 'Controle de Fretes';
-      case '/admin/conhecimento':
-        return 'Gestão de Conhecimento';
+      case '/admin/usuarios':
       case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
       default:

@@ -237,7 +237,7 @@ REGRAS:
   const userPrompt = `Extraia até ${maxLeads} leads reais dos dados abaixo.
 Ramos: ${ramos} | Estados: ${estados}
 
-IMPORTANTE: O campo "fonte_dados" de cada lead DEVE corresponder à tag [GOOGLE] ou [PNCP - LICITAÇÃO] do bloco de onde a informação foi extraída. NÃO atribua "Google" a leads extraídos de blocos [PNCP].
+IMPORTANTE: O campo "fonte_dados" de cada lead DEVE corresponder à tag [GOOGLE], [PNCP - LICITAÇÃO] ou [OBRASGOV - OBRA PÚBLICA] do bloco de onde a informação foi extraída.
 
 DADOS:
 ${searchResults}

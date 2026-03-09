@@ -201,7 +201,6 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         cliente_email: form.cliente_email || null,
         contact_email: form.cliente_email || null,
         source: form.source || null,
-        origem: form.source || null,
         status: form.status,
         produto_interesse: selectedProducts.length > 0 ? selectedProducts.join(', ') : null,
         notes: form.notes || null,

@@ -293,7 +293,10 @@ export const UserManagement: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="lead-config" className="mt-4">
-            <LeadQualificationConfig />
+            <div className="space-y-6">
+              <LeadQualificationConfig />
+              <LeadOrigemRamoConfig />
+            </div>
           </TabsContent>
         </Tabs>
 

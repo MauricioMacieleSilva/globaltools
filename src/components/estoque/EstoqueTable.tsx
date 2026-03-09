@@ -50,7 +50,7 @@ const getTipoPerfilLabel = (value: string | null) => {
 };
 
 // Categorias que usam preço por espessura
-const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK'];
+const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK', 'BOBINAS'];
 
 export function EstoqueTable({
   titulo,

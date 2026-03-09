@@ -352,9 +352,9 @@ export default function CRM() {
   }));
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-3 overflow-hidden">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+        <div className="flex items-center justify-between gap-2 pb-3 shrink-0">
           <TabsList data-tour="crm-tabs" className="h-8">
             <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
               <LayoutGrid className="h-3.5 w-3.5" /> Kanban
@@ -390,7 +390,7 @@ export default function CRM() {
           </div>
         </div>
 
-        <TabsContent value="kanban" className="mt-3 flex-1 overflow-hidden" data-tour="crm-kanban">
+        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden" data-tour="crm-kanban">
           <KanbanBoard
             leads={filteredLeads}
             stages={CRM_STAGES}

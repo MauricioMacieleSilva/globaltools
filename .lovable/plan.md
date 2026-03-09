@@ -1,108 +1,104 @@
 
+## Prospecção Automática de Leads via IA
 
-# Plano: Nova Pagina CRM Unificada
+### O que é e como funciona
 
-## Visao Geral
+A ideia é criar um sistema de **prospecção automática diária** onde a IA busca na internet empresas que podem se tornar clientes, com base em critérios que você configura (ramo de atuação, região, tipo de produto de aço, etc.), e cria os leads automaticamente no CRM.
 
-Unificar as paginas Pre-Vendas (`/pre-vendas`) e Pipeline de Vendas (`/pipeline`) em uma unica pagina CRM (`/crm`) com interface Kanban e funil simplificado.
+### Tecnologia utilizada
 
-## Etapas do Funil
+O projeto já tem integração com **Perplexity** disponível como conector — é uma IA de busca em tempo real que encontra empresas e informações públicas na internet. Usaremos:
 
-As 5 etapas solicitadas mapeadas ao banco de dados:
+- **Perplexity API** → busca inteligente na internet por empresas potenciais
+- **Lovable AI** (já incluso) → estrutura e valida os dados encontrados em formato de lead
+- **Backend function** (agendada) → roda diariamente de forma automática
+- **pg_cron** → dispara a função todos os dias no horário configurado
+- **Nova aba no CRM** → interface para configurar critérios e ver histórico das prospecções
+
+---
+
+### Arquitetura
 
 ```text
-Lead → Contato Feito → Visita/Reuniao → Proposta → Pedido
-         (+ coluna "Perdidos" separada)
+[pg_cron - diário]
+       ↓
+[Edge Function: prospect-leads]
+       ↓
+[Perplexity API - busca por empresas]
+       ↓
+[Lovable AI - estrutura em JSON de leads]
+       ↓
+[Deduplica por CNPJ/nome na tabela leads]
+       ↓
+[Cria leads novos na tabela leads com status='lead']
+       ↓
+[Salva log em lead_prospecting_logs]
 ```
 
-Sera necessario alterar o enum `lead_status` no banco para refletir as novas etapas: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`, `perdido`.
+---
 
-## Estrutura da Pagina
+### O que será criado
+
+**1. Tabela `lead_prospecting_configs`**
+Armazena as configurações de busca:
+- ramos de atuação alvo (ex: "construção civil", "indústria metal-mecânica")
+- estados/cidades alvo
+- produtos de aço de interesse
+- horário de execução diária
+- ativo/inativo
+
+**2. Tabela `lead_prospecting_logs`**
+Histórico de cada execução:
+- data/hora
+- quantos leads encontrados
+- quantos foram criados (novos)
+- quantos foram descartados (duplicados)
+- status (sucesso / erro)
+
+**3. Edge Function `prospect-leads`**
+- Recebe os critérios de busca
+- Monta queries para o Perplexity (ex: _"empresas de construção civil em São Paulo SP que compram aço"_)
+- Estrutura os resultados com Lovable AI em JSON padronizado
+- Deduplica contra leads já existentes (por nome/empresa)
+- Insere novos leads com `status = 'lead'` e `origem = 'prospeccao_automatica'`
+
+**4. Cron job diário**
+- Executa toda manhã (horário configurável)
+- Usa `pg_net` para chamar a edge function
+
+**5. Nova aba "Prospecção" no CRM**
+- Configurar critérios de busca (ramos, regiões, produtos)
+- Botão "Executar agora" para testar manualmente
+- Histórico de execuções com resultados
+- Toggle ativar/desativar prospecção automática
+
+---
+
+### Fluxo na tela
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│ KPIs: Contatos Hoje (X/meta) │ Funil │ Perdidos     │
-├─────────────────────────────────────────────────────┤
-│  Kanban Board (drag & drop entre colunas)           │
-│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───┐ │
-│  │Lead  │ │Contato   │ │Visita/ │ │Proposta│ │Ped│ │
-│  │      │ │Feito     │ │Reuniao │ │        │ │ido│ │
-│  │card  │ │card      │ │card    │ │card    │ │   │ │
-│  │card  │ │          │ │        │ │        │ │   │ │
-│  └──────┘ └──────────┘ └────────┘ └────────┘ └───┘ │
-└─────────────────────────────────────────────────────┘
+CRM → aba "Prospecção"
+  ├── Card de configuração (ramos, cidades, produtos alvo)
+  ├── Toggle "Prospecção automática ativa"
+  ├── Botão "Buscar agora" (execução manual p/ teste)
+  └── Tabela de histórico: data | leads encontrados | criados | status
 ```
 
-## Componentes Principais
+Os leads criados automaticamente chegam na aba **Kanban** com a tag `prospeccao_automatica` na origem, para o time saber que vieram da busca automática.
 
-1. **KPI Bar** (topo):
-   - Contatos diarios (atual/meta) com barra de progresso
-   - Mini funil visual com contagem por etapa
-   - Indicador de perdidos (quantidade + valor estimado)
+---
 
-2. **Kanban Board**:
-   - 5 colunas (Lead, Contato Feito, Visita/Reuniao, Proposta, Pedido)
-   - Cards compactos: nome cliente, valor, dias na etapa, proximo passo
-   - Drag & drop para mover entre etapas (atualiza status no banco)
-   - Ao mover para "Perdido", abre dialog pedindo motivo
+### Etapas de implementação
 
-3. **Card do Lead** (compacto):
-   - Nome do cliente, cidade/UF
-   - Valor estimado
-   - Dias na etapa atual
-   - Icone de WhatsApp para contato rapido
-   - Click abre drawer lateral com detalhes + historico + acoes
+1. Conectar o **Perplexity** como conector (o usuário precisará autorizar)
+2. Criar as tabelas `lead_prospecting_configs` e `lead_prospecting_logs` via migration
+3. Criar a edge function `prospect-leads`
+4. Configurar o cron job diário via `pg_cron`
+5. Criar o componente `ProspeccaoPanel.tsx` com configurações e histórico
+6. Adicionar nova aba "Prospecção" no CRM
 
-4. **Drawer Lateral** (ao clicar no card):
-   - Dados do lead completos
-   - Timeline de atividades
-   - Botoes de acao rapida: registrar contato, agendar visita, criar proposta
-   - Marcar como perdido (com motivo)
+---
 
-5. **Filtros** (acima do kanban):
-   - Busca por cliente
-   - Filtro por SDR/vendedor
-   - Periodo
+### Pré-requisito
 
-## Detalhes Tecnicos
-
-### Migracao de Banco
-- Adicionar novos valores ao enum `lead_status`: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`
-- Migrar dados existentes: `novo` → `lead`, `contatado`/`respondeu` → `contato_feito`, `qualificado`/`encaminhado` → `proposta`
-- O campo `pipeline_status` pode ser descontinuado — usar apenas `status`
-
-### Arquivos a Criar
-- `src/pages/CRM.tsx` — pagina principal
-- `src/components/crm/KanbanBoard.tsx` — board com colunas
-- `src/components/crm/KanbanCard.tsx` — card individual do lead
-- `src/components/crm/LeadDrawer.tsx` — drawer lateral com detalhes
-- `src/components/crm/CRMKPIs.tsx` — barra de KPIs
-- `src/components/crm/LostDealsDialog.tsx` — dialog/indicador de perdidos
-- `src/components/crm/QuickActionButtons.tsx` — acoes rapidas no drawer
-
-### Arquivos a Modificar
-- `src/App.tsx` — adicionar rota `/crm`, redirecionar `/pre-vendas` e `/pipeline` para `/crm`
-- `src/components/AppSidebar.tsx` — substituir 2 itens (Pre-Vendas + Pipeline) por 1 item "CRM"
-- `src/hooks/useUserPermissions.ts` — substituir `prevendas` + `pipeline` por `crm`
-- `src/context/PreVendasContext.tsx` — adaptar para novos status (ou criar novo CRMContext)
-
-### Drag & Drop
-- Usar a lib existente ou CSS nativo com `draggable` + `onDragOver`/`onDrop` para manter leve
-- Ao soltar em nova coluna, chamar `supabase.from('leads').update({ status: novoStatus })` 
-- Se soltar em "Perdido", abrir dialog de motivo antes de confirmar
-
-### Mobile
-- Kanban com scroll horizontal (snap) nas colunas
-- Cards empilhados verticalmente dentro de cada coluna
-- Drawer vira sheet de baixo (vaul)
-
-### Meta Diaria de Contatos
-- Reutilizar `admin_goals.daily_contacts_goal` ja existente
-- Contar atividades do tipo `contato_inicial` do dia atual
-- Exibir progresso visual no KPI bar
-
-### Controle de Perdidos
-- Card/badge no topo mostrando total de perdidos no periodo
-- Click abre lista filtrada dos leads perdidos com motivo e data
-- Indicador percentual (perdidos / total do funil)
-
+Para a busca na internet funcionar, precisamos conectar o **Perplexity** ao projeto. Ao confirmar, já mostro o prompt de conexão.

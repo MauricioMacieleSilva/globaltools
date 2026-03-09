@@ -123,7 +123,12 @@ CRITÉRIOS:
 DADOS DE BUSCA:
 ${searchResults}
 
-Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.`;
+Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.
+IMPORTANTE: Para cada lead, identifique a fonte de dados original:
+- Resultados marcados [GOOGLE] → fonte_dados: "Google"  
+- Resultados marcados [PNCP - LICITAÇÃO] → fonte_dados: "PNCP"
+Preencha o máximo de campos possível: telefone, email, CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
+No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte, potencial de compra, etc.`;
 
   try {
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -6,6 +6,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 import { OrderDetailDialog } from './OrderDetailDialog';
 
+/** Converte texto para Title Case, independente do formato original */
+function toTitleCase(str: string): string {
+  if (!str) return str;
+  return str
+    .toLowerCase()
+    .replace(/(^|\s|\/|-)\S/g, (match) => match.toUpperCase());
+}
+
 interface KanbanCardProps {
   lead: CRMLead;
   onDragStart: (e: React.DragEvent, leadId: string) => void;

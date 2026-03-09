@@ -73,9 +73,9 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col h-full gap-3">
       <div
-        className={`flex gap-3 overflow-x-auto pb-4 ${isMobile ? 'snap-x snap-mandatory' : ''}`}
+        className={`flex gap-3 overflow-x-auto flex-1 min-h-0 ${isMobile ? 'snap-x snap-mandatory' : ''}`}
         style={{ scrollbarWidth: 'thin' }}
       >
         {stages.map(stage => {
@@ -85,7 +85,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
           return (
             <div
               key={stage.key}
-              className={`min-w-[240px] sm:min-w-[260px] flex-1 flex flex-col rounded-xl transition-all ${isMobile ? 'snap-center' : ''}`}
+              className={`min-w-[240px] sm:min-w-[260px] flex-1 flex flex-col rounded-xl transition-all min-h-0 ${isMobile ? 'snap-center' : ''}`}
               style={{
                 backgroundColor: isOver ? `${stage.color}15` : 'hsl(var(--card))',
                 border: isOver ? `2px dashed ${stage.color}` : '1px solid hsl(var(--border))',
@@ -95,7 +95,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
               onDrop={(e) => handleDrop(e, stage.key)}
             >
               {/* Column Header */}
-              <div className="p-3 flex items-center justify-between border-b" style={{ borderColor: 'hsl(var(--border))' }}>
+              <div className="p-3 flex items-center justify-between border-b shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
                   <span className="text-sm font-semibold text-foreground">{stage.label}</span>
@@ -104,7 +104,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
               </div>
 
               {/* Cards */}
-              <div className="p-2 space-y-2 flex-1 min-h-[200px] max-h-[calc(100vh-380px)] overflow-y-auto">
+              <div className="p-2 space-y-2 flex-1 min-h-0 overflow-y-auto">
                 {stageLeads.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-8">Nenhum lead</p>
                 ) : (

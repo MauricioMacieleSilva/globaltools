@@ -316,9 +316,29 @@ export default function CRM() {
 
   const filteredLeads = leads.filter(l => {
     if (l.status === 'perdido') return false;
-    const name = (l.client_name || l.cliente_nome || '').toLowerCase();
-    if (searchQuery && !name.includes(searchQuery.toLowerCase())) return false;
     if (vendorFilter !== 'all' && l.vendedor_id !== vendorFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const fields = [
+        l.client_name,
+        l.cliente_nome,
+        l.contact_name,
+        l.empresa,
+        l.cliente_cnpj,
+        l.budget_number,
+        l.numero_lead,
+        l.ramo_atuacao,
+        l.produto_interesse,
+        l.cidade,
+        l.estado,
+        l.contact_phone,
+        l.cliente_telefone,
+        l.contact_email,
+        l.cliente_email,
+      ];
+      const matches = fields.some(f => f && f.toLowerCase().includes(q));
+      if (!matches) return false;
+    }
     return true;
   });
 
@@ -332,9 +352,9 @@ export default function CRM() {
   }));
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+        <div className="flex items-center justify-between gap-2 pb-3 shrink-0">
           <TabsList data-tour="crm-tabs" className="h-8">
             <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
               <LayoutGrid className="h-3.5 w-3.5" /> Kanban
@@ -370,7 +390,7 @@ export default function CRM() {
           </div>
         </div>
 
-        <TabsContent value="kanban" className="mt-3" data-tour="crm-kanban">
+        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden" data-tour="crm-kanban">
           <KanbanBoard
             leads={filteredLeads}
             stages={CRM_STAGES}

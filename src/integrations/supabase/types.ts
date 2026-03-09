@@ -1390,6 +1390,90 @@ export type Database = {
           },
         ]
       }
+      lead_prospecting_results: {
+        Row: {
+          cidade: string | null
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          contact_name: string | null
+          created_at: string
+          empresa: string | null
+          estado: string | null
+          fonte_dados: string | null
+          id: string
+          log_id: string | null
+          notes: string | null
+          produto_interesse: string | null
+          ramo_atuacao: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          status: string
+          valor_estimado: number | null
+        }
+        Insert: {
+          cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          contact_name?: string | null
+          created_at?: string
+          empresa?: string | null
+          estado?: string | null
+          fonte_dados?: string | null
+          id?: string
+          log_id?: string | null
+          notes?: string | null
+          produto_interesse?: string | null
+          ramo_atuacao?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          status?: string
+          valor_estimado?: number | null
+        }
+        Update: {
+          cidade?: string | null
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          contact_name?: string | null
+          created_at?: string
+          empresa?: string | null
+          estado?: string | null
+          fonte_dados?: string | null
+          id?: string
+          log_id?: string | null
+          notes?: string | null
+          produto_interesse?: string | null
+          ramo_atuacao?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          status?: string
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_prospecting_results_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "lead_prospecting_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_prospecting_results_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_qualification_config: {
         Row: {
           ativo: boolean

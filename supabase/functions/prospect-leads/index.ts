@@ -510,7 +510,7 @@ serve(async (req) => {
         const tipo = item.tipos?.[0]?.descricao || '';
         const subTipo = item.subTipos?.[0]?.descricao || '';
         const idUnico = item.idUnico || '';
-        const portalLink = `https://obrasgov.gestao.gov.br/obrasgov/painel/projeto-investimento/${encodeURIComponent(idUnico)}`;
+        const portalLink = `https://obrasgov.sistema.gov.br/obrasgov/painel/projeto-investimento/${encodeURIComponent(idUnico)}`;
 
         const text = [
           executorNome && `Empresa/Executor: ${executorNome}`,

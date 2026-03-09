@@ -21,87 +21,100 @@ export function ComercialChartsExtended() {
     const dadosFaturados = filteredData.filter(
       item => item.situacao === 'Emitida' && item.faturamento_tipo === 1
     );
+    const dadosPedidos = filteredData.filter(
+      item => item.situacao === 'Pedido' && item.faturamento_tipo === 1
+    );
 
-    if (visualizationMode === 'quarterly') {
-      // Quarterly view
-      const quarterData = dadosFaturados.reduce((acc, item) => {
-        const date = parseISO(item.data_emissao);
-        if (!isValid(date)) return acc;
-        
-        const quarter = Math.floor(getMonth(date) / 3) + 1;
-        const year = getYear(date);
-        const key = `Q${quarter}/${year}`;
-        
+    const aggregateByKey = (data: typeof filteredData, keyFn: (item: typeof filteredData[0]) => string | null) => {
+      return data.reduce((acc, item) => {
+        const key = keyFn(item);
+        if (!key) return acc;
         acc[key] = (acc[key] || 0) + item.valor;
         return acc;
       }, {} as Record<string, number>);
+    };
 
-      return Object.entries(quarterData)
-        .map(([periodo, valor]) => ({
+    if (visualizationMode === 'quarterly') {
+      const fatData = aggregateByKey(dadosFaturados, item => {
+        const date = parseISO(item.data_emissao);
+        if (!isValid(date)) return null;
+        return `Q${Math.floor(getMonth(date) / 3) + 1}/${getYear(date)}`;
+      });
+      const pedData = aggregateByKey(dadosPedidos, item => {
+        const date = parseISO(item.data_inicio);
+        if (!isValid(date)) return null;
+        return `Q${Math.floor(getMonth(date) / 3) + 1}/${getYear(date)}`;
+      });
+
+      const allKeys = new Set([...Object.keys(fatData), ...Object.keys(pedData)]);
+      return Array.from(allKeys)
+        .map(periodo => ({
           periodo,
-          valor,
-          meta: metas.metaMensal * 3, // Meta trimestral = 3x meta mensal
-          atingiuMeta: valor >= (metas.metaMensal * 3)
+          faturado: fatData[periodo] || 0,
+          pedido: pedData[periodo] || 0,
+          meta: metas.metaMensal * 3,
         }))
         .sort((a, b) => a.periodo.localeCompare(b.periodo));
     }
 
     if (drillDown.isMonthView) {
-      // Monthly view
-      const monthlyData = dadosFaturados.reduce((acc, item) => {
+      const fatData = aggregateByKey(dadosFaturados, item => {
         const date = parseISO(item.data_emissao);
-        if (!isValid(date)) return acc;
-        
-        const monthKey = format(date, 'yyyy-MM');
-        acc[monthKey] = (acc[monthKey] || 0) + item.valor;
-        return acc;
-      }, {} as Record<string, number>);
+        return isValid(date) ? format(date, 'yyyy-MM') : null;
+      });
+      const pedData = aggregateByKey(dadosPedidos, item => {
+        const date = parseISO(item.data_inicio);
+        return isValid(date) ? format(date, 'yyyy-MM') : null;
+      });
 
-      return Object.entries(monthlyData)
-        .map(([mes, valor]) => ({
+      const allKeys = new Set([...Object.keys(fatData), ...Object.keys(pedData)]);
+      return Array.from(allKeys)
+        .map(mes => ({
           periodo: format(parseISO(mes + '-01'), 'MMM/yy', { locale: ptBR }),
-          valor,
+          faturado: fatData[mes] || 0,
+          pedido: pedData[mes] || 0,
           meta: metas.metaMensal,
-          atingiuMeta: valor >= metas.metaMensal
         }))
         .sort((a, b) => a.periodo.localeCompare(b.periodo));
     } else {
-      // Daily view
       const year = parseInt(drillDown.selectedYear || '2024');
       const month = parseInt(drillDown.selectedMonth || '01') - 1;
       const startDate = startOfMonth(new Date(year, month));
       const endDate = endOfMonth(new Date(year, month));
       const daysInMonth = eachDayOfInterval({ start: startDate, end: endDate });
 
-      const dailyData = dadosFaturados.reduce((acc, item) => {
+      const dailyFat = aggregateByKey(dadosFaturados, item => {
         const date = parseISO(item.data_emissao);
-        if (!isValid(date)) return acc;
-        
-        const dayKey = format(date, 'yyyy-MM-dd');
-        acc[dayKey] = (acc[dayKey] || 0) + item.valor;
-        return acc;
-      }, {} as Record<string, number>);
+        return isValid(date) ? format(date, 'yyyy-MM-dd') : null;
+      });
+      const dailyPed = aggregateByKey(dadosPedidos, item => {
+        const date = parseISO(item.data_inicio);
+        return isValid(date) ? format(date, 'yyyy-MM-dd') : null;
+      });
 
-      let accumulated = 0;
+      let accFat = 0;
+      let accPed = 0;
       return daysInMonth.map(day => {
         const dayKey = format(day, 'yyyy-MM-dd');
-        const dayValue = dailyData[dayKey] || 0;
+        const fatValue = dailyFat[dayKey] || 0;
+        const pedValue = dailyPed[dayKey] || 0;
         
         if (visualizationMode === 'accumulated') {
-          accumulated += dayValue;
+          accFat += fatValue;
+          accPed += pedValue;
           return {
             periodo: format(day, 'dd', { locale: ptBR }),
-            valor: accumulated,
-            meta: metas.metaDiaria * parseInt(format(day, 'dd')), // Meta acumulada
-            atingiuMeta: accumulated >= (metas.metaDiaria * parseInt(format(day, 'dd')))
+            faturado: accFat,
+            pedido: accPed,
+            meta: metas.metaDiaria * parseInt(format(day, 'dd')),
           };
         }
         
         return {
           periodo: format(day, 'dd', { locale: ptBR }),
-          valor: dayValue,
+          faturado: fatValue,
+          pedido: pedValue,
           meta: metas.metaDiaria,
-          atingiuMeta: dayValue >= metas.metaDiaria
         };
       });
     }

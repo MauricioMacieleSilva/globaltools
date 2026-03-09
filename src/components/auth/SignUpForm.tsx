@@ -124,8 +124,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onBackToLogin }) => {
               />
             </div>
             {email && !isGlobalAcoEmail(email) && (
-              <p className="text-xs text-amber-600">
-                ⚠️ Email externo - será necessária aprovação do administrador
+              <p className="text-xs text-destructive font-medium">
+                🔒 Emails externos precisam de convite do administrador para se cadastrar.
               </p>
             )}
           </div>

@@ -376,12 +376,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true)
 
-      // Verificar se é email corporativo ou se foi convidado
       const isCorpEmail = isGlobalAcoEmail(email)
       
       if (!isCorpEmail) {
-        // For now, allow external signups - invitation check can be added later
-        console.log('External email signup:', email)
+        // Verificar se existe convite válido para este email
+        const { data: invitation, error: invError } = await supabase
+          .from('user_invitations')
+          .select('id, expires_at, used_at')
+          .eq('email', email.toLowerCase())
+          .is('used_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (invError || !invitation) {
+          return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuários convidados pelo administrador podem se cadastrar.' }
+        }
+
+        // Verificar se o convite não expirou
+        if (new Date(invitation.expires_at) < new Date()) {
+          return { error: 'Seu convite expirou. Solicite um novo convite ao administrador.' }
+        }
       }
 
       const { error } = await supabase.auth.signUp({
@@ -397,6 +412,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         return { error: error.message }
+      }
+
+      // Marcar convite como usado (se externo)
+      if (!isCorpEmail) {
+        await supabase
+          .from('user_invitations')
+          .update({ used_at: new Date().toISOString() })
+          .eq('email', email.toLowerCase())
+          .is('used_at', null)
       }
 
       return {}

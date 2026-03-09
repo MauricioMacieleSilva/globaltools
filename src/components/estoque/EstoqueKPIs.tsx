@@ -16,7 +16,7 @@ interface EstoqueKPIsProps {
   precosCategoriaMap: Record<string, number>;
 }
 
-export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {
+export function EstoqueKPIs({ items, precosEspessuraMap, precosCategoriaMap }: EstoqueKPIsProps) {
   // Função para encontrar o preço mais próximo por espessura
   const getPrecoByEspessura = (espessura: number | null): number => {
     if (!espessura || Object.keys(precosEspessuraMap).length === 0) return 0;

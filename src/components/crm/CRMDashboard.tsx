@@ -625,8 +625,37 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
           </Card>
         </div>
 
-        {/* Row 4: Sectors + Loss Reasons */}
+        {/* Row 4: Source/Origin + Sectors */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          {/* Origem dos Leads */}
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Origem dos Leads
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
+              {sourceData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={sourceData} layout="vertical" barSize={14}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={110} />
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                    <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
+                      <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
+                      {sourceData.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs">Nenhum dado de origem</div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="pb-2 px-3 sm:px-6">
               <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
@@ -651,32 +680,33 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
               )}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="pb-2 px-3 sm:px-6">
-              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
-                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Motivos de Perda
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
-              {lossReasonsData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={lossReasonsData} layout="vertical" barSize={14}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} className="fill-muted-foreground" width={100} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]}>
-                      <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-xs">Nenhum motivo no período</div>
-              )}
-            </CardContent>
-          </Card>
         </div>
+
+        {/* Row 5: Loss Reasons */}
+        <Card>
+          <CardHeader className="pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Motivos de Perda
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
+            {lossReasonsData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={lossReasonsData} layout="vertical" barSize={14}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} className="fill-muted-foreground" width={100} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  <Bar dataKey="value" name="Perdas" fill="hsl(340, 75%, 55%)" radius={[0, 4, 4, 0]}>
+                    <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-xs">Nenhum motivo no período</div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Row 5: Locations (if vendor contacts shown above) */}
         {vendorFilter === 'all' && vendorContactsData.length > 0 && locationData.length > 0 && (

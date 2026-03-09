@@ -442,7 +442,7 @@ serve(async (req) => {
         const text = [
           r.title && `Título: ${r.title}`,
           r.description && `Descrição: ${r.description}`,
-          r.url && `URL: ${r.url}`,
+          r.url && `URL_FONTE: ${r.url}`,
           r.markdown && `Conteúdo: ${r.markdown.slice(0, 1500)}`,
         ].filter(Boolean).join("\n");
         if (text) allSearchResults.push(`${tag}\n${text}`);

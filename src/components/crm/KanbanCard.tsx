@@ -99,7 +99,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         {lead.ramo_atuacao && (
           <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
             <Briefcase className="h-3 w-3 shrink-0" />
-            {lead.ramo_atuacao}
+            {toTitleCase(lead.ramo_atuacao)}
           </p>
         )}
 

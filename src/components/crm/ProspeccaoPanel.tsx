@@ -42,6 +42,11 @@ interface ProspectingLog {
   error_message: string | null;
 }
 
+interface BusinessSector {
+  id: string;
+  name: string;
+}
+
 export function ProspeccaoPanel() {
   const [config, setConfig] = useState<ProspectingConfig | null>(null);
   const [logs, setLogs] = useState<ProspectingLog[]>([]);
@@ -49,22 +54,28 @@ export function ProspeccaoPanel() {
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
 
-  const [ramosInput, setRamosInput] = useState('');
+  const [selectedRamos, setSelectedRamos] = useState<string[]>([]);
   const [selectedUF, setSelectedUF] = useState('RS');
   const [selectedCidades, setSelectedCidades] = useState<string[]>([]);
   const [maxLeads, setMaxLeads] = useState('10');
   const [scheduleTime, setScheduleTime] = useState('08:00');
   const [isActive, setIsActive] = useState(false);
 
+  const [businessSectors, setBusinessSectors] = useState<BusinessSector[]>([]);
   const [estados, setEstados] = useState<Array<{ uf: string; nome: string }>>([]);
   const [cidades, setCidades] = useState<string[]>([]);
   const [loadingCidades, setLoadingCidades] = useState(false);
   const [cidadePopoverOpen, setCidadePopoverOpen] = useState(false);
   const [cidadeSearch, setCidadeSearch] = useState('');
+  const [ramoPopoverOpen, setRamoPopoverOpen] = useState(false);
+  const [ramoSearch, setRamoSearch] = useState('');
 
-  // Load estados on mount
+  // Load estados and business sectors on mount
   useEffect(() => {
     locationsService.getEstados().then(data => setEstados(data));
+    (supabase as any).from('crm_business_sectors').select('id, name').eq('is_active', true).order('name').then(({ data }: any) => {
+      setBusinessSectors(data || []);
+    });
   }, []);
 
   // Load cidades when UF changes
@@ -94,7 +105,7 @@ export function ProspeccaoPanel() {
       if (configs && configs.length > 0) {
         const cfg = configs[0] as ProspectingConfig;
         setConfig(cfg);
-        setRamosInput(cfg.ramos_atuacao?.join(', ') || '');
+        setSelectedRamos(cfg.ramos_atuacao || []);
         setSelectedUF(cfg.estados?.[0] || 'RS');
         setSelectedCidades(cfg.cidades || []);
         setMaxLeads(String(cfg.max_leads_per_run || 10));
@@ -112,12 +123,9 @@ export function ProspeccaoPanel() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const parseArray = (input: string): string[] =>
-    input.split(',').map(s => s.trim()).filter(Boolean);
-
   const buildPayload = () => ({
     is_active: isActive,
-    ramos_atuacao: parseArray(ramosInput),
+    ramos_atuacao: selectedRamos,
     estados: [selectedUF],
     cidades: selectedCidades,
     produtos_interesse: [] as string[],
@@ -290,15 +298,73 @@ export function ProspeccaoPanel() {
             <CardTitle className="text-sm font-medium">Critérios de Busca</CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3">
+            {/* Ramos de Atuação */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">Ramos de Atuação</Label>
-              <Input
-                placeholder="construção civil, metalúrgica, estruturas metálicas"
-                value={ramosInput}
-                onChange={e => setRamosInput(e.target.value)}
-                className="h-8 text-xs"
-              />
-              <p className="text-[10px] text-muted-foreground">Separe múltiplos valores por vírgula</p>
+              <Popover open={ramoPopoverOpen} onOpenChange={setRamoPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between h-8 text-xs font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedRamos.length > 0
+                        ? `${selectedRamos.length} ramo${selectedRamos.length > 1 ? 's' : ''} selecionado${selectedRamos.length > 1 ? 's' : ''}`
+                        : 'Selecionar ramos de atuação...'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Buscar ramo..."
+                      value={ramoSearch}
+                      onValueChange={setRamoSearch}
+                      className="text-xs"
+                    />
+                    <CommandList>
+                      <CommandEmpty className="text-xs py-3 text-center">Nenhum ramo encontrado</CommandEmpty>
+                      <CommandGroup>
+                        {businessSectors
+                          .filter(s => !ramoSearch || s.name.toLowerCase().includes(ramoSearch.toLowerCase()))
+                          .map(sector => (
+                            <CommandItem
+                              key={sector.id}
+                              value={sector.name}
+                              className="text-xs"
+                              onSelect={() => {
+                                setSelectedRamos(prev =>
+                                  prev.includes(sector.name)
+                                    ? prev.filter(r => r !== sector.name)
+                                    : [...prev, sector.name]
+                                );
+                              }}
+                            >
+                              <div className={`mr-2 h-3 w-3 rounded-sm border flex items-center justify-center ${selectedRamos.includes(sector.name) ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30'}`}>
+                                {selectedRamos.includes(sector.name) && <CheckCircle2 className="h-2.5 w-2.5" />}
+                              </div>
+                              {sector.name}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedRamos.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {selectedRamos.map(ramo => (
+                    <Badge key={ramo} variant="secondary" className="text-[10px] h-5 gap-0.5 px-1.5">
+                      {ramo}
+                      <button onClick={() => setSelectedRamos(prev => prev.filter(r => r !== ramo))}>
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Estado (UF) */}

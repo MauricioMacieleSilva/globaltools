@@ -610,6 +610,15 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Order detail popup */}
+      {lead?.budget_number && (
+        <OrderDetailDialog
+          open={orderDialogOpen}
+          onClose={() => setOrderDialogOpen(false)}
+          budgetNumber={lead.budget_number}
+        />
+      )}
     </>
   );
 }

@@ -123,7 +123,12 @@ CRITÉRIOS:
 DADOS DE BUSCA:
 ${searchResults}
 
-Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.`;
+Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.
+IMPORTANTE: Para cada lead, identifique a fonte de dados original:
+- Resultados marcados [GOOGLE] → fonte_dados: "Google"  
+- Resultados marcados [PNCP - LICITAÇÃO] → fonte_dados: "PNCP"
+Preencha o máximo de campos possível: telefone, email, CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
+No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte, potencial de compra, etc.`;
 
   try {
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -162,9 +167,13 @@ Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.`;
                         estado: { type: "string", description: "UF (ex: RS)" },
                         ramo_atuacao: { type: "string" },
                         produto_interesse: { type: "string" },
-                        notes: { type: "string", description: "Fonte e contexto do lead" },
+                        notes: { type: "string", description: "Observações detalhadas: contexto do lead, tipo de obra/projeto, potencial estimado, etc." },
+                        fonte_dados: { type: "string", enum: ["Google", "PNCP", "BrasilAPI"], description: "Fonte de dados de onde o lead foi encontrado. Use 'Google' para resultados marcados [GOOGLE], 'PNCP' para [PNCP - LICITAÇÃO]" },
+                        valor_estimado: { type: "number", description: "Valor estimado do potencial de compra em reais, se disponível nos dados" },
+                        cliente_telefone: { type: "string", description: "Telefone principal da empresa se disponível" },
+                        cliente_email: { type: "string", description: "Email principal da empresa se disponível" },
                       },
-                      required: ["cliente_nome"],
+                      required: ["cliente_nome", "fonte_dados"],
                       additionalProperties: false,
                     },
                   },
@@ -402,20 +411,26 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         continue;
       }
 
-      // Note: 'observacoes' is generated from 'notes', and 'origem' is generated from 'source'
+      // Build source string with specific API name
+      const fonteLabel = lead.fonte_dados || "IA";
+      const sourceValue = `prospeccao_${fonteLabel.toLowerCase()}`;
+
       const { error: insertError } = await supabaseAdmin.from("leads").insert({
         cliente_nome: lead.cliente_nome,
         empresa: lead.empresa || null,
         cliente_cnpj: lead.cliente_cnpj || null,
         contact_name: lead.contact_name || null,
-        contact_phone: lead.contact_phone || null,
-        contact_email: lead.contact_email || null,
+        contact_phone: lead.contact_phone || lead.cliente_telefone || null,
+        contact_email: lead.contact_email || lead.cliente_email || null,
+        cliente_telefone: lead.cliente_telefone || lead.contact_phone || null,
+        cliente_email: lead.cliente_email || lead.contact_email || null,
         cidade: lead.cidade || null,
         estado: lead.estado || null,
         ramo_atuacao: lead.ramo_atuacao || null,
         produto_interesse: lead.produto_interesse || null,
+        valor_estimado: lead.valor_estimado || null,
         notes: lead.notes || null,
-        source: "prospeccao_automatica",
+        source: sourceValue,
         status: "lead",
       });
 

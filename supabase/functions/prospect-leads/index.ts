@@ -432,11 +432,16 @@ serve(async (req) => {
       ? estados.slice(0, 2).map((uf: string) => searchPNCP(ramos, uf, 10))
       : [];
 
+    const obrasgov Promises = enabledSources.includes('obrasgov')
+      ? estados.slice(0, 2).map((uf: string) => searchObrasGov(uf, 20))
+      : [];
+
     const googlePromises = googleQueries.map(q => searchGoogle(q, 5));
 
-    const [googleResults, pncpResults] = await Promise.all([
+    const [googleResults, pncpResults, obrasgovResults] = await Promise.all([
       Promise.all(googlePromises),
       Promise.all(pncpPromises),
+      Promise.all(obrasgov Promises),
     ]);
 
     // Process Google results

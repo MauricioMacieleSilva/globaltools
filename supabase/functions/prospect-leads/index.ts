@@ -464,6 +464,15 @@ serve(async (req) => {
         const numControle = item.numeroControlePNCP || "";
         const linkOrigem = item.linkSistemaOrigem || "";
 
+        // Build a PNCP portal link as fallback when linkSistemaOrigem is empty
+        const cnpjOrgao = item.orgaoEntidade?.cnpj?.replace(/\D/g, '') || '';
+        const anoCompra = item.anoCompra || '';
+        const seqCompra = item.sequencialCompra || '';
+        const pncpPortalLink = (cnpjOrgao && anoCompra && seqCompra)
+          ? `https://pncp.gov.br/app/editais/${cnpjOrgao}/${anoCompra}/${seqCompra}`
+          : `https://pncp.gov.br/app/editais?q=${encodeURIComponent(objeto.slice(0, 80))}`;
+        const finalLink = linkOrigem || pncpPortalLink;
+
         const text = [
           orgao && `Órgão/Empresa: ${orgao}`,
           objeto && `Objeto da Contratação: ${objeto}`,
@@ -473,7 +482,7 @@ serve(async (req) => {
           modalidade && `Modalidade: ${modalidade}`,
           valor && `Valor Estimado: R$ ${valor}`,
           numControle && `Nº Controle PNCP: ${numControle}`,
-          linkOrigem && `Link: ${linkOrigem}`,
+          `URL_FONTE: ${finalLink}`,
           item.informacaoComplementar && `Info Complementar: ${item.informacaoComplementar}`,
           item.justificativaPresencial && `Justificativa: ${item.justificativaPresencial}`,
         ].filter(Boolean).join("\n");

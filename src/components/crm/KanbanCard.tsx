@@ -92,7 +92,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
 
         {/* Contact name */}
         {(lead.empresa ? name : null) && (
-          <p className="text-xs text-muted-foreground truncate">{name}</p>
+          <p className="text-xs text-muted-foreground truncate">{toTitleCase(name || '')}</p>
         )}
 
         {/* Client info */}

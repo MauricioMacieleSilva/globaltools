@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CRMKPIs } from '@/components/crm/CRMKPIs';
+
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { CRMDashboard } from '@/components/crm/CRMDashboard';
 import { LeadDrawer } from '@/components/crm/LeadDrawer';
@@ -73,10 +73,6 @@ export default function CRM() {
   const [pendingLostLead, setPendingLostLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('all');
-  const [todayContacts, setTodayContacts] = useState(0);
-  const [todayVisits, setTodayVisits] = useState(0);
-  const [dailyGoal, setDailyGoal] = useState(0);
-  const [dailyVisitsGoal, setDailyVisitsGoal] = useState(0);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
   // Visit schedule dialog
@@ -107,39 +103,10 @@ export default function CRM() {
     }
   }, []);
 
-  const loadTodayStats = useCallback(async () => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { data } = await supabase
-        .from('lead_activities')
-        .select('id, activity_type')
-        .gte('created_at', today.toISOString());
-      if (data) {
-        setTodayContacts(data.filter(a => a.activity_type === 'contato_inicial').length);
-        setTodayVisits(data.filter(a => a.activity_type === 'visita').length);
-      }
-    } catch {}
-  }, []);
-
-  const loadGoals = useCallback(async () => {
-    try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const { data } = await supabase
-        .from('admin_goals')
-        .select('daily_contacts_goal, qualified_leads_goal')
-        .eq('month_year', currentMonth)
-        .maybeSingle();
-      if (data?.daily_contacts_goal) setDailyGoal(data.daily_contacts_goal);
-      if (data?.qualified_leads_goal) setDailyVisitsGoal(data.qualified_leads_goal);
-    } catch {}
-  }, []);
 
   useEffect(() => {
     loadLeads();
-    loadTodayStats();
-    loadGoals();
-  }, [loadLeads, loadTodayStats, loadGoals]);
+  }, [loadLeads]);
 
   const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
     const today = new Date();
@@ -217,7 +184,6 @@ export default function CRM() {
             user_id: user?.id || '',
           } as any);
         }
-        loadTodayStats();
       }
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
@@ -236,7 +202,6 @@ export default function CRM() {
         .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
         .eq('id', pendingVisitLead.id);
       setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
-      loadTodayStats();
     } catch {}
     setPendingVisitLead(null);
   };
@@ -270,7 +235,6 @@ export default function CRM() {
         } as any);
       }
 
-      loadTodayStats();
       loadLeads();
       toast.success('Status atualizado', { description: 'Lead movido para Contato Feito' });
     } catch {
@@ -380,19 +344,6 @@ export default function CRM() {
         </Button>
       </div>
 
-      <div data-tour="crm-kpis">
-      <CRMKPIs
-        todayContacts={todayContacts}
-        dailyGoal={dailyGoal}
-        todayVisits={todayVisits}
-        dailyVisitsGoal={dailyVisitsGoal}
-        funnelCounts={funnelCounts}
-        lostCount={lostLeads.length}
-        lostValue={lostValue}
-        totalLeads={filteredLeads.length}
-        onLostClick={() => setLostDialogOpen(true)}
-      />
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between gap-2">

@@ -7,9 +7,13 @@ import { formatCurrency } from '@/lib/utils-comercial';
 // Categorias que usam preço por espessura (baseado em perfil_precos)
 const CATEGORIAS_PRECO_ESPESSURA: CategoriaEstoque[] = ['PERFIS', 'TIRAS', 'CHAPAS', 'BLANK', 'BOBINAS'];
 
+// Categorias que usam preço da política comercial
+const CATEGORIAS_PRECO_POLITICA: CategoriaEstoque[] = ['ARAMES', 'TELHAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO'];
+
 interface EstoqueKPIsProps {
   items: EstoqueItem[];
-  precosEspessuraMap: Record<number, number>; // espessura -> preço por kg
+  precosEspessuraMap: Record<number, number>;
+  precosCategoriaMap: Record<string, number>;
 }
 
 export function EstoqueKPIs({ items, precosEspessuraMap }: EstoqueKPIsProps) {

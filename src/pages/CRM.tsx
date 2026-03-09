@@ -344,19 +344,6 @@ export default function CRM() {
         </Button>
       </div>
 
-      <div data-tour="crm-kpis">
-      <CRMKPIs
-        todayContacts={todayContacts}
-        dailyGoal={dailyGoal}
-        todayVisits={todayVisits}
-        dailyVisitsGoal={dailyVisitsGoal}
-        funnelCounts={funnelCounts}
-        lostCount={lostLeads.length}
-        lostValue={lostValue}
-        totalLeads={filteredLeads.length}
-        onLostClick={() => setLostDialogOpen(true)}
-      />
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between gap-2">

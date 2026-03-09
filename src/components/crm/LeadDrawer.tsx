@@ -364,6 +364,35 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               )}
             </div>
 
+            {/* Próxima Reunião */}
+            {nextVisit && (
+              <div className="flex items-center justify-between rounded-lg border p-3 bg-accent/30">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {new Date(nextVisit.date).toLocaleDateString('pt-BR')} às {new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {nextVisit.location && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {nextVisit.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 text-xs"
+                  onClick={cancelVisit}
+                >
+                  <CalendarX2 className="h-3.5 w-3.5" />
+                  Desmarcar
+                </Button>
+              </div>
+            )}
+
             {/* Contact Responsibility */}
             {(firstContact || lastContact) && (
               <div className="space-y-2 rounded-lg border p-3 bg-accent/30">

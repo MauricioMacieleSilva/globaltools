@@ -33,7 +33,7 @@ const CHART_COLORS = [
   'hsl(210, 40%, 60%)',
 ];
 
-export function CRMDashboard({ leads }: CRMDashboardProps) {
+export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);

@@ -201,6 +201,24 @@ export default function CRM() {
     return (data?.length || 0) > 0;
   };
 
+  /** Registra contato_inicial se nunca foi registrado para este lead */
+  const ensureContactRegistered = async (leadId: string, userId: string) => {
+    const { data } = await supabase
+      .from('lead_activities')
+      .select('id')
+      .eq('lead_id', leadId)
+      .eq('activity_type', 'contato_inicial')
+      .limit(1);
+    if (!data || data.length === 0) {
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado automaticamente via movimentação CRM',
+        user_id: userId,
+      } as any);
+    }
+  };
+
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return;

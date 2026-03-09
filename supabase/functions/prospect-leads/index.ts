@@ -411,20 +411,26 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         continue;
       }
 
-      // Note: 'observacoes' is generated from 'notes', and 'origem' is generated from 'source'
+      // Build source string with specific API name
+      const fonteLabel = lead.fonte_dados || "IA";
+      const sourceValue = `prospeccao_${fonteLabel.toLowerCase()}`;
+
       const { error: insertError } = await supabaseAdmin.from("leads").insert({
         cliente_nome: lead.cliente_nome,
         empresa: lead.empresa || null,
         cliente_cnpj: lead.cliente_cnpj || null,
         contact_name: lead.contact_name || null,
-        contact_phone: lead.contact_phone || null,
-        contact_email: lead.contact_email || null,
+        contact_phone: lead.contact_phone || lead.cliente_telefone || null,
+        contact_email: lead.contact_email || lead.cliente_email || null,
+        cliente_telefone: lead.cliente_telefone || lead.contact_phone || null,
+        cliente_email: lead.cliente_email || lead.contact_email || null,
         cidade: lead.cidade || null,
         estado: lead.estado || null,
         ramo_atuacao: lead.ramo_atuacao || null,
         produto_interesse: lead.produto_interesse || null,
+        valor_estimado: lead.valor_estimado || null,
         notes: lead.notes || null,
-        source: "prospeccao_automatica",
+        source: sourceValue,
         status: "lead",
       });
 

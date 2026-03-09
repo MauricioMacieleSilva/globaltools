@@ -384,6 +384,26 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               </>
             )}
 
+            {/* Observações / Notes */}
+            {(lead.notes || lead.source) && (
+              <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+                {lead.source && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-medium text-muted-foreground">Origem:</span>
+                    <Badge variant="outline" className="text-[10px]">
+                      {lead.source.replace('prospeccao_', 'Prospecção ').replace('google', 'Google').replace('pncp', 'PNCP').replace('brasilapi', 'BrasilAPI').replace('ia', 'IA')}
+                    </Badge>
+                  </div>
+                )}
+                {lead.notes && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
+                    <p className="text-xs text-foreground whitespace-pre-wrap">{lead.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Add Note */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Adicionar nota</p>

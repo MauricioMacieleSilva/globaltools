@@ -186,6 +186,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         regime_tributario: form.regime_tributario || null,
         estado: form.estado || null,
         cidade: form.cidade || null,
+        website: form.website.trim() || null,
         updated_at: new Date().toISOString(),
       }).eq('id', lead.id);
       if (error) throw error;

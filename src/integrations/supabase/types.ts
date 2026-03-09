@@ -1290,6 +1290,106 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_prospecting_configs: {
+        Row: {
+          cidades: string[]
+          created_at: string
+          created_by: string | null
+          estados: string[]
+          id: string
+          is_active: boolean
+          max_leads_per_run: number
+          produtos_interesse: string[]
+          ramos_atuacao: string[]
+          schedule_time: string
+          updated_at: string
+        }
+        Insert: {
+          cidades?: string[]
+          created_at?: string
+          created_by?: string | null
+          estados?: string[]
+          id?: string
+          is_active?: boolean
+          max_leads_per_run?: number
+          produtos_interesse?: string[]
+          ramos_atuacao?: string[]
+          schedule_time?: string
+          updated_at?: string
+        }
+        Update: {
+          cidades?: string[]
+          created_at?: string
+          created_by?: string | null
+          estados?: string[]
+          id?: string
+          is_active?: boolean
+          max_leads_per_run?: number
+          produtos_interesse?: string[]
+          ramos_atuacao?: string[]
+          schedule_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_prospecting_configs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_prospecting_logs: {
+        Row: {
+          config_id: string | null
+          error_message: string | null
+          execution_details: Json | null
+          finished_at: string | null
+          id: string
+          leads_criados: number
+          leads_duplicados: number
+          leads_encontrados: number
+          started_at: string
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          config_id?: string | null
+          error_message?: string | null
+          execution_details?: Json | null
+          finished_at?: string | null
+          id?: string
+          leads_criados?: number
+          leads_duplicados?: number
+          leads_encontrados?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string
+        }
+        Update: {
+          config_id?: string | null
+          error_message?: string | null
+          execution_details?: Json | null
+          finished_at?: string | null
+          id?: string
+          leads_criados?: number
+          leads_duplicados?: number
+          leads_encontrados?: number
+          started_at?: string
+          status?: string
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_prospecting_logs_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "lead_prospecting_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_qualification_config: {
         Row: {
           ativo: boolean

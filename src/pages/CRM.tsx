@@ -19,7 +19,8 @@ import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart } from 'lucide-react';
+import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart, Sparkles } from 'lucide-react';
+import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 
 export interface CRMLead {
   id: string;

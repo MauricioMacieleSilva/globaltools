@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine, Cell, Legend } from 'recharts';
 import { Settings, ArrowLeft, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 import { useComercial } from '@/context/ComercialContext';
 import { MetasDialog } from './MetasDialog';

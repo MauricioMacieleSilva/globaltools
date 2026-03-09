@@ -353,7 +353,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                        valor_estimado: lead.valor_estimado || null,
                        notes: lead.notes || null,
                        source: 'Auto Prospecção',
-                       origem: 'Auto Prospecção',
+                       
                        website: lead.source_url || null,
                        status: 'lead',
                        vendedor_id: user?.id,

@@ -471,12 +471,31 @@ serve(async (req) => {
         const municipio = unidade.municipioNome || "";
         const valor = item.valorTotalEstimado || item.valorTotalHomologado || "";
         const linkOrigem = item.linkSistemaOrigem || "";
-        const cnpjOrgao = item.orgaoEntidade?.cnpj?.replace(/\D/g, '') || '';
-        const anoCompra = item.anoCompra || '';
-        const seqCompra = item.sequencialCompra || '';
-        const pncpPortalLink = (cnpjOrgao && anoCompra && seqCompra)
-          ? `https://pncp.gov.br/app/editais/${cnpjOrgao}/${anoCompra}/${seqCompra}`
-          : `https://pncp.gov.br/app/editais?q=${encodeURIComponent(objeto.slice(0, 80))}`;
+        // Build PNCP portal link - correct format: /app/editais/{cnpj}/{ano}/{sequencial}
+        // Try numeroControlePNCP first (format: "cnpj-seq-ano/year") or build from individual fields
+        const numeroControle = item.numeroControlePNCP || '';
+        let pncpPortalLink = '';
+        
+        if (numeroControle) {
+          // numeroControlePNCP typically has format like "13132152000190-1-000007/2026"
+          // Extract parts: cnpj, sequential, year
+          const controleParts = numeroControle.match(/^(\d+)-(\d+)-(\d+)\/(\d+)$/);
+          if (controleParts) {
+            const [, cnpjPart, , seqPart, anoPart] = controleParts;
+            pncpPortalLink = `https://pncp.gov.br/app/editais/${cnpjPart}/${anoPart}/${parseInt(seqPart, 10)}`;
+          }
+        }
+        
+        if (!pncpPortalLink) {
+          const cnpjOrgao = item.orgaoEntidade?.cnpj?.replace(/\D/g, '') || '';
+          const anoCompra = item.anoCompra || '';
+          const seqCompra = item.sequencialCompra || '';
+          if (cnpjOrgao && anoCompra && seqCompra) {
+            pncpPortalLink = `https://pncp.gov.br/app/editais/${cnpjOrgao}/${anoCompra}/${parseInt(String(seqCompra), 10)}`;
+          } else {
+            pncpPortalLink = `https://pncp.gov.br/app/editais?q=${encodeURIComponent(objeto.slice(0, 80))}`;
+          }
+        }
         const finalLink = linkOrigem || pncpPortalLink;
 
         const text = [

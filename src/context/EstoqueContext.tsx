@@ -49,6 +49,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaEstoque>('PERFIS');
   const [precosEspessuraMap, setPrecosEspessuraMap] = useState<PrecosEspessuraMap>({});
+  const [precosCategoriaMap, setPrecosCategoriaMap] = useState<PrecosCategoriaMap>({});
 
   // Buscar preços de perfil por espessura
   const fetchPrecos = useCallback(async () => {
@@ -57,19 +58,48 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       
       if (data) {
         const precos: PrecosEspessuraMap = {};
-        
-        // Agrupar por espessura, usando preço padrão preferencialmente
         data.forEach((preco: PerfilPreco) => {
-          // Se já existe um preço para essa espessura, prioriza 'padrao'
           if (!precos[preco.espessura] || preco.tipo === 'padrao') {
             precos[preco.espessura] = preco.preco_kg;
           }
         });
-        
         setPrecosEspessuraMap(precos);
       }
     } catch (err) {
       console.error('Error fetching precos:', err);
+    }
+  }, []);
+
+  // Buscar preços médios por categoria da política comercial
+  const fetchPrecosPolitica = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('politica_comercial_itens')
+        .select('classe, preco_kg')
+        .eq('ativo', true)
+        .not('preco_kg', 'is', null);
+
+      if (data && !error) {
+        const precosCategoria: PrecosCategoriaMap = {};
+        const somasPorCategoria: Record<string, { soma: number; count: number }> = {};
+
+        data.forEach((item: any) => {
+          const classe = item.classe as string;
+          if (!somasPorCategoria[classe]) {
+            somasPorCategoria[classe] = { soma: 0, count: 0 };
+          }
+          somasPorCategoria[classe].soma += Number(item.preco_kg);
+          somasPorCategoria[classe].count += 1;
+        });
+
+        Object.entries(somasPorCategoria).forEach(([classe, { soma, count }]) => {
+          precosCategoria[classe] = soma / count;
+        });
+
+        setPrecosCategoriaMap(precosCategoria);
+      }
+    } catch (err) {
+      console.error('Error fetching precos politica comercial:', err);
     }
   }, []);
 
@@ -80,7 +110,8 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
     try {
       const [estoqueResult] = await Promise.all([
         fetchEstoqueItems(),
-        fetchPrecos()
+        fetchPrecos(),
+        fetchPrecosPolitica()
       ]);
       
       if (estoqueResult.error) {
@@ -94,7 +125,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [fetchPrecos]);
+  }, [fetchPrecos, fetchPrecosPolitica]);
 
   useEffect(() => {
     refreshData();

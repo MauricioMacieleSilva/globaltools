@@ -231,6 +231,7 @@ REGRAS:
 - "fonte_dados" DEVE corresponder EXATAMENTE à tag da seção de onde o lead foi extraído:
   - Se o bloco começa com [GOOGLE], use fonte_dados = "Google"
   - Se o bloco começa com [PNCP - LICITAÇÃO], use fonte_dados = "PNCP"
+  - Se o bloco começa com [OBRASGOV - OBRA PÚBLICA], use fonte_dados = "ObrasGov"
   - NÃO misture as fontes. Cada lead deve ter a fonte correta de onde foi extraído.`;
 
   const userPrompt = `Extraia até ${maxLeads} leads reais dos dados abaixo.

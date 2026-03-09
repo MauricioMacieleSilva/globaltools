@@ -352,6 +352,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                       valor_estimado: lead.valor_estimado || null,
                       notes: lead.notes || null,
                       source: lead.source || null,
+                      website: lead.source_url || null,
                       status: 'lead',
                       vendedor_id: user?.id,
                     });

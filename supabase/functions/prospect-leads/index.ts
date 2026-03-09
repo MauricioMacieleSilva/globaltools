@@ -133,8 +133,16 @@ Extraia APENAS empresas mencionadas nos dados acima. Não invente empresas.
 IMPORTANTE: Para cada lead, identifique a fonte de dados original:
 - Resultados marcados [GOOGLE] → fonte_dados: "Google"  
 - Resultados marcados [PNCP - LICITAÇÃO] → fonte_dados: "PNCP"
-Preencha o máximo de campos possível: telefone, email, CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
-No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte, potencial de compra, etc.`;
+
+PRIORIDADES DE EXTRAÇÃO (em ordem):
+1. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante.
+2. EMAIL - extraia emails de contato.
+3. SITE - extraia URLs de sites das empresas.
+4. CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
+
+CAMPO "empresa": Nome da empresa/razão social.
+CAMPO "contact_name": Nome de uma PESSOA (comprador, engenheiro, gerente). Se não encontrar, deixe VAZIO.
+No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, URL da fonte, site da empresa, potencial de compra, etc.`;
 
   try {
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

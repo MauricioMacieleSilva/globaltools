@@ -4,6 +4,7 @@ import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package } from 'luci
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
+import { OrderDetailDialog } from './OrderDetailDialog';
 
 interface KanbanCardProps {
   lead: CRMLead;

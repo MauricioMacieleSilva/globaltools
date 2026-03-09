@@ -443,7 +443,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="dashboard" className="mt-3">
-          <CRMDashboard leads={leads} />
+          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
         </TabsContent>
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">

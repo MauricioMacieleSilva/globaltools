@@ -235,7 +235,6 @@ export default function CRM() {
         } as any);
       }
 
-      loadTodayStats();
       loadLeads();
       toast.success('Status atualizado', { description: 'Lead movido para Contato Feito' });
     } catch {

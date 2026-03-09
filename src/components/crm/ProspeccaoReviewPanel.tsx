@@ -29,6 +29,7 @@ interface StagedLead {
   notes: string | null;
   fonte_dados: string | null;
   source: string | null;
+  source_url: string | null;
   created_at: string;
 }
 

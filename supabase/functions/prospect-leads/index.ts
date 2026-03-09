@@ -105,7 +105,53 @@ async function searchPNCP(keywords: string, uf: string, maxResults: number): Pro
   }
 }
 
-// ====== SOURCE 3: BrasilAPI - CNPJ enrichment ======
+// ====== SOURCE 3: ObrasGov.br (Obras Públicas Federais) ======
+const OBRASGOV_STEEL_KEYWORDS = [
+  'construção', 'construcao', 'galpão', 'galpao', 'estrutura', 'cobertura',
+  'ampliação', 'ampliacao', 'reforma', 'pavilhão', 'pavilhao', 'industrial',
+  'ponte', 'viaduto', 'passarela', 'saneamento', 'infraestrutura',
+];
+
+async function searchObrasGov(uf: string, maxResults: number): Promise<any[]> {
+  try {
+    console.log(`🏗️ [ObrasGov] Buscando obras em ${uf}...`);
+    const url = `https://api.obrasgov.gestao.gov.br/obrasgov/api/projeto-investimento?uf=${uf}&page=0&size=${Math.min(maxResults, 50)}`;
+    const response = await fetchWithTimeout(url, {
+      headers: { "Accept": "application/json" },
+    }, 15000);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`ObrasGov error ${response.status}: ${errText}`);
+      return [];
+    }
+
+    const data = await response.json();
+    const items = data?.content ?? [];
+
+    // Filter for active construction obras and relevant keywords
+    const filtered = items.filter((item: any) => {
+      if (item.situacao === 'Cancelada') return false;
+      const especie = (item.especie || '').toLowerCase();
+      const nome = (item.nome || '').toLowerCase();
+      const descricao = (item.descricao || '').toLowerCase();
+      const combined = `${especie} ${nome} ${descricao}`;
+      return OBRASGOV_STEEL_KEYWORDS.some(kw => combined.includes(kw));
+    });
+
+    console.log(`🏗️ [ObrasGov] ${uf}: ${items.length} total, ${filtered.length} relevantes`);
+    return filtered;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      console.warn(`ObrasGov timeout for UF: ${uf}`);
+    } else {
+      console.error("ObrasGov search error:", e);
+    }
+    return [];
+  }
+}
+
+// ====== SOURCE 4: BrasilAPI - CNPJ enrichment ======
 async function enrichCNPJ(cnpj: string): Promise<any | null> {
   try {
     const cleanCnpj = cnpj.replace(/\D/g, "");
@@ -185,12 +231,13 @@ REGRAS:
 - "fonte_dados" DEVE corresponder EXATAMENTE à tag da seção de onde o lead foi extraído:
   - Se o bloco começa com [GOOGLE], use fonte_dados = "Google"
   - Se o bloco começa com [PNCP - LICITAÇÃO], use fonte_dados = "PNCP"
+  - Se o bloco começa com [OBRASGOV - OBRA PÚBLICA], use fonte_dados = "ObrasGov"
   - NÃO misture as fontes. Cada lead deve ter a fonte correta de onde foi extraído.`;
 
   const userPrompt = `Extraia até ${maxLeads} leads reais dos dados abaixo.
 Ramos: ${ramos} | Estados: ${estados}
 
-IMPORTANTE: O campo "fonte_dados" de cada lead DEVE corresponder à tag [GOOGLE] ou [PNCP - LICITAÇÃO] do bloco de onde a informação foi extraída. NÃO atribua "Google" a leads extraídos de blocos [PNCP].
+IMPORTANTE: O campo "fonte_dados" de cada lead DEVE corresponder à tag [GOOGLE], [PNCP - LICITAÇÃO] ou [OBRASGOV - OBRA PÚBLICA] do bloco de onde a informação foi extraída.
 
 DADOS:
 ${searchResults}
@@ -235,7 +282,7 @@ Cada lead DEVE ter source_url (copie de "URL_FONTE:") e fonte_dados correto.`;
                         ramo_atuacao: { type: "string" },
                         produto_interesse: { type: "string" },
                         notes: { type: "string" },
-                        fonte_dados: { type: "string", enum: ["Google", "PNCP", "BrasilAPI"] },
+                        fonte_dados: { type: "string", enum: ["Google", "PNCP", "ObrasGov", "BrasilAPI"] },
                         valor_estimado: { type: "number" },
                         cliente_telefone: { type: "string" },
                         cliente_email: { type: "string" },
@@ -304,7 +351,7 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let bodyConfigId: string | null = null;
-    let enabledSources: string[] = ['google', 'pncp'];
+    let enabledSources: string[] = ['google', 'pncp', 'obrasgov'];
     try {
       const body = await req.json();
       bodyConfigId = body?.config_id ?? null;
@@ -386,11 +433,16 @@ serve(async (req) => {
       ? estados.slice(0, 2).map((uf: string) => searchPNCP(ramos, uf, 10))
       : [];
 
+    const obrasgovPromises = enabledSources.includes('obrasgov')
+      ? estados.slice(0, 2).map((uf: string) => searchObrasGov(uf, 20))
+      : [];
+
     const googlePromises = googleQueries.map(q => searchGoogle(q, 5));
 
-    const [googleResults, pncpResults] = await Promise.all([
+    const [googleResults, pncpResults, obrasgovResults] = await Promise.all([
       Promise.all(googlePromises),
       Promise.all(pncpPromises),
+      Promise.all(obrasgovPromises),
     ]);
 
     // Process Google results
@@ -440,6 +492,45 @@ serve(async (req) => {
       }
     }
 
+    // Process ObrasGov results
+    for (const results of obrasgovResults) {
+      const items = Array.isArray(results) ? results : [];
+      for (const item of items) {
+        const nome = item.nome || '';
+        const descricao = item.descricao || '';
+        const especie = item.especie || '';
+        const situacao = item.situacao || '';
+        const uf = item.uf || '';
+        const endereco = item.endereco || '';
+        const cep = item.cep || '';
+        const executor = item.executores?.[0] || {};
+        const executorNome = executor.nome || '';
+        const executorCodigo = executor.codigo ? String(executor.codigo) : '';
+        const valor = item.fontesDeRecurso?.[0]?.valorInvestimentoPrevisto || '';
+        const tipo = item.tipos?.[0]?.descricao || '';
+        const subTipo = item.subTipos?.[0]?.descricao || '';
+        const idUnico = item.idUnico || '';
+        const portalLink = `https://obrasgov.gestao.gov.br/obrasgov/painel/projeto-investimento/${encodeURIComponent(idUnico)}`;
+
+        const text = [
+          executorNome && `Empresa/Executor: ${executorNome}`,
+          executorCodigo && `CNPJ: ${executorCodigo}`,
+          nome && `Obra: ${nome}`,
+          descricao && descricao !== nome && `Descrição: ${descricao}`,
+          especie && `Espécie: ${especie}`,
+          situacao && `Situação: ${situacao}`,
+          tipo && `Tipo: ${tipo}`,
+          subTipo && `SubTipo: ${subTipo}`,
+          uf && `UF: ${uf}`,
+          endereco && `Endereço: ${endereco}`,
+          cep && `CEP: ${cep}`,
+          valor && `Valor Investimento: R$ ${valor}`,
+          `URL_FONTE: ${portalLink}`,
+        ].filter(Boolean).join("\n");
+        if (text) allSearchResults.push(`[OBRASGOV - OBRA PÚBLICA]\n${text}`);
+      }
+    }
+
     console.log(`📊 Total de resultados coletados: ${allSearchResults.length}`);
 
     if (allSearchResults.length === 0) {
@@ -475,6 +566,8 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         if (!lead.source_url) {
           if (lead.fonte_dados === 'PNCP') {
             lead.source_url = `https://pncp.gov.br/app/editais?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
+          } else if (lead.fonte_dados === 'ObrasGov') {
+            lead.source_url = `https://obrasgov.gestao.gov.br/obrasgov/painel/projeto-investimento?search=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
           } else {
             lead.source_url = `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '') + ' ' + (lead.cidade || '') + ' ' + (lead.estado || ''))}`;
           }
@@ -587,6 +680,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         google_queries: googleQueries.length,
         google_results: googleResults.flat().length,
         pncp_results: pncpResults.flat().length,
+        obrasgov_results: obrasgovResults.flat().length,
         enriched_cnpjs: leadsToEnrich.length,
       },
     };

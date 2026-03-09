@@ -26,7 +26,7 @@ import AssistenteGlobal from "./pages/AssistenteGlobal";
 
 import { UserManagement } from "./pages/UserManagement";
 import ReportsConfig from "./pages/ReportsConfig";
-import AdminAIProactive from "./pages/AdminAIProactive";
+
 import NotFound from "./pages/NotFound";
 import { Pipeline } from "./pages/Pipeline";
 import Producao from "./pages/Producao";

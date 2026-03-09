@@ -164,6 +164,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           open={orderDialogOpen}
           onClose={() => setOrderDialogOpen(false)}
           budgetNumber={lead.budget_number}
+          clientName={lead.empresa || lead.cliente_nome || lead.client_name}
         />
       )}
     </Card>

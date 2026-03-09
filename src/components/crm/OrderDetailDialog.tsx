@@ -12,9 +12,10 @@ interface OrderDetailDialogProps {
   open: boolean;
   onClose: () => void;
   budgetNumber: string;
+  clientName?: string;
 }
 
-export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDialogProps) {
+export function OrderDetailDialog({ open, onClose, budgetNumber, clientName }: OrderDetailDialogProps) {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<ComercialData[]>([]);
 
@@ -24,28 +25,37 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
     fetchComercialData()
       .then((data) => {
         const target = String(budgetNumber).trim();
-        const allMatches = data.filter(d => String(d.numeropedido).trim() === target);
+        let matches = data.filter(d => String(d.numeropedido).trim() === target);
         
-        if (allMatches.length === 0) {
+        if (matches.length === 0) {
           setItems([]);
           return;
         }
 
-        // Ordenar todos por data mais recente primeiro
-        const sorted = [...allMatches].sort((a, b) => {
+        // Filtrar pelo nome do cliente do lead para desambiguar pedidos com mesmo número
+        if (clientName) {
+          const norm = clientName.trim().toLowerCase();
+          const clientMatches = matches.filter(d => {
+            const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
+            return nome.includes(norm) || norm.includes(nome);
+          });
+          if (clientMatches.length > 0) {
+            matches = clientMatches;
+          }
+        }
+
+        // Ordenar por data mais recente e pegar apenas itens dessa data
+        const sorted = [...matches].sort((a, b) => {
           const da = parseDate(a.data_emissao)?.getTime() || 0;
           const db = parseDate(b.data_emissao)?.getTime() || 0;
           return db - da;
         });
 
-        // Pegar a data mais recente e filtrar apenas itens dessa data
-        // Isso evita conflito entre filiais com mesmo número de pedido
         const mostRecentDate = sorted[0]?.data_emissao;
         if (mostRecentDate) {
-          const sameDate = allMatches.filter(d => d.data_emissao === mostRecentDate);
-          setItems(sameDate);
+          setItems(matches.filter(d => d.data_emissao === mostRecentDate));
         } else {
-          setItems(allMatches);
+          setItems(matches);
         }
       })
       .catch(() => setItems([]))

@@ -197,15 +197,17 @@ IMPORTANTE: Para cada lead, identifique a fonte de dados original:
 - Resultados marcados [OBRAS PRIVADAS] → fonte_dados: "Google"
 
 PRIORIDADES DE EXTRAÇÃO (em ordem):
-1. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante.
-2. SOURCE_URL - SEMPRE extraia a URL/link da fonte original. OBRIGATÓRIO quando disponível.
+1. SOURCE_URL - OBRIGATÓRIO! Cada resultado tem um campo "URL_FONTE:" — copie esse valor EXATAMENTE para o campo "source_url". TODO lead DEVE ter source_url. Sem exceção.
+2. TELEFONE - busque números de telefone em todos os resultados. Esta é a informação MAIS importante depois da URL.
 3. EMAIL - extraia emails de contato.
 4. SITE - extraia URLs de sites das empresas.
 5. CNPJ, cidade, estado, ramo de atuação, produto de interesse, valor estimado.
 
+REGRA CRÍTICA: O campo "source_url" é OBRIGATÓRIO para TODOS os leads. Procure "URL_FONTE:" nos dados e copie esse valor.
+
 CAMPO "empresa": Nome da empresa/razão social.
 CAMPO "contact_name": Nome de uma PESSOA (comprador, engenheiro, gerente). Se não encontrar, deixe VAZIO.
-CAMPO "source_url": URL da fonte original. SEMPRE preencha quando houver URL nos dados.
+CAMPO "source_url": OBRIGATÓRIO. Copie o valor de "URL_FONTE:" dos dados. NUNCA deixe vazio.
 No campo 'notes', inclua contexto detalhado: tipo de obra/projeto, potencial de compra, se veio de alvará/diário oficial, etc.`;
 
   try {

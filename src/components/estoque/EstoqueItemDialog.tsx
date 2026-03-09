@@ -57,6 +57,8 @@ interface FormData {
   aba2: string;
   enrij1: string;
   enrij2: string;
+  enrij3: string;
+  enrij4: string;
   imagem_url: string | null;
   localizacao: string;
   observacoes: string;
@@ -76,6 +78,8 @@ const initialFormData: FormData = {
   aba2: '',
   enrij1: '',
   enrij2: '',
+  enrij3: '',
+  enrij4: '',
   imagem_url: null,
   localizacao: '',
   observacoes: '',
@@ -88,10 +92,14 @@ const PERFIL_FIELDS_CONFIG: Record<string, {
   aba2?: boolean; 
   enrij1?: boolean; 
   enrij2?: boolean;
+  enrij3?: boolean;
+  enrij4?: boolean;
   aba1Label?: string;
   aba2Label?: string;
   enrij1Label?: string;
   enrij2Label?: string;
+  enrij3Label?: string;
+  enrij4Label?: string;
 }> = {
   'U': { base: true, aba1: true, aba2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2' },
   'Z': { base: true, aba1: true, aba2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2' },
@@ -100,7 +108,7 @@ const PERFIL_FIELDS_CONFIG: Record<string, {
   'U_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
   'U_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
   'Z_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
-  'CARTOLA_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2' },
+  'CARTOLA_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, enrij2: true, enrij3: true, enrij4: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij. 1', enrij2Label: 'Enrij. 2', enrij3Label: 'Enrij. 3', enrij4Label: 'Enrij. 4' },
   'CARTOLA_SEMI_ENRIJECIDO': { base: true, aba1: true, aba2: true, enrij1: true, aba1Label: 'Aba 1', aba2Label: 'Aba 2', enrij1Label: 'Enrij.' },
 };
 
@@ -116,6 +124,7 @@ export function EstoqueItemDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [aba2ManualEdit, setAba2ManualEdit] = useState(false);
   const [enrij2ManualEdit, setEnrij2ManualEdit] = useState(false);
+  const [enrij4ManualEdit, setEnrij4ManualEdit] = useState(false);
   const isEditing = !!item;
 
   useEffect(() => {
@@ -134,6 +143,8 @@ export function EstoqueItemDialog({
         aba2: item.aba2?.toString() || '',
         enrij1: '',
         enrij2: '',
+        enrij3: '',
+        enrij4: '',
         imagem_url: item.imagem_url,
         localizacao: item.localizacao || '',
         observacoes: item.observacoes || '',
@@ -235,9 +246,9 @@ export function EstoqueItemDialog({
           dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}`;
         }
       } else if (form.tipo_perfil === 'CARTOLA_ENRIJECIDO') {
-        // Cartola Enrij: enrij1 x aba1 x base x aba2 x enrij2
-        if (form.enrij1 && form.aba1 && form.base && form.aba2 && form.enrij2) {
-          dimensoes = `${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}`;
+        // Cartola Enrij: enrij3 x enrij1 x aba1 x base x aba2 x enrij2 x enrij4
+        if (form.enrij3 && form.enrij1 && form.aba1 && form.base && form.aba2 && form.enrij2 && form.enrij4) {
+          dimensoes = `${Math.round(parseFloat(form.enrij3))}x${Math.round(parseFloat(form.enrij1))}x${Math.round(parseFloat(form.aba1))}x${Math.round(parseFloat(form.base))}x${Math.round(parseFloat(form.aba2))}x${Math.round(parseFloat(form.enrij2))}x${Math.round(parseFloat(form.enrij4))}`;
         }
       } else if (form.tipo_perfil === 'CARTOLA_SEMI_ENRIJECIDO') {
         // Cartola Semi: enrij1 x aba1 x base x aba2
@@ -262,7 +273,7 @@ export function EstoqueItemDialog({
     if (form.comprimento) partes.push(`x ${form.comprimento}mm`);
     
     return partes.join(' ');
-  }, [form.categoria, form.tipo_perfil, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, form.enrij1, form.enrij2, autoDescricao]);
+  }, [form.categoria, form.tipo_perfil, form.espessura, form.largura, form.comprimento, form.base, form.aba1, form.aba2, form.enrij1, form.enrij2, form.enrij3, form.enrij4, autoDescricao]);
 
   // Calcula peso automaticamente para categorias UN
   const pesoCalculado = useMemo(() => {
@@ -468,7 +479,7 @@ export function EstoqueItemDialog({
                 <Label htmlFor="tipo_perfil">Tipo de Perfil *</Label>
                 <Select
                   value={form.tipo_perfil}
-                  onValueChange={(value) => { setForm({ ...form, tipo_perfil: value, aba1: '', aba2: '', base: '', enrij1: '', enrij2: '' }); setAba2ManualEdit(false); setEnrij2ManualEdit(false); }}
+                  onValueChange={(value) => { setForm({ ...form, tipo_perfil: value, aba1: '', aba2: '', base: '', enrij1: '', enrij2: '', enrij3: '', enrij4: '' }); setAba2ManualEdit(false); setEnrij2ManualEdit(false); setEnrij4ManualEdit(false); }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />
@@ -578,6 +589,41 @@ export function EstoqueItemDialog({
                         step="0.01"
                         value={form.enrij2}
                         onChange={(e) => { setEnrij2ManualEdit(true); setForm({ ...form, enrij2: e.target.value }); }}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+
+                  {perfilConfig.enrij3 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="enrij3">{perfilConfig.enrij3Label || 'Enrij. 3'} (mm)</Label>
+                      <Input
+                        id="enrij3"
+                        type="number"
+                        step="0.01"
+                        value={form.enrij3}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const updates: Partial<FormData> = { enrij3: val };
+                          if (perfilConfig?.enrij4 && !enrij4ManualEdit) {
+                            updates.enrij4 = val;
+                          }
+                          setForm(prev => ({ ...prev, ...updates }));
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+
+                  {perfilConfig.enrij4 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="enrij4">{perfilConfig.enrij4Label || 'Enrij. 4'} (mm)</Label>
+                      <Input
+                        id="enrij4"
+                        type="number"
+                        step="0.01"
+                        value={form.enrij4}
+                        onChange={(e) => { setEnrij4ManualEdit(true); setForm({ ...form, enrij4: e.target.value }); }}
                         placeholder="0"
                       />
                     </div>

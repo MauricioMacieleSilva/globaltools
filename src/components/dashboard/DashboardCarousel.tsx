@@ -92,7 +92,7 @@ export function DashboardCarousel({ open, onClose, children, labels }: Dashboard
       </div>
 
       {/* Content */}
-      <div className="w-full h-full overflow-auto pt-14 pb-4 px-4">
+      <div className="w-full h-full overflow-auto pt-6 pb-2 px-4">
         {children[activeIndex]}
       </div>
 

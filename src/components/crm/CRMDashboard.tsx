@@ -179,7 +179,7 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
       map[vendorName].value += l.valor_estimado || 0;
     });
     // Add contacts
-    activities.filter(a => a.activity_type === 'contato_inicial').forEach(a => {
+    uniqueDailyContacts.forEach(a => {
       const vendorName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
       if (map[vendorName]) map[vendorName].contacts++;
     });

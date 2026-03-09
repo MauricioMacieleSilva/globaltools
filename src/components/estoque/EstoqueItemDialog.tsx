@@ -57,6 +57,8 @@ interface FormData {
   aba2: string;
   enrij1: string;
   enrij2: string;
+  enrij3: string;
+  enrij4: string;
   imagem_url: string | null;
   localizacao: string;
   observacoes: string;
@@ -76,6 +78,8 @@ const initialFormData: FormData = {
   aba2: '',
   enrij1: '',
   enrij2: '',
+  enrij3: '',
+  enrij4: '',
   imagem_url: null,
   localizacao: '',
   observacoes: '',

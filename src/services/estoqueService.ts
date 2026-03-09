@@ -77,8 +77,8 @@ export const CATEGORIAS_UNIDADE_UN: CategoriaEstoque[] = [
 // Categorias que permanecem em KG (peso direto)
 export const CATEGORIAS_UNIDADE_KG: CategoriaEstoque[] = ['BOBINAS'];
 
-// Densidade do aço em kg/mm³ (7850 kg/m³ = 0.00000785 kg/mm³)
-const DENSIDADE_ACO = 0.00000785;
+// Densidade do aço em kg/mm³ (8000 kg/m³ = 0.000008 kg/mm³) - mesmo valor usado no Corte Perfil
+const DENSIDADE_ACO = 0.000008;
 
 // Função para obter unidade padrão por categoria
 export function getUnidadePadrao(categoria: CategoriaEstoque): string {

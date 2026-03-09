@@ -47,7 +47,15 @@ export function TeamPerformance({ leads }: TeamPerformanceProps) {
   const perfData: UserPerf[] = vendors.map(v => {
     const userLeads = leads.filter(l => l.vendedor_id === v.id && new Date(l.created_at) >= cutoff);
     const userActivities = activities.filter(a => a.user_id === v.id);
-    const contacts = userActivities.filter(a => a.activity_type === 'contato_inicial').length;
+    // Only count first contact per lead per day
+    const contactActivities = userActivities.filter(a => a.activity_type === 'contato_inicial');
+    const uniqueContactKeys = new Set<string>();
+    contactActivities.forEach(a => {
+      const day = a.created_at.substring(0, 10);
+      const key = `${a.lead_id}_${day}`;
+      uniqueContactKeys.add(key);
+    });
+    const contacts = uniqueContactKeys.size;
     const conversions = userLeads.filter(l => l.status === 'pedido_fechado').length;
     const totalValue = userLeads.filter(l => l.status === 'pedido_fechado').reduce((s, l) => s + (l.valor_estimado || 0), 0);
     return {

@@ -6,6 +6,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 import { OrderDetailDialog } from './OrderDetailDialog';
 
+/** Converte texto para Title Case, independente do formato original */
+function toTitleCase(str: string): string {
+  if (!str) return str;
+  return str
+    .toLowerCase()
+    .replace(/(^|\s|\/|-)\S/g, (match) => match.toUpperCase());
+}
+
 interface KanbanCardProps {
   lead: CRMLead;
   onDragStart: (e: React.DragEvent, leadId: string) => void;
@@ -67,7 +75,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       <div className="space-y-1.5">
         {/* Header: empresa + whatsapp */}
         <div className="flex items-start justify-between gap-1">
-          <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{lead.empresa || name}</h4>
+          <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{toTitleCase(lead.empresa || name || '')}</h4>
           {whatsappUrl && (
             <a
               href={whatsappUrl}
@@ -84,21 +92,21 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
 
         {/* Contact name */}
         {(lead.empresa ? name : null) && (
-          <p className="text-xs text-muted-foreground truncate">{name}</p>
+          <p className="text-xs text-muted-foreground truncate">{toTitleCase(name || '')}</p>
         )}
 
         {/* Client info */}
         {lead.ramo_atuacao && (
           <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
             <Briefcase className="h-3 w-3 shrink-0" />
-            {lead.ramo_atuacao}
+            {toTitleCase(lead.ramo_atuacao)}
           </p>
         )}
 
         {localidade && (
           <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
             <MapPin className="h-3 w-3 shrink-0" />
-            {localidade}
+            {toTitleCase(localidade)}
           </p>
         )}
 
@@ -133,7 +141,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
             {produtos.length > 0 ? (
               produtos.map((p, i) => (
                 <span key={i} className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground truncate max-w-[90px]">
-                  {p}
+                  {toTitleCase(p)}
                 </span>
               ))
             ) : (
@@ -153,7 +161,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
               <AvatarImage src={vendorAvatar || undefined} alt={vendorName} />
               <AvatarFallback className="text-[7px] bg-muted text-muted-foreground">{vendorInitials}</AvatarFallback>
             </Avatar>
-            <span className="text-[10px] text-muted-foreground/70 truncate">{vendorName}</span>
+            <span className="text-[10px] text-muted-foreground/70 truncate">{toTitleCase(vendorName)}</span>
           </div>
         )}
       </div>

@@ -116,7 +116,28 @@ export function ProspeccaoPanel() {
         setIsActive(cfg.is_active || false);
       }
 
-      setLogs((logsData as ProspectingLog[]) || []);
+      const parsedLogs = (logsData as ProspectingLog[]) || [];
+      
+      // Auto-mark stuck "running" logs older than 5 minutes as failed
+      const now = new Date();
+      for (const log of parsedLogs) {
+        if (log.status === 'running') {
+          const startedAt = new Date(log.started_at);
+          const diffMs = now.getTime() - startedAt.getTime();
+          if (diffMs > 5 * 60 * 1000) {
+            // Mark as error in the database
+            await (supabase as any).from('lead_prospecting_logs').update({
+              status: 'error',
+              error_message: 'Timeout - execução excedeu o tempo limite',
+              finished_at: new Date().toISOString(),
+            }).eq('id', log.id);
+            log.status = 'error';
+            log.error_message = 'Timeout - execução excedeu o tempo limite';
+          }
+        }
+      }
+      
+      setLogs(parsedLogs);
     } catch (error) {
       console.error('Error loading prospecting data:', error);
     } finally {

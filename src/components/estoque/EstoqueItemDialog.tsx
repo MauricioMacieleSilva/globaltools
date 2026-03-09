@@ -179,7 +179,7 @@ export function EstoqueItemDialog({
   const perfilConfig = form.tipo_perfil ? PERFIL_FIELDS_CONFIG[form.tipo_perfil] : null;
   
   // Categorias que geram descrição automaticamente a partir das dimensões
-  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK', 'TUBOS', 'TELHAS'].includes(form.categoria);
+  const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK'].includes(form.categoria);
 
   // Gera descrição automática baseada nas dimensões
   const gerarDescricaoAutomatica = useMemo(() => {

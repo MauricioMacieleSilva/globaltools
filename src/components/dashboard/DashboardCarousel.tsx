@@ -97,7 +97,7 @@ export function DashboardCarousel({ open, onClose, children, labels }: Dashboard
 
       {/* Settings dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm z-[200]">
           <DialogHeader>
             <DialogTitle>Tempo de exibição (segundos)</DialogTitle>
           </DialogHeader>

@@ -87,28 +87,29 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
         const empresaNome = lead.empresa || lead.cliente_nome || '';
         const contactName = lead.contact_name || '';
 
-        const { error: insertError } = await (supabase as any).from('leads').insert({
-          cliente_nome: contactName || empresaNome,
-          client_name: contactName || empresaNome,
-          empresa: empresaNome || null,
-          cliente_cnpj: lead.cliente_cnpj || null,
-          contact_name: lead.contact_name || null,
-          contact_phone: lead.cliente_telefone || null,
-          cliente_telefone: lead.cliente_telefone || null,
-          contact_email: lead.cliente_email || null,
-          cliente_email: lead.cliente_email || null,
-          cidade: lead.cidade || null,
-          estado: lead.estado || null,
-          ramo_atuacao: lead.ramo_atuacao || null,
-          produto_interesse: lead.produto_interesse || null,
-          valor_estimado: lead.valor_estimado || null,
-          notes: lead.notes || null,
-          source: 'Auto Prospecção',
-          website: lead.source_url || null,
-          regime_tributario: (lead as any).regime_tributario || null,
-          status: 'lead',
-          vendedor_id: user?.id,
-        });
+          const { error: insertError } = await (supabase as any).from('leads').insert({
+            cliente_nome: contactName || empresaNome,
+            client_name: contactName || empresaNome,
+            empresa: empresaNome || null,
+            cliente_cnpj: lead.cliente_cnpj || null,
+            contact_name: lead.contact_name || null,
+            contact_phone: lead.cliente_telefone || null,
+            cliente_telefone: lead.cliente_telefone || null,
+            contact_email: lead.cliente_email || null,
+            cliente_email: lead.cliente_email || null,
+            cidade: lead.cidade || null,
+            estado: lead.estado || null,
+            ramo_atuacao: lead.ramo_atuacao || null,
+            produto_interesse: lead.produto_interesse || null,
+            valor_estimado: lead.valor_estimado || null,
+            notes: lead.notes || null,
+            source: 'Auto Prospecção',
+            origem: 'Auto Prospecção',
+            website: lead.source_url || null,
+            regime_tributario: (lead as any).regime_tributario || null,
+            status: 'lead',
+            vendedor_id: user?.id,
+          });
 
         if (!insertError) {
           await (supabase as any).from('lead_prospecting_results')

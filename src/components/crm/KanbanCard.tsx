@@ -111,7 +111,13 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
 
         {/* Order/Budget number & value */}
         {lead.budget_number && (
-          <div className="flex items-center gap-1 text-[10px] font-medium text-primary">
+          <div
+            className="flex items-center gap-1 text-[10px] font-medium text-primary cursor-pointer hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/dashboard-comercial?pedido=${lead.budget_number}`);
+            }}
+          >
             <Package className="h-3 w-3 shrink-0" />
             <span>Pedido {lead.budget_number}</span>
             {lead.valor_estimado != null && lead.valor_estimado > 0 && (

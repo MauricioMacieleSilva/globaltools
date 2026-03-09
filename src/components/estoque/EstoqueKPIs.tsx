@@ -84,10 +84,15 @@ export function EstoqueKPIs({ items, precosEspessuraMap, precosCategoriaMap }: E
       const pesoItem = peso || 0;
       totalPeso += pesoItem;
       
-      // Calcular valor baseado na espessura para PERFIS, TIRAS, CHAPAS, BLANK
+      // Calcular valor baseado na espessura para PERFIS, TIRAS, CHAPAS, BLANK, BOBINAS
       let valorItem = 0;
       if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) {
         const precoKg = getPrecoByEspessura(item.espessura);
+        valorItem = pesoItem * precoKg;
+      }
+      // Para ARAMES, TELHAS, TUBOS, LAMINADOS, VERGALHAO: usar preço da política comercial
+      else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria as CategoriaEstoque)) {
+        const precoKg = precosCategoriaMap[item.categoria] || 0;
         valorItem = pesoItem * precoKg;
       }
       totalValor += valorItem;

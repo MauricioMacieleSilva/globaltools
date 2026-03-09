@@ -1,7 +1,8 @@
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { CRMDashboard } from '@/components/crm/CRMDashboard';
@@ -19,8 +20,10 @@ import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart, Sparkles } from 'lucide-react';
+import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart, Sparkles, Monitor } from 'lucide-react';
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
+import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
+import DashboardComercial from '@/pages/DashboardComercial';
 
 export interface CRMLead {
   id: string;
@@ -67,6 +70,7 @@ export const CRM_STAGES = [
 export type CRMStageKey = typeof CRM_STAGES[number]['key'];
 
 export default function CRM() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState<CRMLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
@@ -87,6 +91,9 @@ export default function CRM() {
   const [orderLinkOpen, setOrderLinkOpen] = useState(false);
   const [pendingOrderLead, setPendingOrderLead] = useState<CRMLead | null>(null);
   const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [carouselOpen, setCarouselOpen] = useState(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   const isMobile = useIsMobile();
 
@@ -98,6 +105,7 @@ export default function CRM() {
         .order('updated_at', { ascending: false });
       if (error) throw error;
       setLeads(data || []);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Erro ao carregar leads:', error);
     } finally {
@@ -105,9 +113,23 @@ export default function CRM() {
     }
   }, []);
 
+  // Auto-open carousel from URL param (e.g. /crm?tv=1)
+  useEffect(() => {
+    if (searchParams.get('tv') === '1') {
+      setCarouselOpen(true);
+      searchParams.delete('tv');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
 
   useEffect(() => {
     loadLeads();
+    // Auto-refresh every 15 minutes
+    refreshTimerRef.current = setInterval(() => {
+      loadLeads();
+    }, 15 * 60 * 1000);
+    return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
   }, [loadLeads]);
 
   const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
@@ -393,6 +415,10 @@ export default function CRM() {
                 />
               </div>
             )}
+            <Button variant="outline" size="sm" onClick={() => setCarouselOpen(true)} className="gap-1.5 h-8 hidden sm:flex" title="Modo TV - Alternar dashboards">
+              <Monitor className="h-3.5 w-3.5" />
+              {!isMobile && 'Modo TV'}
+            </Button>
             <Button data-tour="crm-new-lead" size="sm" onClick={() => setNewLeadOpen(true)} className="gap-1.5 h-8">
               <Plus className="h-3.5 w-3.5" />
               {!isMobile && 'Novo Lead'}
@@ -428,7 +454,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="dashboard" className="mt-3">
-          <CRMDashboard leads={leads} />
+          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
         </TabsContent>
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
@@ -492,6 +518,15 @@ export default function CRM() {
           <Plus className="h-6 w-6" />
         </button>
       )}
+
+      <DashboardCarousel
+        open={carouselOpen}
+        onClose={() => setCarouselOpen(false)}
+        labels={['Dashboard CRM', 'Dashboard Comercial']}
+      >
+        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
+        <DashboardComercial />
+      </DashboardCarousel>
     </div>
   );
 }

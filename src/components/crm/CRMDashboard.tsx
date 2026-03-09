@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe } from 'lucide-react';
+import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,9 @@ import { CRM_STAGES } from '@/pages/CRM';
 
 interface CRMDashboardProps {
   leads: CRMLead[];
+  lastUpdated?: Date | null;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 const CHART_COLORS = [
@@ -30,7 +34,7 @@ const CHART_COLORS = [
   'hsl(210, 40%, 60%)',
 ];
 
-export function CRMDashboard({ leads }: CRMDashboardProps) {
+export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
@@ -306,6 +310,16 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
       )}
 
       <div className={cn("space-y-3 sm:space-y-4", isFullscreen && "p-4 sm:p-6")}>
+        {/* Last updated indicator */}
+        {lastUpdated && (
+          <div className="flex justify-end">
+            <LastUpdatedIndicator 
+              lastUpdated={lastUpdated} 
+              onRefresh={onRefresh} 
+              loading={isRefreshing} 
+            />
+          </div>
+        )}
         {/* Filters bar */}
         <div className="flex flex-wrap items-center gap-2">
           <Select value={periodFilter} onValueChange={setPeriodFilter}>

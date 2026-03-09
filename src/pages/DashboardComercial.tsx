@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays, Maximize2, Minimize2 } from 'lucide-react';
+import { DollarSign, TrendingUp, BarChart3, TrendingDown, XCircle, CalendarDays, Maximize2, Minimize2, Monitor } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { SessionFilters } from '@/components/dashboard/SessionFilters';
 import { cn } from '@/lib/utils';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { ComercialKPIs } from '@/components/dashboard/ComercialKPIs';
 import { ComercialCharts } from '@/components/dashboard/ComercialCharts';
 import { AnalisePrecos } from '@/components/dashboard/AnalisePrecos';
@@ -196,18 +196,29 @@ export default function DashboardComercial() {
                   </TabsTrigger>
                 </TabsList>
                 
-                {/* Botão Tela Cheia - escondido no mobile */}
+                {/* Botões Tela Cheia e Modo TV - escondidos no mobile */}
                 {!isFullscreen && (
-                  <Button
-                    data-tour="dashboard-fullscreen"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsFullscreen(true)}
-                    title="Modo tela cheia"
-                    className="shrink-0 hidden sm:flex h-9 w-9"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0 hidden sm:flex">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => navigate('/crm?tv=1')}
+                      title="Modo TV - Alternar dashboards"
+                      className="h-9 w-9"
+                    >
+                      <Monitor className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      data-tour="dashboard-fullscreen"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsFullscreen(true)}
+                      title="Modo tela cheia"
+                      className="h-9 w-9"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
                </div>
 

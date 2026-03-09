@@ -362,7 +362,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               {lead.budget_number && (
                 <div
                   className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
-                  onClick={() => navigate(`/dashboard-comercial?pedido=${lead.budget_number}`)}
+                  onClick={() => setOrderDialogOpen(true)}
                 >
                   <Package className="h-4 w-4" />
                   <span>Pedido {lead.budget_number}</span>

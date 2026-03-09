@@ -67,6 +67,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   useEffect(() => {
     if (lead?.id && open) {
       loadActivities(lead.id);
+      loadNextVisit(lead.id);
     }
   }, [lead?.id, open]);
 

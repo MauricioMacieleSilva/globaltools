@@ -404,6 +404,10 @@ export default function CRM() {
                 />
               </div>
             )}
+            <Button variant="outline" size="sm" onClick={() => setCarouselOpen(true)} className="gap-1.5 h-8 hidden sm:flex" title="Modo TV - Alternar dashboards">
+              <Monitor className="h-3.5 w-3.5" />
+              {!isMobile && 'Modo TV'}
+            </Button>
             <Button data-tour="crm-new-lead" size="sm" onClick={() => setNewLeadOpen(true)} className="gap-1.5 h-8">
               <Plus className="h-3.5 w-3.5" />
               {!isMobile && 'Novo Lead'}

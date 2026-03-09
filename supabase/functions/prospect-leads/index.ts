@@ -491,6 +491,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         notes: lead.notes || null,
         fonte_dados: fonteLabel,
         source: sourceValue,
+        source_url: lead.source_url || null,
         status: "pending",
       });
 

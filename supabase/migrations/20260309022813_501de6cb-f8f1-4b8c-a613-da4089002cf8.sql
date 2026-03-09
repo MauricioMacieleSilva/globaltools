@@ -1,0 +1,1 @@
+ALTER TABLE public.lead_prospecting_results ADD COLUMN source_url text;

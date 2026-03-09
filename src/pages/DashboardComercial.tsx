@@ -34,6 +34,7 @@ export default function DashboardComercial({ tvMode = false }: { tvMode?: boolea
   
   // Initialize active tab from localStorage, URL params, or default to "dashboard"
   const [activeTab, setActiveTab] = useState(() => {
+    if (tvMode) return 'dashboard';
     const urlTab = new URLSearchParams(window.location.search).get('tab');
     if (urlTab) {
       return urlTab;

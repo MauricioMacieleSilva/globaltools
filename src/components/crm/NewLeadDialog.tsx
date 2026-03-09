@@ -25,8 +25,8 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   const [addingOrigem, setAddingOrigem] = useState(false);
   const [novaOrigem, setNovaOrigem] = useState('');
   const [form, setForm] = useState({
-    cliente_nome: '',
     empresa: '',
+    cliente_nome: '',
     source: '',
     cliente_telefone: '',
     cliente_email: '',
@@ -38,7 +38,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
 
   const resetForm = () => {
     setForm({
-      cliente_nome: '', empresa: '', source: '', cliente_telefone: '',
+      empresa: '', cliente_nome: '', source: '', cliente_telefone: '',
       cliente_email: '', status: 'lead', produto_interesse: '', notes: '',
     });
     setAddingOrigem(false);
@@ -56,17 +56,22 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   };
 
   const handleSubmit = async () => {
-    if (!form.cliente_nome.trim()) {
-      toast({ title: 'Nome do cliente é obrigatório', variant: 'destructive' });
+    if (!form.empresa.trim()) {
+      toast({ title: 'Empresa é obrigatória', variant: 'destructive' });
+      return;
+    }
+    if (!form.cliente_telefone.trim()) {
+      toast({ title: 'Telefone é obrigatório', variant: 'destructive' });
       return;
     }
     setLoading(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
+      const contactName = form.cliente_nome.trim() || form.empresa.trim();
       const { error } = await (supabase as any).from('leads').insert({
-        cliente_nome: form.cliente_nome.trim(),
-        client_name: form.cliente_nome.trim(),
-        empresa: form.empresa || null,
+        cliente_nome: contactName,
+        client_name: contactName,
+        empresa: form.empresa.trim(),
         source: form.source || null,
         cliente_telefone: form.cliente_telefone || null,
         contact_phone: form.cliente_telefone || null,
@@ -97,14 +102,31 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Empresa - FIRST and required */}
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="nome">Nome do Cliente *</Label>
-              <Input id="nome" value={form.cliente_nome} onChange={(e) => setForm(f => ({ ...f, cliente_nome: e.target.value }))} placeholder="Nome completo" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="empresa">Empresa</Label>
+              <Label htmlFor="empresa">Empresa *</Label>
               <Input id="empresa" value={form.empresa} onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))} placeholder="Nome da empresa" />
             </div>
+
+            {/* Nome do Contato - optional */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="nome">Nome do Contato</Label>
+              <Input id="nome" value={form.cliente_nome} onChange={(e) => setForm(f => ({ ...f, cliente_nome: e.target.value }))} placeholder="Ex: João, Maria, Compras..." />
+            </div>
+
+            {/* Telefone - required */}
+            <div className="space-y-1.5">
+              <Label htmlFor="telefone">Telefone *</Label>
+              <Input id="telefone" value={form.cliente_telefone} onChange={(e) => setForm(f => ({ ...f, cliente_telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+            </div>
+
+            {/* Email - optional */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
+            </div>
+
+            {/* Origem */}
             <div className="space-y-1.5">
               <Label htmlFor="origem">Origem</Label>
               {addingOrigem ? (
@@ -133,14 +155,8 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
                 </div>
               )}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="telefone">Telefone</Label>
-              <Input id="telefone" value={form.cliente_telefone} onChange={(e) => setForm(f => ({ ...f, cliente_telefone: e.target.value }))} placeholder="(00) 00000-0000" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
-            </div>
+
+            {/* Status */}
             <div className="space-y-1.5">
               <Label htmlFor="status">Status Inicial</Label>
               <Select value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))}>
@@ -150,10 +166,14 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Produto de Interesse */}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="produto">Produto de Interesse</Label>
               <Input id="produto" value={form.produto_interesse} onChange={(e) => setForm(f => ({ ...f, produto_interesse: e.target.value }))} placeholder="Ex: Chapas, Perfis, Bobinas..." />
             </div>
+
+            {/* Observações */}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="obs">Observações</Label>
               <Textarea id="obs" value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notas iniciais..." rows={2} />

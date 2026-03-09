@@ -155,15 +155,11 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       return;
     }
     const already = await checkContactAlreadyToday(lead.id);
-    if (already) {
-      toast.error('Contato já registrado hoje', { description: 'Só é permitido um registro de contato por cliente por dia.' });
-      return;
-    }
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').single();
       const userName = profile?.full_name || 'Usuário';
-      // Save note first
+      // Save note
       await supabase.from('lead_activities').insert({
         lead_id: lead.id,
         activity_type: 'nota',
@@ -171,22 +167,27 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         user_id: user?.id || '',
         sdr_name: userName,
       } as any);
-      // Then register contact
-      await supabase.from('lead_activities').insert({
-        lead_id: lead.id,
-        activity_type: 'contato_inicial',
-        description: 'Contato registrado',
-        user_id: user?.id || '',
-        sdr_name: userName,
-      } as any);
-
-      if (lead.status === 'lead') {
-        onStatusChange(lead.id, 'contato_feito');
+      // Only register a new contato_inicial if not already done today
+      if (!already) {
+        await supabase.from('lead_activities').insert({
+          lead_id: lead.id,
+          activity_type: 'contato_inicial',
+          description: 'Contato registrado',
+          user_id: user?.id || '',
+          sdr_name: userName,
+        } as any);
+        if (lead.status === 'lead') {
+          onStatusChange(lead.id, 'contato_feito');
+        }
+        toast.success('Contato registrado com sucesso');
+      } else {
+        toast.info('Contato já registrado hoje', {
+          description: 'Já existe um registro de contato para este cliente hoje. Sua nota foi salva e você pode continuar atualizando as informações.',
+        });
       }
 
       setNewNote('');
       loadActivities(lead.id);
-      toast.success('Contato registrado com sucesso');
     } catch {
       toast.error('Erro ao registrar contato');
     }

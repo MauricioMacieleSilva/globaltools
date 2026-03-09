@@ -139,12 +139,17 @@ export default function CRM() {
       return;
     }
 
-    // Intercept proposta/pedido -> require order link
+    // Intercept proposta/pedido -> require order link only if not already linked
     if (newStatus === 'proposta' || newStatus === 'pedido') {
-      setPendingOrderLead(lead);
-      setPendingOrderStage(newStatus);
-      setOrderLinkOpen(true);
-      return;
+      if (lead.budget_number) {
+        // Already has a linked order — skip dialog, move directly
+        // falls through to normal update below
+      } else {
+        setPendingOrderLead(lead);
+        setPendingOrderStage(newStatus);
+        setOrderLinkOpen(true);
+        return;
+      }
     }
 
     // Intercept lead -> contato_feito: require enrichment

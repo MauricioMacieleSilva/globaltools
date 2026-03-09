@@ -258,9 +258,14 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                     {lead.empresa || lead.cliente_nome}
                   </span>
                   {getSourceBadge(lead.fonte_dados)}
-                  {lead.source_url && (
+                   {lead.source_url && (
                     <a
-                      href={lead.source_url}
+                      href={
+                        // Fix broken PNCP portal links - redirect to Google search instead
+                        lead.source_url.includes('pncp.gov.br/app/editais/')
+                          ? `https://www.google.com/search?q=pncp+${encodeURIComponent(lead.cliente_cnpj?.replace(/\D/g, '') || '')}+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`
+                          : lead.source_url
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"

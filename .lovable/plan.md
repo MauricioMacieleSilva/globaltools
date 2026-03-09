@@ -1,38 +1,108 @@
 
 
-## Problema
+# Plano: Nova Pagina CRM Unificada
 
-O portal PNCP (pncp.gov.br) é um SPA Angular que renderiza 100% via JavaScript. Os links construídos pela API (`/app/editais/{cnpj}/{ano}/{seq}`) resultam em página em branco porque o formato da URL muda frequentemente e depende de routing client-side. Mesmo com diferentes combinações de parâmetros, os links não funcionam de forma confiável.
+## Visao Geral
 
-## Solução: Firecrawl Search para encontrar links reais
+Unificar as paginas Pre-Vendas (`/pre-vendas`) e Pipeline de Vendas (`/pipeline`) em uma unica pagina CRM (`/crm`) com interface Kanban e funil simplificado.
 
-O Firecrawl já está conectado ao projeto. A melhor opção é usar o **Firecrawl Search** para buscar no Google a licitação específica e obter a URL real indexada que funciona.
+## Etapas do Funil
 
-### Abordagem
+As 5 etapas solicitadas mapeadas ao banco de dados:
 
-**Na edge function `prospect-leads`**, após coletar os resultados da API PNCP:
+```text
+Lead → Contato Feito → Visita/Reuniao → Proposta → Pedido
+         (+ coluna "Perdidos" separada)
+```
 
-1. Para cada licitação PNCP que tenha `linkSistemaOrigem` vazio, fazer uma busca rápida via Firecrawl Search com query tipo `site:pncp.gov.br "{CNPJ}" "{objeto resumido}"`
-2. Se o Firecrawl retornar uma URL do pncp.gov.br, usar essa como `source_url`
-3. Se não encontrar, usar como fallback uma URL de busca do Google: `https://www.google.com/search?q=pncp+{CNPJ}+{objeto}`
+Sera necessario alterar o enum `lead_status` no banco para refletir as novas etapas: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`, `perdido`.
 
-Isso garante que o usuário sempre tenha um link clicável que funciona -- ou a página real do PNCP indexada pelo Google, ou uma busca no Google que o leva até lá.
+## Estrutura da Pagina
 
-### Otimização de custos
+```text
+┌─────────────────────────────────────────────────────┐
+│ KPIs: Contatos Hoje (X/meta) │ Funil │ Perdidos     │
+├─────────────────────────────────────────────────────┤
+│  Kanban Board (drag & drop entre colunas)           │
+│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───┐ │
+│  │Lead  │ │Contato   │ │Visita/ │ │Proposta│ │Ped│ │
+│  │      │ │Feito     │ │Reuniao │ │        │ │ido│ │
+│  │card  │ │card      │ │card    │ │card    │ │   │ │
+│  │card  │ │          │ │        │ │        │ │   │ │
+│  └──────┘ └──────────┘ └────────┘ └────────┘ └───┘ │
+└─────────────────────────────────────────────────────┘
+```
 
-- Limitar a busca Firecrawl a no máximo 1 resultado por licitação (`limit: 1`)
-- Não usar `scrapeOptions` (não precisa do conteúdo, só da URL)
-- Agrupar no máximo 5 buscas por execução para não estourar créditos
-- Se já tem `linkSistemaOrigem` do PNCP, usar direto sem gastar crédito
+## Componentes Principais
 
-### Mudanças
+1. **KPI Bar** (topo):
+   - Contatos diarios (atual/meta) com barra de progresso
+   - Mini funil visual com contagem por etapa
+   - Indicador de perdidos (quantidade + valor estimado)
 
-**`supabase/functions/prospect-leads/index.ts`**:
-- Nova função `findPNCPRealUrl(cnpj, objeto)` que usa Firecrawl Search
-- Atualizar o loop de processamento PNCP para chamar essa função quando `linkSistemaOrigem` estiver vazio
-- Fallback para URL de busca Google quando Firecrawl não encontra
+2. **Kanban Board**:
+   - 5 colunas (Lead, Contato Feito, Visita/Reuniao, Proposta, Pedido)
+   - Cards compactos: nome cliente, valor, dias na etapa, proximo passo
+   - Drag & drop para mover entre etapas (atualiza status no banco)
+   - Ao mover para "Perdido", abre dialog pedindo motivo
 
-### Leads existentes
+3. **Card do Lead** (compacto):
+   - Nome do cliente, cidade/UF
+   - Valor estimado
+   - Dias na etapa atual
+   - Icone de WhatsApp para contato rapido
+   - Click abre drawer lateral com detalhes + historico + acoes
 
-- Para leads PNCP já salvos com links quebrados, atualizar o fallback no frontend: quando o link contém `pncp.gov.br/app/editais/` e o CNPJ está disponível, redirecionar para uma busca Google ao invés de abrir o link quebrado direto
+4. **Drawer Lateral** (ao clicar no card):
+   - Dados do lead completos
+   - Timeline de atividades
+   - Botoes de acao rapida: registrar contato, agendar visita, criar proposta
+   - Marcar como perdido (com motivo)
+
+5. **Filtros** (acima do kanban):
+   - Busca por cliente
+   - Filtro por SDR/vendedor
+   - Periodo
+
+## Detalhes Tecnicos
+
+### Migracao de Banco
+- Adicionar novos valores ao enum `lead_status`: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`
+- Migrar dados existentes: `novo` → `lead`, `contatado`/`respondeu` → `contato_feito`, `qualificado`/`encaminhado` → `proposta`
+- O campo `pipeline_status` pode ser descontinuado — usar apenas `status`
+
+### Arquivos a Criar
+- `src/pages/CRM.tsx` — pagina principal
+- `src/components/crm/KanbanBoard.tsx` — board com colunas
+- `src/components/crm/KanbanCard.tsx` — card individual do lead
+- `src/components/crm/LeadDrawer.tsx` — drawer lateral com detalhes
+- `src/components/crm/CRMKPIs.tsx` — barra de KPIs
+- `src/components/crm/LostDealsDialog.tsx` — dialog/indicador de perdidos
+- `src/components/crm/QuickActionButtons.tsx` — acoes rapidas no drawer
+
+### Arquivos a Modificar
+- `src/App.tsx` — adicionar rota `/crm`, redirecionar `/pre-vendas` e `/pipeline` para `/crm`
+- `src/components/AppSidebar.tsx` — substituir 2 itens (Pre-Vendas + Pipeline) por 1 item "CRM"
+- `src/hooks/useUserPermissions.ts` — substituir `prevendas` + `pipeline` por `crm`
+- `src/context/PreVendasContext.tsx` — adaptar para novos status (ou criar novo CRMContext)
+
+### Drag & Drop
+- Usar a lib existente ou CSS nativo com `draggable` + `onDragOver`/`onDrop` para manter leve
+- Ao soltar em nova coluna, chamar `supabase.from('leads').update({ status: novoStatus })` 
+- Se soltar em "Perdido", abrir dialog de motivo antes de confirmar
+
+### Mobile
+- Kanban com scroll horizontal (snap) nas colunas
+- Cards empilhados verticalmente dentro de cada coluna
+- Drawer vira sheet de baixo (vaul)
+
+### Meta Diaria de Contatos
+- Reutilizar `admin_goals.daily_contacts_goal` ja existente
+- Contar atividades do tipo `contato_inicial` do dia atual
+- Exibir progresso visual no KPI bar
+
+### Controle de Perdidos
+- Card/badge no topo mostrando total de perdidos no periodo
+- Click abre lista filtrada dos leads perdidos com motivo e data
+- Indicador percentual (perdidos / total do funil)
 

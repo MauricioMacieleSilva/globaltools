@@ -460,6 +460,7 @@ serve(async (req) => {
     }
 
     // Process PNCP results
+    const pncpItemsForFirecrawl: { cnpj: string; objeto: string; index: number }[] = [];
     for (const results of pncpResults) {
       const items = Array.isArray(results) ? results : [];
       for (const item of items) {
@@ -471,32 +472,20 @@ serve(async (req) => {
         const municipio = unidade.municipioNome || "";
         const valor = item.valorTotalEstimado || item.valorTotalHomologado || "";
         const linkOrigem = item.linkSistemaOrigem || "";
-        // Build PNCP portal link - correct format: /app/editais/{cnpj}/{ano}/{sequencial}
-        // Try numeroControlePNCP first (format: "cnpj-seq-ano/year") or build from individual fields
-        const numeroControle = item.numeroControlePNCP || '';
-        let pncpPortalLink = '';
-        
-        if (numeroControle) {
-          // numeroControlePNCP typically has format like "13132152000190-1-000007/2026"
-          // Extract parts: cnpj, sequential, year
-          const controleParts = numeroControle.match(/^(\d+)-(\d+)-(\d+)\/(\d+)$/);
-          if (controleParts) {
-            const [, cnpjPart, , seqPart, anoPart] = controleParts;
-            pncpPortalLink = `https://pncp.gov.br/app/editais/${cnpjPart}/${anoPart}/${parseInt(seqPart, 10)}`;
-          }
+        // Store PNCP data for Firecrawl lookup later
+        const pncpCnpj = cnpj?.replace(/\D/g, '') || '';
+        const objetoResumo = objeto.slice(0, 60);
+        // Use linkSistemaOrigem if available, otherwise mark for Firecrawl search
+        // We'll use a Google fallback URL as placeholder and try Firecrawl below
+        let finalLink = linkOrigem;
+        if (!finalLink) {
+          // Placeholder: will be replaced by Firecrawl search result if possible
+          finalLink = `https://www.google.com/search?q=pncp+${encodeURIComponent(pncpCnpj)}+${encodeURIComponent(objetoResumo)}`;
         }
-        
-        if (!pncpPortalLink) {
-          const cnpjOrgao = item.orgaoEntidade?.cnpj?.replace(/\D/g, '') || '';
-          const anoCompra = item.anoCompra || '';
-          const seqCompra = item.sequencialCompra || '';
-          if (cnpjOrgao && anoCompra && seqCompra) {
-            pncpPortalLink = `https://pncp.gov.br/app/editais/${cnpjOrgao}/${anoCompra}/${parseInt(String(seqCompra), 10)}`;
-          } else {
-            pncpPortalLink = `https://pncp.gov.br/app/editais?q=${encodeURIComponent(objeto.slice(0, 80))}`;
-          }
+        // Track items needing Firecrawl lookup
+        if (!linkOrigem && pncpCnpj) {
+          pncpItemsForFirecrawl.push({ cnpj: pncpCnpj, objeto: objetoResumo, index: allSearchResults.length });
         }
-        const finalLink = linkOrigem || pncpPortalLink;
 
         const text = [
           orgao && `Órgão/Empresa: ${orgao}`,
@@ -511,7 +500,54 @@ serve(async (req) => {
       }
     }
 
-    // Process ObrasGov results
+    // ====== Firecrawl Search: find real PNCP URLs (max 5 to save credits) ======
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+    if (FIRECRAWL_API_KEY && pncpItemsForFirecrawl.length > 0) {
+      const itemsToSearch = pncpItemsForFirecrawl.slice(0, 5);
+      console.log(`🔎 [Firecrawl] Buscando ${itemsToSearch.length} URLs reais do PNCP...`);
+      
+      for (const item of itemsToSearch) {
+        try {
+          const searchQuery = `site:pncp.gov.br "${item.cnpj}" "${item.objeto}"`;
+          const fcResponse = await fetchWithTimeout("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: searchQuery,
+              limit: 1,
+              lang: "pt-br",
+              country: "br",
+            }),
+          }, 10000);
+
+          if (fcResponse.ok) {
+            const fcData = await fcResponse.json();
+            const foundUrl = fcData?.data?.[0]?.url;
+            if (foundUrl && foundUrl.includes('pncp.gov.br')) {
+              console.log(`✅ [Firecrawl] Found real URL for CNPJ ${item.cnpj}: ${foundUrl}`);
+              // Replace the Google fallback URL in the corresponding search result
+              const resultText = allSearchResults[item.index];
+              if (resultText) {
+                allSearchResults[item.index] = resultText.replace(
+                  /URL_FONTE:\s*https?:\/\/[^\s\n]+/i,
+                  `URL_FONTE: ${foundUrl}`
+                );
+              }
+            } else {
+              await fcResponse.text(); // consume body
+            }
+          } else {
+            await fcResponse.text(); // consume body
+          }
+        } catch (e) {
+          console.warn(`Firecrawl PNCP search failed for ${item.cnpj}:`, e);
+        }
+      }
+    }
+
     for (const results of obrasgovResults) {
       const items = Array.isArray(results) ? results : [];
       for (const item of items) {
@@ -584,7 +620,8 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         }
         if (!lead.source_url) {
           if (lead.fonte_dados === 'PNCP') {
-            lead.source_url = `https://pncp.gov.br/app/editais?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
+            const cnpjSearch = lead.cliente_cnpj?.replace(/\D/g, '') || '';
+            lead.source_url = `https://www.google.com/search?q=pncp+${encodeURIComponent(cnpjSearch)}+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`;
           } else if (lead.fonte_dados === 'ObrasGov') {
             lead.source_url = `https://obrasgov.sistema.gov.br/obrasgov/painel/projeto-investimento?search=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
           } else {

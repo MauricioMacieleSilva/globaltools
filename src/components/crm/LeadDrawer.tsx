@@ -336,7 +336,11 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <div className="flex items-center gap-2 text-sm">
                   <Globe className="h-4 w-4 text-muted-foreground" />
                   <a
-                    href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
+                    href={
+                      lead.website.includes('pncp.gov.br/app/editais/')
+                        ? `https://www.google.com/search?q=pncp+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`
+                        : (lead.website.startsWith('http') ? lead.website : `https://${lead.website}`)
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline truncate flex items-center gap-1"

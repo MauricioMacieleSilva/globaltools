@@ -70,6 +70,7 @@ export const CRM_STAGES = [
 export type CRMStageKey = typeof CRM_STAGES[number]['key'];
 
 export default function CRM() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState<CRMLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);

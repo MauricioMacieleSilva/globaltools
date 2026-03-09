@@ -74,8 +74,6 @@ function AppContent() {
         return 'Gestão de Conhecimento';
       case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
-      case '/admin/ia-proativa':
-        return 'IA Proativa - Teste';
       default:
         return 'Global Aço';
     }

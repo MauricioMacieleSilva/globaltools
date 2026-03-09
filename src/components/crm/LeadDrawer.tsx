@@ -61,6 +61,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [editOpen, setEditOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ key: string; label: string } | null>(null);
   const [orderValue, setOrderValue] = useState<number | null>(null);
+  const [nextVisit, setNextVisit] = useState<{ id: string; date: string; location: string | null } | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {

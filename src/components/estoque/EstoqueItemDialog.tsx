@@ -542,7 +542,7 @@ export function EstoqueItemDialog({
                         type="number"
                         step="0.01"
                         value={form.aba2}
-                        onChange={(e) => setForm({ ...form, aba2: e.target.value })}
+                        onChange={(e) => { setAba2ManualEdit(true); setForm({ ...form, aba2: e.target.value }); }}
                         placeholder="0"
                       />
                     </div>

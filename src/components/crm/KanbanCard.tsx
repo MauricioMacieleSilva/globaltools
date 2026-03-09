@@ -1,10 +1,10 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
+import { OrderDetailDialog } from './OrderDetailDialog';
 
 interface KanbanCardProps {
   lead: CRMLead;
@@ -18,8 +18,8 @@ function getDaysInStage(updatedAt: string): number {
 }
 
 export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
-  const navigate = useNavigate();
   const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -115,7 +115,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
             className="flex items-center gap-1 text-[10px] font-medium text-primary cursor-pointer hover:underline"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/dashboard-comercial?pedido=${lead.budget_number}`);
+              setOrderDialogOpen(true);
             }}
           >
             <Package className="h-3 w-3 shrink-0" />
@@ -157,6 +157,15 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
       </div>
+
+      {/* Order detail popup */}
+      {lead.budget_number && (
+        <OrderDetailDialog
+          open={orderDialogOpen}
+          onClose={() => setOrderDialogOpen(false)}
+          budgetNumber={lead.budget_number}
+        />
+      )}
     </Card>
   );
 }

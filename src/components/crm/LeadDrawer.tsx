@@ -1,6 +1,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { OrderDetailDialog } from './OrderDetailDialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [orderValue, setOrderValue] = useState<number | null>(null);
   const [nextVisit, setNextVisit] = useState<{ id: string; date: string; location: string | null } | null>(null);
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
 
   useEffect(() => {
     if (lead?.id && open) {
@@ -362,7 +362,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               {lead.budget_number && (
                 <div
                   className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
-                  onClick={() => navigate(`/dashboard-comercial?pedido=${lead.budget_number}`)}
+                  onClick={() => setOrderDialogOpen(true)}
                 >
                   <Package className="h-4 w-4" />
                   <span>Pedido {lead.budget_number}</span>
@@ -610,6 +610,15 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Order detail popup */}
+      {lead?.budget_number && (
+        <OrderDetailDialog
+          open={orderDialogOpen}
+          onClose={() => setOrderDialogOpen(false)}
+          budgetNumber={lead.budget_number}
+        />
+      )}
     </>
   );
 }

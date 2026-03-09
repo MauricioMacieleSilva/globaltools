@@ -292,13 +292,14 @@ export default function CRM() {
 
   const handleVisitConfirmed = async () => {
     if (!pendingVisitLead) return;
-    // Update lead status after visit is scheduled
     try {
+      const user = (await supabase.auth.getUser()).data.user;
       await (supabase as any)
         .from('leads')
         .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
         .eq('id', pendingVisitLead.id);
       setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
+      await ensureContactRegistered(pendingVisitLead.id, user?.id || '');
     } catch {}
     setPendingVisitLead(null);
   };

@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import {
   Loader2, CheckCircle2, XCircle, Building2, Phone, Mail,
-  MapPin, FileText, Sparkles, CheckCheck, Trash2
+  MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink
 } from 'lucide-react';
 
 interface StagedLead {

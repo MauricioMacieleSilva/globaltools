@@ -113,6 +113,15 @@ export default function CRM() {
     }
   }, []);
 
+  // Auto-open carousel from URL param (e.g. /crm?tv=1)
+  useEffect(() => {
+    if (searchParams.get('tv') === '1') {
+      setCarouselOpen(true);
+      searchParams.delete('tv');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
 
   useEffect(() => {
     loadLeads();

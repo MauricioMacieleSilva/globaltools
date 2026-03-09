@@ -471,32 +471,20 @@ serve(async (req) => {
         const municipio = unidade.municipioNome || "";
         const valor = item.valorTotalEstimado || item.valorTotalHomologado || "";
         const linkOrigem = item.linkSistemaOrigem || "";
-        // Build PNCP portal link - correct format: /app/editais/{cnpj}/{ano}/{sequencial}
-        // Try numeroControlePNCP first (format: "cnpj-seq-ano/year") or build from individual fields
-        const numeroControle = item.numeroControlePNCP || '';
-        let pncpPortalLink = '';
-        
-        if (numeroControle) {
-          // numeroControlePNCP typically has format like "13132152000190-1-000007/2026"
-          // Extract parts: cnpj, sequential, year
-          const controleParts = numeroControle.match(/^(\d+)-(\d+)-(\d+)\/(\d+)$/);
-          if (controleParts) {
-            const [, cnpjPart, , seqPart, anoPart] = controleParts;
-            pncpPortalLink = `https://pncp.gov.br/app/editais/${cnpjPart}/${anoPart}/${parseInt(seqPart, 10)}`;
-          }
+        // Store PNCP data for Firecrawl lookup later
+        const pncpCnpj = cnpj?.replace(/\D/g, '') || '';
+        const objetoResumo = objeto.slice(0, 60);
+        // Use linkSistemaOrigem if available, otherwise mark for Firecrawl search
+        // We'll use a Google fallback URL as placeholder and try Firecrawl below
+        let finalLink = linkOrigem;
+        if (!finalLink) {
+          // Placeholder: will be replaced by Firecrawl search result if possible
+          finalLink = `https://www.google.com/search?q=pncp+${encodeURIComponent(pncpCnpj)}+${encodeURIComponent(objetoResumo)}`;
         }
-        
-        if (!pncpPortalLink) {
-          const cnpjOrgao = item.orgaoEntidade?.cnpj?.replace(/\D/g, '') || '';
-          const anoCompra = item.anoCompra || '';
-          const seqCompra = item.sequencialCompra || '';
-          if (cnpjOrgao && anoCompra && seqCompra) {
-            pncpPortalLink = `https://pncp.gov.br/app/editais/${cnpjOrgao}/${anoCompra}/${parseInt(String(seqCompra), 10)}`;
-          } else {
-            pncpPortalLink = `https://pncp.gov.br/app/editais?q=${encodeURIComponent(objeto.slice(0, 80))}`;
-          }
+        // Track items needing Firecrawl lookup
+        if (!linkOrigem && pncpCnpj) {
+          pncpItemsForFirecrawl.push({ cnpj: pncpCnpj, objeto: objetoResumo, index: allSearchResults.length });
         }
-        const finalLink = linkOrigem || pncpPortalLink;
 
         const text = [
           orgao && `Órgão/Empresa: ${orgao}`,

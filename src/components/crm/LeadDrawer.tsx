@@ -112,7 +112,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
   };
 
-  const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
+  const countContactsToday = async (leadId: string): Promise<number> => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const { data } = await supabase
@@ -120,9 +120,15 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       .select('id')
       .eq('lead_id', leadId)
       .eq('activity_type', 'contato_inicial')
-      .gte('created_at', today.toISOString())
-      .limit(1);
-    return (data?.length || 0) > 0;
+      .gte('created_at', today.toISOString());
+    return data?.length || 0;
+  };
+
+  const ordinal = (n: number) => {
+    if (n === 1) return '1º';
+    if (n === 2) return '2º';
+    if (n === 3) return '3º';
+    return `${n}º`;
   };
 
   const addNote = async () => {
@@ -154,8 +160,8 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       toast.error('Nota obrigatória', { description: 'Preencha uma anotação antes de registrar o contato.' });
       return;
     }
-    const already = await checkContactAlreadyToday(lead.id);
     try {
+      const todayCount = await countContactsToday(lead.id);
       const user = (await supabase.auth.getUser()).data.user;
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').single();
       const userName = profile?.full_name || 'Usuário';
@@ -167,25 +173,25 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         user_id: user?.id || '',
         sdr_name: userName,
       } as any);
-      // Only register a new contato_inicial if not already done today
-      if (!already) {
-        await supabase.from('lead_activities').insert({
-          lead_id: lead.id,
-          activity_type: 'contato_inicial',
-          description: 'Contato registrado',
-          user_id: user?.id || '',
-          sdr_name: userName,
-        } as any);
-        if (lead.status === 'lead') {
-          onStatusChange(lead.id, 'contato_feito');
-        }
+      // Always register a new contato_inicial
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado',
+        user_id: user?.id || '',
+        sdr_name: userName,
+      } as any);
+      if (lead.status === 'lead') {
+        onStatusChange(lead.id, 'contato_feito');
+      }
+      const newCount = todayCount + 1;
+      if (newCount === 1) {
         toast.success('Contato registrado com sucesso');
       } else {
-        toast.info('Contato já registrado hoje', {
-          description: 'Já existe um registro de contato para este cliente hoje. Sua nota foi salva e você pode continuar atualizando as informações.',
+        toast.success(`${ordinal(newCount)} contato do dia registrado`, {
+          description: 'Nota salva e contato registrado.',
         });
       }
-
       setNewNote('');
       loadActivities(lead.id);
     } catch {

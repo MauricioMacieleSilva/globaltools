@@ -352,7 +352,7 @@ export default function CRM() {
   }));
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-5">
+    <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-3 overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between gap-2">
           <TabsList data-tour="crm-tabs" className="h-8">

@@ -269,7 +269,7 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
               ${categoria === 'PERFIS' ? `<th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Tipo</th>` : ''}
               <th style="padding:10px 12px;text-align:center;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Qtd</th>
               <th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Peso</th>
-              ${isPrecoCategoria ? `<th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Valor</th>` : ''}
+              ${showValor ? `<th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Valor</th>` : ''}
               <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Local</th>
             </tr>
           </thead>

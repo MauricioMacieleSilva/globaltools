@@ -24,19 +24,28 @@ export function OrderDetailDialog({ open, onClose, budgetNumber }: OrderDetailDi
     fetchComercialData()
       .then((data) => {
         const allMatches = data.filter(d => String(d.numeropedido).trim() === String(budgetNumber).trim());
-        // Se houver duplicatas (filiais diferentes), pegar o pedido mais recente pela data de emissão
         if (allMatches.length > 0) {
-          // Agrupar por cliente para identificar filiais diferentes
-          // Ordenar todos os itens pela data de emissão (mais recente primeiro)
-          const sorted = [...allMatches].sort((a, b) => {
+          // Filtrar pedidos com menos de 10 meses para evitar conflito entre filiais
+          const tenMonthsAgo = new Date();
+          tenMonthsAgo.setMonth(tenMonthsAgo.getMonth() - 10);
+          
+          const recentMatches = allMatches.filter(d => {
+            const dt = parseDate(d.data_emissao);
+            return dt && dt.getTime() >= tenMonthsAgo.getTime();
+          });
+          
+          // Usar recentes se houver, senão fallback para todos ordenados por data
+          const candidates = recentMatches.length > 0 ? recentMatches : allMatches;
+          
+          // Ordenar por data mais recente e pegar apenas itens dessa data
+          const sorted = [...candidates].sort((a, b) => {
             const da = parseDate(a.data_emissao)?.getTime() || 0;
             const db = parseDate(b.data_emissao)?.getTime() || 0;
             return db - da;
           });
-          // Pegar a data mais recente e filtrar apenas itens dessa data
           const mostRecentDate = sorted[0]?.data_emissao;
-          const filtered = allMatches.filter(d => d.data_emissao === mostRecentDate);
-          setItems(filtered.length > 0 ? filtered : allMatches);
+          const filtered = candidates.filter(d => d.data_emissao === mostRecentDate);
+          setItems(filtered.length > 0 ? filtered : candidates);
         } else {
           setItems([]);
         }

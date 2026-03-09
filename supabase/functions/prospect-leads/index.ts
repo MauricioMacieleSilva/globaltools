@@ -105,7 +105,53 @@ async function searchPNCP(keywords: string, uf: string, maxResults: number): Pro
   }
 }
 
-// ====== SOURCE 3: BrasilAPI - CNPJ enrichment ======
+// ====== SOURCE 3: ObrasGov.br (Obras Públicas Federais) ======
+const OBRASGOV_STEEL_KEYWORDS = [
+  'construção', 'construcao', 'galpão', 'galpao', 'estrutura', 'cobertura',
+  'ampliação', 'ampliacao', 'reforma', 'pavilhão', 'pavilhao', 'industrial',
+  'ponte', 'viaduto', 'passarela', 'saneamento', 'infraestrutura',
+];
+
+async function searchObrasGov(uf: string, maxResults: number): Promise<any[]> {
+  try {
+    console.log(`🏗️ [ObrasGov] Buscando obras em ${uf}...`);
+    const url = `https://api.obrasgov.gestao.gov.br/obrasgov/api/projeto-investimento?uf=${uf}&page=0&size=${Math.min(maxResults, 50)}`;
+    const response = await fetchWithTimeout(url, {
+      headers: { "Accept": "application/json" },
+    }, 15000);
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`ObrasGov error ${response.status}: ${errText}`);
+      return [];
+    }
+
+    const data = await response.json();
+    const items = data?.content ?? [];
+
+    // Filter for active construction obras and relevant keywords
+    const filtered = items.filter((item: any) => {
+      if (item.situacao === 'Cancelada') return false;
+      const especie = (item.especie || '').toLowerCase();
+      const nome = (item.nome || '').toLowerCase();
+      const descricao = (item.descricao || '').toLowerCase();
+      const combined = `${especie} ${nome} ${descricao}`;
+      return OBRASGOV_STEEL_KEYWORDS.some(kw => combined.includes(kw));
+    });
+
+    console.log(`🏗️ [ObrasGov] ${uf}: ${items.length} total, ${filtered.length} relevantes`);
+    return filtered;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      console.warn(`ObrasGov timeout for UF: ${uf}`);
+    } else {
+      console.error("ObrasGov search error:", e);
+    }
+    return [];
+  }
+}
+
+// ====== SOURCE 4: BrasilAPI - CNPJ enrichment ======
 async function enrichCNPJ(cnpj: string): Promise<any | null> {
   try {
     const cleanCnpj = cnpj.replace(/\D/g, "");

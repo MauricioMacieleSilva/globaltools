@@ -251,7 +251,7 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
             <div style="font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Peso Total</div>
             <div style="font-size:22px;font-weight:700;color:#2d3748;margin-top:2px;">${formatWeight(cat.totalPeso)}</div>
           </td>
-          ${isPrecoCategoria ? `
+          ${showValor ? `
           <td style="padding:12px 16px;text-align:center;background:${colors.bg};border-left:1px solid #e2e8f0;">
             <div style="font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;letter-spacing:0.5px;">Valor Est.</div>
             <div style="font-size:22px;font-weight:700;color:#059669;margin-top:2px;">${formatCurrency(cat.totalValor)}</div>

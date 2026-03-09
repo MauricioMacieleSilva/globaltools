@@ -48,8 +48,8 @@ export function TeamPerformance({ leads }: TeamPerformanceProps) {
     const userLeads = leads.filter(l => l.vendedor_id === v.id && new Date(l.created_at) >= cutoff);
     const userActivities = activities.filter(a => a.user_id === v.id);
     const contacts = userActivities.filter(a => a.activity_type === 'contato_inicial').length;
-    const conversions = userLeads.filter(l => l.status === 'pedido').length;
-    const totalValue = userLeads.filter(l => l.status === 'pedido').reduce((s, l) => s + (l.valor_estimado || 0), 0);
+    const conversions = userLeads.filter(l => l.status === 'pedido_fechado').length;
+    const totalValue = userLeads.filter(l => l.status === 'pedido_fechado').reduce((s, l) => s + (l.valor_estimado || 0), 0);
     return {
       id: v.id,
       name: v.full_name,

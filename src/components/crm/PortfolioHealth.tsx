@@ -12,7 +12,7 @@ interface PortfolioHealthProps {
 export function PortfolioHealth({ leads, onLeadClick }: PortfolioHealthProps) {
   const now = new Date();
   const staleLeads = leads.filter(l => {
-    if (l.status === 'perdido' || l.status === 'pedido') return false;
+    if (l.status === 'perdido' || l.status === 'pedido_fechado') return false;
     const daysSince = Math.floor((now.getTime() - new Date(l.updated_at).getTime()) / 86400000);
     return daysSince >= 5;
   }).sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime());

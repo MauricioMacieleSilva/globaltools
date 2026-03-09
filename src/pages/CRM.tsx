@@ -141,7 +141,7 @@ export default function CRM() {
     }
 
     // Intercept proposta/pedido -> require order link only if not already linked
-    if (newStatus === 'proposta' || newStatus === 'pedido') {
+    if (newStatus === 'proposta' || newStatus === 'pedido_fechado') {
       if (lead.budget_number) {
         // Already has a linked order — skip dialog, move directly
         // falls through to normal update below

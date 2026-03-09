@@ -35,7 +35,7 @@ export function TeamPerformance({ leads }: TeamPerformanceProps) {
 
       const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
       const cutoff = new Date(Date.now() - days * 86400000).toISOString();
-      const { data: a } = await supabase.from('lead_activities').select('user_id, activity_type').gte('created_at', cutoff);
+      const { data: a } = await supabase.from('lead_activities').select('user_id, activity_type, lead_id, created_at').gte('created_at', cutoff);
       if (a) setActivities(a);
     };
     load();

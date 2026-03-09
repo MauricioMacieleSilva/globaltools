@@ -437,6 +437,38 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
+    // Fetch politica comercial prices for non-espessura categories
+    const { data: politicaItens } = await supabaseAdmin
+      .from('politica_comercial_itens')
+      .select('classe, preco, preco_kg')
+      .eq('ativo', true);
+
+    // Build average price per category (preco_kg if available, otherwise preco as R$/kg)
+    const precosCategoriaMap: Record<string, number> = {};
+    const categoriaPrices: Record<string, number[]> = {};
+    (politicaItens || []).forEach((p: any) => {
+      const classe = p.classe?.toUpperCase();
+      if (!classe) return;
+      // Map politica classes to estoque categories
+      const catMap: Record<string, string> = {
+        'ARAMES': 'ARAMES', 'TELHAS': 'TELHAS', 'TUBOS': 'TUBOS',
+        'LAMINADOS': 'LAMINADOS', 'VERGALHAO': 'VERGALHAO',
+        'BOBINAS': 'BOBINAS', 'CHAPAS': 'CHAPAS',
+      };
+      const estoqueCat = catMap[classe];
+      if (estoqueCat && CATEGORIAS_PRECO_POLITICA.includes(estoqueCat)) {
+        if (!categoriaPrices[estoqueCat]) categoriaPrices[estoqueCat] = [];
+        const price = p.preco_kg || p.preco || 0;
+        if (price > 0) categoriaPrices[estoqueCat].push(price);
+      }
+    });
+    // Use average price per category
+    for (const [cat, prices] of Object.entries(categoriaPrices)) {
+      if (prices.length > 0) {
+        precosCategoriaMap[cat] = prices.reduce((a, b) => a + b, 0) / prices.length;
+      }
+    }
+
     // Group by category and filter empty ones
     const categoriasMap = new Map<string, EstoqueItem[]>();
     (estoqueItems || []).forEach((item: any) => {
@@ -468,6 +500,9 @@ const handler = async (req: Request): Promise<Response> => {
         if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria)) {
           const precoKg = getPrecoByEspessura(item.espessura, precosMap);
           totalValor += peso * precoKg;
+        } else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria)) {
+          const precoKg = precosCategoriaMap[item.categoria] || 0;
+          totalValor += peso * precoKg;
         }
       });
 
@@ -497,7 +532,7 @@ const handler = async (req: Request): Promise<Response> => {
       totalItens: globalTotalItens,
       totalPeso: globalTotalPeso,
       totalValor: globalTotalValor,
-    });
+    }, precosCategoriaMap);
 
     // Get recipients
     const { data: configs } = await supabaseAdmin.from('email_reports_config').select('email, full_name').eq('is_active', true);

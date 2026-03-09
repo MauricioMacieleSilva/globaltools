@@ -129,7 +129,7 @@ const DAY_OPTIONS = [
 ];
 
 function EstoqueConfig() {
-  const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string; send_day: string } | null>(null);
+  const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();

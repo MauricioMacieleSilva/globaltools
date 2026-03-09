@@ -75,7 +75,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       <div className="space-y-1.5">
         {/* Header: empresa + whatsapp */}
         <div className="flex items-start justify-between gap-1">
-          <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{lead.empresa || name}</h4>
+          <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{toTitleCase(lead.empresa || name || '')}</h4>
           {whatsappUrl && (
             <a
               href={whatsappUrl}

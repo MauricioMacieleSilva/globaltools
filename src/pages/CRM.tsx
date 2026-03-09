@@ -184,7 +184,6 @@ export default function CRM() {
             user_id: user?.id || '',
           } as any);
         }
-        loadTodayStats();
       }
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });

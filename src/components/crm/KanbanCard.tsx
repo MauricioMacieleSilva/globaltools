@@ -157,6 +157,15 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
       </div>
+
+      {/* Order detail popup */}
+      {lead.budget_number && (
+        <OrderDetailDialog
+          open={orderDialogOpen}
+          onClose={() => setOrderDialogOpen(false)}
+          budgetNumber={lead.budget_number}
+        />
+      )}
     </Card>
   );
 }

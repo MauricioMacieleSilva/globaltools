@@ -119,7 +119,7 @@ export function EstoqueKPIs({ items, precosEspessuraMap, precosCategoriaMap }: E
       porCategoria,
       categoriasComItens
     };
-  }, [items, precosEspessuraMap]);
+  }, [items, precosEspessuraMap, precosCategoriaMap]);
 
   const formatWeight = (peso: number) => {
     if (peso >= 1000) {

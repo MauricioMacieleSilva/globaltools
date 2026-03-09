@@ -239,14 +239,8 @@ function AppContent() {
                                     </ProtectedRoute>
                                   }
                                 />
-                                <Route
-                                  path="/admin/conhecimento"
-                                  element={
-                                    <ProtectedRoute requireRole="admin">
-                                      <KnowledgeManagement />
-                                    </ProtectedRoute>
-                                  }
-                                />
+
+
                                 <Route
                                   path="/admin/usuarios"
                                   element={

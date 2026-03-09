@@ -64,7 +64,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [orderValue, setOrderValue] = useState<number | null>(null);
   const [nextVisit, setNextVisit] = useState<{ id: string; date: string; location: string | null } | null>(null);
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
 
   useEffect(() => {
     if (lead?.id && open) {

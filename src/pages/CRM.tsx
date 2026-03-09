@@ -581,7 +581,7 @@ export default function CRM() {
         labels={['Dashboard CRM', 'Dashboard Comercial']}
       >
         <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
-        <DashboardComercial />
+        <DashboardComercial tvMode />
       </DashboardCarousel>
     </div>
   );

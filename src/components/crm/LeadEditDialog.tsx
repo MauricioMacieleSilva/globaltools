@@ -58,6 +58,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         cliente_nome: lead.cliente_nome || '',
         cliente_telefone: lead.cliente_telefone || lead.contact_phone || '',
         cliente_email: lead.cliente_email || lead.contact_email || '',
+        website: (lead as any).website || '',
         source: lead.source || lead.origem || '',
         status: lead.status || 'lead',
         produto_interesse: '',

@@ -75,7 +75,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [cidadeSearch, setCidadeSearch] = useState('');
   const [ramoPopoverOpen, setRamoPopoverOpen] = useState(false);
   const [ramoSearch, setRamoSearch] = useState('');
-  const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp']);
+  const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp', 'obrasgov']);
 
   // Load estados and business sectors on mount
   useEffect(() => {

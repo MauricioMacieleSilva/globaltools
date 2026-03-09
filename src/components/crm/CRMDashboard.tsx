@@ -112,8 +112,21 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
 
   const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
 
+  // Helper: deduplicate contato_inicial — count only the first per lead per day
+  const uniqueDailyContacts = useMemo(() => {
+    const seen = new Set<string>();
+    return activities.filter(a => {
+      if (a.activity_type !== 'contato_inicial') return false;
+      const day = a.created_at?.slice(0, 10);
+      const key = `${a.lead_id}_${day}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [activities]);
+
   // KPIs
-  const totalContacts = activities.filter(a => a.activity_type === 'contato_inicial').length;
+  const totalContacts = uniqueDailyContacts.length;
   const totalVisits = activities.filter(a => a.activity_type === 'visita').length;
   const totalActivities = activities.length;
   const activeLeads = filteredLeads.length;
@@ -122,12 +135,11 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
   const lostPercent = activeLeads > 0 ? ((lostLeads.length / (activeLeads + lostLeads.length)) * 100).toFixed(1) : '0';
 
   // Today's contacts for progress
-  const todayActivities = useMemo(() => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    return activities.filter(a => a.created_at?.startsWith(todayStr));
-  }, [activities]);
-  const todayContacts = todayActivities.filter(a => a.activity_type === 'contato_inicial').length;
-  const todayVisitsCount = todayActivities.filter(a => a.activity_type === 'visita').length;
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayContacts = uniqueDailyContacts.filter(a => a.created_at?.startsWith(todayStr)).length;
+  const todayVisitsCount = useMemo(() => {
+    return activities.filter(a => a.activity_type === 'visita' && a.created_at?.startsWith(todayStr)).length;
+  }, [activities, todayStr]);
 
   // Daily contacts chart
   const dailyContactsData = useMemo(() => {
@@ -140,11 +152,11 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
       const dayActivities = activities.filter(a => a.created_at.startsWith(dayStr));
       return {
         dia: format(day, 'dd', { locale: ptBR }),
-        contatos: dayActivities.filter(a => a.activity_type === 'contato_inicial').length,
+        contatos: uniqueDailyContacts.filter(a => a.created_at?.startsWith(dayStr)).length,
         visitas: dayActivities.filter(a => a.activity_type === 'visita').length,
       };
     });
-  }, [activities, periodFilter]);
+  }, [activities, uniqueDailyContacts, periodFilter]);
 
   // Funnel data
   const funnelData = useMemo(() => {

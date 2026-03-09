@@ -105,7 +105,7 @@ export function ProspeccaoPanel() {
       if (configs && configs.length > 0) {
         const cfg = configs[0] as ProspectingConfig;
         setConfig(cfg);
-        setRamosInput(cfg.ramos_atuacao?.join(', ') || '');
+        setSelectedRamos(cfg.ramos_atuacao || []);
         setSelectedUF(cfg.estados?.[0] || 'RS');
         setSelectedCidades(cfg.cidades || []);
         setMaxLeads(String(cfg.max_leads_per_run || 10));

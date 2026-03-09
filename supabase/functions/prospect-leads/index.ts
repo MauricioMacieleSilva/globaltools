@@ -399,7 +399,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         continue;
       }
 
-      // Note: 'observacoes' is a generated column (= notes), so we use 'notes' instead
+      // Note: 'observacoes' is generated from 'notes', and 'origem' is generated from 'source'
       const { error: insertError } = await supabaseAdmin.from("leads").insert({
         cliente_nome: lead.cliente_nome,
         empresa: lead.empresa || null,
@@ -412,7 +412,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         ramo_atuacao: lead.ramo_atuacao || null,
         produto_interesse: lead.produto_interesse || null,
         notes: lead.notes || null,
-        origem: "prospeccao_automatica",
+        source: "prospeccao_automatica",
         status: "lead",
       });
 

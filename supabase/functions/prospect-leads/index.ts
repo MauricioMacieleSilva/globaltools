@@ -46,6 +46,15 @@ async function searchGoogle(query: string, maxResults: number): Promise<any[]> {
 }
 
 // ====== SOURCE 2: PNCP (Portal Nacional de Contratações Públicas) ======
+// Keywords related to steel/metal/construction to filter relevant results
+const PNCP_STEEL_KEYWORDS = [
+  'aço', 'aco', 'metalic', 'metal', 'estrutura metálica', 'estrutura metalica',
+  'chapa', 'perfil', 'bobina', 'tubo', 'viga', 'coluna', 'treliça', 'trelica',
+  'cobertura metálica', 'cobertura metalica', 'galpão', 'galpao', 'serralheria',
+  'grade', 'portão', 'portao', 'ferro', 'solda', 'calha', 'telha',
+  'construção', 'construcao', 'obra', 'reforma', 'ampliação', 'ampliacao',
+];
+
 async function searchPNCP(keywords: string, uf: string, maxResults: number): Promise<any[]> {
   try {
     const today = new Date();
@@ -56,21 +65,41 @@ async function searchPNCP(keywords: string, uf: string, maxResults: number): Pro
     const dateFrom = formatDate(thirtyDaysAgo);
     const dateTo = formatDate(today);
 
-    const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dateFrom}&dataFinal=${dateTo}&codigoModalidadeContratacao=8&uf=${uf}&pagina=1&tamanhoPagina=${Math.min(maxResults, 20)}`;
+    // Search multiple modalities: 6=Pregão Eletrônico, 8=Dispensa, 5=Concorrência
+    const modalities = [6, 8, 5];
+    const allResults: any[] = [];
 
-    console.log(`🏛️ [PNCP] Buscando licitações em ${uf}...`);
-    const response = await fetch(url, {
-      headers: { "Accept": "application/json" },
-    });
+    for (const modalidade of modalities) {
+      // PNCP requires tamanhoPagina >= 10
+      const pageSize = Math.max(10, Math.min(maxResults, 20));
+      const url = `https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial=${dateFrom}&dataFinal=${dateTo}&codigoModalidadeContratacao=${modalidade}&uf=${uf}&pagina=1&tamanhoPagina=${pageSize}`;
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`PNCP error ${response.status}: ${errText}`);
-      return [];
+      console.log(`🏛️ [PNCP] Buscando modalidade ${modalidade} em ${uf}...`);
+      const response = await fetch(url, {
+        headers: { "Accept": "application/json" },
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`PNCP error ${response.status} (mod ${modalidade}): ${errText}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const items = data?.data ?? [];
+      
+      // Filter items by steel/construction related keywords in objetoCompra
+      const filtered = items.filter((item: any) => {
+        const objeto = (item.objetoCompra || '').toLowerCase();
+        return PNCP_STEEL_KEYWORDS.some(kw => objeto.includes(kw));
+      });
+      
+      console.log(`🏛️ [PNCP] Modalidade ${modalidade}: ${items.length} total, ${filtered.length} relevantes para aço/construção`);
+      allResults.push(...filtered);
     }
 
-    const data = await response.json();
-    return data?.data ?? data ?? [];
+    console.log(`🏛️ [PNCP] Total de resultados relevantes em ${uf}: ${allResults.length}`);
+    return allResults;
   } catch (e) {
     console.error("PNCP search error:", e);
     return [];

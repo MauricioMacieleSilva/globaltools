@@ -114,6 +114,8 @@ export function EstoqueItemDialog({
   const { user } = useAuth();
   const [form, setForm] = useState<FormData>(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
+  const [aba2ManualEdit, setAba2ManualEdit] = useState(false);
+  const [enrij2ManualEdit, setEnrij2ManualEdit] = useState(false);
   const isEditing = !!item;
 
   useEffect(() => {
@@ -466,7 +468,7 @@ export function EstoqueItemDialog({
                 <Label htmlFor="tipo_perfil">Tipo de Perfil *</Label>
                 <Select
                   value={form.tipo_perfil}
-                  onValueChange={(value) => setForm({ ...form, tipo_perfil: value, aba1: '', aba2: '', base: '', enrij1: '', enrij2: '' })}
+                  onValueChange={(value) => { setForm({ ...form, tipo_perfil: value, aba1: '', aba2: '', base: '', enrij1: '', enrij2: '' }); setAba2ManualEdit(false); setEnrij2ManualEdit(false); }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />
@@ -519,7 +521,14 @@ export function EstoqueItemDialog({
                         type="number"
                         step="0.01"
                         value={form.aba1}
-                        onChange={(e) => setForm({ ...form, aba1: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const updates: Partial<FormData> = { aba1: val };
+                          if (perfilConfig?.aba2 && !aba2ManualEdit) {
+                            updates.aba2 = val;
+                          }
+                          setForm(prev => ({ ...prev, ...updates }));
+                        }}
                         placeholder="0"
                       />
                     </div>
@@ -533,7 +542,7 @@ export function EstoqueItemDialog({
                         type="number"
                         step="0.01"
                         value={form.aba2}
-                        onChange={(e) => setForm({ ...form, aba2: e.target.value })}
+                        onChange={(e) => { setAba2ManualEdit(true); setForm({ ...form, aba2: e.target.value }); }}
                         placeholder="0"
                       />
                     </div>
@@ -547,7 +556,14 @@ export function EstoqueItemDialog({
                         type="number"
                         step="0.01"
                         value={form.enrij1}
-                        onChange={(e) => setForm({ ...form, enrij1: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const updates: Partial<FormData> = { enrij1: val };
+                          if (perfilConfig?.enrij2 && !enrij2ManualEdit) {
+                            updates.enrij2 = val;
+                          }
+                          setForm(prev => ({ ...prev, ...updates }));
+                        }}
                         placeholder="0"
                       />
                     </div>
@@ -561,7 +577,7 @@ export function EstoqueItemDialog({
                         type="number"
                         step="0.01"
                         value={form.enrij2}
-                        onChange={(e) => setForm({ ...form, enrij2: e.target.value })}
+                        onChange={(e) => { setEnrij2ManualEdit(true); setForm({ ...form, enrij2: e.target.value }); }}
                         placeholder="0"
                       />
                     </div>

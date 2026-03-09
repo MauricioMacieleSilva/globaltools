@@ -124,6 +124,7 @@ export function EstoqueItemDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [aba2ManualEdit, setAba2ManualEdit] = useState(false);
   const [enrij2ManualEdit, setEnrij2ManualEdit] = useState(false);
+  const [enrij4ManualEdit, setEnrij4ManualEdit] = useState(false);
   const isEditing = !!item;
 
   useEffect(() => {

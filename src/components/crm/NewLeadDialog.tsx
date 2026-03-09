@@ -30,6 +30,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     source: '',
     cliente_telefone: '',
     cliente_email: '',
+    website: '',
     status: 'lead',
     produto_interesse: '',
     notes: '',

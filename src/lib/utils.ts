@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 // Valid database columns for leads table
 const VALID_LEAD_COLUMNS = [
   'id', 'client_code', 'client_name', 'contact_name', 'contact_phone', 
-  'contact_email', 'uf', 'cidade', 'status', 'source', 'notes', 'sdr_id', 
+  'contact_email', 'uf', 'cidade', 'estado', 'status', 'source', 'origem', 'notes', 'sdr_id', 
   'sdr_name', 'assigned_at', 'last_contact_at', 'next_contact_at', 
   'converted_at', 'created_at', 'updated_at', 'business_type', 
   'product_interest', 'estimated_volume', 'purchase_frequency', 

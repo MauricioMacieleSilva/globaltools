@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Lead } from '@/context/PreVendasContext';
 import { locationsService } from '@/services/locationsService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LeadDialogProps {
   open: boolean;

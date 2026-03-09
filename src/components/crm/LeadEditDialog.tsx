@@ -23,7 +23,7 @@ interface LeadEditDialogProps {
 }
 
 const REGIMES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real'];
-const DEFAULT_ORIGENS = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];
+const DEFAULT_ORIGENS_FALLBACK = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];
 
 export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEditDialogProps) {
   const [form, setForm] = useState({
@@ -38,6 +38,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
   // Lookups
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
+  const [origens, setOrigens] = useState<string[]>([]);
   const [estados, setEstados] = useState<{ uf: string; nome: string }[]>([]);
   const [cidades, setCidades] = useState<string[]>([]);
   const [loadingCidades, setLoadingCidades] = useState(false);
@@ -49,7 +50,6 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
   const [newProduct, setNewProduct] = useState('');
   const [addingOrigem, setAddingOrigem] = useState(false);
   const [novaOrigem, setNovaOrigem] = useState('');
-  const [origens, setOrigens] = useState(DEFAULT_ORIGENS);
 
   useEffect(() => {
     if (lead && open) {
@@ -59,7 +59,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         cliente_telefone: lead.cliente_telefone || lead.contact_phone || '',
         cliente_email: lead.cliente_email || lead.contact_email || '',
         website: (lead as any).website || '',
-        source: lead.source || lead.origem || '',
+        source: lead.origem || lead.source || '',
         status: lead.status || 'lead',
         produto_interesse: '',
         notes: lead.notes || lead.observacoes || '',
@@ -100,12 +100,21 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
   };
 
   const loadLookups = async () => {
-    const [s, p] = await Promise.all([
+    const [s, p, o] = await Promise.all([
       (supabase as any).from('crm_business_sectors').select('id, name').eq('is_active', true).order('name'),
       (supabase as any).from('crm_product_interests').select('id, name').eq('is_active', true).order('name'),
+      (supabase as any)
+        .from('crm_lead_sources')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .order('name', { ascending: true }),
     ]);
     setSectors(s.data || []);
     setProducts(p.data || []);
+
+    const names = (o.data || []).map((d: any) => d.name);
+    setOrigens(names.length > 0 ? names : DEFAULT_ORIGENS_FALLBACK);
   };
 
   const handleAddSector = async () => {
@@ -128,14 +137,29 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
     loadLookups();
   };
 
-  const handleAddOrigem = () => {
+  const handleAddOrigem = async () => {
     const trimmed = novaOrigem.trim();
-    if (trimmed && !origens.includes(trimmed)) {
-      setOrigens(prev => [...prev, trimmed]);
+    if (!trimmed) return;
+
+    if (origens.includes(trimmed)) {
       setForm(f => ({ ...f, source: trimmed }));
+      setNovaOrigem('');
+      setAddingOrigem(false);
+      return;
     }
-    setNovaOrigem('');
-    setAddingOrigem(false);
+
+    try {
+      const { error } = await (supabase as any).from('crm_lead_sources').insert({ name: trimmed });
+      if (error) throw error;
+      setForm(f => ({ ...f, source: trimmed }));
+      setNovaOrigem('');
+      setAddingOrigem(false);
+      loadLookups();
+      toast.success('Origem adicionada');
+    } catch (err: any) {
+      console.error('Erro ao adicionar origem:', err);
+      toast.error('Erro ao adicionar origem', { description: err.message });
+    }
   };
 
   const toggleProduct = (name: string) => {
@@ -177,6 +201,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         cliente_email: form.cliente_email || null,
         contact_email: form.cliente_email || null,
         source: form.source || null,
+        origem: form.source || null,
         status: form.status,
         produto_interesse: selectedProducts.length > 0 ? selectedProducts.join(', ') : null,
         notes: form.notes || null,

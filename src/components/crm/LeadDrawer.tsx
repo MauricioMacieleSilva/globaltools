@@ -128,7 +128,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
   };
 
-
+  const loadActivities = async (leadId: string) => {
     const { data } = await supabase
       .from('lead_activities')
       .select('*')

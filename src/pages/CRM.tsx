@@ -103,33 +103,6 @@ export default function CRM() {
     }
   }, []);
 
-  const loadTodayStats = useCallback(async () => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { data } = await supabase
-        .from('lead_activities')
-        .select('id, activity_type')
-        .gte('created_at', today.toISOString());
-      if (data) {
-        setTodayContacts(data.filter(a => a.activity_type === 'contato_inicial').length);
-        setTodayVisits(data.filter(a => a.activity_type === 'visita').length);
-      }
-    } catch {}
-  }, []);
-
-  const loadGoals = useCallback(async () => {
-    try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const { data } = await supabase
-        .from('admin_goals')
-        .select('daily_contacts_goal, qualified_leads_goal')
-        .eq('month_year', currentMonth)
-        .maybeSingle();
-      if (data?.daily_contacts_goal) setDailyGoal(data.daily_contacts_goal);
-      if (data?.qualified_leads_goal) setDailyVisitsGoal(data.qualified_leads_goal);
-    } catch {}
-  }, []);
 
   useEffect(() => {
     loadLeads();

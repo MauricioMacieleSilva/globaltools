@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,11 @@ interface NewLeadDialogProps {
   onLeadCreated: () => void;
 }
 
-const DEFAULT_ORIGENS = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];
+const DEFAULT_ORIGENS_FALLBACK = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];
 
 export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [origens, setOrigens] = useState(DEFAULT_ORIGENS);
+  const [origens, setOrigens] = useState<string[]>([]);
   const [addingOrigem, setAddingOrigem] = useState(false);
   const [novaOrigem, setNovaOrigem] = useState('');
   const [form, setForm] = useState({
@@ -37,6 +37,28 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   });
   const { toast } = useToast();
 
+  const loadOrigens = async () => {
+    const { data, error } = await (supabase as any)
+      .from('crm_lead_sources')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao carregar origens:', error);
+      setOrigens(DEFAULT_ORIGENS_FALLBACK);
+      return;
+    }
+
+    const names = (data || []).map((d: any) => d.name);
+    setOrigens(names.length > 0 ? names : DEFAULT_ORIGENS_FALLBACK);
+  };
+
+  useEffect(() => {
+    if (open) loadOrigens();
+  }, [open]);
+
   const resetForm = () => {
     setForm({
       empresa: '', cliente_nome: '', source: '', cliente_telefone: '',
@@ -46,14 +68,30 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     setNovaOrigem('');
   };
 
-  const handleAddOrigem = () => {
+  const handleAddOrigem = async () => {
     const trimmed = novaOrigem.trim();
-    if (trimmed && !origens.includes(trimmed)) {
-      setOrigens(prev => [...prev, trimmed]);
+    if (!trimmed) return;
+
+    if (origens.includes(trimmed)) {
       setForm(f => ({ ...f, source: trimmed }));
+      setNovaOrigem('');
+      setAddingOrigem(false);
+      return;
     }
-    setNovaOrigem('');
-    setAddingOrigem(false);
+
+    try {
+      const { error } = await (supabase as any).from('crm_lead_sources').insert({ name: trimmed });
+      if (error) throw error;
+      await loadOrigens();
+      setForm(f => ({ ...f, source: trimmed }));
+      toast({ title: 'Origem adicionada!' });
+    } catch (error: any) {
+      console.error('Erro ao adicionar origem:', error);
+      toast({ title: 'Erro ao adicionar origem', description: error.message, variant: 'destructive' });
+    } finally {
+      setNovaOrigem('');
+      setAddingOrigem(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -74,6 +112,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         client_name: contactName,
         empresa: form.empresa.trim(),
         source: form.source || null,
+        origem: form.source || null,
         cliente_telefone: form.cliente_telefone || null,
         contact_phone: form.cliente_telefone || null,
         cliente_email: form.cliente_email || null,

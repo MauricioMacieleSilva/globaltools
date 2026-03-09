@@ -18,6 +18,7 @@ export function UserAvatarMenu() {
   const { isModern, toggleTheme } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

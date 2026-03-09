@@ -340,30 +340,20 @@ serve(async (req) => {
 
     logId = logData?.id;
 
-    // Get existing leads for dedup
+    // Get existing CRM leads for dedup (ONLY what is already registered in `leads`)
     const { data: existingLeads } = await supabaseAdmin
       .from("leads")
       .select("cliente_nome, empresa, cliente_cnpj");
 
     const existingNames = new Set<string>(
-      (existingLeads ?? []).flatMap((l: any) => [
-        l.cliente_nome?.toLowerCase().trim(),
-        l.empresa?.toLowerCase().trim(),
-        l.cliente_cnpj?.replace(/\D/g, ""),
-      ]).filter(Boolean)
+      (existingLeads ?? [])
+        .flatMap((l: any) => [
+          l.cliente_nome?.toLowerCase().trim(),
+          l.empresa?.toLowerCase().trim(),
+          l.cliente_cnpj?.replace(/\D/g, ""),
+        ])
+        .filter(Boolean)
     );
-
-    // Only consider APPROVED staging results as duplicates — pending/discarded leads can reappear
-    const { data: existingStaging } = await supabaseAdmin
-      .from("lead_prospecting_results")
-      .select("cliente_nome, empresa, cliente_cnpj")
-      .eq("status", "approved");
-
-    for (const s of existingStaging ?? []) {
-      if (s.cliente_nome) existingNames.add(s.cliente_nome.toLowerCase().trim());
-      if (s.empresa) existingNames.add(s.empresa.toLowerCase().trim());
-      if (s.cliente_cnpj) existingNames.add(s.cliente_cnpj.replace(/\D/g, ""));
-    }
 
     const ramos = config.ramos_atuacao?.length > 0
       ? config.ramos_atuacao.join(", ")

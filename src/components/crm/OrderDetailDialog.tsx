@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { parseDate } from '@/lib/utils-comercial';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';

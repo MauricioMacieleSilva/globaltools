@@ -184,6 +184,14 @@ export function EstoqueItemDialog({
   // Gera descrição automática baseada nas dimensões
   const gerarDescricaoAutomatica = useMemo(() => {
     if (!autoDescricao) return '';
+
+    // Formato para TELHAS: TELHA #0,43 1000x2500mm
+    if (form.categoria === 'TELHAS') {
+      const espessuraFormatada = form.espessura ? `#${parseFloat(form.espessura).toFixed(2).replace('.', ',')}` : '';
+      const comprimentoFormatado = form.comprimento ? `1000x${Math.round(parseFloat(form.comprimento))}mm` : '';
+      const partes = ['TELHA', espessuraFormatada, comprimentoFormatado].filter(Boolean);
+      return partes.join(' ');
+    }
     
     // Formato para TUBOS: TB QD #4,75 100×100 6000mm ou TB RT #1,55 30×50 6000mm
     if (form.categoria === 'TUBOS' && form.tipo_perfil) {

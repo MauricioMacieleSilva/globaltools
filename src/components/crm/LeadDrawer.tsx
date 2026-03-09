@@ -156,23 +156,26 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
   const registerContact = async () => {
     if (!lead) return;
-    if (!newNote.trim()) {
-      toast.error('Nota obrigatória', { description: 'Preencha uma anotação antes de registrar o contato.' });
-      return;
-    }
     try {
       const todayCount = await countContactsToday(lead.id);
+      // Nota obrigatória apenas no 1º contato do dia
+      if (todayCount === 0 && !newNote.trim()) {
+        toast.error('Nota obrigatória', { description: 'Preencha uma anotação antes de registrar o primeiro contato do dia.' });
+        return;
+      }
       const user = (await supabase.auth.getUser()).data.user;
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').single();
       const userName = profile?.full_name || 'Usuário';
-      // Save note
-      await supabase.from('lead_activities').insert({
-        lead_id: lead.id,
-        activity_type: 'nota',
-        description: newNote.trim(),
-        user_id: user?.id || '',
-        sdr_name: userName,
-      } as any);
+      // Save note only if provided
+      if (newNote.trim()) {
+        await supabase.from('lead_activities').insert({
+          lead_id: lead.id,
+          activity_type: 'nota',
+          description: newNote.trim(),
+          user_id: user?.id || '',
+          sdr_name: userName,
+        } as any);
+      }
       // Always register a new contato_inicial
       await supabase.from('lead_activities').insert({
         lead_id: lead.id,
@@ -188,9 +191,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       if (newCount === 1) {
         toast.success('Contato registrado com sucesso');
       } else {
-        toast.success(`${ordinal(newCount)} contato do dia registrado`, {
-          description: 'Nota salva e contato registrado.',
-        });
+        toast.success(`${ordinal(newCount)} contato do dia registrado`);
       }
       setNewNote('');
       loadActivities(lead.id);

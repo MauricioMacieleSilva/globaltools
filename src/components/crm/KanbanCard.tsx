@@ -141,7 +141,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
             {produtos.length > 0 ? (
               produtos.map((p, i) => (
                 <span key={i} className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground truncate max-w-[90px]">
-                  {p}
+                  {toTitleCase(p)}
                 </span>
               ))
             ) : (

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Minimize2, Settings, Pause, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 
 interface DashboardCarouselProps {
   open: boolean;
@@ -97,33 +98,39 @@ export function DashboardCarousel({ open, onClose, children, labels }: Dashboard
 
       {/* Settings dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Tempo de exibição (segundos)</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {labels.map((label, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Label className="flex-1 text-sm">{label}</Label>
-                <Input
-                  type="number"
-                  min={5}
-                  max={600}
-                  value={tempDurations[i] || 30}
-                  onChange={(e) => {
-                    const v = [...tempDurations];
-                    v[i] = Math.max(5, parseInt(e.target.value) || 30);
-                    setTempDurations(v);
-                  }}
-                  className="w-20"
-                />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button onClick={saveDurations}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[200] bg-black/80" />
+          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-[200] w-full max-w-sm translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg rounded-lg">
+            <DialogHeader>
+              <DialogTitle>Tempo de exibição (segundos)</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 mt-4">
+              {labels.map((label, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Label className="flex-1 text-sm">{label}</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={600}
+                    value={tempDurations[i] || 30}
+                    onChange={(e) => {
+                      const v = [...tempDurations];
+                      v[i] = Math.max(5, parseInt(e.target.value) || 30);
+                      setTempDurations(v);
+                    }}
+                    className="w-20"
+                  />
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="mt-4">
+              <Button onClick={saveDurations}>Salvar</Button>
+            </DialogFooter>
+            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100">
+              ✕
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
       </Dialog>
     </div>
   );

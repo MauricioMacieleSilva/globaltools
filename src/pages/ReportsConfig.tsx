@@ -158,14 +158,13 @@ function EstoqueConfig() {
     try {
       const { error } = await supabase
         .from('estoque_report_schedule' as any)
-        .update({ is_active: config.is_active, send_time: config.send_time, send_day: config.send_day, updated_at: new Date().toISOString() } as any)
+        .update({ is_active: config.is_active, send_time: config.send_time, updated_at: new Date().toISOString() } as any)
         .eq('id', config.id);
       if (error) throw error;
-      const dayLabel = DAY_OPTIONS.find(d => d.value === config.send_day)?.label || config.send_day;
       toast({
         title: 'Configuração salva',
         description: config.is_active
-          ? `Relatório de estoque será enviado toda ${dayLabel} às ${config.send_time}.`
+          ? `Relatório de estoque será enviado de seg a sex às ${config.send_time}.`
           : 'Envio automático de estoque desativado.',
       });
     } catch (error: any) {

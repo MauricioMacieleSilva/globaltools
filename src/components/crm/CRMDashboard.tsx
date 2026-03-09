@@ -234,6 +234,19 @@ export function CRMDashboard({ leads }: CRMDashboardProps) {
       .map(([name, value]) => ({ name, value }));
   }, [filteredLeads]);
 
+  // Lead sources/origin chart
+  const sourceData = useMemo(() => {
+    const map: Record<string, number> = {};
+    filteredLeads.forEach(l => {
+      const origem = l.origem || l.source || 'Não informado';
+      map[origem] = (map[origem] || 0) + 1;
+    });
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, value]) => ({ name, value }));
+  }, [filteredLeads]);
+
   // Loss reasons chart
   const lossReasonsData = useMemo(() => {
     const map: Record<string, number> = {};

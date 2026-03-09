@@ -161,6 +161,42 @@ export function UserAvatarMenu() {
                 <Switch checked={isModern} onCheckedChange={toggleTheme} />
               </div>
             </div>
+
+            <div className="w-full border-t pt-3 mt-1">
+              <button
+                onClick={() => setShowInstall(!showInstall)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Instalar no celular</span>
+                </div>
+                {showInstall ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+
+              {showInstall && (
+                <div className="mt-3 space-y-3 text-xs text-muted-foreground">
+                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1.5">
+                    <p className="font-semibold text-foreground flex items-center gap-1">🍎 iPhone (Safari)</p>
+                    <ol className="list-decimal list-inside space-y-0.5 pl-1">
+                      <li>Abra o app no <strong>Safari</strong></li>
+                      <li>Toque no ícone <strong>Compartilhar</strong> (↑)</li>
+                      <li>Role e toque em <strong>"Adicionar à Tela de Início"</strong></li>
+                      <li>Toque em <strong>"Adicionar"</strong></li>
+                    </ol>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1.5">
+                    <p className="font-semibold text-foreground flex items-center gap-1">🤖 Android (Chrome)</p>
+                    <ol className="list-decimal list-inside space-y-0.5 pl-1">
+                      <li>Abra o app no <strong>Chrome</strong></li>
+                      <li>Toque nos <strong>3 pontos</strong> (⋮) no canto superior</li>
+                      <li>Toque em <strong>"Adicionar à tela inicial"</strong></li>
+                      <li>Confirme tocando em <strong>"Adicionar"</strong></li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </PopoverContent>
       </Popover>

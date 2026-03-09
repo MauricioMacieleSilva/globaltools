@@ -41,8 +41,9 @@ export const DeleteUserDialog: React.FC<DeleteUserDialogProps> = ({
         throw new Error('Não autenticado')
       }
 
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const response = await fetch(
-        `https://kqltnuyfwobzkdmxqrqm.supabase.co/functions/v1/delete-user`,
+        `${supabaseUrl}/functions/v1/delete-user`,
         {
           method: 'POST',
           headers: {

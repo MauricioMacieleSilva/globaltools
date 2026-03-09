@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
@@ -61,11 +61,13 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [editOpen, setEditOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ key: string; label: string } | null>(null);
   const [orderValue, setOrderValue] = useState<number | null>(null);
+  const [nextVisit, setNextVisit] = useState<{ id: string; date: string; location: string | null } | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
     if (lead?.id && open) {
       loadActivities(lead.id);
+      loadNextVisit(lead.id);
     }
   }, [lead?.id, open]);
 
@@ -87,6 +89,44 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       }
     }).catch(() => setOrderValue(null));
   }, [lead?.budget_number, lead?.id, open]);
+
+  const loadNextVisit = async (leadId: string) => {
+    const { data } = await (supabase as any)
+      .from('crm_visits')
+      .select('id, visit_date, location')
+      .eq('lead_id', leadId)
+      .gte('visit_date', new Date().toISOString())
+      .order('visit_date', { ascending: true })
+      .limit(1);
+    setNextVisit(data?.[0] ? { id: data[0].id, date: data[0].visit_date, location: data[0].location } : null);
+  };
+
+  const cancelVisit = async () => {
+    if (!nextVisit || !lead) return;
+    try {
+      await (supabase as any).from('crm_visits').delete().eq('id', nextVisit.id);
+      // Log activity
+      const user = (await supabase.auth.getUser()).data.user;
+      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        user_id: user?.id || '',
+        activity_type: 'visita',
+        description: `Reunião desmarcada: ${new Date(nextVisit.date).toLocaleDateString('pt-BR')} ${new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${nextVisit.location ? ` em ${nextVisit.location}` : ''}`,
+        sdr_name: (profile as any)?.full_name || 'Usuário',
+      });
+      // If status is visita_reuniao, revert to contato_feito
+      if (lead.status === 'visita_reuniao') {
+        await (supabase as any).from('leads').update({ status: 'contato_feito', updated_at: new Date().toISOString() }).eq('id', lead.id);
+      }
+      setNextVisit(null);
+      toast.success('Reunião desmarcada');
+      onLeadUpdated();
+      loadActivities(lead.id);
+    } catch (err: any) {
+      toast.error('Erro ao desmarcar reunião', { description: err.message });
+    }
+  };
 
   const loadActivities = async (leadId: string) => {
     const { data } = await supabase
@@ -323,6 +363,35 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 </div>
               )}
             </div>
+
+            {/* Próxima Reunião */}
+            {nextVisit && (
+              <div className="flex items-center justify-between rounded-lg border p-3 bg-accent/30">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {new Date(nextVisit.date).toLocaleDateString('pt-BR')} às {new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {nextVisit.location && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {nextVisit.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 text-xs"
+                  onClick={cancelVisit}
+                >
+                  <CalendarX2 className="h-3.5 w-3.5" />
+                  Desmarcar
+                </Button>
+              </div>
+            )}
 
             {/* Contact Responsibility */}
             {(firstContact || lastContact) && (

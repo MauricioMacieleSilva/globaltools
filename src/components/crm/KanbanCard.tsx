@@ -36,6 +36,8 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const vendorInitials = vendorName ? vendorName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : '';
 
   useEffect(() => {
+    let cancelled = false;
+    setNextVisit(null);
     import('@/integrations/supabase/client').then(({ supabase }) => {
       (supabase as any)
         .from('crm_visits')
@@ -45,9 +47,12 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         .order('visit_date', { ascending: true })
         .limit(1)
         .then(({ data }: any) => {
-          if (data?.[0]) setNextVisit({ date: data[0].visit_date, location: data[0].location });
+          if (!cancelled) {
+            setNextVisit(data?.[0] ? { date: data[0].visit_date, location: data[0].location } : null);
+          }
         });
     });
+    return () => { cancelled = true; };
   }, [lead.id, lead.updated_at]);
 
   return (

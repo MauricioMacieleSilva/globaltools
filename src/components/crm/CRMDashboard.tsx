@@ -487,16 +487,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardHeader>
             <CardContent className="h-[200px] sm:h-[260px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyContactsData} barGap={2}>
+                <BarChart data={dailyContactsData} barGap={1} barSize={12}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="dia" tick={{ fontSize: 9 }} className="fill-muted-foreground" interval="preserveStartEnd" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 10 }} className="fill-muted-foreground" interval={0} />
                   <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]}>
-                    <LabelList dataKey="contatos" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                    <LabelList dataKey="contatos" position="top" fontSize={10} fontWeight={600} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
                   </Bar>
                   <Bar dataKey="visitas" name="Visitas" fill="hsl(262, 52%, 47%)" radius={[3, 3, 0, 0]}>
-                    <LabelList dataKey="visitas" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
+                    <LabelList dataKey="visitas" position="top" fontSize={10} fontWeight={600} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

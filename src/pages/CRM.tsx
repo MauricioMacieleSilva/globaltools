@@ -365,7 +365,7 @@ export default function CRM() {
     setPendingEnrichLead(null);
   };
 
-  const handleOrderLinked = async (orderNumber: string, orderValue: number) => {
+  const handleOrderLinked = async (orderNumber: string, orderValue: number, orderClientName: string) => {
     if (!pendingOrderLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;

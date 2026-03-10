@@ -277,11 +277,13 @@ export default function CRM() {
         user_id: user?.id || '',
       } as any);
 
-      // Register contact if moving to contato_feito or any later stage (first time only)
-      const advancedStages = ['contato_feito', 'visita_reuniao', 'proposta', 'pedido_fechado'];
-      if (advancedStages.includes(newStatus)) {
-        await ensureContactRegistered(leadId, user?.id || '');
-      }
+      // Register contact on every stage move
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via movimentação CRM',
+        user_id: user?.id || '',
+      } as any);
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
     } catch (error) {
@@ -299,7 +301,12 @@ export default function CRM() {
         .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
         .eq('id', pendingVisitLead.id);
       setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
-      await ensureContactRegistered(pendingVisitLead.id, user?.id || '');
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingVisitLead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via movimentação CRM',
+        user_id: user?.id || '',
+      } as any);
     } catch {}
     setPendingVisitLead(null);
   };
@@ -323,7 +330,12 @@ export default function CRM() {
         description: `Movido de "${oldLabel}" para "Contato Feito"`,
         user_id: user?.id || '',
       } as any);
-      await ensureContactRegistered(pendingEnrichLead.id, user?.id || '');
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingEnrichLead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via movimentação CRM',
+        user_id: user?.id || '',
+      } as any);
 
       loadLeads();
       toast.success('Status atualizado', { description: 'Lead movido para Contato Feito' });
@@ -338,18 +350,29 @@ export default function CRM() {
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const oldStatus = pendingOrderLead.status;
+
+      // Append order number to existing list
+      const existingOrders = pendingOrderLead.budget_number
+        ? pendingOrderLead.budget_number.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+      if (!existingOrders.includes(orderNumber)) {
+        existingOrders.push(orderNumber);
+      }
+      const newBudgetNumber = existingOrders.join(', ');
+      const newValue = (pendingOrderLead.valor_estimado || 0) + orderValue;
+
       await (supabase as any)
         .from('leads')
         .update({ 
           status: pendingOrderStage, 
-          budget_number: orderNumber,
-          valor_estimado: orderValue,
+          budget_number: newBudgetNumber,
+          valor_estimado: newValue,
           updated_at: new Date().toISOString() 
         })
         .eq('id', pendingOrderLead.id);
 
       setLeads(prev => prev.map(l => l.id === pendingOrderLead.id 
-        ? { ...l, status: pendingOrderStage, budget_number: orderNumber, valor_estimado: orderValue, updated_at: new Date().toISOString() } 
+        ? { ...l, status: pendingOrderStage, budget_number: newBudgetNumber, valor_estimado: newValue, updated_at: new Date().toISOString() } 
         : l
       ));
 
@@ -362,8 +385,13 @@ export default function CRM() {
         user_id: user?.id || '',
       } as any);
 
-      // Register contact on first movement
-      await ensureContactRegistered(pendingOrderLead.id, user?.id || '');
+      // Register contact on move
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingOrderLead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via movimentação CRM',
+        user_id: user?.id || '',
+      } as any);
 
       toast.success('Status atualizado', { description: `Lead vinculado ao Pedido ${orderNumber}` });
       loadLeads();

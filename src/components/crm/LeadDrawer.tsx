@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2 } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus } from 'lucide-react';
+import { OrderLinkDialog } from './OrderLinkDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CRM_STAGES, type CRMLead, type CRMStageKey } from '@/pages/CRM';
@@ -65,6 +66,8 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [nextVisit, setNextVisit] = useState<{ id: string; date: string; location: string | null } | null>(null);
   const isMobile = useIsMobile();
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [selectedOrderNum, setSelectedOrderNum] = useState<string | null>(null);
+  const [addOrderOpen, setAddOrderOpen] = useState(false);
 
   useEffect(() => {
     if (lead?.id && open) {
@@ -77,20 +80,43 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   useEffect(() => {
     if (!lead?.budget_number || !open) { setOrderValue(null); return; }
     if (lead.valor_estimado && lead.valor_estimado > 0) { setOrderValue(lead.valor_estimado); return; }
+    const orderNums = lead.budget_number.split(',').map(s => s.trim()).filter(Boolean);
     fetchComercialData().then((data) => {
       let total = 0;
       for (const d of data) {
-        if (d.numeropedido === lead.budget_number) {
+        if (orderNums.includes(d.numeropedido)) {
           total += (d.valor || 0);
         }
       }
       setOrderValue(total);
-      // Backfill to DB
       if (total > 0) {
         (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
       }
     }).catch(() => setOrderValue(null));
   }, [lead?.budget_number, lead?.id, open]);
+
+  const handleAddOrderFromDrawer = async (orderNumber: string, orderValue: number) => {
+    if (!lead) return;
+    const existingOrders = lead.budget_number
+      ? lead.budget_number.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    if (existingOrders.includes(orderNumber)) {
+      toast.info('Pedido já vinculado');
+      setAddOrderOpen(false);
+      return;
+    }
+    existingOrders.push(orderNumber);
+    const newBudgetNumber = existingOrders.join(', ');
+    const newValue = (lead.valor_estimado || 0) + orderValue;
+    await (supabase as any).from('leads').update({
+      budget_number: newBudgetNumber,
+      valor_estimado: newValue,
+      updated_at: new Date().toISOString(),
+    }).eq('id', lead.id);
+    toast.success(`Pedido ${orderNumber} vinculado`);
+    setAddOrderOpen(false);
+    onLeadUpdated();
+  };
 
   const loadNextVisit = async (leadId: string) => {
     // Load upcoming visits first
@@ -362,21 +388,38 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <span>Aberto em {new Date(lead.data_abertura).toLocaleDateString('pt-BR')}</span>
               </div>
 
-              {/* Order/Budget linked */}
-              {lead.budget_number && (
-                <div
-                  className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
-                  onClick={() => setOrderDialogOpen(true)}
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Pedido {lead.budget_number}</span>
-                  {orderValue != null && orderValue > 0 && (
-                    <span className="font-semibold text-foreground">
-                      — R$ {orderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Orders linked */}
+              {(() => {
+                const orders = lead.budget_number ? lead.budget_number.split(',').map(s => s.trim()).filter(Boolean) : [];
+                return (
+                  <>
+                    {orders.map((orderNum, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
+                        onClick={() => { setSelectedOrderNum(orderNum); setOrderDialogOpen(true); }}
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>Pedido {orderNum}</span>
+                      </div>
+                    ))}
+                    {orderValue != null && orderValue > 0 && orders.length > 0 && (
+                      <p className="text-sm font-semibold text-foreground ml-6">
+                        Total: R$ {orderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setAddOrderOpen(true)}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Vincular Pedido
+                    </Button>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Próxima Reunião */}
@@ -616,14 +659,23 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       </AlertDialog>
 
       {/* Order detail popup */}
-      {lead?.budget_number && (
+      {selectedOrderNum && (
         <OrderDetailDialog
           open={orderDialogOpen}
-          onClose={() => setOrderDialogOpen(false)}
-          budgetNumber={lead.budget_number}
+          onClose={() => { setOrderDialogOpen(false); setSelectedOrderNum(null); }}
+          budgetNumber={selectedOrderNum}
           clientName={lead.empresa || lead.cliente_nome || lead.client_name}
         />
       )}
+
+      {/* Add order dialog */}
+      <OrderLinkDialog
+        open={addOrderOpen}
+        onOpenChange={setAddOrderOpen}
+        targetStage={lead?.status || ''}
+        onConfirm={handleAddOrderFromDrawer}
+        onCancel={() => setAddOrderOpen(false)}
+      />
     </>
   );
 }

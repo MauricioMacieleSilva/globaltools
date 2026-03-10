@@ -185,6 +185,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           onClose={() => { setOrderDialogOpen(false); setSelectedOrder(null); }}
           budgetNumber={selectedOrder}
           clientName={lead.empresa || lead.cliente_nome || lead.client_name}
+          linkedClientName={((lead as any).linked_orders_meta || {})[selectedOrder] || undefined}
         />
       )}
     </Card>

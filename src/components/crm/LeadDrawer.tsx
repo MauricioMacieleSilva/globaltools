@@ -668,6 +668,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           onClose={() => { setOrderDialogOpen(false); setSelectedOrderNum(null); }}
           budgetNumber={selectedOrderNum}
           clientName={lead.empresa || lead.cliente_nome || lead.client_name}
+          linkedClientName={((lead as any).linked_orders_meta || {})[selectedOrderNum] || undefined}
         />
       )}
 

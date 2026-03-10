@@ -118,22 +118,33 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </p>
         )}
 
-        {/* Order/Budget number & value */}
-        {lead.budget_number && (
-          <div
-            className="flex items-center gap-1 text-[10px] font-medium text-primary cursor-pointer hover:underline"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOrderDialogOpen(true);
-            }}
-          >
-            <Package className="h-3 w-3 shrink-0" />
-            <span>Pedido {lead.budget_number}</span>
-            {lead.valor_estimado != null && lead.valor_estimado > 0 && (
-              <span className="font-semibold text-foreground">— R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            )}
-          </div>
-        )}
+        {/* Order/Budget numbers & total value */}
+        {lead.budget_number && (() => {
+          const orders = lead.budget_number.split(',').map(s => s.trim()).filter(Boolean);
+          return (
+            <div className="space-y-0.5">
+              {orders.map((orderNum, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-1 text-[10px] font-medium text-primary cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedOrder(orderNum);
+                    setOrderDialogOpen(true);
+                  }}
+                >
+                  <Package className="h-3 w-3 shrink-0" />
+                  <span>Pedido {orderNum}</span>
+                </div>
+              ))}
+              {lead.valor_estimado != null && lead.valor_estimado > 0 && (
+                <p className="text-[10px] font-semibold text-foreground ml-4">
+                  R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
 
         {/* Products + days */}

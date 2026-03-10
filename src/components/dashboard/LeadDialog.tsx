@@ -402,7 +402,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
                   }}
                   required
                 />
-                {process.env.NODE_ENV === 'development' && (
+                {import.meta.env.DEV && (
                   <div className="text-xs text-gray-500 mt-1">
                     Current value: "{formData.cliente_nome}"
                   </div>

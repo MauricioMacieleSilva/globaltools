@@ -178,7 +178,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Debug info - only show in development */}
-          {debugInfo && process.env.NODE_ENV === 'development' && (
+          {debugInfo && import.meta.env.DEV && (
             <Alert>
               <AlertDescription className="text-xs font-mono">
                 DEBUG: {debugInfo}

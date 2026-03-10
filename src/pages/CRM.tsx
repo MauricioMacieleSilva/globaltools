@@ -80,15 +80,24 @@ export default function CRM() {
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
 
-  // Initialize vendor filter with logged-in user
+  // Initialize vendor filter: admins/gestors see all, others see own leads
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setVendorFilter(data.user.id);
-      } else {
+    const initFilter = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) { setVendorFilter('all'); return; }
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+      const role = roleData?.role;
+      if (role === 'admin' || role === 'comercial') {
         setVendorFilter('all');
+      } else {
+        setVendorFilter(authData.user.id);
       }
-    });
+    };
+    initFilter();
   }, []);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');

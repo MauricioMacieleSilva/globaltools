@@ -448,7 +448,7 @@ export default function CRM() {
 
   const filteredLeads = leads.filter(l => {
     if (l.status === 'perdido') return false;
-    if (vendorFilter !== 'all' && l.vendedor_id !== vendorFilter) return false;
+    if (vendorFilter && vendorFilter !== 'all' && l.vendedor_id !== vendorFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const fields = [

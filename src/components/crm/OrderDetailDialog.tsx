@@ -16,7 +16,7 @@ interface OrderDetailDialogProps {
   linkedClientName?: string;
 }
 
-export function OrderDetailDialog({ open, onClose, budgetNumber, clientName }: OrderDetailDialogProps) {
+export function OrderDetailDialog({ open, onClose, budgetNumber, clientName, linkedClientName }: OrderDetailDialogProps) {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<ComercialData[]>([]);
 

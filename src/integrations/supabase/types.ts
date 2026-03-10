@@ -1628,6 +1628,7 @@ export type Database = {
           especialista_id: string | null
           estado: string | null
           id: string
+          linked_orders_meta: Json | null
           notes: string | null
           numero_lead: string | null
           observacoes: string | null
@@ -1663,6 +1664,7 @@ export type Database = {
           especialista_id?: string | null
           estado?: string | null
           id?: string
+          linked_orders_meta?: Json | null
           notes?: string | null
           numero_lead?: string | null
           observacoes?: string | null
@@ -1698,6 +1700,7 @@ export type Database = {
           especialista_id?: string | null
           estado?: string | null
           id?: string
+          linked_orders_meta?: Json | null
           notes?: string | null
           numero_lead?: string | null
           observacoes?: string | null

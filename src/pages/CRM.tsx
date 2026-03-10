@@ -365,7 +365,7 @@ export default function CRM() {
     setPendingEnrichLead(null);
   };
 
-  const handleOrderLinked = async (orderNumber: string, orderValue: number) => {
+  const handleOrderLinked = async (orderNumber: string, orderValue: number, orderClientName: string) => {
     if (!pendingOrderLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;
@@ -381,12 +381,17 @@ export default function CRM() {
       const newBudgetNumber = existingOrders.join(', ');
       const newValue = (pendingOrderLead.valor_estimado || 0) + orderValue;
 
+      // Merge linked_orders_meta
+      const existingMeta = (pendingOrderLead as any).linked_orders_meta || {};
+      const newMeta = { ...existingMeta, [orderNumber]: orderClientName };
+
       await (supabase as any)
         .from('leads')
         .update({ 
           status: pendingOrderStage, 
           budget_number: newBudgetNumber,
           valor_estimado: newValue,
+          linked_orders_meta: newMeta,
           updated_at: new Date().toISOString() 
         })
         .eq('id', pendingOrderLead.id);

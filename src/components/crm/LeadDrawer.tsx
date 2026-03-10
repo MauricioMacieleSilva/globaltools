@@ -95,7 +95,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }).catch(() => setOrderValue(null));
   }, [lead?.budget_number, lead?.id, open]);
 
-  const handleAddOrderFromDrawer = async (orderNumber: string, orderValue: number) => {
+  const handleAddOrderFromDrawer = async (orderNumber: string, orderValue: number, orderClientName: string) => {
     if (!lead) return;
     const existingOrders = lead.budget_number
       ? lead.budget_number.split(',').map(s => s.trim()).filter(Boolean)
@@ -108,9 +108,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     existingOrders.push(orderNumber);
     const newBudgetNumber = existingOrders.join(', ');
     const newValue = (lead.valor_estimado || 0) + orderValue;
+    const existingMeta = (lead as any).linked_orders_meta || {};
+    const newMeta = { ...existingMeta, [orderNumber]: orderClientName };
     await (supabase as any).from('leads').update({
       budget_number: newBudgetNumber,
       valor_estimado: newValue,
+      linked_orders_meta: newMeta,
       updated_at: new Date().toISOString(),
     }).eq('id', lead.id);
     toast.success(`Pedido ${orderNumber} vinculado`);
@@ -665,6 +668,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           onClose={() => { setOrderDialogOpen(false); setSelectedOrderNum(null); }}
           budgetNumber={selectedOrderNum}
           clientName={lead.empresa || lead.cliente_nome || lead.client_name}
+          linkedClientName={((lead as any).linked_orders_meta || {})[selectedOrderNum] || undefined}
         />
       )}
 

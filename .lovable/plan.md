@@ -1,39 +1,108 @@
 
 
-# Plano: Armazenar metadados do pedido no momento da vinculação
+# Plano: Nova Pagina CRM Unificada
 
-## Problema
+## Visao Geral
 
-Quando o usuário vincula um pedido (ex: 1072), ele vê o pedido correto na lista (ex: GAUER INCORPORAÇÕES). Porém, ao consultar os detalhes depois, o `OrderDetailDialog` busca novamente todos os dados comerciais e tenta desambiguar pelo nome do cliente do **lead**, que pode não coincidir com o nome do cliente do **pedido**. Resultado: exibe o pedido errado (ex: VAIRES ESTRUTURA em vez de GAUER INCORPORAÇÕES).
+Unificar as paginas Pre-Vendas (`/pre-vendas`) e Pipeline de Vendas (`/pipeline`) em uma unica pagina CRM (`/crm`) com interface Kanban e funil simplificado.
 
-## Solução
+## Etapas do Funil
 
-Armazenar o nome do cliente do pedido (da base comercial) no momento da vinculação, numa nova coluna `linked_orders_meta` (JSONB) na tabela `leads`. Esse dado será usado na consulta para filtrar o pedido correto.
+As 5 etapas solicitadas mapeadas ao banco de dados:
 
-## Etapas
+```text
+Lead → Contato Feito → Visita/Reuniao → Proposta → Pedido
+         (+ coluna "Perdidos" separada)
+```
 
-### 1. Migração de banco — adicionar coluna `linked_orders_meta`
-- Adicionar coluna `linked_orders_meta jsonb default '{}'` à tabela `leads`.
-- Formato: `{ "1072": "GAUER INCORPORACOES", "1085": "OUTRO CLIENTE" }`
+Sera necessario alterar o enum `lead_status` no banco para refletir as novas etapas: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`, `perdido`.
 
-### 2. `OrderLinkDialog` — retornar o nome do cliente junto
-- Alterar `onConfirm` para incluir o `clientName` do pedido selecionado: `onConfirm(orderNumber, orderValue, clientName)`.
-- Atualizar a interface `OrderLinkDialogProps`.
+## Estrutura da Pagina
 
-### 3. `CRM.tsx` — salvar metadados na vinculação
-- Em `handleOrderLinked`, receber o `clientName` e salvar no campo `linked_orders_meta` fazendo merge com dados existentes.
-- Em `handleAddOrderFromDrawer` (no LeadDrawer), fazer o mesmo.
+```text
+┌─────────────────────────────────────────────────────┐
+│ KPIs: Contatos Hoje (X/meta) │ Funil │ Perdidos     │
+├─────────────────────────────────────────────────────┤
+│  Kanban Board (drag & drop entre colunas)           │
+│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───┐ │
+│  │Lead  │ │Contato   │ │Visita/ │ │Proposta│ │Ped│ │
+│  │      │ │Feito     │ │Reuniao │ │        │ │ido│ │
+│  │card  │ │card      │ │card    │ │card    │ │   │ │
+│  │card  │ │          │ │        │ │        │ │   │ │
+│  └──────┘ └──────────┘ └────────┘ └────────┘ └───┘ │
+└─────────────────────────────────────────────────────┘
+```
 
-### 4. `OrderDetailDialog` — usar o cliente correto
-- Adicionar prop opcional `linkedClientName` (nome do cliente vindo dos metadados).
-- Priorizar `linkedClientName` sobre o `clientName` do lead na filtragem.
+## Componentes Principais
 
-### 5. `KanbanCard` e `LeadDrawer` — passar `linkedClientName`
-- Ao abrir `OrderDetailDialog`, buscar o nome do cliente no `linked_orders_meta` do lead para o pedido específico e passá-lo como `linkedClientName`.
+1. **KPI Bar** (topo):
+   - Contatos diarios (atual/meta) com barra de progresso
+   - Mini funil visual com contagem por etapa
+   - Indicador de perdidos (quantidade + valor estimado)
 
-## Detalhes técnicos
+2. **Kanban Board**:
+   - 5 colunas (Lead, Contato Feito, Visita/Reuniao, Proposta, Pedido)
+   - Cards compactos: nome cliente, valor, dias na etapa, proximo passo
+   - Drag & drop para mover entre etapas (atualiza status no banco)
+   - Ao mover para "Perdido", abre dialog pedindo motivo
 
-- A coluna JSONB permite adicionar/remover pedidos sem alterar a estrutura.
-- Não há impacto em leads existentes — o campo será `{}` por padrão e o fallback continua usando o nome do lead.
-- Nenhuma alteração em RLS necessária (mesmas políticas da tabela `leads`).
+3. **Card do Lead** (compacto):
+   - Nome do cliente, cidade/UF
+   - Valor estimado
+   - Dias na etapa atual
+   - Icone de WhatsApp para contato rapido
+   - Click abre drawer lateral com detalhes + historico + acoes
+
+4. **Drawer Lateral** (ao clicar no card):
+   - Dados do lead completos
+   - Timeline de atividades
+   - Botoes de acao rapida: registrar contato, agendar visita, criar proposta
+   - Marcar como perdido (com motivo)
+
+5. **Filtros** (acima do kanban):
+   - Busca por cliente
+   - Filtro por SDR/vendedor
+   - Periodo
+
+## Detalhes Tecnicos
+
+### Migracao de Banco
+- Adicionar novos valores ao enum `lead_status`: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`
+- Migrar dados existentes: `novo` → `lead`, `contatado`/`respondeu` → `contato_feito`, `qualificado`/`encaminhado` → `proposta`
+- O campo `pipeline_status` pode ser descontinuado — usar apenas `status`
+
+### Arquivos a Criar
+- `src/pages/CRM.tsx` — pagina principal
+- `src/components/crm/KanbanBoard.tsx` — board com colunas
+- `src/components/crm/KanbanCard.tsx` — card individual do lead
+- `src/components/crm/LeadDrawer.tsx` — drawer lateral com detalhes
+- `src/components/crm/CRMKPIs.tsx` — barra de KPIs
+- `src/components/crm/LostDealsDialog.tsx` — dialog/indicador de perdidos
+- `src/components/crm/QuickActionButtons.tsx` — acoes rapidas no drawer
+
+### Arquivos a Modificar
+- `src/App.tsx` — adicionar rota `/crm`, redirecionar `/pre-vendas` e `/pipeline` para `/crm`
+- `src/components/AppSidebar.tsx` — substituir 2 itens (Pre-Vendas + Pipeline) por 1 item "CRM"
+- `src/hooks/useUserPermissions.ts` — substituir `prevendas` + `pipeline` por `crm`
+- `src/context/PreVendasContext.tsx` — adaptar para novos status (ou criar novo CRMContext)
+
+### Drag & Drop
+- Usar a lib existente ou CSS nativo com `draggable` + `onDragOver`/`onDrop` para manter leve
+- Ao soltar em nova coluna, chamar `supabase.from('leads').update({ status: novoStatus })` 
+- Se soltar em "Perdido", abrir dialog de motivo antes de confirmar
+
+### Mobile
+- Kanban com scroll horizontal (snap) nas colunas
+- Cards empilhados verticalmente dentro de cada coluna
+- Drawer vira sheet de baixo (vaul)
+
+### Meta Diaria de Contatos
+- Reutilizar `admin_goals.daily_contacts_goal` ja existente
+- Contar atividades do tipo `contato_inicial` do dia atual
+- Exibir progresso visual no KPI bar
+
+### Controle de Perdidos
+- Card/badge no topo mostrando total de perdidos no periodo
+- Click abre lista filtrada dos leads perdidos com motivo e data
+- Indicador percentual (perdidos / total do funil)
 

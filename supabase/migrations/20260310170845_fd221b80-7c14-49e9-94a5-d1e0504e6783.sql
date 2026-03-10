@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS linked_orders_meta jsonb DEFAULT '{}'::jsonb;

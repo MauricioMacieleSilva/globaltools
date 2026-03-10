@@ -201,16 +201,6 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
               )}
             </div>
 
-            {/* Status */}
-            <div className="space-y-1.5">
-              <Label htmlFor="status">Status Inicial</Label>
-              <Select value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CRM_STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
 
             {/* Produto de Interesse */}
             <div className="space-y-1.5 sm:col-span-2">

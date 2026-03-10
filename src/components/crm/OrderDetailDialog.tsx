@@ -13,6 +13,7 @@ interface OrderDetailDialogProps {
   onClose: () => void;
   budgetNumber: string;
   clientName?: string;
+  linkedClientName?: string;
 }
 
 export function OrderDetailDialog({ open, onClose, budgetNumber, clientName }: OrderDetailDialogProps) {

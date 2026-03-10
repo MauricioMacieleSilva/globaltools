@@ -330,7 +330,12 @@ export default function CRM() {
         description: `Movido de "${oldLabel}" para "Contato Feito"`,
         user_id: user?.id || '',
       } as any);
-      await ensureContactRegistered(pendingEnrichLead.id, user?.id || '');
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingEnrichLead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via movimentação CRM',
+        user_id: user?.id || '',
+      } as any);
 
       loadLeads();
       toast.success('Status atualizado', { description: 'Lead movido para Contato Feito' });

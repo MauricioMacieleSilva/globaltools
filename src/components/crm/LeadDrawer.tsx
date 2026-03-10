@@ -388,21 +388,38 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <span>Aberto em {new Date(lead.data_abertura).toLocaleDateString('pt-BR')}</span>
               </div>
 
-              {/* Order/Budget linked */}
-              {lead.budget_number && (
-                <div
-                  className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
-                  onClick={() => setOrderDialogOpen(true)}
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Pedido {lead.budget_number}</span>
-                  {orderValue != null && orderValue > 0 && (
-                    <span className="font-semibold text-foreground">
-                      — R$ {orderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Orders linked */}
+              {(() => {
+                const orders = lead.budget_number ? lead.budget_number.split(',').map(s => s.trim()).filter(Boolean) : [];
+                return (
+                  <>
+                    {orders.map((orderNum, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
+                        onClick={() => { setSelectedOrderNum(orderNum); setOrderDialogOpen(true); }}
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>Pedido {orderNum}</span>
+                      </div>
+                    ))}
+                    {orderValue != null && orderValue > 0 && orders.length > 0 && (
+                      <p className="text-sm font-semibold text-foreground ml-6">
+                        Total: R$ {orderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setAddOrderOpen(true)}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Vincular Pedido
+                    </Button>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Próxima Reunião */}

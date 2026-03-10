@@ -80,20 +80,43 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   useEffect(() => {
     if (!lead?.budget_number || !open) { setOrderValue(null); return; }
     if (lead.valor_estimado && lead.valor_estimado > 0) { setOrderValue(lead.valor_estimado); return; }
+    const orderNums = lead.budget_number.split(',').map(s => s.trim()).filter(Boolean);
     fetchComercialData().then((data) => {
       let total = 0;
       for (const d of data) {
-        if (d.numeropedido === lead.budget_number) {
+        if (orderNums.includes(d.numeropedido)) {
           total += (d.valor || 0);
         }
       }
       setOrderValue(total);
-      // Backfill to DB
       if (total > 0) {
         (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
       }
     }).catch(() => setOrderValue(null));
   }, [lead?.budget_number, lead?.id, open]);
+
+  const handleAddOrderFromDrawer = async (orderNumber: string, orderValue: number) => {
+    if (!lead) return;
+    const existingOrders = lead.budget_number
+      ? lead.budget_number.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    if (existingOrders.includes(orderNumber)) {
+      toast.info('Pedido já vinculado');
+      setAddOrderOpen(false);
+      return;
+    }
+    existingOrders.push(orderNumber);
+    const newBudgetNumber = existingOrders.join(', ');
+    const newValue = (lead.valor_estimado || 0) + orderValue;
+    await (supabase as any).from('leads').update({
+      budget_number: newBudgetNumber,
+      valor_estimado: newValue,
+      updated_at: new Date().toISOString(),
+    }).eq('id', lead.id);
+    toast.success(`Pedido ${orderNumber} vinculado`);
+    setAddOrderOpen(false);
+    onLeadUpdated();
+  };
 
   const loadNextVisit = async (leadId: string) => {
     // Load upcoming visits first

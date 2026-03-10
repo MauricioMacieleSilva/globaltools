@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { CRM_STAGES } from '@/pages/CRM';
 import { Plus } from 'lucide-react';
 
 interface NewLeadDialogProps {

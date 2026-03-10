@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { CRM_STAGES } from '@/pages/CRM';
 import { Plus } from 'lucide-react';
 
 interface NewLeadDialogProps {
@@ -116,7 +115,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         contact_phone: form.cliente_telefone || null,
         cliente_email: form.cliente_email || null,
         contact_email: form.cliente_email || null,
-        status: form.status,
+        status: 'lead',
         produto_interesse: form.produto_interesse || null,
         website: form.website.trim() || null,
         notes: form.notes || null,
@@ -202,16 +201,6 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
               )}
             </div>
 
-            {/* Status */}
-            <div className="space-y-1.5">
-              <Label htmlFor="status">Status Inicial</Label>
-              <Select value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CRM_STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
 
             {/* Produto de Interesse */}
             <div className="space-y-1.5 sm:col-span-2">

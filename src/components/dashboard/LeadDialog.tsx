@@ -379,7 +379,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
         </DialogHeader>
 
         {/* Debug info */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <div className="bg-gray-100 p-2 text-xs">
             <div>Lead ID: {lead?.id || 'New'}</div>
             <div>Form cliente_nome: "{formData.cliente_nome}"</div>
@@ -402,7 +402,7 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
                   }}
                   required
                 />
-                {process.env.NODE_ENV === 'development' && (
+                {import.meta.env.DEV && (
                   <div className="text-xs text-gray-500 mt-1">
                     Current value: "{formData.cliente_nome}"
                   </div>

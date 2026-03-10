@@ -277,11 +277,13 @@ export default function CRM() {
         user_id: user?.id || '',
       } as any);
 
-      // Register contact if moving to contato_feito or any later stage (first time only)
-      const advancedStages = ['contato_feito', 'visita_reuniao', 'proposta', 'pedido_fechado'];
-      if (advancedStages.includes(newStatus)) {
-        await ensureContactRegistered(leadId, user?.id || '');
-      }
+      // Register contact on every stage move
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via movimentação CRM',
+        user_id: user?.id || '',
+      } as any);
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
     } catch (error) {

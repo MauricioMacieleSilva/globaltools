@@ -115,7 +115,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         contact_phone: form.cliente_telefone || null,
         cliente_email: form.cliente_email || null,
         contact_email: form.cliente_email || null,
-        status: form.status,
+        status: 'lead',
         produto_interesse: form.produto_interesse || null,
         website: form.website.trim() || null,
         notes: form.notes || null,

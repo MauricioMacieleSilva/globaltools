@@ -10,7 +10,7 @@ interface OrderLinkDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   targetStage: string;
-  onConfirm: (orderNumber: string, orderValue: number) => void;
+  onConfirm: (orderNumber: string, orderValue: number, clientName: string) => void;
   onCancel: () => void;
 }
 

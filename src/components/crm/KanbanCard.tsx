@@ -28,6 +28,7 @@ function getDaysInStage(updatedAt: string): number {
 export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
   const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;

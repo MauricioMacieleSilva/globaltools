@@ -33,9 +33,10 @@ export function OrderDetailDialog({ open, onClose, budgetNumber, clientName, lin
           return;
         }
 
-        // Filtrar pelo nome do cliente do lead para desambiguar pedidos com mesmo número
-        if (clientName) {
-          const norm = clientName.trim().toLowerCase();
+        // Priorizar linkedClientName (salvo na vinculação) sobre clientName do lead
+        const nameToMatch = linkedClientName || clientName;
+        if (nameToMatch) {
+          const norm = nameToMatch.trim().toLowerCase();
           const clientMatches = matches.filter(d => {
             const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
             return nome.includes(norm) || norm.includes(nome);

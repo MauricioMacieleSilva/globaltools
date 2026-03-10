@@ -135,7 +135,7 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
           <Button disabled={!selected} onClick={() => {
             if (!selected) return;
             const order = orders.find(o => o.numeropedido === selected);
-            onConfirm(selected, order?.valor || 0);
+            onConfirm(selected, order?.valor || 0, order?.cliente || '');
           }}>
             Confirmar
           </Button>

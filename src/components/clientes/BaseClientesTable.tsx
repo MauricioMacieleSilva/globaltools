@@ -136,13 +136,32 @@ export function BaseClientesTable() {
     }
   }, [data]);
 
-  // Filtrar clientes com debounce
+  // Índice de produtos por cliente para busca rápida
+  const clienteProdutosIndex = useMemo(() => {
+    if (!data) return new Map<string, string[]>();
+    const index = new Map<string, string[]>();
+    data.forEach(item => {
+      const nome = item.cliente;
+      if (!index.has(nome)) {
+        index.set(nome, []);
+      }
+      if (item.descricaomat) {
+        index.get(nome)!.push(item.descricaomat.toLowerCase());
+      }
+    });
+    return index;
+  }, [data]);
+
+  // Filtrar clientes com debounce - busca por nome OU por produto comprado
   const clientesFiltrados = useMemo(() => {
-    return clientesProcessados.filter(cliente => 
-      debouncedSearchTerm === "" || 
-      cliente.nome.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-    );
-  }, [clientesProcessados, debouncedSearchTerm]);
+    if (debouncedSearchTerm === "") return clientesProcessados;
+    const term = debouncedSearchTerm.toLowerCase();
+    return clientesProcessados.filter(cliente => {
+      if (cliente.nome.toLowerCase().includes(term)) return true;
+      const produtos = clienteProdutosIndex.get(cliente.nome);
+      return produtos?.some(p => p.includes(term)) ?? false;
+    });
+  }, [clientesProcessados, debouncedSearchTerm, clienteProdutosIndex]);
 
   // Implementar paginação
   const {
@@ -409,7 +428,7 @@ export function BaseClientesTable() {
       <div className="relative" data-tour="clientes-search">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
-          placeholder="Buscar cliente..."
+          placeholder="Buscar por cliente ou produto (ex: 1,95)..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"

@@ -78,7 +78,18 @@ export default function CRM() {
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
   const [pendingLostLead, setPendingLostLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [vendorFilter, setVendorFilter] = useState('all');
+  const [vendorFilter, setVendorFilter] = useState('');
+
+  // Initialize vendor filter with logged-in user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setVendorFilter(data.user.id);
+      } else {
+        setVendorFilter('all');
+      }
+    });
+  }, []);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
   // Visit schedule dialog

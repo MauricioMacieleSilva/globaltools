@@ -301,7 +301,12 @@ export default function CRM() {
         .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
         .eq('id', pendingVisitLead.id);
       setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
-      await ensureContactRegistered(pendingVisitLead.id, user?.id || '');
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingVisitLead.id,
+        activity_type: 'contato_inicial',
+        description: 'Contato registrado via movimentação CRM',
+        user_id: user?.id || '',
+      } as any);
     } catch {}
     setPendingVisitLead(null);
   };

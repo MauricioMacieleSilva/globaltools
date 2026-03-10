@@ -659,14 +659,23 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       </AlertDialog>
 
       {/* Order detail popup */}
-      {lead?.budget_number && (
+      {selectedOrderNum && (
         <OrderDetailDialog
           open={orderDialogOpen}
-          onClose={() => setOrderDialogOpen(false)}
-          budgetNumber={lead.budget_number}
+          onClose={() => { setOrderDialogOpen(false); setSelectedOrderNum(null); }}
+          budgetNumber={selectedOrderNum}
           clientName={lead.empresa || lead.cliente_nome || lead.client_name}
         />
       )}
+
+      {/* Add order dialog */}
+      <OrderLinkDialog
+        open={addOrderOpen}
+        onOpenChange={setAddOrderOpen}
+        targetStage={lead?.status || ''}
+        onConfirm={handleAddOrderFromDrawer}
+        onCancel={() => setAddOrderOpen(false)}
+      />
     </>
   );
 }

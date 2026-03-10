@@ -179,11 +179,11 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       </div>
 
       {/* Order detail popup */}
-      {lead.budget_number && (
+      {selectedOrder && (
         <OrderDetailDialog
           open={orderDialogOpen}
-          onClose={() => setOrderDialogOpen(false)}
-          budgetNumber={lead.budget_number}
+          onClose={() => { setOrderDialogOpen(false); setSelectedOrder(null); }}
+          budgetNumber={selectedOrder}
           clientName={lead.empresa || lead.cliente_nome || lead.client_name}
         />
       )}

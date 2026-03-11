@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -47,6 +48,7 @@ export function BaseClientesTable() {
   const { data } = useComercial();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("all");
   const [selectedCliente, setSelectedCliente] = useState<ClienteInfo | null>(null);
   const [historicoCache, setHistoricoCache] = useState<Map<string, ClienteInfo>>(new Map());
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());
@@ -152,16 +154,54 @@ export function BaseClientesTable() {
     return index;
   }, [data]);
 
-  // Filtrar clientes com debounce - busca por nome OU por produto comprado
-  const clientesFiltrados = useMemo(() => {
-    if (debouncedSearchTerm === "") return clientesProcessados;
-    const term = debouncedSearchTerm.toLowerCase();
-    return clientesProcessados.filter(cliente => {
-      if (cliente.nome.toLowerCase().includes(term)) return true;
-      const produtos = clienteProdutosIndex.get(cliente.nome);
-      return produtos?.some(p => p.includes(term)) ?? false;
+  // Índice de vendedores por cliente
+  const clienteVendedorIndex = useMemo(() => {
+    if (!data) return new Map<string, Set<string>>();
+    const index = new Map<string, Set<string>>();
+    data.forEach(item => {
+      const nome = item.cliente;
+      if (item.vendedor) {
+        if (!index.has(nome)) index.set(nome, new Set());
+        index.get(nome)!.add(item.vendedor);
+      }
     });
-  }, [clientesProcessados, debouncedSearchTerm, clienteProdutosIndex]);
+    return index;
+  }, [data]);
+
+  // Lista de vendedores únicos para o filtro
+  const vendedoresUnicos = useMemo(() => {
+    if (!data) return [];
+    const set = new Set<string>();
+    data.forEach(item => {
+      if (item.vendedor) set.add(item.vendedor);
+    });
+    return Array.from(set).sort();
+  }, [data]);
+
+  // Filtrar clientes com debounce - busca por nome OU por produto comprado + filtro vendedor
+  const clientesFiltrados = useMemo(() => {
+    let resultado = clientesProcessados;
+
+    // Filtro por vendedor
+    if (vendorFilter !== "all") {
+      resultado = resultado.filter(cliente => {
+        const vendedores = clienteVendedorIndex.get(cliente.nome);
+        return vendedores?.has(vendorFilter) ?? false;
+      });
+    }
+
+    // Filtro por texto (nome ou produto)
+    if (debouncedSearchTerm !== "") {
+      const term = debouncedSearchTerm.toLowerCase();
+      resultado = resultado.filter(cliente => {
+        if (cliente.nome.toLowerCase().includes(term)) return true;
+        const produtos = clienteProdutosIndex.get(cliente.nome);
+        return produtos?.some(p => p.includes(term)) ?? false;
+      });
+    }
+
+    return resultado;
+  }, [clientesProcessados, debouncedSearchTerm, clienteProdutosIndex, vendorFilter, clienteVendedorIndex]);
 
   // Implementar paginação
   const {
@@ -424,15 +464,28 @@ export function BaseClientesTable() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative" data-tour="clientes-search">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
-          placeholder="Buscar por cliente ou produto (ex: 1,95)..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search + Vendor Filter */}
+      <div className="flex gap-2 items-center" data-tour="clientes-search">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Buscar por cliente ou produto (ex: 1,95)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={vendorFilter} onValueChange={setVendorFilter}>
+          <SelectTrigger className="w-[160px] sm:w-[200px]">
+            <SelectValue placeholder="Vendedor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos vendedores</SelectItem>
+            {vendedoresUnicos.map(v => (
+              <SelectItem key={v} value={v}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Lista de Clientes */}

@@ -154,16 +154,54 @@ export function BaseClientesTable() {
     return index;
   }, [data]);
 
-  // Filtrar clientes com debounce - busca por nome OU por produto comprado
-  const clientesFiltrados = useMemo(() => {
-    if (debouncedSearchTerm === "") return clientesProcessados;
-    const term = debouncedSearchTerm.toLowerCase();
-    return clientesProcessados.filter(cliente => {
-      if (cliente.nome.toLowerCase().includes(term)) return true;
-      const produtos = clienteProdutosIndex.get(cliente.nome);
-      return produtos?.some(p => p.includes(term)) ?? false;
+  // Índice de vendedores por cliente
+  const clienteVendedorIndex = useMemo(() => {
+    if (!data) return new Map<string, Set<string>>();
+    const index = new Map<string, Set<string>>();
+    data.forEach(item => {
+      const nome = item.cliente;
+      if (item.vendedor) {
+        if (!index.has(nome)) index.set(nome, new Set());
+        index.get(nome)!.add(item.vendedor);
+      }
     });
-  }, [clientesProcessados, debouncedSearchTerm, clienteProdutosIndex]);
+    return index;
+  }, [data]);
+
+  // Lista de vendedores únicos para o filtro
+  const vendedoresUnicos = useMemo(() => {
+    if (!data) return [];
+    const set = new Set<string>();
+    data.forEach(item => {
+      if (item.vendedor) set.add(item.vendedor);
+    });
+    return Array.from(set).sort();
+  }, [data]);
+
+  // Filtrar clientes com debounce - busca por nome OU por produto comprado + filtro vendedor
+  const clientesFiltrados = useMemo(() => {
+    let resultado = clientesProcessados;
+
+    // Filtro por vendedor
+    if (vendorFilter !== "all") {
+      resultado = resultado.filter(cliente => {
+        const vendedores = clienteVendedorIndex.get(cliente.nome);
+        return vendedores?.has(vendorFilter) ?? false;
+      });
+    }
+
+    // Filtro por texto (nome ou produto)
+    if (debouncedSearchTerm !== "") {
+      const term = debouncedSearchTerm.toLowerCase();
+      resultado = resultado.filter(cliente => {
+        if (cliente.nome.toLowerCase().includes(term)) return true;
+        const produtos = clienteProdutosIndex.get(cliente.nome);
+        return produtos?.some(p => p.includes(term)) ?? false;
+      });
+    }
+
+    return resultado;
+  }, [clientesProcessados, debouncedSearchTerm, clienteProdutosIndex, vendorFilter, clienteVendedorIndex]);
 
   // Implementar paginação
   const {

@@ -477,17 +477,66 @@ export function BaseClientesTable() {
             className="pl-10"
           />
         </div>
-        <Select value={vendorFilter} onValueChange={setVendorFilter}>
-          <SelectTrigger className="w-[160px] sm:w-[200px]">
-            <SelectValue placeholder="Vendedor" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos vendedores</SelectItem>
-            {vendedoresUnicos.map(v => (
-              <SelectItem key={v} value={v}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="relative">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Vendedor"
+              value={vendorSearchTerm}
+              onChange={(e) => {
+                const val = e.target.value;
+                setVendorSearchTerm(val);
+                setVendorDropdownOpen(val.length > 0);
+                if (val === '') {
+                  setVendorFilter("all");
+                }
+              }}
+              onFocus={() => setVendorDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setVendorDropdownOpen(false), 200)}
+              className={`pl-8 h-10 w-[160px] sm:w-[200px] text-sm ${vendorFilter !== "all" ? 'pr-7 bg-muted/30' : ''}`}
+            />
+            {vendorFilter !== "all" && (
+              <X
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground cursor-pointer hover:text-foreground"
+                onClick={() => {
+                  setVendorSearchTerm('');
+                  setVendorFilter("all");
+                  setVendorDropdownOpen(false);
+                }}
+              />
+            )}
+          </div>
+          {vendorDropdownOpen && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+              <div
+                className="px-3 py-1.5 text-sm cursor-pointer hover:bg-accent font-medium"
+                onMouseDown={() => {
+                  setVendorSearchTerm('');
+                  setVendorFilter("all");
+                  setVendorDropdownOpen(false);
+                }}
+              >
+                Todos vendedores
+              </div>
+              {vendedoresUnicos
+                .filter(v => !vendorSearchTerm || v.toLowerCase().includes(vendorSearchTerm.toLowerCase()))
+                .slice(0, 15)
+                .map(v => (
+                  <div
+                    key={v}
+                    className="px-3 py-1.5 text-sm cursor-pointer hover:bg-accent"
+                    onMouseDown={() => {
+                      setVendorSearchTerm(v);
+                      setVendorFilter(v);
+                      setVendorDropdownOpen(false);
+                    }}
+                  >
+                    {v}
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Lista de Clientes */}

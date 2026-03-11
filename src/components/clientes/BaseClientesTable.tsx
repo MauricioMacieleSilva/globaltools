@@ -464,15 +464,28 @@ export function BaseClientesTable() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative" data-tour="clientes-search">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
-          placeholder="Buscar por cliente ou produto (ex: 1,95)..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search + Vendor Filter */}
+      <div className="flex gap-2 items-center" data-tour="clientes-search">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Buscar por cliente ou produto (ex: 1,95)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={vendorFilter} onValueChange={setVendorFilter}>
+          <SelectTrigger className="w-[160px] sm:w-[200px]">
+            <SelectValue placeholder="Vendedor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos vendedores</SelectItem>
+            {vendedoresUnicos.map(v => (
+              <SelectItem key={v} value={v}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Lista de Clientes */}

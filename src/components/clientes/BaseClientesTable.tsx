@@ -48,6 +48,7 @@ export function BaseClientesTable() {
   const { data } = useComercial();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("all");
   const [selectedCliente, setSelectedCliente] = useState<ClienteInfo | null>(null);
   const [historicoCache, setHistoricoCache] = useState<Map<string, ClienteInfo>>(new Map());
   const [expandedPedidos, setExpandedPedidos] = useState<Set<string>>(new Set());

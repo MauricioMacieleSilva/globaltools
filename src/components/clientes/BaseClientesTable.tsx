@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, History, Eye, ChevronDown, ChevronRight, MessageSquare, RefreshCw } from "lucide-react";
+import { Search, History, Eye, ChevronDown, ChevronRight, MessageSquare, RefreshCw, X } from "lucide-react";
 import { useComercial } from "@/context/ComercialContext";
 import { isFaturado, formatCurrency, getDiasEntreDatas, formatDateSafe } from "@/lib/utils-comercial";
 import { useDebounce } from "@/hooks/useDebounce";

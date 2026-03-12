@@ -108,6 +108,10 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
   };
 
   const handleUpload = async () => {
+    if (!listName.trim()) {
+      toast.error('Informe o nome da lista');
+      return;
+    }
     if (!mapping.empresa && !mapping.telefone) {
       toast.error('Mapeie pelo menos o campo Empresa ou Telefone');
       return;

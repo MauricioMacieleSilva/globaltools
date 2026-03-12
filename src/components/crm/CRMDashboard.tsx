@@ -179,10 +179,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const days = eachDayOfInterval({ start, end });
     return days.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
-      const dayActivities = activities.filter(a => a.created_at.startsWith(dayStr));
+      const dayActivities = activities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr);
       return {
         dia: format(day, 'dd', { locale: ptBR }),
-        contatos: uniqueDailyContacts.filter(a => a.created_at?.startsWith(dayStr)).length,
+        contatos: uniqueDailyContacts.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr).length,
         visitas: dayActivities.filter(a => a.activity_type === 'visita').length,
       };
     });

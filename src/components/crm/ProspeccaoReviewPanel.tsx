@@ -402,7 +402,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-1 shrink-0 items-center">
+      <div className="flex gap-1.5 shrink-0 items-center">
         {isManagerOrAdmin ? (
           <>
             {/* Assign to user */}
@@ -410,8 +410,9 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
               value=""
               onValueChange={(userId) => handleAssign(lead, userId)}
             >
-              <SelectTrigger className="h-6 w-6 p-0 border-0 [&>svg]:hidden" title="Atribuir a usuário">
-                <UserPlus className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+              <SelectTrigger className="h-7 w-auto min-w-[100px] text-xs gap-1 px-2 border-primary/30 text-primary hover:bg-primary/5">
+                <UserPlus className="h-3.5 w-3.5" />
+                <span>Atribuir</span>
               </SelectTrigger>
               <SelectContent>
                 {users.map(u => (
@@ -424,7 +425,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
             <Button
               size="icon"
               variant="ghost"
-              className="h-6 w-6 text-destructive hover:text-destructive"
+              className="h-7 w-7 text-destructive hover:text-destructive"
               onClick={async () => {
                 const user = (await supabase.auth.getUser()).data.user;
                 await (supabase as any).from('lead_prospecting_results')
@@ -440,10 +441,10 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
             <Button
               size="icon"
               variant="ghost"
-              className="h-6 w-6 text-primary hover:text-primary"
+              className="h-7 w-7 text-primary hover:text-primary"
               onClick={() => handleAttend(lead)}
               disabled={attendingId === lead.id}
-              title="Aprovar"
+              title="Aprovar para mim"
             >
               {attendingId === lead.id
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

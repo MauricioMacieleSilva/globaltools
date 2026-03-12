@@ -130,7 +130,7 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
         cidade: row[mapping.cidade] || null,
         estado: row[mapping.estado] || null,
         ramo_atuacao: row[mapping.ramo] || null,
-        fonte_dados: 'Upload Manual',
+        fonte_dados: listName.trim(),
         source: 'upload',
         status: 'pending',
       })).filter(l => l.cliente_nome !== 'Sem nome' || l.cliente_telefone);

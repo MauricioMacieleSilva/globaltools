@@ -211,6 +211,19 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
             <span>Associe as colunas da sua planilha aos campos do sistema. Os campos foram pré-preenchidos automaticamente.</span>
           </div>
 
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">
+              Nome da Lista <span className="text-destructive">*</span>
+            </Label>
+            <input
+              type="text"
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+              placeholder="Ex: Lista Metalúrgicas Jan/2026"
+              className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {(Object.keys(FIELD_LABELS) as (keyof ColumnMapping)[]).map(field => (
               <div key={field} className="space-y-1">

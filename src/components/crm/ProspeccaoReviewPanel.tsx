@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
 import {
   Loader2, CheckCircle2, XCircle, Building2, Phone, Mail,
-  MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink
+  MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink, HandHelping
 } from 'lucide-react';
 
 interface StagedLead {
@@ -35,14 +34,16 @@ interface StagedLead {
 
 interface Props {
   onLeadsApproved?: () => void;
+  isManagerOrAdmin?: boolean;
 }
 
-export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
+export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = false }: Props) {
   const [leads, setLeads] = useState<StagedLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [approving, setApproving] = useState(false);
   const [discarding, setDiscarding] = useState(false);
+  const [attendingId, setAttendingId] = useState<string | null>(null);
 
   const loadPending = useCallback(async () => {
     setLoading(true);
@@ -74,52 +75,54 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
     }
   };
 
+  const approveLead = async (lead: StagedLead) => {
+    const user = (await supabase.auth.getUser()).data.user;
+    const empresaNome = lead.empresa || lead.cliente_nome || '';
+    const contactName = lead.contact_name || '';
+
+    const { error } = await (supabase as any).from('leads').insert({
+      cliente_nome: contactName || empresaNome,
+      client_name: contactName || empresaNome,
+      empresa: empresaNome || null,
+      cliente_cnpj: lead.cliente_cnpj || null,
+      contact_name: lead.contact_name || null,
+      contact_phone: lead.cliente_telefone || null,
+      cliente_telefone: lead.cliente_telefone || null,
+      contact_email: lead.cliente_email || null,
+      cliente_email: lead.cliente_email || null,
+      cidade: lead.cidade || null,
+      estado: lead.estado || null,
+      ramo_atuacao: lead.ramo_atuacao || null,
+      produto_interesse: lead.produto_interesse || null,
+      valor_estimado: lead.valor_estimado || null,
+      notes: lead.notes || null,
+      source: 'Auto Prospecção',
+      website: lead.source_url || null,
+      regime_tributario: (lead as any).regime_tributario || null,
+      status: 'lead',
+      vendedor_id: user?.id,
+    });
+
+    if (!error) {
+      await (supabase as any).from('lead_prospecting_results')
+        .update({ status: 'approved', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+        .eq('id', lead.id);
+      return true;
+    } else {
+      console.error('Approve lead error:', error);
+      return false;
+    }
+  };
+
   const approveSelected = async () => {
     if (selectedIds.size === 0) return;
     setApproving(true);
-
     try {
-      const user = (await supabase.auth.getUser()).data.user;
       const toApprove = leads.filter(l => selectedIds.has(l.id));
       let approved = 0;
-
       for (const lead of toApprove) {
-        const empresaNome = lead.empresa || lead.cliente_nome || '';
-        const contactName = lead.contact_name || '';
-
-          const { error: insertError } = await (supabase as any).from('leads').insert({
-            cliente_nome: contactName || empresaNome,
-            client_name: contactName || empresaNome,
-            empresa: empresaNome || null,
-            cliente_cnpj: lead.cliente_cnpj || null,
-            contact_name: lead.contact_name || null,
-            contact_phone: lead.cliente_telefone || null,
-            cliente_telefone: lead.cliente_telefone || null,
-            contact_email: lead.cliente_email || null,
-            cliente_email: lead.cliente_email || null,
-            cidade: lead.cidade || null,
-            estado: lead.estado || null,
-            ramo_atuacao: lead.ramo_atuacao || null,
-            produto_interesse: lead.produto_interesse || null,
-            valor_estimado: lead.valor_estimado || null,
-            notes: lead.notes || null,
-            source: 'Auto Prospecção',
-            website: lead.source_url || null,
-            regime_tributario: (lead as any).regime_tributario || null,
-            status: 'lead',
-            vendedor_id: user?.id,
-          });
-
-        if (!insertError) {
-          await (supabase as any).from('lead_prospecting_results')
-            .update({ status: 'approved', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
-            .eq('id', lead.id);
-          approved++;
-        } else {
-          console.error('Approve lead error:', insertError);
-        }
+        if (await approveLead(lead)) approved++;
       }
-
       toast.success(`${approved} lead${approved > 1 ? 's' : ''} aprovado${approved > 1 ? 's' : ''} e adicionado${approved > 1 ? 's' : ''} ao CRM`);
       setSelectedIds(new Set());
       await loadPending();
@@ -134,16 +137,13 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
   const discardSelected = async () => {
     if (selectedIds.size === 0) return;
     setDiscarding(true);
-
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const { error } = await (supabase as any)
         .from('lead_prospecting_results')
         .update({ status: 'discarded', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
         .in('id', Array.from(selectedIds));
-
       if (error) throw error;
-
       toast.success(`${selectedIds.size} lead${selectedIds.size > 1 ? 's' : ''} descartado${selectedIds.size > 1 ? 's' : ''}`);
       setSelectedIds(new Set());
       await loadPending();
@@ -151,6 +151,22 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
       toast.error('Erro ao descartar leads', { description: err.message });
     } finally {
       setDiscarding(false);
+    }
+  };
+
+  const handleAttend = async (lead: StagedLead) => {
+    setAttendingId(lead.id);
+    try {
+      const ok = await approveLead(lead);
+      if (ok) {
+        toast.success('Lead adicionado à sua lista!');
+        await loadPending();
+        onLeadsApproved?.();
+      } else {
+        toast.error('Erro ao atender lead');
+      }
+    } finally {
+      setAttendingId(null);
     }
   };
 
@@ -197,47 +213,51 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
-            Leads Pendentes de Revisão
+            {isManagerOrAdmin ? 'Leads Pendentes de Revisão' : 'Leads Disponíveis para Atendimento'}
             <Badge variant="secondary" className="text-[10px] h-5">{leads.length}</Badge>
           </CardTitle>
-          <div className="flex items-center gap-2">
-            {selectedIds.size > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {selectedIds.size} selecionado{selectedIds.size > 1 ? 's' : ''}
-              </span>
-            )}
-            <Button
-              size="sm"
-              variant="destructive"
-              className="h-7 text-xs gap-1"
-              disabled={selectedIds.size === 0 || discarding}
-              onClick={discardSelected}
-            >
-              {discarding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-              Descartar
-            </Button>
-            <Button
-              size="sm"
-              className="h-7 text-xs gap-1"
-              disabled={selectedIds.size === 0 || approving}
-              onClick={approveSelected}
-            >
-              {approving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3 w-3" />}
-              Aprovar
-            </Button>
-          </div>
+          {isManagerOrAdmin && (
+            <div className="flex items-center gap-2">
+              {selectedIds.size > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size} selecionado{selectedIds.size > 1 ? 's' : ''}
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="destructive"
+                className="h-7 text-xs gap-1"
+                disabled={selectedIds.size === 0 || discarding}
+                onClick={discardSelected}
+              >
+                {discarding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                Descartar
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 text-xs gap-1"
+                disabled={selectedIds.size === 0 || approving}
+                onClick={approveSelected}
+              >
+                {approving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3 w-3" />}
+                Aprovar
+              </Button>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        {/* Select all */}
-        <div className="flex items-center gap-2 pb-2 border-b mb-2">
-          <Checkbox
-            checked={selectedIds.size === leads.length && leads.length > 0}
-            onCheckedChange={toggleAll}
-            className="h-3.5 w-3.5"
-          />
-          <span className="text-xs text-muted-foreground">Selecionar todos</span>
-        </div>
+        {/* Select all - only for managers */}
+        {isManagerOrAdmin && (
+          <div className="flex items-center gap-2 pb-2 border-b mb-2">
+            <Checkbox
+              checked={selectedIds.size === leads.length && leads.length > 0}
+              onCheckedChange={toggleAll}
+              className="h-3.5 w-3.5"
+            />
+            <span className="text-xs text-muted-foreground">Selecionar todos</span>
+          </div>
+        )}
 
         <div className="divide-y divide-border/60 max-h-[500px] overflow-y-auto">
           {leads.map(lead => (
@@ -247,11 +267,13 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                 selectedIds.has(lead.id) ? 'bg-primary/5' : ''
               }`}
             >
-              <Checkbox
-                checked={selectedIds.has(lead.id)}
-                onCheckedChange={() => toggleSelect(lead.id)}
-                className="h-3.5 w-3.5 mt-1"
-              />
+              {isManagerOrAdmin && (
+                <Checkbox
+                  checked={selectedIds.has(lead.id)}
+                  onCheckedChange={() => toggleSelect(lead.id)}
+                  className="h-3.5 w-3.5 mt-1"
+                />
+              )}
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-semibold truncate">
@@ -261,7 +283,6 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                    {lead.source_url && (
                     <a
                       href={
-                        // Fix broken PNCP portal links - redirect to Google search instead
                         lead.source_url.includes('pncp.gov.br/app/editais/')
                           ? `https://www.google.com/search?q=pncp+${encodeURIComponent(lead.cliente_cnpj?.replace(/\D/g, '') || '')}+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`
                           : lead.source_url
@@ -317,68 +338,54 @@ export function ProspeccaoReviewPanel({ onLeadsApproved }: Props) {
                 )}
               </div>
 
+              {/* Action buttons */}
               <div className="flex gap-1 shrink-0">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-destructive hover:text-destructive"
-                  onClick={async () => {
-                    const user = (await supabase.auth.getUser()).data.user;
-                    await (supabase as any).from('lead_prospecting_results')
-                      .update({ status: 'discarded', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
-                      .eq('id', lead.id);
-                    toast.success('Lead descartado');
-                    loadPending();
-                  }}
-                  title="Descartar"
-                >
-                  <XCircle className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-primary hover:text-primary"
-                  onClick={async () => {
-                    const user = (await supabase.auth.getUser()).data.user;
-                    const empresaNome = lead.empresa || lead.cliente_nome || '';
-                    const contactName = lead.contact_name || '';
-                     const { error } = await (supabase as any).from('leads').insert({
-                       cliente_nome: contactName || empresaNome,
-                       client_name: contactName || empresaNome,
-                       empresa: empresaNome || null,
-                       cliente_cnpj: lead.cliente_cnpj || null,
-                       contact_name: lead.contact_name || null,
-                       contact_phone: lead.cliente_telefone || null,
-                       cliente_telefone: lead.cliente_telefone || null,
-                       contact_email: lead.cliente_email || null,
-                       cliente_email: lead.cliente_email || null,
-                       cidade: lead.cidade || null,
-                       estado: lead.estado || null,
-                       ramo_atuacao: lead.ramo_atuacao || null,
-                       produto_interesse: lead.produto_interesse || null,
-                       valor_estimado: lead.valor_estimado || null,
-                       notes: lead.notes || null,
-                       source: 'Auto Prospecção',
-                       
-                       website: lead.source_url || null,
-                       status: 'lead',
-                       vendedor_id: user?.id,
-                     });
-                    if (!error) {
-                      await (supabase as any).from('lead_prospecting_results')
-                        .update({ status: 'approved', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
-                        .eq('id', lead.id);
-                      toast.success('Lead aprovado e adicionado ao CRM');
-                      loadPending();
-                      onLeadsApproved?.();
-                    } else {
-                      toast.error('Erro ao aprovar lead', { description: error.message });
+                {isManagerOrAdmin ? (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      onClick={async () => {
+                        const user = (await supabase.auth.getUser()).data.user;
+                        await (supabase as any).from('lead_prospecting_results')
+                          .update({ status: 'discarded', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+                          .eq('id', lead.id);
+                        toast.success('Lead descartado');
+                        loadPending();
+                      }}
+                      title="Descartar"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-primary hover:text-primary"
+                      onClick={() => handleAttend(lead)}
+                      disabled={attendingId === lead.id}
+                      title="Aprovar"
+                    >
+                      {attendingId === lead.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <CheckCircle2 className="h-3.5 w-3.5" />
+                      }
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => handleAttend(lead)}
+                    disabled={attendingId === lead.id}
+                  >
+                    {attendingId === lead.id
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <HandHelping className="h-3 w-3" />
                     }
-                  }}
-                  title="Aprovar"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                </Button>
+                    Atender
+                  </Button>
+                )}
               </div>
             </div>
           ))}

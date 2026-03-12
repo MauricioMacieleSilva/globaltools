@@ -560,10 +560,6 @@ export default function CRM() {
           <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} />
         </TabsContent>
 
-        <TabsContent value="performance" className="mt-3 space-y-4">
-          <TeamPerformance leads={leads} />
-          <PortfolioHealth leads={filteredLeads} onLeadClick={openLeadDrawer} />
-        </TabsContent>
 
         <TabsContent value="dashboard" className="mt-3">
           <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />

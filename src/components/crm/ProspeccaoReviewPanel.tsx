@@ -53,6 +53,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
   const [discarding, setDiscarding] = useState(false);
   const [attendingId, setAttendingId] = useState<string | null>(null);
   const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set());
+  const [listPages, setListPages] = useState<Record<string, number>>({});
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [assignUserId, setAssignUserId] = useState<string>('');
   const [assigningLeadId, setAssigningLeadId] = useState<string | null>(null);
@@ -561,11 +562,38 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
                 </div>
 
                 {/* Expanded leads */}
-                {isExpanded && (
-                  <div className="divide-y divide-border/60 px-2 pb-2">
-                    {listLeads.map(lead => renderLeadRow(lead))}
-                  </div>
-                )}
+                {isExpanded && (() => {
+                  const PAGE_SIZE = 50;
+                  const currentPage = listPages[listName] || 1;
+                  const totalPages = Math.ceil(listLeads.length / PAGE_SIZE);
+                  const paginatedLeads = listLeads.slice(0, currentPage * PAGE_SIZE);
+
+                  return (
+                    <div className="px-2 pb-2">
+                      <div className="divide-y divide-border/60">
+                        {paginatedLeads.map(lead => renderLeadRow(lead))}
+                      </div>
+                      {currentPage * PAGE_SIZE < listLeads.length && (
+                        <div className="flex items-center justify-center pt-3 pb-1 gap-3">
+                          <span className="text-[10px] text-muted-foreground">
+                            Mostrando {paginatedLeads.length} de {listLeads.length}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setListPages(prev => ({ ...prev, [listName]: currentPage + 1 }));
+                            }}
+                          >
+                            Carregar mais 50
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

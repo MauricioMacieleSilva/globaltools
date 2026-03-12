@@ -53,6 +53,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
   const [discarding, setDiscarding] = useState(false);
   const [attendingId, setAttendingId] = useState<string | null>(null);
   const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set());
+  const [listPages, setListPages] = useState<Record<string, number>>({});
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [assignUserId, setAssignUserId] = useState<string>('');
   const [assigningLeadId, setAssigningLeadId] = useState<string | null>(null);

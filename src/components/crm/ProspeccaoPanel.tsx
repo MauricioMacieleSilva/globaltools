@@ -79,6 +79,22 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [ramoSearch, setRamoSearch] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp', 'obrasgov']);
 
+  // Detect role
+  useEffect(() => {
+    const checkRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: roleData } = await (supabase as any)
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const role = roleData?.role;
+      setIsManagerOrAdmin(role === 'admin' || role === 'comercial');
+    };
+    checkRole();
+  }, []);
+
   // Load estados and business sectors on mount
   useEffect(() => {
     locationsService.getEstados().then(data => setEstados(data));

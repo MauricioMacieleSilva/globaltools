@@ -333,7 +333,8 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
             A IA gera leads de empresas potenciais com base nos seus critérios de busca
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap">
+          <LeadExcelUpload onUploadComplete={() => { loadData(); onLeadsApproved?.(); }} />
           <div className="flex items-center gap-2">
             <Switch checked={isActive} onCheckedChange={setIsActive} id="auto-toggle" />
             <Label htmlFor="auto-toggle" className="text-xs cursor-pointer whitespace-nowrap">

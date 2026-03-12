@@ -157,11 +157,18 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
   const lostPercent = activeLeads > 0 ? ((lostLeads.length / (activeLeads + lostLeads.length)) * 100).toFixed(1) : '0';
 
-  // Today's contacts for progress
+  // Today's contacts for progress — compare in local timezone
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const todayContacts = uniqueDailyContacts.filter(a => a.created_at?.startsWith(todayStr)).length;
+  const todayContacts = uniqueDailyContacts.filter(a => {
+    const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
+    return localDate === todayStr;
+  }).length;
   const todayVisitsCount = useMemo(() => {
-    return activities.filter(a => a.activity_type === 'visita' && a.created_at?.startsWith(todayStr)).length;
+    return activities.filter(a => {
+      if (a.activity_type !== 'visita') return false;
+      const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
+      return localDate === todayStr;
+    }).length;
   }, [activities, todayStr]);
 
   // Daily contacts chart

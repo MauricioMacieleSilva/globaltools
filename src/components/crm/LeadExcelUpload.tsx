@@ -169,6 +169,7 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
     setStep('idle');
     setHeaders([]);
     setRows([]);
+    setListName('');
     setMapping({ empresa: '', telefone: '', email: '', contato: '', cnpj: '', cidade: '', estado: '', ramo: '' });
   };
 

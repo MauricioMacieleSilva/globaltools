@@ -11,8 +11,6 @@ import { LostDealsDialog } from '@/components/crm/LostDealsDialog';
 import { CRMFilters } from '@/components/crm/CRMFilters';
 import { NewLeadDialog } from '@/components/crm/NewLeadDialog';
 import { LeadListView } from '@/components/crm/LeadListView';
-import { TeamPerformance } from '@/components/crm/TeamPerformance';
-import { PortfolioHealth } from '@/components/crm/PortfolioHealth';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
@@ -20,7 +18,7 @@ import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, BarChart3, CalendarDays, PieChart, Sparkles, Monitor } from 'lucide-react';
+import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor } from 'lucide-react';
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
 import DashboardComercial from '@/pages/DashboardComercial';
@@ -511,9 +509,6 @@ export default function CRM() {
             <TabsTrigger value="agenda" className="text-xs gap-1 h-7 px-3">
               <CalendarDays className="h-3.5 w-3.5" /> Agenda
             </TabsTrigger>
-            <TabsTrigger value="performance" className="text-xs gap-1 h-7 px-3">
-              <BarChart3 className="h-3.5 w-3.5" /> Performance
-            </TabsTrigger>
             <TabsTrigger value="dashboard" className="text-xs gap-1 h-7 px-3">
               <PieChart className="h-3.5 w-3.5" /> Dashboard
             </TabsTrigger>
@@ -565,10 +560,6 @@ export default function CRM() {
           <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} />
         </TabsContent>
 
-        <TabsContent value="performance" className="mt-3 space-y-4">
-          <TeamPerformance leads={leads} />
-          <PortfolioHealth leads={filteredLeads} onLeadClick={openLeadDrawer} />
-        </TabsContent>
 
         <TabsContent value="dashboard" className="mt-3">
           <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />

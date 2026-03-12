@@ -25,6 +25,13 @@ function getDaysInStage(updatedAt: string): number {
   return Math.floor((Date.now() - new Date(updatedAt).getTime()) / 86400000);
 }
 
+function getAgingColor(days: number): string {
+  if (days <= 2) return 'border-l-primary';        // Azul - Normal
+  if (days <= 5) return 'border-l-amber-500';       // Amber - Atenção
+  if (days <= 9) return 'border-l-orange-600';      // Laranja escuro - Urgente
+  return 'border-l-purple-600';                     // Roxo - Crítico
+}
+
 export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
   const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
@@ -71,109 +78,102 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       draggable
       onDragStart={(e) => onDragStart(e, lead.id)}
       onClick={onClick}
-      className={`p-3 cursor-pointer hover:shadow-md transition-all select-none ${isDragging ? 'opacity-40 scale-95' : ''}`}
+      className={`p-2 cursor-pointer hover:shadow-md transition-all select-none border-l-[3px] ${getAgingColor(days)} ${isDragging ? 'opacity-40 scale-95' : ''}`}
     >
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {/* Header: empresa + whatsapp */}
         <div className="flex items-start justify-between gap-1">
-          <h4 className="text-sm font-semibold text-foreground leading-tight line-clamp-2">{toTitleCase(lead.empresa || name || '')}</h4>
+          <h4 className="text-xs font-semibold text-foreground leading-tight line-clamp-1">{toTitleCase(lead.empresa || name || '')}</h4>
           {whatsappUrl && (
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="shrink-0 p-1 rounded-md hover:bg-accent transition-colors"
+              className="shrink-0 p-0.5 rounded hover:bg-accent transition-colors"
               title="WhatsApp"
             >
-              <MessageCircle className="h-3.5 w-3.5 text-success" />
+              <MessageCircle className="h-3 w-3 text-success" />
             </a>
           )}
         </div>
 
-        {/* Contact name */}
-        {(lead.empresa ? name : null) && (
-          <p className="text-xs text-muted-foreground truncate">{toTitleCase(name || '')}</p>
-        )}
-
-        {/* Client info */}
-        {lead.ramo_atuacao && (
-          <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
-            <Briefcase className="h-3 w-3 shrink-0" />
-            {toTitleCase(lead.ramo_atuacao)}
-          </p>
-        )}
-
-        {localidade && (
-          <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
-            <MapPin className="h-3 w-3 shrink-0" />
-            {toTitleCase(localidade)}
-          </p>
+        {/* Ramo + Localidade inline */}
+        {(lead.ramo_atuacao || localidade) && (
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground truncate">
+            {lead.ramo_atuacao && (
+              <span className="flex items-center gap-0.5 truncate">
+                <Briefcase className="h-2.5 w-2.5 shrink-0" />
+                {toTitleCase(lead.ramo_atuacao)}
+              </span>
+            )}
+            {localidade && (
+              <span className="flex items-center gap-0.5 truncate">
+                <MapPin className="h-2.5 w-2.5 shrink-0" />
+                {toTitleCase(localidade)}
+              </span>
+            )}
+          </div>
         )}
 
         {nextVisit && (
-          <p className="text-[10px] text-primary flex items-center gap-1 font-medium truncate">
-            <Calendar className="h-3 w-3 shrink-0" />
+          <p className="text-[10px] text-primary flex items-center gap-0.5 font-medium truncate">
+            <Calendar className="h-2.5 w-2.5 shrink-0" />
             {new Date(nextVisit.date).toLocaleDateString('pt-BR')} {new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}{nextVisit.location ? ` · ${nextVisit.location}` : ''}
           </p>
         )}
 
-        {/* Order/Budget numbers & total value */}
+        {/* Orders inline + value */}
         {lead.budget_number && (() => {
           const orders = lead.budget_number.split(',').map(s => s.trim()).filter(Boolean);
           return (
-            <div className="space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap text-[10px]">
               {orders.map((orderNum, idx) => (
-                <div
+                <span
                   key={idx}
-                  className="flex items-center gap-1 text-[10px] font-medium text-primary cursor-pointer hover:underline"
+                  className="font-medium text-primary cursor-pointer hover:underline flex items-center gap-0.5"
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedOrder(orderNum);
                     setOrderDialogOpen(true);
                   }}
                 >
-                  <Package className="h-3 w-3 shrink-0" />
-                  <span>Pedido {orderNum}</span>
-                </div>
+                  <Package className="h-2.5 w-2.5 shrink-0" />
+                  {orderNum}
+                </span>
               ))}
               {lead.valor_estimado != null && lead.valor_estimado > 0 && (
-                <p className="text-[10px] font-semibold text-foreground ml-4">
+                <span className="font-semibold text-foreground">
                   R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </p>
+                </span>
               )}
             </div>
           );
         })()}
 
-
         {/* Products + days */}
         <div className="flex items-center justify-between gap-1">
-          <div className="flex flex-wrap gap-1 flex-1 min-w-0">
-            {produtos.length > 0 ? (
-              produtos.map((p, i) => (
-                <span key={i} className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground truncate max-w-[90px]">
-                  {toTitleCase(p)}
-                </span>
-              ))
-            ) : (
-              <span />
-            )}
+          <div className="flex flex-wrap gap-0.5 flex-1 min-w-0">
+            {produtos.length > 0 && produtos.map((p, i) => (
+              <span key={i} className="inline-block text-[9px] px-1 py-0.5 rounded bg-accent text-accent-foreground truncate max-w-[80px]">
+                {toTitleCase(p)}
+              </span>
+            ))}
           </div>
-          <span className="flex items-center gap-1 text-muted-foreground text-xs shrink-0">
-            <Clock className="h-3 w-3" />
+          <span className="flex items-center gap-0.5 text-muted-foreground text-[10px] shrink-0">
+            <Clock className="h-2.5 w-2.5" />
             {days}d
           </span>
         </div>
 
-        {/* Vendor - separated at bottom, discrete */}
+        {/* Vendor */}
         {vendorName && (
-          <div className="flex items-center gap-1.5 pt-1 border-t border-border/50">
-            <Avatar className="h-4 w-4">
+          <div className="flex items-center gap-1 pt-0.5 border-t border-border/40">
+            <Avatar className="h-3.5 w-3.5">
               <AvatarImage src={vendorAvatar || undefined} alt={vendorName} />
-              <AvatarFallback className="text-[7px] bg-muted text-muted-foreground">{vendorInitials}</AvatarFallback>
+              <AvatarFallback className="text-[6px] bg-muted text-muted-foreground">{vendorInitials}</AvatarFallback>
             </Avatar>
-            <span className="text-[10px] text-muted-foreground/70 truncate">{toTitleCase(vendorName)}</span>
+            <span className="text-[9px] text-muted-foreground/70 truncate">{toTitleCase(vendorName)}</span>
           </div>
         )}
       </div>

@@ -1,19 +1,34 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronsUpDown, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NewLeadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onLeadCreated: () => void;
+}
+
+interface Cliente {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  email: string | null;
+  cnpj: string | null;
+  cidade: string | null;
+  estado: string | null;
+  segmento: string | null;
 }
 
 const DEFAULT_ORIGENS_FALLBACK = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];
@@ -23,6 +38,11 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   const [origens, setOrigens] = useState<string[]>([]);
   const [addingOrigem, setAddingOrigem] = useState(false);
   const [novaOrigem, setNovaOrigem] = useState('');
+  const [isClienteDaBase, setIsClienteDaBase] = useState(false);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clienteSearch, setClienteSearch] = useState('');
+  const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [form, setForm] = useState({
     empresa: '',
     cliente_nome: '',
@@ -54,9 +74,42 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     setOrigens(names.length > 0 ? names : DEFAULT_ORIGENS_FALLBACK);
   };
 
+  const loadClientes = async () => {
+    const { data } = await (supabase as any)
+      .from('clientes')
+      .select('id, nome, telefone, email, cnpj, cidade, estado, segmento')
+      .order('nome');
+    setClientes(data || []);
+  };
+
   useEffect(() => {
-    if (open) loadOrigens();
+    if (open) {
+      loadOrigens();
+      loadClientes();
+    }
   }, [open]);
+
+  const filteredClientes = useMemo(() => {
+    if (!clienteSearch) return clientes.slice(0, 50);
+    const q = clienteSearch.toLowerCase();
+    return clientes.filter(c =>
+      c.nome.toLowerCase().includes(q) ||
+      c.cnpj?.toLowerCase().includes(q) ||
+      c.telefone?.toLowerCase().includes(q)
+    ).slice(0, 50);
+  }, [clientes, clienteSearch]);
+
+  const handleSelectCliente = (cliente: Cliente) => {
+    setSelectedCliente(cliente);
+    setForm(f => ({
+      ...f,
+      empresa: cliente.nome,
+      cliente_telefone: cliente.telefone || '',
+      cliente_email: cliente.email || '',
+    }));
+    setClientePopoverOpen(false);
+    setClienteSearch('');
+  };
 
   const resetForm = () => {
     setForm({
@@ -65,6 +118,9 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     });
     setAddingOrigem(false);
     setNovaOrigem('');
+    setIsClienteDaBase(false);
+    setSelectedCliente(null);
+    setClienteSearch('');
   };
 
   const handleAddOrigem = async () => {
@@ -140,11 +196,90 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
           <DialogTitle>Novo Lead</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-2">
+          {/* Cliente da Base toggle */}
+          <div className="flex items-center gap-3 p-3 rounded-md bg-muted/50 border">
+            <Switch
+              checked={isClienteDaBase}
+              onCheckedChange={(checked) => {
+                setIsClienteDaBase(checked);
+                if (!checked) {
+                  setSelectedCliente(null);
+                  setForm(f => ({ ...f, empresa: '', cliente_telefone: '', cliente_email: '' }));
+                }
+              }}
+              id="cliente-base"
+            />
+            <Label htmlFor="cliente-base" className="text-sm cursor-pointer">
+              Cliente da Base
+            </Label>
+          </div>
+
+          {/* Cliente da Base selector */}
+          {isClienteDaBase && (
+            <div className="space-y-1.5">
+              <Label>Selecionar Cliente</Label>
+              <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedCliente ? selectedCliente.nome : 'Buscar cliente...'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Digite o nome, CNPJ ou telefone..."
+                      value={clienteSearch}
+                      onValueChange={setClienteSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty className="py-3 text-center text-sm">Nenhum cliente encontrado</CommandEmpty>
+                      <CommandGroup>
+                        {filteredClientes.map(cliente => (
+                          <CommandItem
+                            key={cliente.id}
+                            value={cliente.id}
+                            onSelect={() => handleSelectCliente(cliente)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedCliente?.id === cliente.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate">{cliente.nome}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {[cliente.cnpj, cliente.cidade, cliente.estado].filter(Boolean).join(' · ')}
+                              </div>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Empresa - FIRST and required */}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="empresa">Empresa *</Label>
-              <Input id="empresa" value={form.empresa} onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))} placeholder="Nome da empresa" />
+              <Input
+                id="empresa"
+                value={form.empresa}
+                onChange={(e) => setForm(f => ({ ...f, empresa: e.target.value }))}
+                placeholder="Nome da empresa"
+                disabled={isClienteDaBase && !!selectedCliente}
+              />
             </div>
 
             {/* Nome do Contato - optional */}

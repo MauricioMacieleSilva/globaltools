@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Loader2, CheckCircle2, XCircle, Building2, Phone, Mail,
-  MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink, HandHelping
+  MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink,
+  HandHelping, ChevronDown, ChevronRight, Users, UserPlus
 } from 'lucide-react';
 
 interface StagedLead {
@@ -32,6 +34,12 @@ interface StagedLead {
   created_at: string;
 }
 
+interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+}
+
 interface Props {
   onLeadsApproved?: () => void;
   isManagerOrAdmin?: boolean;
@@ -44,25 +52,96 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
   const [approving, setApproving] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [attendingId, setAttendingId] = useState<string | null>(null);
+  const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set());
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [assignUserId, setAssignUserId] = useState<string>('');
+  const [assigningLeadId, setAssigningLeadId] = useState<string | null>(null);
+
+  // Fetch all pending leads with pagination to bypass 1000 limit
+  const fetchAllPending = async (): Promise<StagedLead[]> => {
+    const allLeads: StagedLead[] = [];
+    const pageSize = 1000;
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await (supabase as any)
+        .from('lead_prospecting_results')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.error('Error fetching leads:', error);
+        break;
+      }
+
+      allLeads.push(...(data || []));
+      hasMore = (data?.length || 0) === pageSize;
+      from += pageSize;
+    }
+
+    return allLeads;
+  };
 
   const loadPending = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from('lead_prospecting_results')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    if (!error) setLeads(data || []);
+    const allLeads = await fetchAllPending();
+    setLeads(allLeads);
     setLoading(false);
   }, []);
 
   useEffect(() => { loadPending(); }, [loadPending]);
 
+  // Load users for assignment (admin only)
+  useEffect(() => {
+    if (!isManagerOrAdmin) return;
+    const loadUsers = async () => {
+      const { data } = await (supabase as any)
+        .from('user_profiles')
+        .select('id, full_name, email')
+        .order('full_name');
+      setUsers(data || []);
+    };
+    loadUsers();
+  }, [isManagerOrAdmin]);
+
+  // Group leads by fonte_dados
+  const groupedLeads = useMemo(() => {
+    const groups: Record<string, StagedLead[]> = {};
+    for (const lead of leads) {
+      const key = lead.fonte_dados || 'Sem lista';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(lead);
+    }
+    // Sort groups: named lists first, then "Sem lista"
+    const sorted = Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'Sem lista') return 1;
+      if (b === 'Sem lista') return -1;
+      return a.localeCompare(b);
+    });
+    return sorted;
+  }, [leads]);
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectList = (listLeads: StagedLead[]) => {
+    const listIds = listLeads.map(l => l.id);
+    const allSelected = listIds.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        listIds.forEach(id => next.delete(id));
+      } else {
+        listIds.forEach(id => next.add(id));
+      }
       return next;
     });
   };
@@ -75,10 +154,20 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     }
   };
 
-  const approveLead = async (lead: StagedLead) => {
+  const toggleExpand = (listName: string) => {
+    setExpandedLists(prev => {
+      const next = new Set(prev);
+      if (next.has(listName)) next.delete(listName); else next.add(listName);
+      return next;
+    });
+  };
+
+  const approveLead = async (lead: StagedLead, vendorId?: string) => {
     const user = (await supabase.auth.getUser()).data.user;
     const empresaNome = lead.empresa || lead.cliente_nome || '';
     const contactName = lead.contact_name || '';
+    // Use fonte_dados as origin for Excel uploads, otherwise 'Auto Prospecção'
+    const origin = lead.source === 'upload' ? (lead.fonte_dados || 'Upload Excel') : (lead.fonte_dados || 'Auto Prospecção');
 
     const { error } = await (supabase as any).from('leads').insert({
       cliente_nome: contactName || empresaNome,
@@ -96,11 +185,11 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       produto_interesse: lead.produto_interesse || null,
       valor_estimado: lead.valor_estimado || null,
       notes: lead.notes || null,
-      source: 'Auto Prospecção',
+      source: origin,
       website: lead.source_url || null,
       regime_tributario: (lead as any).regime_tributario || null,
       status: 'lead',
-      vendedor_id: user?.id,
+      vendedor_id: vendorId || user?.id,
     });
 
     if (!error) {
@@ -134,17 +223,25 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     }
   };
 
+  // Batch discard in chunks to avoid Bad Request
   const discardSelected = async () => {
     if (selectedIds.size === 0) return;
     setDiscarding(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
-      const { error } = await (supabase as any)
-        .from('lead_prospecting_results')
-        .update({ status: 'discarded', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
-        .in('id', Array.from(selectedIds));
-      if (error) throw error;
-      toast.success(`${selectedIds.size} lead${selectedIds.size > 1 ? 's' : ''} descartado${selectedIds.size > 1 ? 's' : ''}`);
+      const ids = Array.from(selectedIds);
+      const batchSize = 100;
+      
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize);
+        const { error } = await (supabase as any)
+          .from('lead_prospecting_results')
+          .update({ status: 'discarded', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+          .in('id', batch);
+        if (error) throw error;
+      }
+
+      toast.success(`${ids.length} lead${ids.length > 1 ? 's' : ''} descartado${ids.length > 1 ? 's' : ''}`);
       setSelectedIds(new Set());
       await loadPending();
     } catch (err: any) {
@@ -167,6 +264,24 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       }
     } finally {
       setAttendingId(null);
+    }
+  };
+
+  const handleAssign = async (lead: StagedLead, userId: string) => {
+    setAssigningLeadId(lead.id);
+    try {
+      const ok = await approveLead(lead, userId);
+      if (ok) {
+        const user = users.find(u => u.id === userId);
+        toast.success(`Lead atribuído a ${user?.full_name || 'usuário'}!`);
+        await loadPending();
+        onLeadsApproved?.();
+      } else {
+        toast.error('Erro ao atribuir lead');
+      }
+    } finally {
+      setAssigningLeadId(null);
+      setAssignUserId('');
     }
   };
 
@@ -200,12 +315,158 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
           <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
           <p className="text-sm text-muted-foreground">Nenhum lead pendente de revisão</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Execute uma prospecção para gerar leads para análise
+            Execute uma prospecção ou importe uma planilha para gerar leads
           </p>
         </CardContent>
       </Card>
     );
   }
+
+  const renderLeadRow = (lead: StagedLead) => (
+    <div
+      key={lead.id}
+      className={`flex items-start gap-3 py-2.5 px-1 rounded transition-colors ${
+        selectedIds.has(lead.id) ? 'bg-primary/5' : ''
+      }`}
+    >
+      {isManagerOrAdmin && (
+        <Checkbox
+          checked={selectedIds.has(lead.id)}
+          onCheckedChange={() => toggleSelect(lead.id)}
+          className="h-3.5 w-3.5 mt-1"
+        />
+      )}
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold truncate">
+            {lead.empresa || lead.cliente_nome}
+          </span>
+          {getSourceBadge(lead.fonte_dados)}
+          {lead.source_url && (
+            <a
+              href={
+                lead.source_url.includes('pncp.gov.br/app/editais/')
+                  ? `https://www.google.com/search?q=pncp+${encodeURIComponent(lead.cliente_cnpj?.replace(/\D/g, '') || '')}+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`
+                  : lead.source_url
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-2.5 w-2.5" />
+              Ver fonte
+            </a>
+          )}
+        </div>
+
+        {lead.contact_name && (
+          <div className="text-[11px] text-muted-foreground">
+            Contato: {lead.contact_name}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+          {lead.cliente_telefone && (
+            <span className="flex items-center gap-0.5">
+              <Phone className="h-2.5 w-2.5" /> {lead.cliente_telefone}
+            </span>
+          )}
+          {lead.cliente_email && (
+            <span className="flex items-center gap-0.5">
+              <Mail className="h-2.5 w-2.5" /> {lead.cliente_email}
+            </span>
+          )}
+          {(lead.cidade || lead.estado) && (
+            <span className="flex items-center gap-0.5">
+              <MapPin className="h-2.5 w-2.5" /> {[lead.cidade, lead.estado].filter(Boolean).join(' - ')}
+            </span>
+          )}
+          {lead.ramo_atuacao && (
+            <span className="flex items-center gap-0.5">
+              <Building2 className="h-2.5 w-2.5" /> {lead.ramo_atuacao}
+            </span>
+          )}
+        </div>
+
+        {lead.notes && (
+          <p className="text-[10px] text-muted-foreground/70 line-clamp-2">{lead.notes}</p>
+        )}
+
+        {lead.valor_estimado && (
+          <span className="text-[10px] font-medium text-primary">
+            Valor est.: R$ {lead.valor_estimado.toLocaleString('pt-BR')}
+          </span>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-1 shrink-0 items-center">
+        {isManagerOrAdmin ? (
+          <>
+            {/* Assign to user */}
+            <Select
+              value=""
+              onValueChange={(userId) => handleAssign(lead, userId)}
+            >
+              <SelectTrigger className="h-6 w-6 p-0 border-0 [&>svg]:hidden" title="Atribuir a usuário">
+                <UserPlus className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map(u => (
+                  <SelectItem key={u.id} value={u.id} className="text-xs">
+                    {u.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 text-destructive hover:text-destructive"
+              onClick={async () => {
+                const user = (await supabase.auth.getUser()).data.user;
+                await (supabase as any).from('lead_prospecting_results')
+                  .update({ status: 'discarded', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
+                  .eq('id', lead.id);
+                toast.success('Lead descartado');
+                loadPending();
+              }}
+              title="Descartar"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 text-primary hover:text-primary"
+              onClick={() => handleAttend(lead)}
+              disabled={attendingId === lead.id}
+              title="Aprovar"
+            >
+              {attendingId === lead.id
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <CheckCircle2 className="h-3.5 w-3.5" />
+              }
+            </Button>
+          </>
+        ) : (
+          <Button
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={() => handleAttend(lead)}
+            disabled={attendingId === lead.id}
+          >
+            {attendingId === lead.id
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <HandHelping className="h-3 w-3" />
+            }
+            Atender
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <Card>
@@ -255,140 +516,59 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
               onCheckedChange={toggleAll}
               className="h-3.5 w-3.5"
             />
-            <span className="text-xs text-muted-foreground">Selecionar todos</span>
+            <span className="text-xs text-muted-foreground">Selecionar todos ({leads.length})</span>
           </div>
         )}
 
-        <div className="divide-y divide-border/60 max-h-[500px] overflow-y-auto">
-          {leads.map(lead => (
-            <div
-              key={lead.id}
-              className={`flex items-start gap-3 py-2.5 px-1 rounded transition-colors ${
-                selectedIds.has(lead.id) ? 'bg-primary/5' : ''
-              }`}
-            >
-              {isManagerOrAdmin && (
-                <Checkbox
-                  checked={selectedIds.has(lead.id)}
-                  onCheckedChange={() => toggleSelect(lead.id)}
-                  className="h-3.5 w-3.5 mt-1"
-                />
-              )}
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold truncate">
-                    {lead.empresa || lead.cliente_nome}
-                  </span>
-                  {getSourceBadge(lead.fonte_dados)}
-                   {lead.source_url && (
-                    <a
-                      href={
-                        lead.source_url.includes('pncp.gov.br/app/editais/')
-                          ? `https://www.google.com/search?q=pncp+${encodeURIComponent(lead.cliente_cnpj?.replace(/\D/g, '') || '')}+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`
-                          : lead.source_url
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+        <div className="space-y-2 max-h-[600px] overflow-y-auto">
+          {groupedLeads.map(([listName, listLeads]) => {
+            const isExpanded = expandedLists.has(listName);
+            const listSelectedCount = listLeads.filter(l => selectedIds.has(l.id)).length;
+            const allListSelected = listSelectedCount === listLeads.length;
+
+            return (
+              <div key={listName} className="border rounded-md">
+                {/* List header */}
+                <div
+                  className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => toggleExpand(listName)}
+                >
+                  {isManagerOrAdmin && (
+                    <Checkbox
+                      checked={allListSelected}
+                      onCheckedChange={(e) => {
+                        e; // prevent propagation handled by stopPropagation
+                        toggleSelectList(listLeads);
+                      }}
                       onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="h-2.5 w-2.5" />
-                      Ver fonte
-                    </a>
+                      className="h-3.5 w-3.5"
+                    />
+                  )}
+                  {isExpanded
+                    ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  }
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-medium flex-1">{listName}</span>
+                  <Badge variant="secondary" className="text-[10px] h-5">
+                    {listLeads.length} lead{listLeads.length > 1 ? 's' : ''}
+                  </Badge>
+                  {listSelectedCount > 0 && (
+                    <Badge variant="outline" className="text-[10px] h-5 text-primary border-primary/30">
+                      {listSelectedCount} sel.
+                    </Badge>
                   )}
                 </div>
 
-                {lead.contact_name && (
-                  <div className="text-[11px] text-muted-foreground">
-                    Contato: {lead.contact_name}
+                {/* Expanded leads */}
+                {isExpanded && (
+                  <div className="divide-y divide-border/60 px-2 pb-2">
+                    {listLeads.map(lead => renderLeadRow(lead))}
                   </div>
                 )}
-
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-                  {lead.cliente_telefone && (
-                    <span className="flex items-center gap-0.5">
-                      <Phone className="h-2.5 w-2.5" /> {lead.cliente_telefone}
-                    </span>
-                  )}
-                  {lead.cliente_email && (
-                    <span className="flex items-center gap-0.5">
-                      <Mail className="h-2.5 w-2.5" /> {lead.cliente_email}
-                    </span>
-                  )}
-                  {(lead.cidade || lead.estado) && (
-                    <span className="flex items-center gap-0.5">
-                      <MapPin className="h-2.5 w-2.5" /> {[lead.cidade, lead.estado].filter(Boolean).join(' - ')}
-                    </span>
-                  )}
-                  {lead.ramo_atuacao && (
-                    <span className="flex items-center gap-0.5">
-                      <Building2 className="h-2.5 w-2.5" /> {lead.ramo_atuacao}
-                    </span>
-                  )}
-                </div>
-
-                {lead.notes && (
-                  <p className="text-[10px] text-muted-foreground/70 line-clamp-2">{lead.notes}</p>
-                )}
-
-                {lead.valor_estimado && (
-                  <span className="text-[10px] font-medium text-primary">
-                    Valor est.: R$ {lead.valor_estimado.toLocaleString('pt-BR')}
-                  </span>
-                )}
               </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-1 shrink-0">
-                {isManagerOrAdmin ? (
-                  <>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 text-destructive hover:text-destructive"
-                      onClick={async () => {
-                        const user = (await supabase.auth.getUser()).data.user;
-                        await (supabase as any).from('lead_prospecting_results')
-                          .update({ status: 'discarded', reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
-                          .eq('id', lead.id);
-                        toast.success('Lead descartado');
-                        loadPending();
-                      }}
-                      title="Descartar"
-                    >
-                      <XCircle className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 text-primary hover:text-primary"
-                      onClick={() => handleAttend(lead)}
-                      disabled={attendingId === lead.id}
-                      title="Aprovar"
-                    >
-                      {attendingId === lead.id
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <CheckCircle2 className="h-3.5 w-3.5" />
-                      }
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => handleAttend(lead)}
-                    disabled={attendingId === lead.id}
-                  >
-                    {attendingId === lead.id
-                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                      : <HandHelping className="h-3 w-3" />
-                    }
-                    Atender
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

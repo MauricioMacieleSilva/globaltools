@@ -11,8 +11,6 @@ import { LostDealsDialog } from '@/components/crm/LostDealsDialog';
 import { CRMFilters } from '@/components/crm/CRMFilters';
 import { NewLeadDialog } from '@/components/crm/NewLeadDialog';
 import { LeadListView } from '@/components/crm/LeadListView';
-import { TeamPerformance } from '@/components/crm/TeamPerformance';
-import { PortfolioHealth } from '@/components/crm/PortfolioHealth';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';

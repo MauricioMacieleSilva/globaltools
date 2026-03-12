@@ -135,12 +135,12 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
   const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
 
-  // Helper: deduplicate contato_inicial — count only the first per lead per day
+  // Helper: deduplicate contato_inicial — count only the first per lead per day (local tz)
   const uniqueDailyContacts = useMemo(() => {
     const seen = new Set<string>();
     return activities.filter(a => {
       if (a.activity_type !== 'contato_inicial') return false;
-      const day = a.created_at?.slice(0, 10);
+      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
       const key = `${a.lead_id}_${day}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -157,11 +157,18 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
   const lostPercent = activeLeads > 0 ? ((lostLeads.length / (activeLeads + lostLeads.length)) * 100).toFixed(1) : '0';
 
-  // Today's contacts for progress
+  // Today's contacts for progress — compare in local timezone
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const todayContacts = uniqueDailyContacts.filter(a => a.created_at?.startsWith(todayStr)).length;
+  const todayContacts = uniqueDailyContacts.filter(a => {
+    const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
+    return localDate === todayStr;
+  }).length;
   const todayVisitsCount = useMemo(() => {
-    return activities.filter(a => a.activity_type === 'visita' && a.created_at?.startsWith(todayStr)).length;
+    return activities.filter(a => {
+      if (a.activity_type !== 'visita') return false;
+      const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
+      return localDate === todayStr;
+    }).length;
   }, [activities, todayStr]);
 
   // Daily contacts chart
@@ -172,10 +179,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const days = eachDayOfInterval({ start, end });
     return days.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
-      const dayActivities = activities.filter(a => a.created_at.startsWith(dayStr));
+      const dayActivities = activities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr);
       return {
         dia: format(day, 'dd', { locale: ptBR }),
-        contatos: uniqueDailyContacts.filter(a => a.created_at?.startsWith(dayStr)).length,
+        contatos: uniqueDailyContacts.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr).length,
         visitas: dayActivities.filter(a => a.activity_type === 'visita').length,
       };
     });

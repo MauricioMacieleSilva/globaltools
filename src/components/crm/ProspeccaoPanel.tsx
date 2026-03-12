@@ -301,6 +301,24 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
     );
   }
 
+  // For non-managers, show only the review panel
+  if (!isManagerOrAdmin) {
+    return (
+      <div className="space-y-4 pb-6">
+        <div>
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Leads Disponíveis para Atendimento
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Clique em "Atender" para adicionar o lead à sua lista
+          </p>
+        </div>
+        <ProspeccaoReviewPanel isManagerOrAdmin={false} onLeadsApproved={() => { loadData(); onLeadsApproved?.(); }} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 pb-6">
       {/* Header */}
@@ -617,56 +635,70 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
       </div>
 
       {/* Review Panel */}
-      <ProspeccaoReviewPanel onLeadsApproved={() => { loadData(); onLeadsApproved?.(); }} />
+      <ProspeccaoReviewPanel isManagerOrAdmin={true} onLeadsApproved={() => { loadData(); onLeadsApproved?.(); }} />
 
-      {/* History */}
-      <Card>
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-medium">Histórico de Execuções</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          {logs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
-              <Sparkles className="h-8 w-8 opacity-20" />
-              <p className="text-sm">Nenhuma execução ainda</p>
-              <p className="text-xs">Salve a configuração e clique em "Buscar agora"</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border/60">
-              {logs.map(log => (
-                <div key={log.id} className="flex items-center justify-between py-2.5 gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {getStatusBadge(log.status)}
-                    <div className="min-w-0">
-                      <div className="text-xs font-medium truncate">
-                        {format(new Date(log.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {log.triggered_by === 'manual' ? 'Manual' : 'Automático'}
-                        {log.error_message && ` · ${log.error_message}`}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 shrink-0 text-xs">
-                    <div className="text-center hidden sm:block">
-                      <div className="font-semibold">{log.leads_encontrados}</div>
-                      <div className="text-[10px] text-muted-foreground">gerados</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-primary">{log.leads_criados}</div>
-                      <div className="text-[10px] text-muted-foreground">criados</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-semibold text-muted-foreground">{log.leads_duplicados}</div>
-                      <div className="text-[10px] text-muted-foreground">duplic.</div>
-                    </div>
-                  </div>
+      {/* History - collapsible */}
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 h-8 text-xs"
+          onClick={() => setShowHistory(!showHistory)}
+        >
+          <History className="h-3.5 w-3.5" />
+          {showHistory ? 'Ocultar Histórico' : 'Ver Histórico de Execuções'}
+        </Button>
+
+        {showHistory && (
+          <Card className="mt-3">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Histórico de Execuções</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {logs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
+                  <Sparkles className="h-8 w-8 opacity-20" />
+                  <p className="text-sm">Nenhuma execução ainda</p>
+                  <p className="text-xs">Salve a configuração e clique em "Buscar agora"</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="divide-y divide-border/60">
+                  {logs.map(log => (
+                    <div key={log.id} className="flex items-center justify-between py-2.5 gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {getStatusBadge(log.status)}
+                        <div className="min-w-0">
+                          <div className="text-xs font-medium truncate">
+                            {format(new Date(log.started_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {log.triggered_by === 'manual' ? 'Manual' : 'Automático'}
+                            {log.error_message && ` · ${log.error_message}`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0 text-xs">
+                        <div className="text-center hidden sm:block">
+                          <div className="font-semibold">{log.leads_encontrados}</div>
+                          <div className="text-[10px] text-muted-foreground">gerados</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-primary">{log.leads_criados}</div>
+                          <div className="text-[10px] text-muted-foreground">criados</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-muted-foreground">{log.leads_duplicados}</div>
+                          <div className="text-[10px] text-muted-foreground">duplic.</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

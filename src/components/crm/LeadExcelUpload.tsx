@@ -55,6 +55,7 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
   });
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState<'idle' | 'mapping' | 'done'>('idle');
+  const [listName, setListName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const autoDetectMapping = (cols: string[]): ColumnMapping => {
@@ -107,6 +108,10 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
   };
 
   const handleUpload = async () => {
+    if (!listName.trim()) {
+      toast.error('Informe o nome da lista');
+      return;
+    }
     if (!mapping.empresa && !mapping.telefone) {
       toast.error('Mapeie pelo menos o campo Empresa ou Telefone');
       return;
@@ -125,7 +130,7 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
         cidade: row[mapping.cidade] || null,
         estado: row[mapping.estado] || null,
         ramo_atuacao: row[mapping.ramo] || null,
-        fonte_dados: 'Upload Manual',
+        fonte_dados: listName.trim(),
         source: 'upload',
         status: 'pending',
       })).filter(l => l.cliente_nome !== 'Sem nome' || l.cliente_telefone);
@@ -164,6 +169,7 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
     setStep('idle');
     setHeaders([]);
     setRows([]);
+    setListName('');
     setMapping({ empresa: '', telefone: '', email: '', contato: '', cnpj: '', cidade: '', estado: '', ramo: '' });
   };
 
@@ -203,6 +209,19 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
           <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50 text-xs text-muted-foreground">
             <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>Associe as colunas da sua planilha aos campos do sistema. Os campos foram pré-preenchidos automaticamente.</span>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">
+              Nome da Lista <span className="text-destructive">*</span>
+            </Label>
+            <input
+              type="text"
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+              placeholder="Ex: Lista Metalúrgicas Jan/2026"
+              className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

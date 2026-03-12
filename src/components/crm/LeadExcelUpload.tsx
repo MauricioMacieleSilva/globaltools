@@ -55,6 +55,7 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
   });
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState<'idle' | 'mapping' | 'done'>('idle');
+  const [listName, setListName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const autoDetectMapping = (cols: string[]): ColumnMapping => {

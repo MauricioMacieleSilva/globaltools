@@ -59,6 +59,8 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
+  const [isManagerOrAdmin, setIsManagerOrAdmin] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const [selectedRamos, setSelectedRamos] = useState<string[]>([]);
   const [selectedUF, setSelectedUF] = useState('RS');

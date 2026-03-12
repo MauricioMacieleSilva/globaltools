@@ -152,6 +152,18 @@ export function LeadExcelUpload({ onUploadComplete }: Props) {
         inserted += batch.length;
       }
 
+      // Auto-register list name as a lead source/origin
+      const trimmedName = listName.trim();
+      const { data: existingSource } = await (supabase as any)
+        .from('crm_lead_sources')
+        .select('id')
+        .eq('name', trimmedName)
+        .maybeSingle();
+
+      if (!existingSource) {
+        await (supabase as any).from('crm_lead_sources').insert({ name: trimmedName });
+      }
+
       toast.success(`${inserted} leads importados com sucesso!`, {
         description: 'Os leads estão disponíveis para atendimento',
       });

@@ -15,7 +15,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Loader2, Play, Sparkles, CheckCircle2, XCircle, Clock,
-  Info, RefreshCw, ChevronsUpDown, X
+  Info, RefreshCw, ChevronsUpDown, X, History
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

@@ -571,8 +571,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               {funnelData.map((stage, idx) => {
                 const maxCount = Math.max(...funnelData.map(s => s.value), 1);
                 const pct = (stage.value / maxCount) * 100;
-                const totalForConversion = funnelData.reduce((s, f) => s + f.value, 0) + lostLeads.length;
-                const conversionPct = totalForConversion > 0 ? ((stage.value / totalForConversion) * 100).toFixed(1) : '0';
+                const previousStageValue = idx === 0
+                  ? stage.value
+                  : [...funnelData.slice(0, idx)].reverse().find((s) => s.value > 0)?.value ?? 0;
+                const conversionPct = idx === 0
+                  ? '100.0'
+                  : previousStageValue > 0
+                  ? ((stage.value / previousStageValue) * 100).toFixed(1)
+                  : '0.0';
                 return (
                   <div key={stage.name} className="space-y-1">
                     <div className="flex items-center justify-between">

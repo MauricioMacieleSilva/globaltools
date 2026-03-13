@@ -69,7 +69,7 @@ export function EstoqueTable({
   const [isLoading, setIsLoading] = useState(false);
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const { precosEspessuraMap, precosCategoriaMap } = useEstoque();
+  const { precosEspessuraMap, precosCategoriaMap, getPrecoByDescricao } = useEstoque();
 
   const showDimensionColumns = ['BOBINAS', 'CHAPAS', 'TIRAS', 'PERFIS'].includes(categoria);
   const showPerfilColumns = categoria === 'PERFIS';

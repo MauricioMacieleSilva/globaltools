@@ -79,6 +79,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [ramoPopoverOpen, setRamoPopoverOpen] = useState(false);
   const [ramoSearch, setRamoSearch] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp', 'obrasgov']);
+  const [companySearch, setCompanySearch] = useState('');
 
   // Detect role
   useEffect(() => {
@@ -250,7 +251,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
       }
 
       const { data, error } = await supabase.functions.invoke('prospect-leads', {
-        body: { config_id: configId, sources: getSelectedSourcesForRun() },
+        body: { config_id: configId, sources: getSelectedSourcesForRun(), company_search: companySearch.trim() || undefined },
       });
 
       if (error) throw error;
@@ -366,6 +367,22 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
             <CardTitle className="text-sm font-medium">Critérios de Busca</CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3">
+            {/* Busca por empresa */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Buscar empresa específica (opcional)</Label>
+              <Input
+                placeholder="CNPJ, razão social ou nome fantasia..."
+                value={companySearch}
+                onChange={e => setCompanySearch(e.target.value)}
+                className="h-8 text-xs"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Informe um CNPJ, razão social ou nome fantasia para prospectar uma empresa específica
+              </p>
+            </div>
+
+            <Separator />
+
             {/* Ramos de Atuação */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">Ramos de Atuação</Label>

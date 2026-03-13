@@ -137,10 +137,33 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         from += pageSize;
       }
 
-      console.log('Clientes carregados:', allClients.length);
-      setClientes(allClients);
+      const merged = new Map<string, Cliente>();
+
+      allClients.forEach((cliente) => {
+        merged.set(cliente.nome.toLowerCase(), cliente);
+      });
+
+      clientesDaBaseComercial.forEach((clienteBase) => {
+        const key = clienteBase.nome.toLowerCase();
+        const existing = merged.get(key);
+
+        if (!existing) {
+          merged.set(key, clienteBase);
+          return;
+        }
+
+        merged.set(key, {
+          ...existing,
+          cidade: existing.cidade || clienteBase.cidade,
+          estado: existing.estado || clienteBase.estado,
+          segmento: existing.segmento || clienteBase.segmento,
+        });
+      });
+
+      setClientes(Array.from(merged.values()).sort((a, b) => a.nome.localeCompare(b.nome)));
     } catch (err) {
       console.error('Erro inesperado ao carregar clientes:', err);
+      setClientes(clientesDaBaseComercial);
     }
   };
 

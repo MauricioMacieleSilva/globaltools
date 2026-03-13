@@ -185,6 +185,44 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
     return precosEspessuraMap[closest] || 0;
   }, [precosEspessuraMap]);
 
+  // Função para buscar preço por descrição (matching inteligente para TUBOS/LAMINADOS)
+  const getPrecoByDescricao = useCallback((descricao: string, categoria: string): number => {
+    if (!descricao || politicaComercialItems.length === 0) return 0;
+    
+    const descNorm = descricao.toUpperCase().trim();
+    const categoriaItems = politicaComercialItems.filter(i => i.classe === categoria);
+    
+    // 1. Exact match
+    const exact = categoriaItems.find(i => i.descricao === descNorm);
+    if (exact) return exact.preco_kg;
+    
+    // 2. Contains match (description from politica contains stock description or vice versa)
+    const contains = categoriaItems.find(i => 
+      i.descricao.includes(descNorm) || descNorm.includes(i.descricao)
+    );
+    if (contains) return contains.preco_kg;
+    
+    // 3. Word-based similarity: find best match by common words
+    const descWords = descNorm.split(/[\s\-\/×x]+/).filter(w => w.length > 1);
+    let bestMatch: PoliticaComercialPriceItem | null = null;
+    let bestScore = 0;
+    
+    for (const item of categoriaItems) {
+      const itemWords = item.descricao.split(/[\s\-\/×x]+/).filter(w => w.length > 1);
+      const commonWords = descWords.filter(w => itemWords.some(iw => iw.includes(w) || w.includes(iw)));
+      const score = commonWords.length / Math.max(descWords.length, 1);
+      if (score > bestScore && score >= 0.5) {
+        bestScore = score;
+        bestMatch = item;
+      }
+    }
+    
+    if (bestMatch) return bestMatch.preco_kg;
+    
+    // 4. Fallback to category average
+    return precosCategoriaMap[categoria] || 0;
+  }, [politicaComercialItems, precosCategoriaMap]);
+
   // Calcular estatísticas globais
   const stats = React.useMemo<EstoqueStats>(() => {
     let totalItens = 0;
@@ -218,7 +256,12 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
         const precoKg = getPrecoByEspessura(item.espessura);
         totalValor += pesoItem * precoKg;
       }
-      // Para ARAMES, TELHAS, TUBOS, LAMINADOS, VERGALHAO: usar preço da política comercial
+      // Para TUBOS e LAMINADOS: usar matching por descrição
+      else if (item.categoria === 'TUBOS' || item.categoria === 'LAMINADOS') {
+        const precoKg = getPrecoByDescricao(item.descricao, item.categoria);
+        totalValor += pesoItem * precoKg;
+      }
+      // Para ARAMES, TELHAS, VERGALHAO: usar preço médio da categoria
       else if (CATEGORIAS_PRECO_POLITICA.includes(item.categoria)) {
         const precoKg = precosCategoriaMap[item.categoria] || 0;
         totalValor += pesoItem * precoKg;
@@ -231,7 +274,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       totalPeso,
       totalValor
     };
-  }, [items, getPrecoByEspessura, precosCategoriaMap]);
+  }, [items, getPrecoByEspessura, getPrecoByDescricao, precosCategoriaMap]);
 
   return (
     <EstoqueContext.Provider value={{
@@ -245,6 +288,8 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
       getItemCount,
       precosEspessuraMap,
       precosCategoriaMap,
+      politicaComercialItems,
+      getPrecoByDescricao,
       stats
     }}>
       {children}

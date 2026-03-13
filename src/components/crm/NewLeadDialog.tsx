@@ -75,30 +75,34 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   };
 
   const loadClientes = async () => {
-    // Fetch all clients with pagination to bypass 1000 limit
-    const allClients: Cliente[] = [];
-    const pageSize = 1000;
-    let from = 0;
-    let hasMore = true;
+    try {
+      const allClients: Cliente[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      let hasMore = true;
 
-    while (hasMore) {
-      const { data, error } = await (supabase as any)
-        .from('clientes')
-        .select('id, nome, telefone, email, cnpj, cidade, estado, segmento')
-        .order('nome')
-        .range(from, from + pageSize - 1);
+      while (hasMore) {
+        const { data, error } = await (supabase as any)
+          .from('clientes')
+          .select('id, nome, telefone, email, cnpj, cidade, estado, segmento')
+          .order('nome')
+          .range(from, from + pageSize - 1);
 
-      if (error) {
-        console.error('Erro ao carregar clientes:', error);
-        break;
+        if (error) {
+          console.error('Erro ao carregar clientes:', error);
+          break;
+        }
+
+        allClients.push(...(data || []));
+        hasMore = (data?.length || 0) === pageSize;
+        from += pageSize;
       }
 
-      allClients.push(...(data || []));
-      hasMore = (data?.length || 0) === pageSize;
-      from += pageSize;
+      console.log('Clientes carregados:', allClients.length);
+      setClientes(allClients);
+    } catch (err) {
+      console.error('Erro inesperado ao carregar clientes:', err);
     }
-
-    setClientes(allClients);
   };
 
   useEffect(() => {

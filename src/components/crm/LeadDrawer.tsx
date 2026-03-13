@@ -234,14 +234,22 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   };
 
   const [showEnrichAfterContact, setShowEnrichAfterContact] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [contactNote, setContactNote] = useState('');
+  const [contactSubmitting, setContactSubmitting] = useState(false);
 
-  const registerContact = async () => {
+  const openContactDialog = () => {
+    setContactNote('');
+    setContactDialogOpen(true);
+  };
+
+  const submitContact = async () => {
     if (!lead) return;
-    // Nota SEMPRE obrigatória ao registrar contato
-    if (!newNote.trim()) {
+    if (!contactNote.trim()) {
       toast.error('Nota obrigatória', { description: 'Preencha uma anotação antes de registrar o contato.' });
       return;
     }
+    setContactSubmitting(true);
     try {
       const todayCount = await countContactsToday(lead.id);
       const user = (await supabase.auth.getUser()).data.user;
@@ -251,7 +259,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       await supabase.from('lead_activities').insert({
         lead_id: lead.id,
         activity_type: 'nota',
-        description: newNote.trim(),
+        description: contactNote.trim(),
         user_id: user?.id || '',
         sdr_name: userName,
       } as any);
@@ -274,13 +282,16 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       } else {
         toast.success(`${ordinal(newCount)} contato do dia registrado`);
       }
-      setNewNote('');
+      setContactNote('');
+      setContactDialogOpen(false);
       loadActivities(lead.id);
       // Open enrich form after contact
       setShowEnrichAfterContact(true);
     } catch (err: any) {
       console.error('Erro ao registrar contato:', err);
       toast.error('Erro ao registrar contato', { description: err?.message || 'Tente novamente' });
+    } finally {
+      setContactSubmitting(false);
     }
   };
 

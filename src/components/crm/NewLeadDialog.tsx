@@ -172,7 +172,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       loadOrigens();
       loadClientes();
     }
-  }, [open]);
+  }, [open, clientesDaBaseComercial]);
 
   const filteredClientes = useMemo(() => {
     if (!clienteSearch) return clientes.slice(0, 50);

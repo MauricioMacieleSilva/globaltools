@@ -498,6 +498,7 @@ export default function CRM() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden">
+      <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between gap-2 pb-3 shrink-0">
           <TabsList data-tour="crm-tabs" className="h-8">

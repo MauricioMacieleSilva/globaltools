@@ -81,7 +81,7 @@ export const SYSTEM_PAGES = {
   
   // Páginas administrativas
   usuarios: { 
-    label: 'Gerenciar Usuários', 
+    label: 'Administração', 
     category: 'Administrativas',
     supportsEdit: true,
     route: '/admin/usuarios'

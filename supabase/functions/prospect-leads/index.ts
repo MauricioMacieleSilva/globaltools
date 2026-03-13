@@ -352,9 +352,11 @@ serve(async (req) => {
 
     let bodyConfigId: string | null = null;
     let enabledSources: string[] = ['google', 'pncp', 'obrasgov'];
+    let companySearch: string | null = null;
     try {
       const body = await req.json();
       bodyConfigId = body?.config_id ?? null;
+      companySearch = body?.company_search?.trim() || null;
       if (Array.isArray(body?.sources) && body.sources.length > 0) {
         enabledSources = body.sources;
       }

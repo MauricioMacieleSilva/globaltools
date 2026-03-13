@@ -117,7 +117,7 @@ export function EstoqueTable({
   };
 
   // Calcular valor de cada item
-  const CATEGORIAS_PRECO_POLITICA: CategoriaEstoque[] = ['ARAMES', 'TELHAS', 'TUBOS', 'LAMINADOS', 'VERGALHAO'];
+  const CATEGORIAS_PRECO_POLITICA: CategoriaEstoque[] = ['ARAMES', 'TELHAS', 'VERGALHAO'];
   
   const calcularValorItem = (item: EstoqueItem): number => {
     const peso = calcularPesoItem(item);
@@ -125,6 +125,12 @@ export function EstoqueTable({
     
     if (CATEGORIAS_PRECO_ESPESSURA.includes(item.categoria as CategoriaEstoque)) {
       const precoKg = getPrecoByEspessura(item.espessura);
+      return peso * precoKg;
+    }
+    
+    // TUBOS e LAMINADOS: matching por descrição na política comercial
+    if (item.categoria === 'TUBOS' || item.categoria === 'LAMINADOS') {
+      const precoKg = getPrecoByDescricao(item.descricao, item.categoria);
       return peso * precoKg;
     }
     

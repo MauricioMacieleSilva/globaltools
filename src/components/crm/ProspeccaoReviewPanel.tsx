@@ -110,22 +110,32 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     loadUsers();
   }, [isManagerOrAdmin]);
 
+  // Filter leads by search term
+  const filteredLeads = useMemo(() => {
+    if (!searchTerm.trim()) return leads;
+    const term = searchTerm.toLowerCase().trim();
+    return leads.filter(lead => 
+      (lead.cliente_nome || '').toLowerCase().includes(term) ||
+      (lead.empresa || '').toLowerCase().includes(term) ||
+      (lead.contact_name || '').toLowerCase().includes(term)
+    );
+  }, [leads, searchTerm]);
+
   // Group leads by fonte_dados
   const groupedLeads = useMemo(() => {
     const groups: Record<string, StagedLead[]> = {};
-    for (const lead of leads) {
+    for (const lead of filteredLeads) {
       const key = lead.fonte_dados || 'Sem lista';
       if (!groups[key]) groups[key] = [];
       groups[key].push(lead);
     }
-    // Sort groups: named lists first, then "Sem lista"
     const sorted = Object.entries(groups).sort(([a], [b]) => {
       if (a === 'Sem lista') return 1;
       if (b === 'Sem lista') return -1;
       return a.localeCompare(b);
     });
     return sorted;
-  }, [leads]);
+  }, [filteredLeads]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {

@@ -21,6 +21,13 @@ type PrecosEspessuraMap = Record<number, number>;
 // Mapa de categoria -> preço médio por kg (da política comercial)
 type PrecosCategoriaMap = Record<string, number>;
 
+// Item da política comercial para matching por descrição
+interface PoliticaComercialPriceItem {
+  descricao: string;
+  preco_kg: number;
+  classe: string;
+}
+
 interface EstoqueContextType {
   items: EstoqueItem[];
   loading: boolean;
@@ -32,6 +39,8 @@ interface EstoqueContextType {
   getItemCount: (categoria: CategoriaEstoque) => number;
   precosEspessuraMap: PrecosEspessuraMap;
   precosCategoriaMap: PrecosCategoriaMap;
+  politicaComercialItems: PoliticaComercialPriceItem[];
+  getPrecoByDescricao: (descricao: string, categoria: string) => number;
   stats: EstoqueStats;
 }
 

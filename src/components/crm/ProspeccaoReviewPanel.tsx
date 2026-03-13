@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import {
   Loader2, CheckCircle2, XCircle, Building2, Phone, Mail,
   MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink,
-  HandHelping, ChevronDown, ChevronRight, Users, UserPlus
+  HandHelping, ChevronDown, ChevronRight, Users, UserPlus, Search
 } from 'lucide-react';
 
 interface StagedLead {

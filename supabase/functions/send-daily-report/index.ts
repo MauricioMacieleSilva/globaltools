@@ -48,6 +48,128 @@ interface EmailKPIs {
   mediaDiaria: number;
 }
 
+interface CRMIndicators {
+  leadsAtivos: number;
+  pipelineValor: number;
+  contatosMes: number;
+  visitasMes: number;
+  funnel: { etapa: string; label: string; count: number }[];
+  perdidosLeads: number;
+  perdidosLeadsValor: number;
+}
+
+async function fetchCRMIndicators(supabaseClient: any): Promise<CRMIndicators> {
+  try {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    // Fetch all leads
+    const { data: leads } = await supabaseClient
+      .from('leads')
+      .select('status, valor_estimado');
+
+    const allLeads = leads || [];
+    const activeLeads = allLeads.filter((l: any) => l.status !== 'perdido');
+    const lostLeads = allLeads.filter((l: any) => l.status === 'perdido');
+
+    const pipelineValor = activeLeads.reduce((sum: number, l: any) => sum + (Number(l.valor_estimado) || 0), 0);
+    const perdidosLeadsValor = lostLeads.reduce((sum: number, l: any) => sum + (Number(l.valor_estimado) || 0), 0);
+
+    // Count activities this month
+    const { count: contatosMes } = await supabaseClient
+      .from('lead_activities')
+      .select('*', { count: 'exact', head: true })
+      .eq('activity_type', 'contato_inicial')
+      .gte('created_at', firstDayOfMonth);
+
+    const { count: visitasMes } = await supabaseClient
+      .from('crm_visits')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDayOfMonth);
+
+    // Funnel by status
+    const statusMap: Record<string, { label: string; count: number }> = {
+      novo: { label: 'Novo', count: 0 },
+      contato_feito: { label: 'Contato Feito', count: 0 },
+      visita_reuniao: { label: 'Visita/Reunião', count: 0 },
+      proposta: { label: 'Proposta', count: 0 },
+      pedido: { label: 'Pedido', count: 0 },
+    };
+
+    activeLeads.forEach((l: any) => {
+      if (statusMap[l.status]) {
+        statusMap[l.status].count++;
+      }
+    });
+
+    const funnel = Object.entries(statusMap).map(([etapa, data]) => ({
+      etapa,
+      label: data.label,
+      count: data.count,
+    }));
+
+    return {
+      leadsAtivos: activeLeads.length,
+      pipelineValor,
+      contatosMes: contatosMes || 0,
+      visitasMes: visitasMes || 0,
+      funnel,
+      perdidosLeads: lostLeads.length,
+      perdidosLeadsValor,
+    };
+  } catch (error) {
+    console.error('❌ Erro ao buscar indicadores CRM:', error);
+    return {
+      leadsAtivos: 0, pipelineValor: 0, contatosMes: 0, visitasMes: 0,
+      funnel: [], perdidosLeads: 0, perdidosLeadsValor: 0,
+    };
+  }
+}
+
+function generateCRMHTML(crm: CRMIndicators): string {
+  const funnelRows = crm.funnel.map(f => `
+    <tr>
+      <td style="padding: 6px 10px; color: #2d3748 !important; font-size: 13px;">${f.label}</td>
+      <td style="padding: 6px 10px; text-align: center; font-weight: bold; color: #2d3748 !important; font-size: 13px;">${f.count}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <h2 class="section-title" style="margin-top: 25px;">📊 Indicadores CRM</h2>
+    <div class="kpi-grid">
+      <div class="kpi-card info">
+        <div class="kpi-label">👥 Leads Ativos</div>
+        <div class="kpi-value">${crm.leadsAtivos}</div>
+      </div>
+      <div class="kpi-card success">
+        <div class="kpi-label">📈 Pipeline</div>
+        <div class="kpi-value">${formatCurrency(crm.pipelineValor)}</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">📞 Contatos no Mês</div>
+        <div class="kpi-value">${crm.contatosMes}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">📅 Visitas no Mês</div>
+        <div class="kpi-value">${crm.visitasMes}</div>
+      </div>
+    </div>
+    ${crm.funnel.length > 0 ? `
+    <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 15px;">
+      <div style="font-size: 13px; font-weight: 600; color: #4a5568 !important; margin-bottom: 8px;">Funil de Vendas</div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tbody>${funnelRows}</tbody>
+      </table>
+    </div>
+    ` : ''}
+    ${crm.perdidosLeads > 0 ? `
+    <div style="background: #fff5f5; border-radius: 8px; padding: 12px 16px; border-left: 3px solid #f56565;">
+      <span style="font-size: 13px; color: #c53030 !important;">❌ Perdidos: <strong>${crm.perdidosLeads}</strong> leads (${formatCurrency(crm.perdidosLeadsValor)})</span>
+    </div>
+    ` : ''}
+  `;
+}
+
 interface ComparativoMes {
   mes: string;
   ano: number;
@@ -349,7 +471,8 @@ function generateReportHTML(
   meta: number,
   mesAnterior: ComparativoMes | null,
   melhorMes: ComparativoMes | null,
-  allDataLength: number
+  allDataLength: number,
+  crmIndicators: CRMIndicators | null = null
 ): string {
   const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
   const faltaMeta = meta - kpis.faturamento;
@@ -494,6 +617,8 @@ function generateReportHTML(
           </div>
           ` : ''}
 
+          ${crmIndicators ? generateCRMHTML(crmIndicators) : ''}
+
           <div class="analysis">
             <h3 class="section-title" style="color: #2d3748 !important;">💡 Análise Rápida</h3>
             <p style="color: #4a5568 !important;">• Faturamento de ontem: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong></p>
@@ -501,6 +626,7 @@ function generateReportHTML(
             ${faltaMeta > 0 ? `<p style="color: #4a5568 !important;">• Ainda faltam <strong style="color: #2d3748 !important;">${formatCurrency(faltaMeta)}</strong> para atingir a meta mensal</p>` : `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
             ${kpis.pedidosNaoFaturados > 0 ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
             ${kpis.perdidosQtd > 0 ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.perdidosQtd}</strong> oportunidades perdidas ontem (${formatCurrency(kpis.perdidosValor)})</p>` : ''}
+            ${crmIndicators && crmIndicators.leadsAtivos > 0 ? `<p style="color: #4a5568 !important;">• CRM: <strong style="color: #2d3748 !important;">${crmIndicators.leadsAtivos}</strong> leads ativos com pipeline de ${formatCurrency(crmIndicators.pipelineValor)}</p>` : ''}
           </div>
         </div>
 
@@ -652,7 +778,12 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('⚠️ Erro ao identificar melhor mês');
     }
 
-    const htmlContent = generateReportHTML(kpis, reportDate, metaMensal, mesAnterior, melhorMes, allData.length);
+    // Buscar indicadores CRM
+    console.log('📊 Buscando indicadores CRM...');
+    const crmIndicators = await fetchCRMIndicators(supabaseAdmin);
+    console.log(`📊 CRM: ${crmIndicators.leadsAtivos} leads ativos, pipeline ${crmIndicators.pipelineValor}`);
+
+    const htmlContent = generateReportHTML(kpis, reportDate, metaMensal, mesAnterior, melhorMes, allData.length, crmIndicators);
 
     const results = [];
     for (const config of configs) {

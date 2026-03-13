@@ -63,14 +63,123 @@ interface VendedorPerformance {
   percentualTotal: number;
 }
 
-interface OrcamentoQuente {
-  numeroPedido: string;
-  cliente: string;
-  vendedor: string;
-  valor: number;
-  peso: number;
-  rating: number;
-  dataEmissao: string;
+interface CRMIndicators {
+  leadsAtivos: number;
+  pipelineValor: number;
+  contatosMes: number;
+  visitasMes: number;
+  funnel: { etapa: string; label: string; count: number }[];
+  perdidosLeads: number;
+  perdidosLeadsValor: number;
+}
+
+async function fetchCRMIndicators(supabaseClient: any): Promise<CRMIndicators> {
+  try {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const { data: leads } = await supabaseClient
+      .from('leads')
+      .select('status, valor_estimado');
+
+    const allLeads = leads || [];
+    const activeLeads = allLeads.filter((l: any) => l.status !== 'perdido');
+    const lostLeads = allLeads.filter((l: any) => l.status === 'perdido');
+
+    const pipelineValor = activeLeads.reduce((sum: number, l: any) => sum + (Number(l.valor_estimado) || 0), 0);
+    const perdidosLeadsValor = lostLeads.reduce((sum: number, l: any) => sum + (Number(l.valor_estimado) || 0), 0);
+
+    const { count: contatosMes } = await supabaseClient
+      .from('lead_activities')
+      .select('*', { count: 'exact', head: true })
+      .eq('activity_type', 'contato_inicial')
+      .gte('created_at', firstDayOfMonth);
+
+    const { count: visitasMes } = await supabaseClient
+      .from('crm_visits')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDayOfMonth);
+
+    const statusMap: Record<string, { label: string; count: number }> = {
+      novo: { label: 'Novo', count: 0 },
+      contato_feito: { label: 'Contato Feito', count: 0 },
+      visita_reuniao: { label: 'Visita/Reunião', count: 0 },
+      proposta: { label: 'Proposta', count: 0 },
+      pedido: { label: 'Pedido', count: 0 },
+    };
+
+    activeLeads.forEach((l: any) => {
+      if (statusMap[l.status]) {
+        statusMap[l.status].count++;
+      }
+    });
+
+    const funnel = Object.entries(statusMap).map(([etapa, data]) => ({
+      etapa,
+      label: data.label,
+      count: data.count,
+    }));
+
+    return {
+      leadsAtivos: activeLeads.length,
+      pipelineValor,
+      contatosMes: contatosMes || 0,
+      visitasMes: visitasMes || 0,
+      funnel,
+      perdidosLeads: lostLeads.length,
+      perdidosLeadsValor,
+    };
+  } catch (error) {
+    console.error('❌ Erro ao buscar indicadores CRM:', error);
+    return {
+      leadsAtivos: 0, pipelineValor: 0, contatosMes: 0, visitasMes: 0,
+      funnel: [], perdidosLeads: 0, perdidosLeadsValor: 0,
+    };
+  }
+}
+
+function generateCRMHTML(crm: CRMIndicators): string {
+  const funnelRows = crm.funnel.map(f => `
+    <tr>
+      <td style="padding: 6px 10px; color: #2d3748 !important; font-size: 13px;">${f.label}</td>
+      <td style="padding: 6px 10px; text-align: center; font-weight: bold; color: #2d3748 !important; font-size: 13px;">${f.count}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <h2 class="section-title spaced no-border">📊 Indicadores CRM</h2>
+    <div class="kpi-grid">
+      <div class="kpi-card info">
+        <div class="kpi-label">👥 Leads Ativos</div>
+        <div class="kpi-value">${crm.leadsAtivos}</div>
+      </div>
+      <div class="kpi-card success">
+        <div class="kpi-label">📈 Pipeline</div>
+        <div class="kpi-value">${formatCurrency(crm.pipelineValor)}</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">📞 Contatos no Mês</div>
+        <div class="kpi-value">${crm.contatosMes}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">📅 Visitas no Mês</div>
+        <div class="kpi-value">${crm.visitasMes}</div>
+      </div>
+    </div>
+    ${crm.funnel.length > 0 ? `
+    <div style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 15px;">
+      <div style="font-size: 13px; font-weight: 600; color: #4a5568 !important; margin-bottom: 8px;">Funil de Vendas</div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tbody>${funnelRows}</tbody>
+      </table>
+    </div>
+    ` : ''}
+    ${crm.perdidosLeads > 0 ? `
+    <div style="background: #fff5f5; border-radius: 8px; padding: 12px 16px; border-left: 3px solid #f56565; margin-bottom: 16px;">
+      <span style="font-size: 13px; color: #c53030 !important;">❌ Perdidos: <strong>${crm.perdidosLeads}</strong> leads (${formatCurrency(crm.perdidosLeadsValor)})</span>
+    </div>
+    ` : ''}
+  `;
 }
 
 // Parse CSV - IGUAL ao googleSheetsService.ts
@@ -444,81 +553,6 @@ function calcularRankingVendedores(
   return ranking;
 }
 
-async function buscarOrcamentosQuentes(
-  allData: ComercialData[],
-  supabaseAdmin: any,
-  excludedOrders: Set<string> = new Set()
-): Promise<OrcamentoQuente[]> {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('client_budget_ratings')
-      .select('budget_number, rating')
-      .gte('rating', 3)
-      .order('rating', { ascending: false });
-
-    if (error) {
-      console.error('❌ Erro ao buscar ratings de orçamentos:', error);
-      return [];
-    }
-
-    if (!data || data.length === 0) {
-      console.log('ℹ️ Nenhum orçamento com rating >= 3 encontrado.');
-      return [];
-    }
-
-    const ratingsMap = new Map<string, number>();
-    (data as { budget_number: string; rating: number }[]).forEach(r => {
-      ratingsMap.set(r.budget_number, r.rating);
-    });
-
-    const orcamentosEmAberto = allData.filter(item =>
-      item.situacao === 'Orçamento' && ratingsMap.has(item.numeropedido) && !excludedOrders.has(item.numeropedido)
-    );
-
-    const orcamentosMap: Record<string, { items: ComercialData[]; rating: number }> = {};
-
-    orcamentosEmAberto.forEach(item => {
-      const numeroPedido = item.numeropedido;
-      const rating = ratingsMap.get(numeroPedido) ?? 0;
-
-      if (!orcamentosMap[numeroPedido]) {
-        orcamentosMap[numeroPedido] = {
-          items: [],
-          rating,
-        };
-      }
-
-      orcamentosMap[numeroPedido].items.push(item);
-    });
-
-    const orcamentosQuentes: OrcamentoQuente[] = Object.entries(orcamentosMap)
-      .map(([numeroPedido, dados]) => {
-        const firstItem = dados.items[0];
-        const valor = dados.items.reduce((sum, item) => sum + item.valor, 0);
-        const peso = dados.items.reduce((sum, item) => sum + item.peso, 0);
-
-        return {
-          numeroPedido,
-          cliente: firstItem.cli_nomefantasia || firstItem.cliente,
-          vendedor: firstItem.vendedor,
-          valor,
-          peso,
-          rating: dados.rating,
-          dataEmissao: firstItem.data_pedido_pronto || firstItem.data_emissao,
-        } as OrcamentoQuente;
-      })
-      .sort((a, b) => {
-        if (b.rating !== a.rating) return b.rating - a.rating;
-        return b.valor - a.valor;
-      });
-
-    console.log(`🔥 ${orcamentosQuentes.length} orçamentos quentes encontrados`);
-    return orcamentosQuentes;
-  } catch (error) {
-    console.error('❌ Erro ao montar orçamentos quentes:', error);
-    return [];
-  }
-}
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -543,8 +577,8 @@ function generateReportHTML(
   mesAnterior: ComparativoMes | null,
   melhorMes: ComparativoMes | null,
   ranking: VendedorPerformance[],
-  orcamentosQuentes: OrcamentoQuente[],
-  allDataLength: number
+  allDataLength: number,
+  crmIndicators: CRMIndicators | null = null
 ): string {
   const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
   const faltaMeta = meta - kpis.faturamento;
@@ -577,43 +611,6 @@ function generateReportHTML(
     })
     .join('');
 
-  const totalOrcamentosQuentes = orcamentosQuentes.reduce(
-    (sum, o) => sum + o.valor,
-    0
-  );
-
-  const orcamentosRows = orcamentosQuentes
-    .map(orc => {
-      let bgColor = '#ffffff';
-      let estrelas = '';
-      if (orc.rating >= 5) {
-        bgColor = '#fff5f5';
-        estrelas = '⭐⭐⭐⭐⭐';
-      } else if (orc.rating === 4) {
-        bgColor = '#fffaf0';
-        estrelas = '⭐⭐⭐⭐';
-      } else {
-        bgColor = '#fffff0';
-        estrelas = '⭐⭐⭐';
-      }
-
-      return `
-        <tr style="background: ${bgColor};">
-          <td style="padding: 8px 10px; text-align: center; font-size: 14px;">${estrelas}</td>
-          <td style="padding: 8px 10px; font-weight: bold;">${orc.numeroPedido}</td>
-          <td style="padding: 8px 10px;">${orc.cliente}</td>
-          <td style="padding: 8px 10px;">${orc.vendedor}</td>
-          <td style="padding: 8px 10px; text-align: right; font-weight: bold;">${formatCurrency(orc.valor)}</td>
-          <td style="padding: 8px 10px; text-align: right;">${Math.round(orc.peso).toLocaleString('pt-BR')}</td>
-          <td style="padding: 8px 10px; text-align: center; font-size: 12px;">${
-            orc.dataEmissao && parseDate(orc.dataEmissao)
-              ? parseDate(orc.dataEmissao)!.toLocaleDateString('pt-BR')
-              : '-'
-          }</td>
-        </tr>
-      `;
-    })
-    .join('');
 
   return `
     <!DOCTYPE html>
@@ -822,34 +819,8 @@ function generateReportHTML(
 
           <div style="margin-bottom: 16px;"></div>
 
-          <!-- Seção 5: Orçamentos Quentes -->
-          <h2 class="section-title spaced no-border">🔥 Orçamentos Quentes</h2>
-          ${
-            orcamentosQuentes.length > 0
-              ? `
-          <p style="color:#4a5568; font-size: 13px; margin: 6px 0 10px 0;">
-            ${orcamentosQuentes.length} orçamento(s) classificado(s) como quente(s).
-            Valor total: <strong>${formatCurrency(totalOrcamentosQuentes)}</strong>
-          </p>
-          <table class="hot-table">
-            <thead>
-              <tr>
-                <th style="width: 80px; text-align:center;">Rating</th>
-                <th>Pedido</th>
-                <th>Cliente</th>
-                <th>Vendedor</th>
-                <th style="text-align:right;">Valor</th>
-                <th style="text-align:right;">Peso (kg)</th>
-                <th style="text-align:center;">Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${orcamentosRows}
-            </tbody>
-          </table>
-          `
-              : `<p style="color:#718096; font-size: 13px;">Nenhum orçamento com 3 ou mais estrelas no momento.</p>`
-          }
+          <!-- Seção 5: Indicadores CRM -->
+          ${crmIndicators ? generateCRMHTML(crmIndicators) : ''}
 
           <!-- Seção 6: Análise Rápida -->
           <div class="analysis" style="margin-top: 16px;">
@@ -900,11 +871,9 @@ function generateReportHTML(
                 : ''
             }
             ${
-              orcamentosQuentes.length > 0
-                ? `<p style="color: #4a5568 !important;">• Existem <strong style="color: #2d3748 !important;">${orcamentosQuentes.length}</strong> orçamentos quentes em aberto somando ${formatCurrency(
-                    totalOrcamentosQuentes
-                  )}</p>`
-                : '<p style="color: #4a5568 !important;">• Atenção: nenhum orçamento classificado como quente (3+ estrelas) no momento.</p>'
+              crmIndicators && crmIndicators.leadsAtivos > 0
+                ? `<p style="color: #4a5568 !important;">• CRM: <strong style="color: #2d3748 !important;">${crmIndicators.leadsAtivos}</strong> leads ativos com pipeline de ${formatCurrency(crmIndicators.pipelineValor)}</p>`
+                : ''
             }
           </div>
         </div>
@@ -1021,8 +990,10 @@ const handler = async (req: Request): Promise<Response> => {
     // 5. Calcular ranking de vendedores no período
     const ranking = calcularRankingVendedores(allData, startDate, endDate, excludedOrders);
 
-    // 6. Buscar orçamentos quentes (3+ estrelas)
-    const orcamentosQuentes = await buscarOrcamentosQuentes(allData, supabaseAdmin, excludedOrders);
+    // 6. Buscar indicadores CRM
+    console.log('📊 Buscando indicadores CRM...');
+    const crmIndicators = await fetchCRMIndicators(supabaseAdmin);
+    console.log(`📊 CRM: ${crmIndicators.leadsAtivos} leads ativos, pipeline ${crmIndicators.pipelineValor}`);
     
     // 7. Calcular KPIs do mês anterior
     let mesAnterior: ComparativoMes | null = null;
@@ -1102,8 +1073,8 @@ const handler = async (req: Request): Promise<Response> => {
       mesAnterior,
       melhorMes,
       ranking,
-      orcamentosQuentes,
-      allData.length
+      allData.length,
+      crmIndicators
     );
 
     // 8. Enviar email via Resend

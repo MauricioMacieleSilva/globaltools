@@ -1,56 +1,108 @@
 
 
-# Integrar KPIs do CRM ao Relatório Comercial por E-mail
+# Plano: Nova Pagina CRM Unificada
 
-## Contexto
-O relatório comercial diário (`send-daily-report`) e manual (`send-manual-report`) atualmente exibem KPIs comerciais (faturamento, orçamentos, perdidos, meta) e orçamentos quentes. O usuário quer:
-1. **Adicionar** os principais indicadores do CRM: total de leads ativos, valor do pipeline, contatos realizados no mês, visitas realizadas, funil de vendas por etapa
-2. **Remover** a seção "Orçamentos Quentes" do relatório
+## Visao Geral
 
-## O que será feito
+Unificar as paginas Pre-Vendas (`/pre-vendas`) e Pipeline de Vendas (`/pipeline`) em uma unica pagina CRM (`/crm`) com interface Kanban e funil simplificado.
 
-### 1. Buscar dados CRM no backend (Edge Functions)
-Nas funções `send-daily-report` e `send-manual-report`, adicionar consultas ao banco para:
-- **Leads ativos**: contar leads com status diferente de `perdido` na tabela `leads`
-- **Valor do pipeline**: somar `valor_estimado` dos leads ativos
-- **Funil por etapa**: contar leads por status (`novo`, `contato_feito`, `proposta`, `negociacao`, `pedido_fechado`)
-- **Contatos do mês**: contar atividades do tipo `contato_inicial` na tabela `lead_activities` no período
-- **Visitas do mês**: contar atividades do tipo `visita` no período
-- **Leads perdidos**: contar leads com status `perdido` e somar valor
+## Etapas do Funil
 
-### 2. Nova seção HTML no e-mail: "Indicadores CRM"
-Adicionar uma seção visual com:
-- Grid de KPI cards: Leads Ativos, Valor Pipeline, Contatos no Mês, Visitas no Mês
-- Mini funil de vendas em formato tabela com etapas e quantidades
-- Indicador de perdidos (quantidade e valor)
-
-### 3. Remover seção "Orçamentos Quentes"
-- No `send-manual-report`: remover a função `buscarOrcamentosQuentes`, o tipo `OrcamentoQuente`, a seção HTML do funil quente, e as referências na análise rápida
-- No `send-daily-report`: verificar se existe (não parece ter, mas confirmar)
-
-### 4. Redeployar as Edge Functions
-Após as alterações, fazer deploy das funções atualizadas.
-
-## Arquivos modificados
-- `supabase/functions/send-daily-report/index.ts` — adicionar consulta CRM + seção HTML
-- `supabase/functions/send-manual-report/index.ts` — adicionar consulta CRM + seção HTML + remover orçamentos quentes
-
-## Seção CRM no e-mail (exemplo visual)
+As 5 etapas solicitadas mapeadas ao banco de dados:
 
 ```text
-┌─────────────────────────────────────────────┐
-│  📊 Indicadores CRM                        │
-├──────────────┬──────────────────────────────┤
-│ 👥 Leads     │ 📈 Pipeline                 │
-│ 89 ativos    │ R$ 2.450.000                │
-├──────────────┼──────────────────────────────┤
-│ 📞 Contatos  │ 📅 Visitas                  │
-│ 234 no mês   │ 45 no mês                   │
-├──────────────┴──────────────────────────────┤
-│ Funil: Novo(32) → Contato(25) → Proposta   │
-│ (18) → Negociação(10) → Fechado(4)         │
-├─────────────────────────────────────────────┤
-│ ❌ Perdidos: 17 leads (R$ 890.000)         │
-└─────────────────────────────────────────────┘
+Lead → Contato Feito → Visita/Reuniao → Proposta → Pedido
+         (+ coluna "Perdidos" separada)
 ```
+
+Sera necessario alterar o enum `lead_status` no banco para refletir as novas etapas: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`, `perdido`.
+
+## Estrutura da Pagina
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ KPIs: Contatos Hoje (X/meta) │ Funil │ Perdidos     │
+├─────────────────────────────────────────────────────┤
+│  Kanban Board (drag & drop entre colunas)           │
+│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───┐ │
+│  │Lead  │ │Contato   │ │Visita/ │ │Proposta│ │Ped│ │
+│  │      │ │Feito     │ │Reuniao │ │        │ │ido│ │
+│  │card  │ │card      │ │card    │ │card    │ │   │ │
+│  │card  │ │          │ │        │ │        │ │   │ │
+│  └──────┘ └──────────┘ └────────┘ └────────┘ └───┘ │
+└─────────────────────────────────────────────────────┘
+```
+
+## Componentes Principais
+
+1. **KPI Bar** (topo):
+   - Contatos diarios (atual/meta) com barra de progresso
+   - Mini funil visual com contagem por etapa
+   - Indicador de perdidos (quantidade + valor estimado)
+
+2. **Kanban Board**:
+   - 5 colunas (Lead, Contato Feito, Visita/Reuniao, Proposta, Pedido)
+   - Cards compactos: nome cliente, valor, dias na etapa, proximo passo
+   - Drag & drop para mover entre etapas (atualiza status no banco)
+   - Ao mover para "Perdido", abre dialog pedindo motivo
+
+3. **Card do Lead** (compacto):
+   - Nome do cliente, cidade/UF
+   - Valor estimado
+   - Dias na etapa atual
+   - Icone de WhatsApp para contato rapido
+   - Click abre drawer lateral com detalhes + historico + acoes
+
+4. **Drawer Lateral** (ao clicar no card):
+   - Dados do lead completos
+   - Timeline de atividades
+   - Botoes de acao rapida: registrar contato, agendar visita, criar proposta
+   - Marcar como perdido (com motivo)
+
+5. **Filtros** (acima do kanban):
+   - Busca por cliente
+   - Filtro por SDR/vendedor
+   - Periodo
+
+## Detalhes Tecnicos
+
+### Migracao de Banco
+- Adicionar novos valores ao enum `lead_status`: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`
+- Migrar dados existentes: `novo` → `lead`, `contatado`/`respondeu` → `contato_feito`, `qualificado`/`encaminhado` → `proposta`
+- O campo `pipeline_status` pode ser descontinuado — usar apenas `status`
+
+### Arquivos a Criar
+- `src/pages/CRM.tsx` — pagina principal
+- `src/components/crm/KanbanBoard.tsx` — board com colunas
+- `src/components/crm/KanbanCard.tsx` — card individual do lead
+- `src/components/crm/LeadDrawer.tsx` — drawer lateral com detalhes
+- `src/components/crm/CRMKPIs.tsx` — barra de KPIs
+- `src/components/crm/LostDealsDialog.tsx` — dialog/indicador de perdidos
+- `src/components/crm/QuickActionButtons.tsx` — acoes rapidas no drawer
+
+### Arquivos a Modificar
+- `src/App.tsx` — adicionar rota `/crm`, redirecionar `/pre-vendas` e `/pipeline` para `/crm`
+- `src/components/AppSidebar.tsx` — substituir 2 itens (Pre-Vendas + Pipeline) por 1 item "CRM"
+- `src/hooks/useUserPermissions.ts` — substituir `prevendas` + `pipeline` por `crm`
+- `src/context/PreVendasContext.tsx` — adaptar para novos status (ou criar novo CRMContext)
+
+### Drag & Drop
+- Usar a lib existente ou CSS nativo com `draggable` + `onDragOver`/`onDrop` para manter leve
+- Ao soltar em nova coluna, chamar `supabase.from('leads').update({ status: novoStatus })` 
+- Se soltar em "Perdido", abrir dialog de motivo antes de confirmar
+
+### Mobile
+- Kanban com scroll horizontal (snap) nas colunas
+- Cards empilhados verticalmente dentro de cada coluna
+- Drawer vira sheet de baixo (vaul)
+
+### Meta Diaria de Contatos
+- Reutilizar `admin_goals.daily_contacts_goal` ja existente
+- Contar atividades do tipo `contato_inicial` do dia atual
+- Exibir progresso visual no KPI bar
+
+### Controle de Perdidos
+- Card/badge no topo mostrando total de perdidos no periodo
+- Click abre lista filtrada dos leads perdidos com motivo e data
+- Indicador percentual (perdidos / total do funil)
 

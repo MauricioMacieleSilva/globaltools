@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import {
   Loader2, CheckCircle2, XCircle, Building2, Phone, Mail,
   MapPin, FileText, Sparkles, CheckCheck, Trash2, ExternalLink,
-  HandHelping, ChevronDown, ChevronRight, Users, UserPlus
+  HandHelping, ChevronDown, ChevronRight, Users, UserPlus, Search
 } from 'lucide-react';
 
 interface StagedLead {
@@ -57,6 +58,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [assignUserId, setAssignUserId] = useState<string>('');
   const [assigningLeadId, setAssigningLeadId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch all pending leads with pagination to bypass 1000 limit
   const fetchAllPending = async (): Promise<StagedLead[]> => {
@@ -108,22 +110,32 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     loadUsers();
   }, [isManagerOrAdmin]);
 
+  // Filter leads by search term
+  const filteredLeads = useMemo(() => {
+    if (!searchTerm.trim()) return leads;
+    const term = searchTerm.toLowerCase().trim();
+    return leads.filter(lead => 
+      (lead.cliente_nome || '').toLowerCase().includes(term) ||
+      (lead.empresa || '').toLowerCase().includes(term) ||
+      (lead.contact_name || '').toLowerCase().includes(term)
+    );
+  }, [leads, searchTerm]);
+
   // Group leads by fonte_dados
   const groupedLeads = useMemo(() => {
     const groups: Record<string, StagedLead[]> = {};
-    for (const lead of leads) {
+    for (const lead of filteredLeads) {
       const key = lead.fonte_dados || 'Sem lista';
       if (!groups[key]) groups[key] = [];
       groups[key].push(lead);
     }
-    // Sort groups: named lists first, then "Sem lista"
     const sorted = Object.entries(groups).sort(([a], [b]) => {
       if (a === 'Sem lista') return 1;
       if (b === 'Sem lista') return -1;
       return a.localeCompare(b);
     });
     return sorted;
-  }, [leads]);
+  }, [filteredLeads]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -148,10 +160,10 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
   };
 
   const toggleAll = () => {
-    if (selectedIds.size === leads.length) {
+    if (selectedIds.size === filteredLeads.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(leads.map(l => l.id)));
+      setSelectedIds(new Set(filteredLeads.map(l => l.id)));
     }
   };
 
@@ -510,15 +522,26 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome do cliente..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-8 text-xs pl-8"
+          />
+        </div>
+
         {/* Select all - only for managers */}
         {isManagerOrAdmin && (
           <div className="flex items-center gap-2 pb-2 border-b mb-2">
             <Checkbox
-              checked={selectedIds.size === leads.length && leads.length > 0}
+              checked={selectedIds.size === filteredLeads.length && filteredLeads.length > 0}
               onCheckedChange={toggleAll}
               className="h-3.5 w-3.5"
             />
-            <span className="text-xs text-muted-foreground">Selecionar todos ({leads.length})</span>
+            <span className="text-xs text-muted-foreground">Selecionar todos ({filteredLeads.length})</span>
           </div>
         )}
 

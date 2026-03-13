@@ -522,15 +522,26 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
         </div>
       </CardHeader>
       <CardContent className="px-4 pb-4">
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome do cliente..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-8 text-xs pl-8"
+          />
+        </div>
+
         {/* Select all - only for managers */}
         {isManagerOrAdmin && (
           <div className="flex items-center gap-2 pb-2 border-b mb-2">
             <Checkbox
-              checked={selectedIds.size === leads.length && leads.length > 0}
+              checked={selectedIds.size === filteredLeads.length && filteredLeads.length > 0}
               onCheckedChange={toggleAll}
               className="h-3.5 w-3.5"
             />
-            <span className="text-xs text-muted-foreground">Selecionar todos ({leads.length})</span>
+            <span className="text-xs text-muted-foreground">Selecionar todos ({filteredLeads.length})</span>
           </div>
         )}
 

@@ -449,7 +449,7 @@ export function EstoqueItemDialog({
               <Input
                 id="descricao"
                 value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                onChange={(e) => handleDescricaoChange(e.target.value)}
                 placeholder="Ex: Bobina ZAR 0,80mm x 1200mm"
               />
             </div>

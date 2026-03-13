@@ -617,6 +617,8 @@ function generateReportHTML(
           </div>
           ` : ''}
 
+          ${crmIndicators ? generateCRMHTML(crmIndicators) : ''}
+
           <div class="analysis">
             <h3 class="section-title" style="color: #2d3748 !important;">💡 Análise Rápida</h3>
             <p style="color: #4a5568 !important;">• Faturamento de ontem: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong></p>
@@ -624,6 +626,7 @@ function generateReportHTML(
             ${faltaMeta > 0 ? `<p style="color: #4a5568 !important;">• Ainda faltam <strong style="color: #2d3748 !important;">${formatCurrency(faltaMeta)}</strong> para atingir a meta mensal</p>` : `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
             ${kpis.pedidosNaoFaturados > 0 ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
             ${kpis.perdidosQtd > 0 ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.perdidosQtd}</strong> oportunidades perdidas ontem (${formatCurrency(kpis.perdidosValor)})</p>` : ''}
+            ${crmIndicators && crmIndicators.leadsAtivos > 0 ? `<p style="color: #4a5568 !important;">• CRM: <strong style="color: #2d3748 !important;">${crmIndicators.leadsAtivos}</strong> leads ativos com pipeline de ${formatCurrency(crmIndicators.pipelineValor)}</p>` : ''}
           </div>
         </div>
 

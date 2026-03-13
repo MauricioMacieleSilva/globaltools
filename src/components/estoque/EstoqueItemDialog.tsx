@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { parseLaminadosDescription, parseTuboDescription } from '@/lib/laminados-parser';
 import {
   Dialog,
   DialogContent,

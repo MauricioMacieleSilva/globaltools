@@ -117,7 +117,13 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     return leads.filter(lead => 
       (lead.cliente_nome || '').toLowerCase().includes(term) ||
       (lead.empresa || '').toLowerCase().includes(term) ||
-      (lead.contact_name || '').toLowerCase().includes(term)
+      (lead.contact_name || '').toLowerCase().includes(term) ||
+      (lead.cliente_cnpj || '').toLowerCase().includes(term) ||
+      (lead.cidade || '').toLowerCase().includes(term) ||
+      (lead.estado || '').toLowerCase().includes(term) ||
+      (lead.ramo_atuacao || '').toLowerCase().includes(term) ||
+      (lead.cliente_telefone || '').toLowerCase().includes(term) ||
+      (lead.cliente_email || '').toLowerCase().includes(term)
     );
   }, [leads, searchTerm]);
 
@@ -532,7 +538,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
         <div className="relative mb-3">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome do cliente..."
+            placeholder="Buscar por cliente, empresa, CNPJ, cidade..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="h-8 text-xs pl-8"

@@ -285,8 +285,9 @@ export const UserManagement: React.FC = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="goals" className="mt-4">
+          <TabsContent value="goals" className="mt-4 space-y-4">
             <GoalsManagement />
+            <VendorGoalsManagement />
           </TabsContent>
 
           <TabsContent value="default-permissions" className="mt-4">

@@ -85,11 +85,20 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('politica_comercial_itens')
-        .select('classe, preco_kg')
+        .select('classe, descricao, preco_kg')
         .eq('ativo', true)
         .not('preco_kg', 'is', null);
 
       if (data && !error) {
+        // Store full items for description matching (TUBOS/LAMINADOS)
+        const allItems: PoliticaComercialPriceItem[] = data.map((item: any) => ({
+          descricao: (item.descricao as string).toUpperCase().trim(),
+          preco_kg: Number(item.preco_kg),
+          classe: item.classe as string,
+        }));
+        setPoliticaComercialItems(allItems);
+
+        // Also compute category averages for fallback
         const precosCategoria: PrecosCategoriaMap = {};
         const somasPorCategoria: Record<string, { soma: number; count: number }> = {};
 

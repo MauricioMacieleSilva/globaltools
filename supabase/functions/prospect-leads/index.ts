@@ -422,20 +422,69 @@ serve(async (req) => {
 
     const allSearchResults: string[] = [];
 
+    // ====== COMPANY-SPECIFIC SEARCH (CNPJ, razão social, nome fantasia) ======
+    if (companySearch) {
+      console.log(`🔎 Busca específica por empresa: "${companySearch}"`);
+      const cleanInput = companySearch.replace(/\D/g, '');
+      const isCNPJ = cleanInput.length === 14;
+
+      if (isCNPJ) {
+        // Direct CNPJ lookup via BrasilAPI
+        const enriched = await enrichCNPJ(cleanInput);
+        if (enriched) {
+          const phone = formatBrasilAPIPhone(enriched.ddd_telefone_1) || formatBrasilAPIPhone(enriched.ddd_telefone_2) || '';
+          const cnaeInfo = buildCNAEDescription(enriched);
+          const regime = inferRegimeTributario(enriched);
+          const text = [
+            enriched.razao_social && `Razão Social: ${enriched.razao_social}`,
+            enriched.nome_fantasia && `Nome Fantasia: ${enriched.nome_fantasia}`,
+            `CNPJ: ${cleanInput}`,
+            enriched.municipio && `Município: ${enriched.municipio}`,
+            enriched.uf && `UF: ${enriched.uf}`,
+            phone && `Telefone: ${phone}`,
+            enriched.email && enriched.email !== 'null' && `Email: ${enriched.email}`,
+            cnaeInfo && `${cnaeInfo}`,
+            enriched.porte && `Porte: ${enriched.porte}`,
+            regime && `Regime: ${regime}`,
+            enriched.descricao_situacao_cadastral && `Situação: ${enriched.descricao_situacao_cadastral}`,
+            `URL_FONTE: https://www.google.com/search?q=${encodeURIComponent(enriched.razao_social || companySearch)}`,
+          ].filter(Boolean).join("\n");
+          allSearchResults.push(`[GOOGLE]\n${text}`);
+        }
+      }
+
+      // Also do a Google/Firecrawl search for the company name/CNPJ
+      if (enabledSources.includes('google')) {
+        const companyResults = await searchGoogle(
+          `"${companySearch}" empresa aço construção metalúrgica ${estados.join(' ')}`,
+          5
+        );
+        for (const r of companyResults) {
+          const text = [
+            r.title && `Título: ${r.title}`,
+            r.description && `Descrição: ${r.description}`,
+            r.url && `URL_FONTE: ${r.url}`,
+            r.markdown && `Conteúdo: ${r.markdown.slice(0, 1000)}`,
+          ].filter(Boolean).join("\n");
+          if (text) allSearchResults.push(`[GOOGLE]\n${text}`);
+        }
+      }
+    }
+
     const locationStr = cidades.length > 0
       ? cidades.join(" OR ") + " " + estados.join(" ")
       : estados.join(" OR ");
 
     // Build queries (max 3 Google queries to stay within timeout)
-    const googleQueries = enabledSources.includes('google')
+    const googleQueries = enabledSources.includes('google') && !companySearch
       ? buildGoogleQueries(locationStr, ramos)
       : [];
 
-    const pncpPromises = enabledSources.includes('pncp')
+    const pncpPromises = enabledSources.includes('pncp') && !companySearch
       ? estados.slice(0, 2).map((uf: string) => searchPNCP(ramos, uf, 10))
       : [];
 
-    const obrasgovPromises = enabledSources.includes('obrasgov')
+    const obrasgovPromises = enabledSources.includes('obrasgov') && !companySearch
       ? estados.slice(0, 2).map((uf: string) => searchObrasGov(uf, 20))
       : [];
 

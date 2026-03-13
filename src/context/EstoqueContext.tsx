@@ -59,6 +59,7 @@ export function EstoqueProvider({ children }: { children: React.ReactNode }) {
   const [categoriaAtiva, setCategoriaAtiva] = useState<CategoriaEstoque>('PERFIS');
   const [precosEspessuraMap, setPrecosEspessuraMap] = useState<PrecosEspessuraMap>({});
   const [precosCategoriaMap, setPrecosCategoriaMap] = useState<PrecosCategoriaMap>({});
+  const [politicaComercialItems, setPoliticaComercialItems] = useState<PoliticaComercialPriceItem[]>([]);
 
   // Buscar preços de perfil por espessura
   const fetchPrecos = useCallback(async () => {

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -233,14 +234,22 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   };
 
   const [showEnrichAfterContact, setShowEnrichAfterContact] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [contactNote, setContactNote] = useState('');
+  const [contactSubmitting, setContactSubmitting] = useState(false);
 
-  const registerContact = async () => {
+  const openContactDialog = () => {
+    setContactNote('');
+    setContactDialogOpen(true);
+  };
+
+  const submitContact = async () => {
     if (!lead) return;
-    // Nota SEMPRE obrigatória ao registrar contato
-    if (!newNote.trim()) {
+    if (!contactNote.trim()) {
       toast.error('Nota obrigatória', { description: 'Preencha uma anotação antes de registrar o contato.' });
       return;
     }
+    setContactSubmitting(true);
     try {
       const todayCount = await countContactsToday(lead.id);
       const user = (await supabase.auth.getUser()).data.user;
@@ -250,7 +259,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       await supabase.from('lead_activities').insert({
         lead_id: lead.id,
         activity_type: 'nota',
-        description: newNote.trim(),
+        description: contactNote.trim(),
         user_id: user?.id || '',
         sdr_name: userName,
       } as any);
@@ -273,13 +282,16 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       } else {
         toast.success(`${ordinal(newCount)} contato do dia registrado`);
       }
-      setNewNote('');
+      setContactNote('');
+      setContactDialogOpen(false);
       loadActivities(lead.id);
       // Open enrich form after contact
       setShowEnrichAfterContact(true);
     } catch (err: any) {
       console.error('Erro ao registrar contato:', err);
       toast.error('Erro ao registrar contato', { description: err?.message || 'Tente novamente' });
+    } finally {
+      setContactSubmitting(false);
     }
   };
 
@@ -290,7 +302,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const email = lead.contact_email || lead.cliente_email;
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
   const currentStage = CRM_STAGES.find(s => s.key === lead.status);
-  const showEnrich = lead.status !== 'lead';
+  
 
   // Find first contact and last contact activities
   const contactActivities = activities.filter(a => a.activity_type === 'contato_inicial');
@@ -503,7 +515,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={registerContact} className="gap-1.5">
+              <Button size="sm" onClick={openContactDialog} className="gap-1.5">
                 <Phone className="h-3.5 w-3.5" />
                 Registrar Contato
               </Button>
@@ -546,13 +558,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
             <Separator />
 
-            {/* Enrich form - only after first contact */}
-            {(showEnrich || showEnrichAfterContact) && (
-              <>
-                <LeadEnrichForm lead={lead} onUpdated={() => { onLeadUpdated(); setShowEnrichAfterContact(false); }} />
-                <Separator />
-              </>
-            )}
 
             {/* Observações / Notes */}
             {(lead.notes || lead.source) && (
@@ -685,6 +690,51 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         onConfirm={handleAddOrderFromDrawer}
         onCancel={() => setAddOrderOpen(false)}
       />
+
+      {/* Contact registration dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Registrar Contato</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Descreva o contato realizado com <strong>{name}</strong>
+            </p>
+            <Textarea
+              value={contactNote}
+              onChange={(e) => setContactNote(e.target.value)}
+              placeholder="Ex: Ligação realizada, cliente interessado em perfis..."
+              rows={3}
+              className="text-sm"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setContactDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={submitContact} disabled={!contactNote.trim() || contactSubmitting} className="gap-1.5">
+              {contactSubmitting ? (
+                <span className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+              ) : (
+                <Phone className="h-3.5 w-3.5" />
+              )}
+              Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enrich form dialog after contact */}
+      <Dialog open={showEnrichAfterContact} onOpenChange={setShowEnrichAfterContact}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Enriquecer Cadastro</DialogTitle>
+          </DialogHeader>
+          <LeadEnrichForm lead={lead} onUpdated={() => { onLeadUpdated(); setShowEnrichAfterContact(false); }} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

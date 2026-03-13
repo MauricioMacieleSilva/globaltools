@@ -990,8 +990,10 @@ const handler = async (req: Request): Promise<Response> => {
     // 5. Calcular ranking de vendedores no período
     const ranking = calcularRankingVendedores(allData, startDate, endDate, excludedOrders);
 
-    // 6. Buscar orçamentos quentes (3+ estrelas)
-    const orcamentosQuentes = await buscarOrcamentosQuentes(allData, supabaseAdmin, excludedOrders);
+    // 6. Buscar indicadores CRM
+    console.log('📊 Buscando indicadores CRM...');
+    const crmIndicators = await fetchCRMIndicators(supabaseAdmin);
+    console.log(`📊 CRM: ${crmIndicators.leadsAtivos} leads ativos, pipeline ${crmIndicators.pipelineValor}`);
     
     // 7. Calcular KPIs do mês anterior
     let mesAnterior: ComparativoMes | null = null;

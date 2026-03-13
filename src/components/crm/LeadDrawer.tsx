@@ -515,7 +515,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={registerContact} className="gap-1.5">
+              <Button size="sm" onClick={openContactDialog} className="gap-1.5">
                 <Phone className="h-3.5 w-3.5" />
                 Registrar Contato
               </Button>

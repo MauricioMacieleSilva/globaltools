@@ -251,7 +251,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
       }
 
       const { data, error } = await supabase.functions.invoke('prospect-leads', {
-        body: { config_id: configId, sources: getSelectedSourcesForRun() },
+        body: { config_id: configId, sources: getSelectedSourcesForRun(), company_search: companySearch.trim() || undefined },
       });
 
       if (error) throw error;

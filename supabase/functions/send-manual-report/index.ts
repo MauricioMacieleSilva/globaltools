@@ -577,8 +577,8 @@ function generateReportHTML(
   mesAnterior: ComparativoMes | null,
   melhorMes: ComparativoMes | null,
   ranking: VendedorPerformance[],
-  orcamentosQuentes: OrcamentoQuente[],
-  allDataLength: number
+  allDataLength: number,
+  crmIndicators: CRMIndicators | null = null
 ): string {
   const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
   const faltaMeta = meta - kpis.faturamento;

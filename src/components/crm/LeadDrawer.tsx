@@ -558,13 +558,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
             <Separator />
 
-            {/* Enrich form - only after first contact */}
-            {(showEnrich || showEnrichAfterContact) && (
-              <>
-                <LeadEnrichForm lead={lead} onUpdated={() => { onLeadUpdated(); setShowEnrichAfterContact(false); }} />
-                <Separator />
-              </>
-            )}
 
             {/* Observações / Notes */}
             {(lead.notes || lead.source) && (

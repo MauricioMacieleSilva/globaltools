@@ -92,7 +92,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
   const handleAddSector = async () => {
     const trimmed = newSector.trim();
     if (!trimmed) return;
-    await (supabase as any).from('crm_business_sectors').insert({ name: trimmed });
+    await (supabase as any).from('lead_business_types').insert({ name: trimmed.toLowerCase().replace(/\s+/g, '_'), label: trimmed });
     setNewSector('');
     setAddingSector(false);
     setRamo(trimmed);

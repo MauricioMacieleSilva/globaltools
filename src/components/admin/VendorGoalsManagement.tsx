@@ -92,26 +92,64 @@ export function VendorGoalsManagement() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Only save vendors that have at least one goal set
-      const goalsToSave = vendorGoals.filter(
-        v => v.daily_contacts_goal > 0 || v.daily_visits_goal > 0 || v.daily_proposals_goal > 0 || v.daily_orders_goal > 0
-      );
+      const { data: existingGoals, error: existingGoalsError } = await (supabase as any)
+        .from('crm_vendor_goals')
+        .select('vendor_id')
+        .eq('month_year', selectedMonth);
 
-      for (const goal of goalsToSave) {
-        await (supabase as any)
+      if (existingGoalsError) throw existingGoalsError;
+
+      const existingVendorIds = new Set((existingGoals || []).map((goal: any) => goal.vendor_id));
+
+      const goalsToUpsert = vendorGoals
+        .filter(
+          (v) =>
+            v.daily_contacts_goal > 0 ||
+            v.daily_visits_goal > 0 ||
+            v.daily_proposals_goal > 0 ||
+            v.daily_orders_goal > 0
+        )
+        .map((goal) => ({
+          vendor_id: goal.vendor_id,
+          month_year: selectedMonth,
+          daily_contacts_goal: goal.daily_contacts_goal,
+          daily_visits_goal: goal.daily_visits_goal,
+          daily_proposals_goal: goal.daily_proposals_goal,
+          daily_orders_goal: goal.daily_orders_goal,
+          updated_at: new Date().toISOString(),
+        }));
+
+      const vendorIdsToDelete = vendorGoals
+        .filter(
+          (v) =>
+            v.daily_contacts_goal === 0 &&
+            v.daily_visits_goal === 0 &&
+            v.daily_proposals_goal === 0 &&
+            v.daily_orders_goal === 0 &&
+            existingVendorIds.has(v.vendor_id)
+        )
+        .map((v) => v.vendor_id);
+
+      if (goalsToUpsert.length > 0) {
+        const { error: upsertError } = await (supabase as any)
           .from('crm_vendor_goals')
-          .upsert({
-            vendor_id: goal.vendor_id,
-            month_year: selectedMonth,
-            daily_contacts_goal: goal.daily_contacts_goal,
-            daily_visits_goal: goal.daily_visits_goal,
-            daily_proposals_goal: goal.daily_proposals_goal,
-            daily_orders_goal: goal.daily_orders_goal,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'vendor_id,month_year' });
+          .upsert(goalsToUpsert, { onConflict: 'vendor_id,month_year' });
+
+        if (upsertError) throw upsertError;
+      }
+
+      if (vendorIdsToDelete.length > 0) {
+        const { error: deleteError } = await (supabase as any)
+          .from('crm_vendor_goals')
+          .delete()
+          .eq('month_year', selectedMonth)
+          .in('vendor_id', vendorIdsToDelete);
+
+        if (deleteError) throw deleteError;
       }
 
       toast.success('Metas por vendedor salvas com sucesso!');
+      await loadData();
     } catch (error) {
       console.error('Erro ao salvar metas:', error);
       toast.error('Erro ao salvar metas');

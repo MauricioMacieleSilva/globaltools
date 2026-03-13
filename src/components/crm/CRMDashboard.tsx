@@ -469,20 +469,20 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardContent>
           </Card>
 
-          {/* Top Vendedores Card - like "Orçamentos em Aberto" */}
+          {/* Top Vendedores Card - fixed height */}
           <Card className="border-l-4 border-l-[hsl(38,92%,50%)]">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-[hsl(38,92%,50%)]">Top Vendedores</span>
                 <Badge variant="outline" className="text-xs">{activeLeads} leads</Badge>
               </div>
-              <div className="space-y-2">
-                {vendorLeadsData.slice(0, 3).map((vendor, idx) => (
-                  <div key={vendor.name} className="flex items-center gap-2">
-                    <div className="relative">
+              <div className="space-y-2 max-h-[140px] overflow-y-auto">
+                {vendorLeadsData.slice(0, 5).map((vendor, idx) => (
+                  <div key={vendor.vendorId || vendor.name} className="flex items-center gap-2">
+                    <div className="relative flex-shrink-0">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={vendor.avatar_url || ''} />
-                        <AvatarFallback className="text-[10px] bg-muted">{vendor.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback>
+                        <AvatarFallback className="text-[10px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <span className={cn("absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white", 
                         idx === 0 ? 'bg-amber-500' : idx === 1 ? 'bg-slate-400' : 'bg-amber-700'

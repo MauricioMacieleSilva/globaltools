@@ -101,8 +101,8 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
 
   const loadLookups = async () => {
     const [s, p, o] = await Promise.all([
-      (supabase as any).from('crm_business_sectors').select('id, name').eq('is_active', true).order('name'),
-      (supabase as any).from('crm_product_interests').select('id, name').eq('is_active', true).order('name'),
+      (supabase as any).from('lead_business_types').select('id, name, label').eq('is_active', true).order('display_order', { ascending: true }),
+      (supabase as any).from('lead_product_interests').select('id, name, label').eq('is_active', true).order('display_order', { ascending: true }),
       (supabase as any)
         .from('crm_lead_sources')
         .select('id, name')
@@ -110,8 +110,8 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         .order('display_order', { ascending: true })
         .order('name', { ascending: true }),
     ]);
-    setSectors(s.data || []);
-    setProducts(p.data || []);
+    setSectors((s.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })));
+    setProducts((p.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })));
 
     const names = (o.data || []).map((d: any) => d.name);
     setOrigens(names.length > 0 ? names : DEFAULT_ORIGENS_FALLBACK);
@@ -120,7 +120,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
   const handleAddSector = async () => {
     const trimmed = newSector.trim();
     if (!trimmed) return;
-    await (supabase as any).from('crm_business_sectors').insert({ name: trimmed });
+    await (supabase as any).from('lead_business_types').insert({ name: trimmed.toLowerCase().replace(/\s+/g, '_'), label: trimmed });
     setNewSector('');
     setAddingSector(false);
     setForm(f => ({ ...f, ramo_atuacao: trimmed }));
@@ -130,7 +130,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
   const handleAddProduct = async () => {
     const trimmed = newProduct.trim();
     if (!trimmed) return;
-    await (supabase as any).from('crm_product_interests').insert({ name: trimmed });
+    await (supabase as any).from('lead_product_interests').insert({ name: trimmed.toLowerCase().replace(/\s+/g, '_'), label: trimmed });
     setNewProduct('');
     setAddingProduct(false);
     if (!selectedProducts.includes(trimmed)) setSelectedProducts(prev => [...prev, trimmed]);

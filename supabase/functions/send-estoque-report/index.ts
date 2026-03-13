@@ -67,7 +67,7 @@ const CATEGORIA_IMAGES: Record<string, string> = {
   'CHAPAS': `${STORAGE_BASE}/categorias/chapa.png`,
   'TELHAS': `${STORAGE_BASE}/categorias/chapa.png`,
   'TUBOS': `${STORAGE_BASE}/categorias/tubos.png`,
-  'LAMINADOS': `${STORAGE_BASE}/categorias/chapa.png`,
+  'LAMINADOS': `${STORAGE_BASE}/categorias/laminados.webp`,
   'VERGALHAO': `${STORAGE_BASE}/categorias/slitter.png`,
   'BLANK': `${STORAGE_BASE}/categorias/chapa.png`,
   'TIRAS': `${STORAGE_BASE}/categorias/tiras.webp`,

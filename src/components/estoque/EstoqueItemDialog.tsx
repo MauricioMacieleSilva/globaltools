@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { parseLaminadosDescription, parseTuboDescription } from '@/lib/laminados-parser';
 import {
   Dialog,
   DialogContent,
@@ -180,6 +181,29 @@ export function EstoqueItemDialog({
   
   // Categorias que geram descrição automaticamente a partir das dimensões
   const autoDescricao = ['TIRAS', 'PERFIS', 'CHAPAS', 'BLANK'].includes(form.categoria);
+
+  // Auto-parse Laminados and Tubos descriptions to fill dimensions
+  const handleDescricaoChange = useCallback((descricao: string) => {
+    setForm(prev => {
+      const newForm = { ...prev, descricao };
+      
+      if (prev.categoria === 'LAMINADOS' && descricao.length > 3) {
+        const parsed = parseLaminadosDescription(descricao);
+        if (parsed.espessura !== null) newForm.espessura = parsed.espessura.toFixed(2);
+        if (parsed.largura !== null) newForm.largura = parsed.largura.toFixed(2);
+        if (parsed.comprimento !== null && !prev.comprimento) newForm.comprimento = parsed.comprimento.toString();
+      }
+      
+      if (prev.categoria === 'TUBOS' && descricao.length > 3) {
+        const parsed = parseTuboDescription(descricao);
+        if (parsed.espessura !== null) newForm.espessura = parsed.espessura.toFixed(2);
+        if (parsed.largura !== null) newForm.largura = parsed.largura.toFixed(2);
+        if (parsed.comprimento !== null && !prev.comprimento) newForm.comprimento = parsed.comprimento.toString();
+      }
+      
+      return newForm;
+    });
+  }, []);
 
   // Gera descrição automática baseada nas dimensões
   const gerarDescricaoAutomatica = useMemo(() => {
@@ -425,7 +449,7 @@ export function EstoqueItemDialog({
               <Input
                 id="descricao"
                 value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                onChange={(e) => handleDescricaoChange(e.target.value)}
                 placeholder="Ex: Bobina ZAR 0,80mm x 1200mm"
               />
             </div>

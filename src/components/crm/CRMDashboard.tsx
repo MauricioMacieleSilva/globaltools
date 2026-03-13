@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,16 +24,7 @@ interface CRMDashboardProps {
   tvMode?: boolean;
 }
 
-const CHART_COLORS = [
-  'hsl(200, 98%, 39%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(262, 52%, 47%)',
-  'hsl(142, 76%, 36%)',
-  'hsl(173, 80%, 36%)',
-  'hsl(340, 75%, 55%)',
-  'hsl(25, 95%, 53%)',
-  'hsl(210, 40%, 60%)',
-];
+const CHART_COLOR = 'hsl(200, 98%, 39%)';
 
 export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -295,10 +286,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     if (vendorFilter !== 'all') return [];
     const map: Record<string, { contatos: number; visitas: number }> = {};
     activities.forEach(a => {
-      const vendorName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
-      if (!map[vendorName]) map[vendorName] = { contatos: 0, visitas: 0 };
-      if (a.activity_type === 'contato_inicial') map[vendorName].contatos++;
-      if (a.activity_type === 'visita') map[vendorName].visitas++;
+      const fullName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
+      const firstName = fullName.split(' ')[0];
+      if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
+      if (a.activity_type === 'contato_inicial') map[firstName].contatos++;
+      if (a.activity_type === 'visita') map[firstName].visitas++;
     });
     return Object.entries(map)
       .map(([name, data]) => ({ name, ...data }))
@@ -652,11 +644,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                     <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-35} textAnchor="end" height={55} interval={0} />
                     <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Leads" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="value" name="Leads" fill={CHART_COLOR} radius={[4, 4, 0, 0]}>
                       <LabelList dataKey="value" position="top" fontSize={10} className="fill-foreground" />
-                      {productData.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -684,11 +673,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                     <XAxis type="number" tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} className="fill-muted-foreground" width={110} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Leads" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="value" name="Leads" fill={CHART_COLOR} radius={[0, 4, 4, 0]}>
                       <LabelList dataKey="value" position="right" fontSize={10} className="fill-foreground" />
-                      {sourceData.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

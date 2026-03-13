@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.check-finalized-orders]
 verify_jwt = false
+
+[functions.send-scheduled-estoque-report]
+verify_jwt = false
+
+[functions.send-estoque-report]
+verify_jwt = false

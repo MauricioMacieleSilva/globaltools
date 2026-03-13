@@ -262,8 +262,9 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
                       onValueChange={setClienteSearch}
                     />
                     <CommandList className="max-h-[200px] overflow-y-auto">
-                      <CommandEmpty className="py-3 text-center text-sm">Nenhum cliente encontrado</CommandEmpty>
-                      {filteredClientes.length > 0 && (
+                      {filteredClientes.length === 0 && (
+                        <CommandEmpty className="py-3 text-center text-sm">Nenhum cliente encontrado</CommandEmpty>
+                      )}
                       <CommandGroup>
                         {filteredClientes.map(cliente => (
                           <CommandItem

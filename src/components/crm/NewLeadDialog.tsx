@@ -11,6 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useComercial } from '@/context/ComercialContext';
 import { Plus, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

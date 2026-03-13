@@ -56,6 +56,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     notes: '',
   });
   const { toast } = useToast();
+  const { data: comercialData } = useComercial();
 
   const loadOrigens = async () => {
     const { data, error } = await (supabase as any)

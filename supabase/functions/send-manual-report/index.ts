@@ -819,34 +819,8 @@ function generateReportHTML(
 
           <div style="margin-bottom: 16px;"></div>
 
-          <!-- Seção 5: Orçamentos Quentes -->
-          <h2 class="section-title spaced no-border">🔥 Orçamentos Quentes</h2>
-          ${
-            orcamentosQuentes.length > 0
-              ? `
-          <p style="color:#4a5568; font-size: 13px; margin: 6px 0 10px 0;">
-            ${orcamentosQuentes.length} orçamento(s) classificado(s) como quente(s).
-            Valor total: <strong>${formatCurrency(totalOrcamentosQuentes)}</strong>
-          </p>
-          <table class="hot-table">
-            <thead>
-              <tr>
-                <th style="width: 80px; text-align:center;">Rating</th>
-                <th>Pedido</th>
-                <th>Cliente</th>
-                <th>Vendedor</th>
-                <th style="text-align:right;">Valor</th>
-                <th style="text-align:right;">Peso (kg)</th>
-                <th style="text-align:center;">Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${orcamentosRows}
-            </tbody>
-          </table>
-          `
-              : `<p style="color:#718096; font-size: 13px;">Nenhum orçamento com 3 ou mais estrelas no momento.</p>`
-          }
+          <!-- Seção 5: Indicadores CRM -->
+          ${crmIndicators ? generateCRMHTML(crmIndicators) : ''}
 
           <!-- Seção 6: Análise Rápida -->
           <div class="analysis" style="margin-top: 16px;">
@@ -897,11 +871,9 @@ function generateReportHTML(
                 : ''
             }
             ${
-              orcamentosQuentes.length > 0
-                ? `<p style="color: #4a5568 !important;">• Existem <strong style="color: #2d3748 !important;">${orcamentosQuentes.length}</strong> orçamentos quentes em aberto somando ${formatCurrency(
-                    totalOrcamentosQuentes
-                  )}</p>`
-                : '<p style="color: #4a5568 !important;">• Atenção: nenhum orçamento classificado como quente (3+ estrelas) no momento.</p>'
+              crmIndicators && crmIndicators.leadsAtivos > 0
+                ? `<p style="color: #4a5568 !important;">• CRM: <strong style="color: #2d3748 !important;">${crmIndicators.leadsAtivos}</strong> leads ativos com pipeline de ${formatCurrency(crmIndicators.pipelineValor)}</p>`
+                : ''
             }
           </div>
         </div>

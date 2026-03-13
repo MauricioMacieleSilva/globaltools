@@ -19,6 +19,7 @@ import { LeadOrigemRamoConfig } from '@/components/admin/LeadOrigemRamoConfig'
 import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog'
 import { DefaultPermissionsConfig } from '@/components/admin/DefaultPermissionsConfig'
 import { GoalsManagement } from '@/components/admin/GoalsManagement'
+import { VendorGoalsManagement } from '@/components/admin/VendorGoalsManagement'
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -284,8 +285,9 @@ export const UserManagement: React.FC = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="goals" className="mt-4">
+          <TabsContent value="goals" className="mt-4 space-y-4">
             <GoalsManagement />
+            <VendorGoalsManagement />
           </TabsContent>
 
           <TabsContent value="default-permissions" className="mt-4">

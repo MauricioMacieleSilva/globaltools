@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,8 +34,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const [vendorFilter, setVendorFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
   const [loading, setLoading] = useState(true);
-  const [dailyGoal, setDailyGoal] = useState(0);
-  const [dailyVisitsGoal, setDailyVisitsGoal] = useState(0);
+  const [vendorGoals, setVendorGoals] = useState<any[]>([]);
 
   const monthOptions = useMemo(() => {
     const months = [];
@@ -51,16 +50,13 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     if (data) setVendors(data.map(v => ({ id: v.id, name: v.full_name, avatar_url: v.avatar_url })));
   }, []);
 
-  const loadGoals = useCallback(async () => {
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const { data } = await supabase
-      .from('admin_goals')
-      .select('daily_contacts_goal, qualified_leads_goal')
-      .eq('month_year', currentMonth)
-      .maybeSingle();
-    if (data?.daily_contacts_goal) setDailyGoal(data.daily_contacts_goal);
-    if (data?.qualified_leads_goal) setDailyVisitsGoal(data.qualified_leads_goal);
-  }, []);
+  const loadVendorGoals = useCallback(async () => {
+    const { data } = await (supabase as any)
+      .from('crm_vendor_goals')
+      .select('*')
+      .eq('month_year', periodFilter);
+    setVendorGoals(data || []);
+  }, [periodFilter]);
 
   const loadActivities = useCallback(async () => {
     setLoading(true);
@@ -112,8 +108,28 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     initVendorFilter();
   }, []);
 
-  useEffect(() => { loadVendors(); loadGoals(); }, [loadVendors, loadGoals]);
-  useEffect(() => { loadActivities(); }, [loadActivities]);
+  useEffect(() => { loadVendors(); }, [loadVendors]);
+  useEffect(() => { loadActivities(); loadVendorGoals(); }, [loadActivities, loadVendorGoals]);
+
+  // Computed goals based on filter
+  const currentGoals = useMemo(() => {
+    if (vendorFilter !== 'all') {
+      const goal = vendorGoals.find((g: any) => g.vendor_id === vendorFilter);
+      return {
+        dailyContacts: goal?.daily_contacts_goal || 0,
+        dailyVisits: goal?.daily_visits_goal || 0,
+        dailyProposals: goal?.daily_proposals_goal || 0,
+        dailyOrders: goal?.daily_orders_goal || 0,
+      };
+    }
+    // Sum all vendor goals
+    return {
+      dailyContacts: vendorGoals.reduce((s: number, g: any) => s + (g.daily_contacts_goal || 0), 0),
+      dailyVisits: vendorGoals.reduce((s: number, g: any) => s + (g.daily_visits_goal || 0), 0),
+      dailyProposals: vendorGoals.reduce((s: number, g: any) => s + (g.daily_proposals_goal || 0), 0),
+      dailyOrders: vendorGoals.reduce((s: number, g: any) => s + (g.daily_orders_goal || 0), 0),
+    };
+  }, [vendorGoals, vendorFilter]);
 
   // Filter leads by vendor
   const filteredLeads = useMemo(() => {
@@ -123,6 +139,9 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     }
     return filtered;
   }, [leads, vendorFilter]);
+
+  // All active leads (unfiltered) for funnel "Lead" stage
+  const allActiveLeads = useMemo(() => leads.filter(l => l.status !== 'perdido'), [leads]);
 
   const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
 
@@ -179,15 +198,15 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
   }, [activities, uniqueDailyContacts, periodFilter]);
 
-  // Funnel data
+  // Funnel data - Lead stage shows ALL active leads
   const funnelData = useMemo(() => {
     return CRM_STAGES.map((s, i) => ({
       name: s.label,
-      value: filteredLeads.filter(l => l.status === s.key).length,
-      amount: filteredLeads.filter(l => l.status === s.key).reduce((sum, l) => sum + (l.valor_estimado || 0), 0),
+      value: i === 0 ? allActiveLeads.length : filteredLeads.filter(l => l.status === s.key).length,
+      amount: i === 0 ? allActiveLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0) : filteredLeads.filter(l => l.status === s.key).reduce((sum, l) => sum + (l.valor_estimado || 0), 0),
       fill: s.color,
     }));
-  }, [filteredLeads]);
+  }, [filteredLeads, allActiveLeads]);
 
   // Helper to format name: first name only, proper case
   const formatFirstName = (name: string) => {
@@ -457,20 +476,20 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-sm text-muted-foreground">Contatos Hoje</span>
                     <span className="text-lg font-bold text-foreground">
-                      {todayContacts}{dailyGoal > 0 && <span className="text-xs font-normal text-muted-foreground">/{dailyGoal}</span>}
+                      {todayContacts}{currentGoals.dailyContacts > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyContacts}</span>}
                     </span>
                   </div>
-                  {dailyGoal > 0 && <Progress value={Math.min((todayContacts / dailyGoal) * 100, 100)} className="h-2" />}
+                  {currentGoals.dailyContacts > 0 && <Progress value={Math.min((todayContacts / currentGoals.dailyContacts) * 100, 100)} className="h-2" />}
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-sm text-muted-foreground">Visitas Hoje</span>
                     <span className="text-lg font-bold text-foreground">
-                      {todayVisitsCount}{dailyVisitsGoal > 0 && <span className="text-xs font-normal text-muted-foreground">/{dailyVisitsGoal}</span>}
+                      {todayVisitsCount}{currentGoals.dailyVisits > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyVisits}</span>}
                     </span>
                   </div>
-                  {dailyVisitsGoal > 0 && <Progress value={Math.min((todayVisitsCount / dailyVisitsGoal) * 100, 100)} className="h-2" />}
+                  {currentGoals.dailyVisits > 0 && <Progress value={Math.min((todayVisitsCount / currentGoals.dailyVisits) * 100, 100)} className="h-2" />}
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -484,55 +503,51 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardContent>
           </Card>
 
-          {/* Contatos Card */}
+          {/* Contatos Card - vertical scroll */}
           <Card className="border-l-4 border-l-secondary h-[188px] overflow-hidden">
             <CardContent className="p-4 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-base font-semibold text-foreground">Contatos</span>
                 <Badge variant="outline" className="text-xs">{activeLeads} leads</Badge>
               </div>
 
-              <div className="flex-1 overflow-x-auto overflow-y-hidden">
-                <div className="flex gap-2 pb-1">
-                  {vendorLeadsData.map((vendor, idx) => (
-                    <div
-                      key={vendor.vendorId || vendor.name}
-                      className="w-[calc((100%-1rem)/3)] min-w-[150px] shrink-0 rounded-md border bg-card p-2"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="relative flex-shrink-0">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={vendor.avatar_url || ''} />
-                              <AvatarFallback className="text-[10px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <span
-                              className={cn(
-                                'absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold',
-                                idx === 0
-                                  ? 'bg-primary text-primary-foreground'
-                                  : idx === 1
-                                  ? 'bg-muted text-foreground'
-                                  : idx === 2
-                                  ? 'bg-secondary text-secondary-foreground'
-                                  : 'bg-accent text-accent-foreground'
-                              )}
-                            >
-                              {vendor.rank}
-                            </span>
-                          </div>
-                          <p className="text-sm font-medium text-foreground truncate">{vendor.name}</p>
-                        </div>
-                        <span className="text-xs font-bold text-foreground whitespace-nowrap">{formatCurrency(vendor.value)}</span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-1 truncate">{vendor.count} leads • {vendor.contacts} cont.</p>
+              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-1.5 pr-1">
+                {vendorLeadsData.map((vendor, idx) => (
+                  <div
+                    key={vendor.vendorId || vendor.name}
+                    className="flex items-center gap-2 rounded-md border bg-card p-2"
+                  >
+                    <div className="relative flex-shrink-0">
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={vendor.avatar_url || ''} />
+                        <AvatarFallback className="text-[9px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span
+                        className={cn(
+                          'absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[7px] font-bold',
+                          idx === 0
+                            ? 'bg-primary text-primary-foreground'
+                            : idx === 1
+                            ? 'bg-muted text-foreground'
+                            : idx === 2
+                            ? 'bg-secondary text-secondary-foreground'
+                            : 'bg-accent text-accent-foreground'
+                        )}
+                      >
+                        {vendor.rank}
+                      </span>
                     </div>
-                  ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{vendor.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{vendor.count} leads • {vendor.contacts} cont.</p>
+                    </div>
+                    <span className="text-xs font-bold text-foreground whitespace-nowrap">{formatCurrency(vendor.value)}</span>
+                  </div>
+                ))}
 
-                  {vendorLeadsData.length === 0 && (
-                    <p className="text-xs text-muted-foreground py-2">Sem dados</p>
-                  )}
-                </div>
+                {vendorLeadsData.length === 0 && (
+                  <p className="text-xs text-muted-foreground py-2">Sem dados</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -549,8 +564,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                 <BarChart data={dailyContactsData} barGap={1} barSize={12} margin={{ top: 20, right: 5, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="dia" tick={{ fontSize: 10 }} className="fill-muted-foreground" interval={0} />
-                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} domain={[0, (dataMax: number) => Math.max(dataMax + 2, 5)]} />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} domain={[0, (dataMax: number) => Math.max(dataMax + 2, currentGoals.dailyContacts + 2, 5)]} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  {currentGoals.dailyContacts > 0 && (
+                    <ReferenceLine y={currentGoals.dailyContacts} stroke="hsl(340, 75%, 55%)" strokeDasharray="6 3" strokeWidth={1.5} label={{ value: `Meta: ${currentGoals.dailyContacts}`, position: 'right', fontSize: 9, fill: 'hsl(340, 75%, 55%)' }} />
+                  )}
                   <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]}>
                     <LabelList dataKey="contatos" position="top" fontSize={10} fontWeight={600} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />
                   </Bar>
@@ -562,7 +580,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardContent>
           </Card>
 
-          {/* Funnel - vertical card like Temperature */}
+          {/* Funnel - vertical card */}
           <Card>
             <CardHeader className="pb-2 px-3 sm:px-6">
               <CardTitle className="text-xs sm:text-sm">Funil de Vendas</CardTitle>
@@ -626,9 +644,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           </Card>
         </div>
 
-        {/* Row 3: Vendor contacts + Products (2 cols like Bottom row of commercial) */}
+        {/* Row 3: Vendor contacts + Products */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-          {/* Vendor contacts chart */}
           {vendorFilter === 'all' && vendorContactsData.length > 0 ? (
             <Card>
               <CardHeader className="pb-2 px-3 sm:px-6">

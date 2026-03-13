@@ -391,6 +391,42 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_vendor_goals: {
+        Row: {
+          created_at: string
+          daily_contacts_goal: number
+          daily_orders_goal: number
+          daily_proposals_goal: number
+          daily_visits_goal: number
+          id: string
+          month_year: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_contacts_goal?: number
+          daily_orders_goal?: number
+          daily_proposals_goal?: number
+          daily_visits_goal?: number
+          id?: string
+          month_year: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_contacts_goal?: number
+          daily_orders_goal?: number
+          daily_proposals_goal?: number
+          daily_visits_goal?: number
+          id?: string
+          month_year?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
       crm_visits: {
         Row: {
           created_at: string

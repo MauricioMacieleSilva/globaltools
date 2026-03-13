@@ -191,6 +191,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       empresa: cliente.nome,
       cliente_telefone: cliente.telefone || '',
       cliente_email: cliente.email || '',
+      source: 'Carteira Global',
     }));
     setClientePopoverOpen(false);
     setClienteSearch('');

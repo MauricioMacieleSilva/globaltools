@@ -120,7 +120,7 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
   const handleAddSector = async () => {
     const trimmed = newSector.trim();
     if (!trimmed) return;
-    await (supabase as any).from('crm_business_sectors').insert({ name: trimmed });
+    await (supabase as any).from('lead_business_types').insert({ name: trimmed.toLowerCase().replace(/\s+/g, '_'), label: trimmed });
     setNewSector('');
     setAddingSector(false);
     setForm(f => ({ ...f, ramo_atuacao: trimmed }));

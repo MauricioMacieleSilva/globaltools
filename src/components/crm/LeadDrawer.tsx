@@ -690,6 +690,51 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         onConfirm={handleAddOrderFromDrawer}
         onCancel={() => setAddOrderOpen(false)}
       />
+
+      {/* Contact registration dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Registrar Contato</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Descreva o contato realizado com <strong>{name}</strong>
+            </p>
+            <Textarea
+              value={contactNote}
+              onChange={(e) => setContactNote(e.target.value)}
+              placeholder="Ex: Ligação realizada, cliente interessado em perfis..."
+              rows={3}
+              className="text-sm"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setContactDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={submitContact} disabled={!contactNote.trim() || contactSubmitting} className="gap-1.5">
+              {contactSubmitting ? (
+                <span className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+              ) : (
+                <Phone className="h-3.5 w-3.5" />
+              )}
+              Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enrich form dialog after contact */}
+      <Dialog open={showEnrichAfterContact} onOpenChange={setShowEnrichAfterContact}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Enriquecer Cadastro</DialogTitle>
+          </DialogHeader>
+          <LeadEnrichForm lead={lead} onUpdated={() => { onLeadUpdated(); setShowEnrichAfterContact(false); }} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

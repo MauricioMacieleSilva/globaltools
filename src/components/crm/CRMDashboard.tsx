@@ -639,10 +639,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
               {productData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={productData} barSize={20}>
+                  <BarChart data={productData} barSize={20} margin={{ top: 20, right: 5, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-35} textAnchor="end" height={55} interval={0} />
-                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
+                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} domain={[0, (dataMax: number) => Math.max(dataMax + 2, 5)]} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="value" name="Leads" fill={CHART_COLOR} radius={[4, 4, 0, 0]}>
                       <LabelList dataKey="value" position="top" fontSize={10} className="fill-foreground" />

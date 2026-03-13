@@ -160,10 +160,10 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
   };
 
   const toggleAll = () => {
-    if (selectedIds.size === leads.length) {
+    if (selectedIds.size === filteredLeads.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(leads.map(l => l.id)));
+      setSelectedIds(new Set(filteredLeads.map(l => l.id)));
     }
   };
 

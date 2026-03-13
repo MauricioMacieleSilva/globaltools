@@ -410,32 +410,33 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           </div>
         )}
 
-        {/* Row 1: KPI Cards - styled like commercial dashboard */}
+        {/* Row 1: KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Pipeline Card */}
-          <Card className="border-l-4 border-l-primary">
-            <CardContent className="p-4 space-y-2">
+          <Card className="border-l-4 border-l-primary h-[188px]">
+            <CardContent className="p-5 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-primary">Pipeline</span>
-                <div className="flex items-center gap-1">
+                <span className="text-base font-semibold text-primary">Pipeline</span>
+                <div className="flex items-center gap-1.5">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <Target className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
-              <div className="space-y-1.5">
+
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Valor Total:</span>
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-sm text-muted-foreground">Valor Total:</span>
+                  <span className="text-xl font-bold text-foreground">
                     R$ {pipelineValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Leads Ativos:</span>
-                  <span className="text-sm font-bold text-foreground">{activeLeads}</span>
+                  <span className="text-sm text-muted-foreground">Leads Ativos:</span>
+                  <span className="text-xl font-bold text-foreground">{activeLeads}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Ticket Médio:</span>
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-sm text-muted-foreground">Ticket Médio:</span>
+                  <span className="text-xl font-bold text-foreground">
                     R$ {activeLeads > 0 ? (pipelineValue / activeLeads).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
                   </span>
                 </div>
@@ -444,75 +445,94 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           </Card>
 
           {/* Progresso Diário Card */}
-          <Card className="border-l-4 border-l-[hsl(142,76%,36%)]">
-            <CardContent className="p-4 space-y-2">
+          <Card className="border-l-4 border-l-accent h-[188px]">
+            <CardContent className="p-5 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-[hsl(142,76%,36%)]">Progresso Diário</span>
+                <span className="text-base font-semibold text-foreground">Progresso Diário</span>
                 <Phone className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="space-y-2.5">
+
+              <div className="space-y-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">Contatos Hoje</span>
-                    <span className="text-sm font-bold text-foreground">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm text-muted-foreground">Contatos Hoje</span>
+                    <span className="text-lg font-bold text-foreground">
                       {todayContacts}{dailyGoal > 0 && <span className="text-xs font-normal text-muted-foreground">/{dailyGoal}</span>}
                     </span>
                   </div>
-                  {dailyGoal > 0 && <Progress value={Math.min((todayContacts / dailyGoal) * 100, 100)} className="h-1.5" />}
+                  {dailyGoal > 0 && <Progress value={Math.min((todayContacts / dailyGoal) * 100, 100)} className="h-2" />}
                 </div>
+
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">Visitas Hoje</span>
-                    <span className="text-sm font-bold text-foreground">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm text-muted-foreground">Visitas Hoje</span>
+                    <span className="text-lg font-bold text-foreground">
                       {todayVisitsCount}{dailyVisitsGoal > 0 && <span className="text-xs font-normal text-muted-foreground">/{dailyVisitsGoal}</span>}
                     </span>
                   </div>
-                  {dailyVisitsGoal > 0 && <Progress value={Math.min((todayVisitsCount / dailyVisitsGoal) * 100, 100)} className="h-1.5" />}
+                  {dailyVisitsGoal > 0 && <Progress value={Math.min((todayVisitsCount / dailyVisitsGoal) * 100, 100)} className="h-2" />}
                 </div>
-                <div className="flex items-center justify-between pt-0.5">
-                  <span className="text-xs text-muted-foreground">Total no Mês</span>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Total no Mês</span>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px]">{totalContacts} contatos</Badge>
-                    <Badge variant="secondary" className="text-[10px]">{totalVisits} visitas</Badge>
+                    <Badge variant="secondary" className="text-xs">{totalContacts} contatos</Badge>
+                    <Badge variant="secondary" className="text-xs">{totalVisits} visitas</Badge>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Top Vendedores Card - fixed height */}
-          <Card className="border-l-4 border-l-[hsl(38,92%,50%)]">
-            <CardContent className="p-4">
+          {/* Contatos Card */}
+          <Card className="border-l-4 border-l-secondary h-[188px] overflow-hidden">
+            <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-[hsl(38,92%,50%)]">Top Vendedores</span>
+                <span className="text-base font-semibold text-foreground">Contatos</span>
                 <Badge variant="outline" className="text-xs">{activeLeads} leads</Badge>
               </div>
-              <div className="space-y-2 max-h-[140px] overflow-y-auto">
-                {vendorLeadsData.slice(0, 5).map((vendor, idx) => (
-                  <div key={vendor.vendorId || vendor.name} className="flex items-center gap-2">
-                    <div className="relative flex-shrink-0">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={vendor.avatar_url || ''} />
-                        <AvatarFallback className="text-[10px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <span className={cn("absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white", 
-                        idx === 0 ? 'bg-amber-500' : idx === 1 ? 'bg-slate-400' : 'bg-amber-700'
-                      )}>
-                        {vendor.rank}
-                      </span>
+
+              <div className="flex-1 overflow-x-auto overflow-y-hidden">
+                <div className="flex gap-2 pb-1">
+                  {vendorLeadsData.map((vendor, idx) => (
+                    <div
+                      key={vendor.vendorId || vendor.name}
+                      className="w-[calc((100%-1rem)/3)] min-w-[150px] shrink-0 rounded-md border bg-card p-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="relative flex-shrink-0">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={vendor.avatar_url || ''} />
+                              <AvatarFallback className="text-[10px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span
+                              className={cn(
+                                'absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold',
+                                idx === 0
+                                  ? 'bg-primary text-primary-foreground'
+                                  : idx === 1
+                                  ? 'bg-muted text-foreground'
+                                  : idx === 2
+                                  ? 'bg-secondary text-secondary-foreground'
+                                  : 'bg-accent text-accent-foreground'
+                              )}
+                            >
+                              {vendor.rank}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium text-foreground truncate">{vendor.name}</p>
+                        </div>
+                        <span className="text-xs font-bold text-foreground whitespace-nowrap">{formatCurrency(vendor.value)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1 truncate">{vendor.count} leads • {vendor.contacts} cont.</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{vendor.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{vendor.count} leads • {vendor.contacts} cont.</p>
-                    </div>
-                    <span className="text-xs font-bold text-foreground whitespace-nowrap">
-                      {formatCurrency(vendor.value)}
-                    </span>
-                  </div>
-                ))}
-                {vendorLeadsData.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-2">Sem dados</p>
-                )}
+                  ))}
+
+                  {vendorLeadsData.length === 0 && (
+                    <p className="text-xs text-muted-foreground py-2">Sem dados</p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

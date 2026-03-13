@@ -58,6 +58,43 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   const { toast } = useToast();
   const { data: comercialData } = useComercial();
 
+  const clientesDaBaseComercial = useMemo(() => {
+    if (!comercialData?.length) return [] as Cliente[];
+
+    const map = new Map<string, Cliente>();
+
+    comercialData.forEach((item) => {
+      const nome = item.cliente?.trim();
+      if (!nome) return;
+
+      const key = nome.toLowerCase();
+      const existing = map.get(key);
+
+      if (!existing) {
+        map.set(key, {
+          id: `base-${item.codigocliente || nome}`,
+          nome,
+          telefone: null,
+          email: null,
+          cnpj: item.codigocliente || null,
+          cidade: item.cli_cidade || null,
+          estado: item.uf || null,
+          segmento: item.classe || null,
+        });
+        return;
+      }
+
+      map.set(key, {
+        ...existing,
+        cidade: existing.cidade || item.cli_cidade || null,
+        estado: existing.estado || item.uf || null,
+        segmento: existing.segmento || item.classe || null,
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [comercialData]);
+
   const loadOrigens = async () => {
     const { data, error } = await (supabase as any)
       .from('crm_lead_sources')

@@ -537,9 +537,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               <CardTitle className="text-xs sm:text-sm">Funil de Vendas</CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-6 space-y-2">
-              {funnelData.map((stage) => {
+              {funnelData.map((stage, idx) => {
                 const maxCount = Math.max(...funnelData.map(s => s.value), 1);
                 const pct = (stage.value / maxCount) * 100;
+                const totalForConversion = funnelData.reduce((s, f) => s + f.value, 0) + lostLeads.length;
+                const conversionPct = totalForConversion > 0 ? ((stage.value / totalForConversion) * 100).toFixed(1) : '0';
                 return (
                   <div key={stage.name} className="space-y-1">
                     <div className="flex items-center justify-between">
@@ -552,6 +554,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                         {stage.amount > 0 && (
                           <span className="text-[10px] text-muted-foreground">{formatCurrency(stage.amount)}</span>
                         )}
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">{conversionPct}%</Badge>
                       </div>
                     </div>
                     <div className="w-full h-2 rounded-full bg-muted overflow-hidden">

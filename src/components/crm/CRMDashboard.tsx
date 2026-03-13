@@ -195,31 +195,42 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   };
 
-  // Leads per vendor (top 5 with value)
+  // Leads per vendor (ordered by value)
   const vendorLeadsData = useMemo(() => {
     const map: Record<string, { count: number; value: number; contacts: number; avatar_url: string | null; vendorId: string | null }> = {};
+
     filteredLeads.forEach(l => {
       const vendorId = l.vendedor_id || 'unknown';
       const vendorInfo = vendors.find(v => v.id === vendorId);
       const vendorName = vendorInfo?.name || l.vendedor?.full_name || 'Sem vendedor';
-      if (!map[vendorId]) map[vendorId] = { count: 0, value: 0, contacts: 0, avatar_url: vendorInfo?.avatar_url || null, vendorId };
+
+      if (!map[vendorId]) {
+        map[vendorId] = {
+          count: 0,
+          value: 0,
+          contacts: 0,
+          avatar_url: vendorInfo?.avatar_url || null,
+          vendorId,
+        };
+      }
+
       map[vendorId].count++;
       map[vendorId].value += l.valor_estimado || 0;
     });
-    // Add contacts
+
     uniqueDailyContacts.forEach(a => {
       const userId = a.user_id || 'unknown';
       if (map[userId]) map[userId].contacts++;
     });
+
     return Object.entries(map)
       .sort((a, b) => b[1].value - a[1].value)
-      .slice(0, 5)
       .map(([id, data], idx) => {
         const vendorInfo = vendors.find(v => v.id === id);
         const fullName = vendorInfo?.name || 'Sem vendedor';
         return { name: formatFirstName(fullName), fullName, ...data, rank: idx + 1 };
       });
-  }, [filteredLeads, vendors, activities]);
+  }, [filteredLeads, vendors, uniqueDailyContacts]);
 
   // Cities/States chart
   const locationData = useMemo(() => {

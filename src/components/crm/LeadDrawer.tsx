@@ -302,7 +302,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const email = lead.contact_email || lead.cliente_email;
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
   const currentStage = CRM_STAGES.find(s => s.key === lead.status);
-  const showEnrich = lead.status !== 'lead';
+  
 
   // Find first contact and last contact activities
   const contactActivities = activities.filter(a => a.activity_type === 'contato_inicial');

@@ -78,11 +78,11 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
 
   const loadLookups = async () => {
     const [s, p] = await Promise.all([
-      (supabase as any).from('crm_business_sectors').select('id, name').eq('is_active', true).order('name'),
-      (supabase as any).from('crm_product_interests').select('id, name').eq('is_active', true).order('name'),
+      (supabase as any).from('lead_business_types').select('id, name, label').eq('is_active', true).order('display_order', { ascending: true }),
+      (supabase as any).from('lead_product_interests').select('id, name, label').eq('is_active', true).order('display_order', { ascending: true }),
     ]);
-    setSectors(s.data || []);
-    setProducts(p.data || []);
+    setSectors((s.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })));
+    setProducts((p.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })));
   };
 
   const handleAddSector = async () => {

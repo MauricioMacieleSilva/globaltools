@@ -611,43 +611,6 @@ function generateReportHTML(
     })
     .join('');
 
-  const totalOrcamentosQuentes = orcamentosQuentes.reduce(
-    (sum, o) => sum + o.valor,
-    0
-  );
-
-  const orcamentosRows = orcamentosQuentes
-    .map(orc => {
-      let bgColor = '#ffffff';
-      let estrelas = '';
-      if (orc.rating >= 5) {
-        bgColor = '#fff5f5';
-        estrelas = '⭐⭐⭐⭐⭐';
-      } else if (orc.rating === 4) {
-        bgColor = '#fffaf0';
-        estrelas = '⭐⭐⭐⭐';
-      } else {
-        bgColor = '#fffff0';
-        estrelas = '⭐⭐⭐';
-      }
-
-      return `
-        <tr style="background: ${bgColor};">
-          <td style="padding: 8px 10px; text-align: center; font-size: 14px;">${estrelas}</td>
-          <td style="padding: 8px 10px; font-weight: bold;">${orc.numeroPedido}</td>
-          <td style="padding: 8px 10px;">${orc.cliente}</td>
-          <td style="padding: 8px 10px;">${orc.vendedor}</td>
-          <td style="padding: 8px 10px; text-align: right; font-weight: bold;">${formatCurrency(orc.valor)}</td>
-          <td style="padding: 8px 10px; text-align: right;">${Math.round(orc.peso).toLocaleString('pt-BR')}</td>
-          <td style="padding: 8px 10px; text-align: center; font-size: 12px;">${
-            orc.dataEmissao && parseDate(orc.dataEmissao)
-              ? parseDate(orc.dataEmissao)!.toLocaleDateString('pt-BR')
-              : '-'
-          }</td>
-        </tr>
-      `;
-    })
-    .join('');
 
   return `
     <!DOCTYPE html>

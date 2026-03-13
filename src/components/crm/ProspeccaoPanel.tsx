@@ -79,6 +79,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [ramoPopoverOpen, setRamoPopoverOpen] = useState(false);
   const [ramoSearch, setRamoSearch] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp', 'obrasgov']);
+  const [companySearch, setCompanySearch] = useState('');
 
   // Detect role
   useEffect(() => {

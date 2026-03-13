@@ -778,7 +778,12 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('⚠️ Erro ao identificar melhor mês');
     }
 
-    const htmlContent = generateReportHTML(kpis, reportDate, metaMensal, mesAnterior, melhorMes, allData.length);
+    // Buscar indicadores CRM
+    console.log('📊 Buscando indicadores CRM...');
+    const crmIndicators = await fetchCRMIndicators(supabaseAdmin);
+    console.log(`📊 CRM: ${crmIndicators.leadsAtivos} leads ativos, pipeline ${crmIndicators.pipelineValor}`);
+
+    const htmlContent = generateReportHTML(kpis, reportDate, metaMensal, mesAnterior, melhorMes, allData.length, crmIndicators);
 
     const results = [];
     for (const config of configs) {

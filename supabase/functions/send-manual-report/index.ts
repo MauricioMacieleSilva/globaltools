@@ -1073,8 +1073,8 @@ const handler = async (req: Request): Promise<Response> => {
       mesAnterior,
       melhorMes,
       ranking,
-      orcamentosQuentes,
-      allData.length
+      allData.length,
+      crmIndicators
     );
 
     // 8. Enviar email via Resend

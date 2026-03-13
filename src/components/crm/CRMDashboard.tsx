@@ -24,16 +24,7 @@ interface CRMDashboardProps {
   tvMode?: boolean;
 }
 
-const CHART_COLORS = [
-  'hsl(200, 98%, 39%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(262, 52%, 47%)',
-  'hsl(142, 76%, 36%)',
-  'hsl(173, 80%, 36%)',
-  'hsl(340, 75%, 55%)',
-  'hsl(25, 95%, 53%)',
-  'hsl(210, 40%, 60%)',
-];
+const CHART_COLOR = 'hsl(200, 98%, 39%)';
 
 export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);

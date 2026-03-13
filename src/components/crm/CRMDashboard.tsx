@@ -504,10 +504,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardHeader>
             <CardContent className="h-[200px] sm:h-[260px] px-2 sm:px-6">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyContactsData} barGap={1} barSize={12}>
+                <BarChart data={dailyContactsData} barGap={1} barSize={12} margin={{ top: 20, right: 5, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="dia" tick={{ fontSize: 10 }} className="fill-muted-foreground" interval={0} />
-                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
+                  <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} domain={[0, (dataMax: number) => Math.max(dataMax + 2, 5)]} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                   <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]}>
                     <LabelList dataKey="contatos" position="top" fontSize={10} fontWeight={600} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />

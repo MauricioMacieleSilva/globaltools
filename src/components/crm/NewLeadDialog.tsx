@@ -11,6 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useComercial } from '@/context/ComercialContext';
 import { Plus, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +56,44 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     notes: '',
   });
   const { toast } = useToast();
+  const { data: comercialData } = useComercial();
+
+  const clientesDaBaseComercial = useMemo(() => {
+    if (!comercialData?.length) return [] as Cliente[];
+
+    const map = new Map<string, Cliente>();
+
+    comercialData.forEach((item) => {
+      const nome = item.cliente?.trim();
+      if (!nome) return;
+
+      const key = nome.toLowerCase();
+      const existing = map.get(key);
+
+      if (!existing) {
+        map.set(key, {
+          id: `base-${item.codigocliente || nome}`,
+          nome,
+          telefone: null,
+          email: null,
+          cnpj: item.codigocliente || null,
+          cidade: item.cli_cidade || null,
+          estado: item.uf || null,
+          segmento: item.classe || null,
+        });
+        return;
+      }
+
+      map.set(key, {
+        ...existing,
+        cidade: existing.cidade || item.cli_cidade || null,
+        estado: existing.estado || item.uf || null,
+        segmento: existing.segmento || item.classe || null,
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [comercialData]);
 
   const loadOrigens = async () => {
     const { data, error } = await (supabase as any)
@@ -98,10 +137,33 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         from += pageSize;
       }
 
-      console.log('Clientes carregados:', allClients.length);
-      setClientes(allClients);
+      const merged = new Map<string, Cliente>();
+
+      allClients.forEach((cliente) => {
+        merged.set(cliente.nome.toLowerCase(), cliente);
+      });
+
+      clientesDaBaseComercial.forEach((clienteBase) => {
+        const key = clienteBase.nome.toLowerCase();
+        const existing = merged.get(key);
+
+        if (!existing) {
+          merged.set(key, clienteBase);
+          return;
+        }
+
+        merged.set(key, {
+          ...existing,
+          cidade: existing.cidade || clienteBase.cidade,
+          estado: existing.estado || clienteBase.estado,
+          segmento: existing.segmento || clienteBase.segmento,
+        });
+      });
+
+      setClientes(Array.from(merged.values()).sort((a, b) => a.nome.localeCompare(b.nome)));
     } catch (err) {
       console.error('Erro inesperado ao carregar clientes:', err);
+      setClientes(clientesDaBaseComercial);
     }
   };
 
@@ -110,7 +172,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       loadOrigens();
       loadClientes();
     }
-  }, [open]);
+  }, [open, clientesDaBaseComercial]);
 
   const filteredClientes = useMemo(() => {
     if (!clienteSearch) return clientes.slice(0, 50);

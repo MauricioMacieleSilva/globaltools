@@ -270,7 +270,13 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       const ok = await approveLead(lead);
       if (ok) {
         toast.success('Lead adicionado à sua lista!');
-        await loadPending();
+        // Remove lead from local state without refreshing the entire list
+        setLeads(prev => prev.filter(l => l.id !== lead.id));
+        setSelectedIds(prev => {
+          const next = new Set(prev);
+          next.delete(lead.id);
+          return next;
+        });
         onLeadsApproved?.();
       } else {
         toast.error('Erro ao atender lead');

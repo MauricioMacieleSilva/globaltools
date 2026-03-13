@@ -515,7 +515,7 @@ export default function CRM() {
               <PieChart className="h-3.5 w-3.5" /> Dashboard
             </TabsTrigger>
             <TabsTrigger value="prospeccao" className="text-xs gap-1 h-7 px-3">
-              <Sparkles className="h-3.5 w-3.5" /> Prospecção IA
+              <Sparkles className="h-3.5 w-3.5" /> Prospecção
             </TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">

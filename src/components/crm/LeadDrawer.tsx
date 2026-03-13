@@ -547,9 +547,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             <Separator />
 
             {/* Enrich form - only after first contact */}
-            {showEnrich && (
+            {(showEnrich || showEnrichAfterContact) && (
               <>
-                <LeadEnrichForm lead={lead} onUpdated={onLeadUpdated} />
+                <LeadEnrichForm lead={lead} onUpdated={() => { onLeadUpdated(); setShowEnrichAfterContact(false); }} />
                 <Separator />
               </>
             )}

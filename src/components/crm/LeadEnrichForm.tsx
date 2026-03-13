@@ -99,7 +99,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   const handleAddProduct = async () => {
     const trimmed = newProduct.trim();
     if (!trimmed) return;
-    await (supabase as any).from('crm_product_interests').insert({ name: trimmed });
+    await (supabase as any).from('lead_product_interests').insert({ name: trimmed.toLowerCase().replace(/\s+/g, '_'), label: trimmed });
     setNewProduct('');
     setAddingProduct(false);
     if (!selectedProducts.includes(trimmed)) {

@@ -299,8 +299,12 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   // Lead sources/origin chart
   const sourceData = useMemo(() => {
     const map: Record<string, number> = {};
+    const nameNormalization: Record<string, string> = {
+      'Base Arcelor': 'Base Mercado',
+    };
     filteredLeads.forEach(l => {
-      const origem = l.origem || l.source || 'Não informado';
+      let origem = l.origem || l.source || 'Não informado';
+      origem = nameNormalization[origem] || origem;
       map[origem] = (map[origem] || 0) + 1;
     });
     return Object.entries(map)

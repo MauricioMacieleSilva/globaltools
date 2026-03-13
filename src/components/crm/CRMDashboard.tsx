@@ -286,10 +286,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     if (vendorFilter !== 'all') return [];
     const map: Record<string, { contatos: number; visitas: number }> = {};
     activities.forEach(a => {
-      const vendorName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
-      if (!map[vendorName]) map[vendorName] = { contatos: 0, visitas: 0 };
-      if (a.activity_type === 'contato_inicial') map[vendorName].contatos++;
-      if (a.activity_type === 'visita') map[vendorName].visitas++;
+      const fullName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
+      const firstName = fullName.split(' ')[0];
+      if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
+      if (a.activity_type === 'contato_inicial') map[firstName].contatos++;
+      if (a.activity_type === 'visita') map[firstName].visitas++;
     });
     return Object.entries(map)
       .map(([name, data]) => ({ name, ...data }))

@@ -189,25 +189,36 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     }));
   }, [filteredLeads]);
 
+  // Helper to format name: first name only, proper case
+  const formatFirstName = (name: string) => {
+    const first = name.split(' ')[0];
+    return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+  };
+
   // Leads per vendor (top 5 with value)
   const vendorLeadsData = useMemo(() => {
-    const map: Record<string, { count: number; value: number; contacts: number; avatar_url: string | null }> = {};
+    const map: Record<string, { count: number; value: number; contacts: number; avatar_url: string | null; vendorId: string | null }> = {};
     filteredLeads.forEach(l => {
-      const vendorName = l.vendedor?.full_name || 'Sem vendedor';
-      const vendorInfo = vendors.find(v => v.id === l.vendedor_id);
-      if (!map[vendorName]) map[vendorName] = { count: 0, value: 0, contacts: 0, avatar_url: vendorInfo?.avatar_url || null };
-      map[vendorName].count++;
-      map[vendorName].value += l.valor_estimado || 0;
+      const vendorId = l.vendedor_id || 'unknown';
+      const vendorInfo = vendors.find(v => v.id === vendorId);
+      const vendorName = vendorInfo?.name || l.vendedor?.full_name || 'Sem vendedor';
+      if (!map[vendorId]) map[vendorId] = { count: 0, value: 0, contacts: 0, avatar_url: vendorInfo?.avatar_url || null, vendorId };
+      map[vendorId].count++;
+      map[vendorId].value += l.valor_estimado || 0;
     });
     // Add contacts
     uniqueDailyContacts.forEach(a => {
-      const vendorName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
-      if (map[vendorName]) map[vendorName].contacts++;
+      const userId = a.user_id || 'unknown';
+      if (map[userId]) map[userId].contacts++;
     });
     return Object.entries(map)
       .sort((a, b) => b[1].value - a[1].value)
       .slice(0, 5)
-      .map(([name, data], idx) => ({ name, ...data, rank: idx + 1 }));
+      .map(([id, data], idx) => {
+        const vendorInfo = vendors.find(v => v.id === id);
+        const fullName = vendorInfo?.name || 'Sem vendedor';
+        return { name: formatFirstName(fullName), fullName, ...data, rank: idx + 1 };
+      });
   }, [filteredLeads, vendors, activities]);
 
   // Cities/States chart
@@ -458,20 +469,20 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardContent>
           </Card>
 
-          {/* Top Vendedores Card - like "Orçamentos em Aberto" */}
+          {/* Top Vendedores Card - fixed height */}
           <Card className="border-l-4 border-l-[hsl(38,92%,50%)]">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-[hsl(38,92%,50%)]">Top Vendedores</span>
                 <Badge variant="outline" className="text-xs">{activeLeads} leads</Badge>
               </div>
-              <div className="space-y-2">
-                {vendorLeadsData.slice(0, 3).map((vendor, idx) => (
-                  <div key={vendor.name} className="flex items-center gap-2">
-                    <div className="relative">
+              <div className="space-y-2 max-h-[140px] overflow-y-auto">
+                {vendorLeadsData.slice(0, 5).map((vendor, idx) => (
+                  <div key={vendor.vendorId || vendor.name} className="flex items-center gap-2">
+                    <div className="relative flex-shrink-0">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={vendor.avatar_url || ''} />
-                        <AvatarFallback className="text-[10px] bg-muted">{vendor.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback>
+                        <AvatarFallback className="text-[10px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <span className={cn("absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white", 
                         idx === 0 ? 'bg-amber-500' : idx === 1 ? 'bg-slate-400' : 'bg-amber-700'
@@ -526,9 +537,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               <CardTitle className="text-xs sm:text-sm">Funil de Vendas</CardTitle>
             </CardHeader>
             <CardContent className="px-3 sm:px-6 space-y-2">
-              {funnelData.map((stage) => {
+              {funnelData.map((stage, idx) => {
                 const maxCount = Math.max(...funnelData.map(s => s.value), 1);
                 const pct = (stage.value / maxCount) * 100;
+                const totalForConversion = funnelData.reduce((s, f) => s + f.value, 0) + lostLeads.length;
+                const conversionPct = totalForConversion > 0 ? ((stage.value / totalForConversion) * 100).toFixed(1) : '0';
                 return (
                   <div key={stage.name} className="space-y-1">
                     <div className="flex items-center justify-between">
@@ -541,6 +554,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                         {stage.amount > 0 && (
                           <span className="text-[10px] text-muted-foreground">{formatCurrency(stage.amount)}</span>
                         )}
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">{conversionPct}%</Badge>
                       </div>
                     </div>
                     <div className="w-full h-2 rounded-full bg-muted overflow-hidden">

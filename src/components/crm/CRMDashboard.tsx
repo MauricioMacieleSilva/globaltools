@@ -644,11 +644,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                     <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-35} textAnchor="end" height={55} interval={0} />
                     <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                    <Bar dataKey="value" name="Leads" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="value" name="Leads" fill={CHART_COLOR} radius={[4, 4, 0, 0]}>
                       <LabelList dataKey="value" position="top" fontSize={10} className="fill-foreground" />
-                      {productData.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

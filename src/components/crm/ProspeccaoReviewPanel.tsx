@@ -58,6 +58,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [assignUserId, setAssignUserId] = useState<string>('');
   const [assigningLeadId, setAssigningLeadId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch all pending leads with pagination to bypass 1000 limit
   const fetchAllPending = async (): Promise<StagedLead[]> => {

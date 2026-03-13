@@ -106,7 +106,7 @@ const menuItems = [
 
 const adminMenuItems = [
   {
-    title: 'Gerenciar Usuários',
+    title: 'Administração',
     url: '/admin/usuarios',
     icon: Settings,
     pageKey: 'usuarios',

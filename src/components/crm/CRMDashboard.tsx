@@ -587,10 +587,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               </CardHeader>
               <CardContent className="h-[220px] sm:h-[280px] px-1 sm:px-6">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={vendorContactsData} barSize={16} barGap={2}>
+                  <BarChart data={vendorContactsData} barSize={16} barGap={2} margin={{ top: 20, right: 5, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="name" tick={{ fontSize: 8 }} className="fill-muted-foreground" angle={-20} textAnchor="end" height={45} />
-                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} className="fill-muted-foreground" angle={-20} textAnchor="end" height={45} />
+                    <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" allowDecimals={false} width={30} domain={[0, (dataMax: number) => Math.max(dataMax + 3, 5)]} />
                     <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                     <Bar dataKey="contatos" name="Contatos" fill="hsl(200, 98%, 39%)" radius={[3, 3, 0, 0]}>
                       <LabelList dataKey="contatos" position="top" fontSize={9} className="fill-foreground" formatter={(v: number) => v > 0 ? v : ''} />

@@ -117,7 +117,13 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     return leads.filter(lead => 
       (lead.cliente_nome || '').toLowerCase().includes(term) ||
       (lead.empresa || '').toLowerCase().includes(term) ||
-      (lead.contact_name || '').toLowerCase().includes(term)
+      (lead.contact_name || '').toLowerCase().includes(term) ||
+      (lead.cliente_cnpj || '').toLowerCase().includes(term) ||
+      (lead.cidade || '').toLowerCase().includes(term) ||
+      (lead.estado || '').toLowerCase().includes(term) ||
+      (lead.ramo_atuacao || '').toLowerCase().includes(term) ||
+      (lead.cliente_telefone || '').toLowerCase().includes(term) ||
+      (lead.cliente_email || '').toLowerCase().includes(term)
     );
   }, [leads, searchTerm]);
 

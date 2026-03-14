@@ -624,6 +624,15 @@ export default function CRM() {
       />
       )}
 
+      {pendingContactLead && (
+        <ContactDescriptionDialog
+          open={contactDescOpen}
+          onOpenChange={(v) => { setContactDescOpen(v); if (!v) setPendingContactLead(null); }}
+          leadName={pendingContactLead.client_name || pendingContactLead.cliente_nome}
+          onConfirm={handleContactDescConfirmed}
+        />
+      )}
+
       {pendingEnrichLead && (
         <LeadEnrichGateDialog
           open={enrichGateOpen}

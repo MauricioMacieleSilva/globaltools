@@ -138,6 +138,10 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
     );
   };
 
+  const isCidadePreenchida = () => {
+    return !!(estado.trim() && cidade.trim());
+  };
+
   const handleEstadoChange = (uf: string) => {
     setEstado(uf);
     setCidade('');
@@ -161,6 +165,12 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
     : cidades.slice(0, 15);
 
   const handleSave = async () => {
+    if (!isCidadePreenchida()) {
+      toast.error('Cidade é obrigatória', {
+        description: 'Selecione o estado e informe a cidade antes de mover o lead.',
+      });
+      return;
+    }
     if (!hasAnyData()) {
       toast.error('Preencha pelo menos um campo', {
         description: 'É necessário informar ao menos uma informação antes de mover o lead.',
@@ -298,7 +308,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
           {/* Estado / Cidade */}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Estado (UF)</Label>
+              <Label className="text-xs">Estado (UF) <span className="text-destructive">*</span></Label>
               <Select value={estado} onValueChange={handleEstadoChange}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF..." /></SelectTrigger>
                 <SelectContent>
@@ -309,7 +319,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
               </Select>
             </div>
             <div className="space-y-1 relative">
-              <Label className="text-xs">Cidade</Label>
+              <Label className="text-xs">Cidade <span className="text-destructive">*</span></Label>
               <Input
                 value={cidadeSearch}
                 onChange={(e) => handleCidadeSearchChange(e.target.value)}

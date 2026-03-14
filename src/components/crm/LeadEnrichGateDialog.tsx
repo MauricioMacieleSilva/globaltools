@@ -165,6 +165,12 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
     : cidades.slice(0, 15);
 
   const handleSave = async () => {
+    if (!isCidadePreenchida()) {
+      toast.error('Cidade é obrigatória', {
+        description: 'Selecione o estado e informe a cidade antes de mover o lead.',
+      });
+      return;
+    }
     if (!hasAnyData()) {
       toast.error('Preencha pelo menos um campo', {
         description: 'É necessário informar ao menos uma informação antes de mover o lead.',

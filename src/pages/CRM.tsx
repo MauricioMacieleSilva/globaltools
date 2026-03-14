@@ -14,6 +14,7 @@ import { LeadListView } from '@/components/crm/LeadListView';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
+import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
 import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -106,6 +107,9 @@ export default function CRM() {
   // Enrich gate dialog
   const [enrichGateOpen, setEnrichGateOpen] = useState(false);
   const [pendingEnrichLead, setPendingEnrichLead] = useState<CRMLead | null>(null);
+  // Contact description dialog (before enrich)
+  const [contactDescOpen, setContactDescOpen] = useState(false);
+  const [pendingContactLead, setPendingContactLead] = useState<CRMLead | null>(null);
   // Order link dialog
   const [orderLinkOpen, setOrderLinkOpen] = useState(false);
   const [pendingOrderLead, setPendingOrderLead] = useState<CRMLead | null>(null);
@@ -268,10 +272,10 @@ export default function CRM() {
       }
     }
 
-    // Intercept lead -> contato_feito: require enrichment
+    // Intercept lead -> contato_feito: require contact description first
     if (newStatus === 'contato_feito' && lead.status === 'lead') {
-      setPendingEnrichLead(lead);
-      setEnrichGateOpen(true);
+      setPendingContactLead(lead);
+      setContactDescOpen(true);
       return;
     }
 
@@ -330,6 +334,27 @@ export default function CRM() {
     setPendingVisitLead(null);
   };
 
+  const handleContactDescConfirmed = async (description: string) => {
+    if (!pendingContactLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      // Register the contact activity with the user's description
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingContactLead.id,
+        activity_type: 'contato_inicial',
+        description: description,
+        user_id: user?.id || '',
+      } as any);
+    } catch (e) {
+      console.error('Erro ao registrar contato:', e);
+    }
+    // Now open enrich dialog
+    setContactDescOpen(false);
+    setPendingEnrichLead(pendingContactLead);
+    setEnrichGateOpen(true);
+    setPendingContactLead(null);
+  };
+
   const handleEnrichConfirmed = async () => {
     if (!pendingEnrichLead) return;
     try {
@@ -347,12 +372,6 @@ export default function CRM() {
         lead_id: pendingEnrichLead.id,
         activity_type: 'mudanca_status',
         description: `Movido de "${oldLabel}" para "Contato Feito"`,
-        user_id: user?.id || '',
-      } as any);
-      await supabase.from('lead_activities').insert({
-        lead_id: pendingEnrichLead.id,
-        activity_type: 'contato_inicial',
-        description: 'Contato registrado via movimentação CRM',
         user_id: user?.id || '',
       } as any);
 
@@ -603,6 +622,15 @@ export default function CRM() {
           leadName={pendingVisitLead.client_name || pendingVisitLead.cliente_nome}
           onConfirm={handleVisitConfirmed}
       />
+      )}
+
+      {pendingContactLead && (
+        <ContactDescriptionDialog
+          open={contactDescOpen}
+          onOpenChange={(v) => { setContactDescOpen(v); if (!v) setPendingContactLead(null); }}
+          leadName={pendingContactLead.client_name || pendingContactLead.cliente_nome}
+          onConfirm={handleContactDescConfirmed}
+        />
       )}
 
       {pendingEnrichLead && (

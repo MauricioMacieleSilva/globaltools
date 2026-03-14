@@ -308,7 +308,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
           {/* Estado / Cidade */}
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Estado (UF)</Label>
+              <Label className="text-xs">Estado (UF) <span className="text-destructive">*</span></Label>
               <Select value={estado} onValueChange={handleEstadoChange}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="UF..." /></SelectTrigger>
                 <SelectContent>

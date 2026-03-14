@@ -334,6 +334,27 @@ export default function CRM() {
     setPendingVisitLead(null);
   };
 
+  const handleContactDescConfirmed = async (description: string) => {
+    if (!pendingContactLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      // Register the contact activity with the user's description
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingContactLead.id,
+        activity_type: 'contato_inicial',
+        description: description,
+        user_id: user?.id || '',
+      } as any);
+    } catch (e) {
+      console.error('Erro ao registrar contato:', e);
+    }
+    // Now open enrich dialog
+    setContactDescOpen(false);
+    setPendingEnrichLead(pendingContactLead);
+    setEnrichGateOpen(true);
+    setPendingContactLead(null);
+  };
+
   const handleEnrichConfirmed = async () => {
     if (!pendingEnrichLead) return;
     try {

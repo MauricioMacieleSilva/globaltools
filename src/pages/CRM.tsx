@@ -14,6 +14,7 @@ import { LeadListView } from '@/components/crm/LeadListView';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
+import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
 import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';

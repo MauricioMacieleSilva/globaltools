@@ -138,6 +138,10 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
     );
   };
 
+  const isCidadePreenchida = () => {
+    return !!(estado.trim() && cidade.trim());
+  };
+
   const handleEstadoChange = (uf: string) => {
     setEstado(uf);
     setCidade('');

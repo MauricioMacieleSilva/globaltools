@@ -272,10 +272,10 @@ export default function CRM() {
       }
     }
 
-    // Intercept lead -> contato_feito: require enrichment
+    // Intercept lead -> contato_feito: require contact description first
     if (newStatus === 'contato_feito' && lead.status === 'lead') {
-      setPendingEnrichLead(lead);
-      setEnrichGateOpen(true);
+      setPendingContactLead(lead);
+      setContactDescOpen(true);
       return;
     }
 

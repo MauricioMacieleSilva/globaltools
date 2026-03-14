@@ -518,6 +518,8 @@ export default function CRM() {
               <Sparkles className="h-3.5 w-3.5" /> Prospecção
             </TabsTrigger>
           </TabsList>
+            <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
+          </div>
           <div className="flex items-center gap-2">
             {activeTab === 'kanban' && (
               <div data-tour="crm-filters">

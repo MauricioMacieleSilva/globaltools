@@ -319,7 +319,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
               </Select>
             </div>
             <div className="space-y-1 relative">
-              <Label className="text-xs">Cidade</Label>
+              <Label className="text-xs">Cidade <span className="text-destructive">*</span></Label>
               <Input
                 value={cidadeSearch}
                 onChange={(e) => handleCidadeSearchChange(e.target.value)}

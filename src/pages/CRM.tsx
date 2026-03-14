@@ -498,10 +498,10 @@ export default function CRM() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden">
-      <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between gap-2 pb-3 shrink-0">
-          <TabsList data-tour="crm-tabs" className="h-8">
+          <div className="flex items-center gap-2">
+            <TabsList data-tour="crm-tabs" className="h-8">
             <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
               <LayoutGrid className="h-3.5 w-3.5" /> Kanban
             </TabsTrigger>
@@ -518,6 +518,8 @@ export default function CRM() {
               <Sparkles className="h-3.5 w-3.5" /> Prospecção
             </TabsTrigger>
           </TabsList>
+            <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
+          </div>
           <div className="flex items-center gap-2">
             {activeTab === 'kanban' && (
               <div data-tour="crm-filters">

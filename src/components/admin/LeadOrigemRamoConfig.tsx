@@ -215,7 +215,7 @@ export function LeadOrigemRamoConfig() {
         <CardHeader>
           <CardTitle>Listas do CRM</CardTitle>
           <CardDescription>
-            Gerencie as opções disponíveis nos campos <strong>Origem</strong> e <strong>Ramo de atuação</strong>.
+            Gerencie as opções disponíveis nos campos <strong>Origem</strong>, <strong>Ramo de atuação</strong> e <strong>Motivos de Perda</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">

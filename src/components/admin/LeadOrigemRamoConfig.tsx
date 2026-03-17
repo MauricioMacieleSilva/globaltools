@@ -157,7 +157,9 @@ export function LeadOrigemRamoConfig() {
 
     setSubmitting(true);
     try {
-      if (edit.kind === "lead_source") {
+      if (edit.kind === "lead_source" || edit.kind === "loss_reason") {
+        const table = edit.kind === "lead_source" ? "crm_lead_sources" : "crm_loss_reasons";
+        const label = edit.kind === "lead_source" ? "Origem" : "Motivo de perda";
         const payload = {
           name,
           is_active: form.is_active,
@@ -165,16 +167,13 @@ export function LeadOrigemRamoConfig() {
         };
 
         if (edit.item) {
-          const { error } = await (supabase as any)
-            .from("crm_lead_sources")
-            .update(payload)
-            .eq("id", (edit.item as LeadSource).id);
+          const { error } = await (supabase as any).from(table).update(payload).eq("id", edit.item.id);
           if (error) throw error;
-          toast.success("Origem atualizada");
+          toast.success(`${label} atualizado(a)`);
         } else {
-          const { error } = await (supabase as any).from("crm_lead_sources").insert(payload);
+          const { error } = await (supabase as any).from(table).insert(payload);
           if (error) throw error;
-          toast.success("Origem adicionada");
+          toast.success(`${label} adicionado(a)`);
         }
       } else {
         const payload = {

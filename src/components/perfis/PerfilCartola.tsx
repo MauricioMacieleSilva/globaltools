@@ -80,11 +80,11 @@ export function PerfilCartola() {
   };
 
   const adicionarLinha = () => {
-    atualizarLinhaCartola([...linhasCartola, { id: gerarId(), espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false }]);
+    atualizarLinhaCartola([...linhasCartola, { id: gerarId(), espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false }]);
   };
 
   const limparLinha = (id: string) => {
-    atualizarLinhaCartola(linhasCartola.map(l => l.id === id ? { ...l, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false } : l));
+    atualizarLinhaCartola(linhasCartola.map(l => l.id === id ? { ...l, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false } : l));
     removerCalculo(id);
     setErrosValidacao(prev => { const n = {...prev}; Object.keys(n).filter(k => k.startsWith(id)).forEach(k => delete n[k]); return n; });
   };

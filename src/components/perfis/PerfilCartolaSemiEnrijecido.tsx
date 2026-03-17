@@ -80,11 +80,11 @@ export function PerfilCartolaSemiEnrijecido() {
   };
 
   const adicionarLinha = () => {
-    atualizarLinhaCartolaSemiEnrijecido([...linhasCartolaSemiEnrijecido, { id: gerarId(), espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false }]);
+    atualizarLinhaCartolaSemiEnrijecido([...linhasCartolaSemiEnrijecido, { id: gerarId(), espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false }]);
   };
 
   const limparLinha = (id: string) => {
-    atualizarLinhaCartolaSemiEnrijecido(linhasCartolaSemiEnrijecido.map(l => l.id === id ? { ...l, espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false } : l));
+    atualizarLinhaCartolaSemiEnrijecido(linhasCartolaSemiEnrijecido.map(l => l.id === id ? { ...l, espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false } : l));
     removerCalculo(id);
     setErrosValidacao(prev => { const n = {...prev}; Object.keys(n).filter(k => k.startsWith(id)).forEach(k => delete n[k]); return n; });
   };

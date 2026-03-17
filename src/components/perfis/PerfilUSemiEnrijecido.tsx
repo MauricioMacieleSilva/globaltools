@@ -112,14 +112,14 @@ export function PerfilUSemiEnrijecido() {
   const adicionarLinha = () => {
     atualizarLinhaUSemiEnrijecido([...linhasUSemiEnrijecido, {
       id: gerarId(), orientacaoUZ: 'U', espessura: '', enrij1: '', aba1: '', base: '', aba2: '',
-      comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false
+      comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false
     }]);
   };
 
   const limparLinha = (id: string) => {
     atualizarLinhaUSemiEnrijecido(linhasUSemiEnrijecido.map(l => l.id === id ? {
       ...l, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', comprimento: '6000', largura: '1200',
-      quantidade: '', percentualPerda: '101', assimetrico: false, orientacaoUZ: 'U' as const
+      quantidade: '', percentualPerda: '103', assimetrico: false, orientacaoUZ: 'U' as const
     } : l));
     removerCalculo(id);
     setErrosValidacao(prev => { const n = {...prev}; Object.keys(n).filter(k => k.startsWith(id)).forEach(k => delete n[k]); return n; });

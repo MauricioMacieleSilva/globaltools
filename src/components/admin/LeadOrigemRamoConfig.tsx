@@ -24,7 +24,14 @@ type BusinessSector = {
   is_active: boolean;
 };
 
-type EditKind = "lead_source" | "business_sector";
+type LossReason = {
+  id: string;
+  name: string;
+  is_active: boolean;
+  display_order: number | null;
+};
+
+type EditKind = "lead_source" | "business_sector" | "loss_reason";
 
 function normalizeName(value: string) {
   return value.trim();
@@ -34,6 +41,7 @@ export function LeadOrigemRamoConfig() {
   const [loading, setLoading] = useState(true);
   const [sources, setSources] = useState<LeadSource[]>([]);
   const [sectors, setSectors] = useState<BusinessSector[]>([]);
+  const [lossReasons, setLossReasons] = useState<LossReason[]>([]);
 
   const [edit, setEdit] = useState<{
     open: boolean;
@@ -50,13 +58,14 @@ export function LeadOrigemRamoConfig() {
 
   const title = useMemo(() => {
     if (edit.kind === "lead_source") return edit.item ? "Editar origem" : "Adicionar origem";
+    if (edit.kind === "loss_reason") return edit.item ? "Editar motivo de perda" : "Adicionar motivo de perda";
     return edit.item ? "Editar ramo" : "Adicionar ramo";
   }, [edit.kind, edit.item]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [srcRes, secRes] = await Promise.all([
+      const [srcRes, secRes, lrRes] = await Promise.all([
         (supabase as any)
           .from("crm_lead_sources")
           .select("id, name, is_active, display_order")
@@ -66,13 +75,20 @@ export function LeadOrigemRamoConfig() {
           .from("crm_business_sectors")
           .select("id, name, is_active")
           .order("name", { ascending: true }),
+        (supabase as any)
+          .from("crm_loss_reasons")
+          .select("id, name, is_active, display_order")
+          .order("display_order", { ascending: true })
+          .order("name", { ascending: true }),
       ]);
 
       if (srcRes.error) throw srcRes.error;
       if (secRes.error) throw secRes.error;
+      if (lrRes.error) throw lrRes.error;
 
       setSources(srcRes.data || []);
       setSectors(secRes.data || []);
+      setLossReasons(lrRes.data || []);
     } catch (e: any) {
       console.error(e);
       toast.error("Erro ao carregar listas", { description: e?.message });
@@ -88,8 +104,8 @@ export function LeadOrigemRamoConfig() {
   useEffect(() => {
     if (!edit.open) return;
 
-    if (edit.kind === "lead_source") {
-      const item = edit.item as LeadSource | null;
+    if (edit.kind === "lead_source" || edit.kind === "loss_reason") {
+      const item = edit.item as LeadSource | LossReason | null;
       setForm({
         name: item?.name ?? "",
         is_active: item?.is_active ?? true,
@@ -111,7 +127,7 @@ export function LeadOrigemRamoConfig() {
   const handleDelete = async (kind: EditKind, id: string) => {
     if (!confirm("Tem certeza que deseja excluir este item?")) return;
     try {
-      const table = kind === "lead_source" ? "crm_lead_sources" : "crm_business_sectors";
+      const table = kind === "lead_source" ? "crm_lead_sources" : kind === "loss_reason" ? "crm_loss_reasons" : "crm_business_sectors";
       const { error } = await (supabase as any).from(table).delete().eq("id", id);
       if (error) throw error;
       toast.success("Item excluído");
@@ -124,7 +140,7 @@ export function LeadOrigemRamoConfig() {
 
   const handleToggleActive = async (kind: EditKind, id: string, current: boolean) => {
     try {
-      const table = kind === "lead_source" ? "crm_lead_sources" : "crm_business_sectors";
+      const table = kind === "lead_source" ? "crm_lead_sources" : kind === "loss_reason" ? "crm_loss_reasons" : "crm_business_sectors";
       const { error } = await (supabase as any).from(table).update({ is_active: !current }).eq("id", id);
       if (error) throw error;
       toast.success("Status atualizado");
@@ -141,7 +157,9 @@ export function LeadOrigemRamoConfig() {
 
     setSubmitting(true);
     try {
-      if (edit.kind === "lead_source") {
+      if (edit.kind === "lead_source" || edit.kind === "loss_reason") {
+        const table = edit.kind === "lead_source" ? "crm_lead_sources" : "crm_loss_reasons";
+        const label = edit.kind === "lead_source" ? "Origem" : "Motivo de perda";
         const payload = {
           name,
           is_active: form.is_active,
@@ -149,16 +167,13 @@ export function LeadOrigemRamoConfig() {
         };
 
         if (edit.item) {
-          const { error } = await (supabase as any)
-            .from("crm_lead_sources")
-            .update(payload)
-            .eq("id", (edit.item as LeadSource).id);
+          const { error } = await (supabase as any).from(table).update(payload).eq("id", edit.item.id);
           if (error) throw error;
-          toast.success("Origem atualizada");
+          toast.success(`${label} atualizado(a)`);
         } else {
-          const { error } = await (supabase as any).from("crm_lead_sources").insert(payload);
+          const { error } = await (supabase as any).from(table).insert(payload);
           if (error) throw error;
-          toast.success("Origem adicionada");
+          toast.success(`${label} adicionado(a)`);
         }
       } else {
         const payload = {
@@ -200,7 +215,7 @@ export function LeadOrigemRamoConfig() {
         <CardHeader>
           <CardTitle>Listas do CRM</CardTitle>
           <CardDescription>
-            Gerencie as opções disponíveis nos campos <strong>Origem</strong> e <strong>Ramo de atuação</strong>.
+            Gerencie as opções disponíveis nos campos <strong>Origem</strong>, <strong>Ramo de atuação</strong> e <strong>Motivos de Perda</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -321,6 +336,66 @@ export function LeadOrigemRamoConfig() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Motivos de Perda */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <h3 className="text-base font-medium">Motivos de Perda</h3>
+                <p className="text-xs text-muted-foreground">(tabela crm_loss_reasons)</p>
+              </div>
+              <Button size="sm" onClick={() => openCreate("loss_reason")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar
+              </Button>
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ordem</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lossReasons.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-sm text-muted-foreground">{r.display_order ?? "—"}</TableCell>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={r.is_active ? "default" : "secondary"}>
+                        {r.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEdit("loss_reason", r)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleActive("loss_reason", r.id, r.is_active)}
+                        >
+                          {r.is_active ? "Desativar" : "Ativar"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete("loss_reason", r.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -336,7 +411,7 @@ export function LeadOrigemRamoConfig() {
               <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
 
-            {edit.kind === "lead_source" && (
+            {(edit.kind === "lead_source" || edit.kind === "loss_reason") && (
               <div className="space-y-2">
                 <Label>Ordem de exibição</Label>
                 <Input

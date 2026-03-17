@@ -58,6 +58,7 @@ export function LeadOrigemRamoConfig() {
 
   const title = useMemo(() => {
     if (edit.kind === "lead_source") return edit.item ? "Editar origem" : "Adicionar origem";
+    if (edit.kind === "loss_reason") return edit.item ? "Editar motivo de perda" : "Adicionar motivo de perda";
     return edit.item ? "Editar ramo" : "Adicionar ramo";
   }, [edit.kind, edit.item]);
 

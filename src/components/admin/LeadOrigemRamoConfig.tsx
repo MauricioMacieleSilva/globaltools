@@ -140,7 +140,7 @@ export function LeadOrigemRamoConfig() {
 
   const handleToggleActive = async (kind: EditKind, id: string, current: boolean) => {
     try {
-      const table = kind === "lead_source" ? "crm_lead_sources" : "crm_business_sectors";
+      const table = kind === "lead_source" ? "crm_lead_sources" : kind === "loss_reason" ? "crm_loss_reasons" : "crm_business_sectors";
       const { error } = await (supabase as any).from(table).update({ is_active: !current }).eq("id", id);
       if (error) throw error;
       toast.success("Status atualizado");

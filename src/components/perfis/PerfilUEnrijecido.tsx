@@ -21,7 +21,7 @@ export function PerfilUEnrijecido() {
     if (linhasUEnrijecido.length === 0) {
       const linhasIniciais = Array.from({ length: 3 }, () => ({
         id: gerarId(), orientacaoUZ: 'U' as const, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij2: '',
-        comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false
+        comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false
       }));
       atualizarLinhaUEnrijecido(linhasIniciais);
     }

@@ -65,7 +65,7 @@ export function LeadOrigemRamoConfig() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [srcRes, secRes] = await Promise.all([
+      const [srcRes, secRes, lrRes] = await Promise.all([
         (supabase as any)
           .from("crm_lead_sources")
           .select("id, name, is_active, display_order")
@@ -75,13 +75,20 @@ export function LeadOrigemRamoConfig() {
           .from("crm_business_sectors")
           .select("id, name, is_active")
           .order("name", { ascending: true }),
+        (supabase as any)
+          .from("crm_loss_reasons")
+          .select("id, name, is_active, display_order")
+          .order("display_order", { ascending: true })
+          .order("name", { ascending: true }),
       ]);
 
       if (srcRes.error) throw srcRes.error;
       if (secRes.error) throw secRes.error;
+      if (lrRes.error) throw lrRes.error;
 
       setSources(srcRes.data || []);
       setSectors(secRes.data || []);
+      setLossReasons(lrRes.data || []);
     } catch (e: any) {
       console.error(e);
       toast.error("Erro ao carregar listas", { description: e?.message });

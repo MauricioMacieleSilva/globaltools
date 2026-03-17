@@ -104,8 +104,8 @@ export function LeadOrigemRamoConfig() {
   useEffect(() => {
     if (!edit.open) return;
 
-    if (edit.kind === "lead_source") {
-      const item = edit.item as LeadSource | null;
+    if (edit.kind === "lead_source" || edit.kind === "loss_reason") {
+      const item = edit.item as LeadSource | LossReason | null;
       setForm({
         name: item?.name ?? "",
         is_active: item?.is_active ?? true,

@@ -411,7 +411,7 @@ export function LeadOrigemRamoConfig() {
               <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
 
-            {edit.kind === "lead_source" && (
+            {(edit.kind === "lead_source" || edit.kind === "loss_reason") && (
               <div className="space-y-2">
                 <Label>Ordem de exibição</Label>
                 <Input

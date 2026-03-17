@@ -41,6 +41,7 @@ export function LeadOrigemRamoConfig() {
   const [loading, setLoading] = useState(true);
   const [sources, setSources] = useState<LeadSource[]>([]);
   const [sectors, setSectors] = useState<BusinessSector[]>([]);
+  const [lossReasons, setLossReasons] = useState<LossReason[]>([]);
 
   const [edit, setEdit] = useState<{
     open: boolean;

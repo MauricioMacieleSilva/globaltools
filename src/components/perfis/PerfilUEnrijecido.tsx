@@ -21,7 +21,7 @@ export function PerfilUEnrijecido() {
     if (linhasUEnrijecido.length === 0) {
       const linhasIniciais = Array.from({ length: 3 }, () => ({
         id: gerarId(), orientacaoUZ: 'U' as const, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij2: '',
-        comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false
+        comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false
       }));
       atualizarLinhaUEnrijecido(linhasIniciais);
     }
@@ -83,11 +83,11 @@ export function PerfilUEnrijecido() {
   };
 
   const adicionarLinha = () => {
-    atualizarLinhaUEnrijecido([...linhasUEnrijecido, { id: gerarId(), orientacaoUZ: 'U', espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij2: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false }]);
+    atualizarLinhaUEnrijecido([...linhasUEnrijecido, { id: gerarId(), orientacaoUZ: 'U', espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij2: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false }]);
   };
 
   const limparLinha = (id: string) => {
-    atualizarLinhaUEnrijecido(linhasUEnrijecido.map(l => l.id === id ? { ...l, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij2: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '101', assimetrico: false, orientacaoUZ: 'U' as const } : l));
+    atualizarLinhaUEnrijecido(linhasUEnrijecido.map(l => l.id === id ? { ...l, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', enrij2: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false, orientacaoUZ: 'U' as const } : l));
     removerCalculo(id);
     setErrosValidacao(prev => { const n = {...prev}; Object.keys(n).filter(k => k.startsWith(id)).forEach(k => delete n[k]); return n; });
   };

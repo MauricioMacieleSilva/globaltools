@@ -127,7 +127,7 @@ export function LeadOrigemRamoConfig() {
   const handleDelete = async (kind: EditKind, id: string) => {
     if (!confirm("Tem certeza que deseja excluir este item?")) return;
     try {
-      const table = kind === "lead_source" ? "crm_lead_sources" : "crm_business_sectors";
+      const table = kind === "lead_source" ? "crm_lead_sources" : kind === "loss_reason" ? "crm_loss_reasons" : "crm_business_sectors";
       const { error } = await (supabase as any).from(table).delete().eq("id", id);
       if (error) throw error;
       toast.success("Item excluído");

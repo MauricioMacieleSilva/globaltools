@@ -24,7 +24,14 @@ type BusinessSector = {
   is_active: boolean;
 };
 
-type EditKind = "lead_source" | "business_sector";
+type LossReason = {
+  id: string;
+  name: string;
+  is_active: boolean;
+  display_order: number | null;
+};
+
+type EditKind = "lead_source" | "business_sector" | "loss_reason";
 
 function normalizeName(value: string) {
   return value.trim();

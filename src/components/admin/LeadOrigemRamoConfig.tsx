@@ -336,6 +336,66 @@ export function LeadOrigemRamoConfig() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Motivos de Perda */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <h3 className="text-base font-medium">Motivos de Perda</h3>
+                <p className="text-xs text-muted-foreground">(tabela crm_loss_reasons)</p>
+              </div>
+              <Button size="sm" onClick={() => openCreate("loss_reason")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar
+              </Button>
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ordem</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lossReasons.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-sm text-muted-foreground">{r.display_order ?? "—"}</TableCell>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={r.is_active ? "default" : "secondary"}>
+                        {r.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="inline-flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEdit("loss_reason", r)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleActive("loss_reason", r.id, r.is_active)}
+                        >
+                          {r.is_active ? "Desativar" : "Ativar"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete("loss_reason", r.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

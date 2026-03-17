@@ -158,7 +158,7 @@ export function PerfilUMobile() {
       comprimento: '6000',
       largura: '1200',
       quantidade: '',
-      percentualPerda: '101',
+      percentualPerda: '103',
       assimetrico: false
     };
     atualizarLinhaU([...linhasU, novaLinha]);

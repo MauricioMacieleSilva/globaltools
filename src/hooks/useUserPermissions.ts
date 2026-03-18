@@ -297,7 +297,7 @@ export const useUserPermissions = () => {
 
   useEffect(() => {
     fetchUserPermissions()
-  }, [user?.id])
+  }, [user?.id, userProfile?.role])
 
   return {
     userPermissions,

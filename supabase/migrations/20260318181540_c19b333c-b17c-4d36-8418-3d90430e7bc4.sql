@@ -1,0 +1,1 @@
+UPDATE public.treinamentos SET thumbnail_url = 'https://xhkdwfpnmjvmfbmokvct.supabase.co/storage/v1/object/public/treinamentos/thumbs%2Fplano-global-thumb.png' WHERE id = 'ab53d024-a8a9-4ac5-aaef-23f84fe988a8';

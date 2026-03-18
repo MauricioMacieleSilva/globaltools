@@ -24,6 +24,7 @@ interface Treinamento {
   file_name: string
   file_type: string
   file_size: number | null
+  thumbnail_url: string | null
   created_by: string | null
   created_at: string
   is_active: boolean
@@ -62,6 +63,7 @@ export default function Treinamentos() {
   const [descricao, setDescricao] = useState('')
   const [categoria, setCategoria] = useState('Geral')
   const [arquivo, setArquivo] = useState<File | null>(null)
+  const [thumbnail, setThumbnail] = useState<File | null>(null)
 
   const fetchTreinamentos = async () => {
     try {
@@ -106,6 +108,17 @@ export default function Treinamentos() {
         .from('treinamentos')
         .getPublicUrl(filePath)
 
+      let thumbnailPublicUrl: string | null = null
+      if (thumbnail) {
+        const thumbPath = `thumbs/${Date.now()}_${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: thumbError } = await supabase.storage
+          .from('treinamentos')
+          .upload(thumbPath, thumbnail)
+        if (!thumbError) {
+          thumbnailPublicUrl = supabase.storage.from('treinamentos').getPublicUrl(thumbPath).data.publicUrl
+        }
+      }
+
       const { error: insertError } = await supabase
         .from('treinamentos')
         .insert({
@@ -116,6 +129,7 @@ export default function Treinamentos() {
           file_name: arquivo.name,
           file_type: arquivo.type || fileExt || 'unknown',
           file_size: arquivo.size,
+          thumbnail_url: thumbnailPublicUrl,
           created_by: user?.id,
         })
 
@@ -167,6 +181,7 @@ export default function Treinamentos() {
     setDescricao('')
     setCategoria('Geral')
     setArquivo(null)
+    setThumbnail(null)
   }
 
   const filteredTreinamentos = filterCategoria === 'todas'
@@ -255,6 +270,24 @@ export default function Treinamentos() {
                       )}
                     </div>
                   </div>
+                  <div>
+                    <Label htmlFor="thumbnail">Capa / Primeira Página (imagem)</Label>
+                    <div className="mt-1">
+                      <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                        <Eye className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {thumbnail ? thumbnail.name : 'Selecionar imagem de capa (opcional)'}
+                        </span>
+                        <input
+                          id="thumbnail"
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={e => setThumbnail(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <Button onClick={handleUpload} disabled={uploading || !titulo.trim() || !arquivo} className="w-full">
                     {uploading ? 'Enviando...' : 'Adicionar Treinamento'}
                   </Button>
@@ -287,48 +320,42 @@ export default function Treinamentos() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredTreinamentos.map(treinamento => (
-            <Card key={treinamento.id} className="group hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleOpen(treinamento)}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-3 min-w-0">
+            <Card key={treinamento.id} className="group hover:shadow-lg transition-all cursor-pointer overflow-hidden" onClick={() => handleOpen(treinamento)}>
+              {/* Thumbnail / Preview */}
+              <div className="relative w-full aspect-video bg-muted overflow-hidden">
+                {treinamento.thumbnail_url ? (
+                  <img
+                    src={treinamento.thumbnail_url}
+                    alt={treinamento.titulo}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
                     {getFileIcon(treinamento.file_type)}
-                    <div className="min-w-0">
-                      <CardTitle className="text-base leading-tight line-clamp-2">{treinamento.titulo}</CardTitle>
-                      {treinamento.descricao && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{treinamento.descricao}</p>
-                      )}
-                    </div>
                   </div>
+                )}
+                <div className="absolute top-2 right-2">
+                  <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">{treinamento.categoria}</Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">{treinamento.categoria}</Badge>
-                    {treinamento.file_size && (
-                      <span className="text-xs text-muted-foreground">{formatFileSize(treinamento.file_size)}</span>
-                    )}
+                {isAdmin && (
+                  <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-7 w-7 bg-background/80 backdrop-blur-sm text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); handleDelete(treinamento) }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+              <CardContent className="p-4">
+                <CardTitle className="text-sm font-semibold leading-tight line-clamp-2">{treinamento.titulo}</CardTitle>
+                {treinamento.descricao && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{treinamento.descricao}</p>
+                )}
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(treinamento.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
                   </div>
-                  <div className="flex items-center gap-1">
-                    {treinamento.file_type.includes('pdf') ? (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); handleOpen(treinamento) }}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); window.open(treinamento.file_url, '_blank') }}>
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {isAdmin && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); handleDelete(treinamento) }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(treinamento.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                  {treinamento.file_size && (
+                    <span className="text-xs text-muted-foreground">{formatFileSize(treinamento.file_size)}</span>
+                  )}
                 </div>
               </CardContent>
             </Card>

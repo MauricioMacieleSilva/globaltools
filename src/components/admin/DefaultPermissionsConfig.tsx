@@ -287,7 +287,7 @@ export const DefaultPermissionsConfig: React.FC = () => {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Alterações afetam apenas <strong>novos usuários</strong>. Usuários existentes mantêm suas permissões atuais.
+            Alterações afetam <strong>todos os usuários</strong> com este perfil. Permissões individuais configuradas por usuário continuam válidas adicionalmente.
           </AlertDescription>
         </Alert>
 

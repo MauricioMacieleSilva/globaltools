@@ -239,6 +239,14 @@ function AppContent() {
                                     </ProtectedRoute>
                                   }
                                 />
+                                <Route
+                                  path="/treinamentos"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/treinamentos">
+                                      <Treinamentos />
+                                    </ProtectedRoute>
+                                  }
+                                />
 
 
                                 <Route

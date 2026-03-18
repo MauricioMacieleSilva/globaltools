@@ -87,6 +87,13 @@ const menuItems = [
     tourId: 'sidebar-assistente',
   },
   {
+    title: 'Treinamentos',
+    url: '/treinamentos',
+    icon: GraduationCap,
+    pageKey: 'treinamentos',
+    tourId: 'sidebar-treinamentos',
+  },
+  {
     title: 'Reuniões',
     url: 'https://global-a-o-secret-rio-digital-399093119582.us-west1.run.app/',
     icon: Calendar,

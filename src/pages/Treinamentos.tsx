@@ -181,6 +181,7 @@ export default function Treinamentos() {
     setDescricao('')
     setCategoria('Geral')
     setArquivo(null)
+    setThumbnail(null)
   }
 
   const filteredTreinamentos = filterCategoria === 'todas'

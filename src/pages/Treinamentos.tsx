@@ -270,6 +270,24 @@ export default function Treinamentos() {
                       )}
                     </div>
                   </div>
+                  <div>
+                    <Label htmlFor="thumbnail">Capa / Primeira Página (imagem)</Label>
+                    <div className="mt-1">
+                      <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                        <Eye className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {thumbnail ? thumbnail.name : 'Selecionar imagem de capa (opcional)'}
+                        </span>
+                        <input
+                          id="thumbnail"
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={e => setThumbnail(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <Button onClick={handleUpload} disabled={uploading || !titulo.trim() || !arquivo} className="w-full">
                     {uploading ? 'Enviando...' : 'Adicionar Treinamento'}
                   </Button>

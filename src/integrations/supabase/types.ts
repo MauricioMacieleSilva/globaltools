@@ -2639,6 +2639,51 @@ export type Database = {
           },
         ]
       }
+      treinamentos: {
+        Row: {
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          is_active: boolean
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          is_active?: boolean
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          is_active?: boolean
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_invitations: {
         Row: {
           created_at: string

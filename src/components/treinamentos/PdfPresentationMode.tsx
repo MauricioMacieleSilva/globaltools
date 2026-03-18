@@ -17,7 +17,6 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
   const [totalPages, setTotalPages] = useState(0)
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isFullscreen, setIsFullscreen] = useState(false)
   const [showControls, setShowControls] = useState(true)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)

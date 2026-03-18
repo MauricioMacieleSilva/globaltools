@@ -105,6 +105,8 @@ function AppContent() {
         return 'Leads encaminhados pelos SDRs para atendimento comercial';
       case '/producao':
         return 'Acompanhamento de pedidos em produção';
+      case '/treinamentos':
+        return 'Materiais de capacitação e treinamento';
       case '/fretes':
         return 'Gestão de fretes e entregas por pedido';
       case '/admin/usuarios':

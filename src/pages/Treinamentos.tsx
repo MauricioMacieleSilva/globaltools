@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Plus, FileText, FileSpreadsheet, Film, Download, Eye, Trash2, GraduationCap, Calendar, Upload } from 'lucide-react'
+import { Plus, FileText, FileSpreadsheet, Film, Download, Eye, Trash2, GraduationCap, Calendar, Upload, Presentation, Maximize } from 'lucide-react'
+import PdfPresentationMode from '@/components/treinamentos/PdfPresentationMode'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -55,6 +56,9 @@ export default function Treinamentos() {
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState('')
   const [viewerTitle, setViewerTitle] = useState('')
+  const [presentationMode, setPresentationMode] = useState(false)
+  const [presentationUrl, setPresentationUrl] = useState('')
+  const [presentationTitle, setPresentationTitle] = useState('')
   const [uploading, setUploading] = useState(false)
   const [filterCategoria, setFilterCategoria] = useState<string>('todas')
 
@@ -174,6 +178,13 @@ export default function Treinamentos() {
     } else {
       window.open(treinamento.file_url, '_blank')
     }
+  }
+
+  const handlePresentation = (treinamento: Treinamento) => {
+    setPresentationUrl(treinamento.file_url)
+    setPresentationTitle(treinamento.titulo)
+    setPresentationMode(true)
+    setViewerOpen(false)
   }
 
   const resetForm = () => {
@@ -334,7 +345,12 @@ export default function Treinamentos() {
                     {getFileIcon(treinamento.file_type)}
                   </div>
                 )}
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {treinamento.file_type.includes('pdf') && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm text-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); handlePresentation(treinamento) }} title="Modo apresentação">
+                      <Presentation className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">{treinamento.categoria}</Badge>
                 </div>
                 {isAdmin && (
@@ -366,8 +382,22 @@ export default function Treinamentos() {
       {/* PDF Viewer Dialog */}
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
         <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between pr-8">
             <DialogTitle>{viewerTitle}</DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPresentationUrl(viewerUrl)
+                setPresentationTitle(viewerTitle)
+                setPresentationMode(true)
+                setViewerOpen(false)
+              }}
+              className="gap-2"
+            >
+              <Presentation className="h-4 w-4" />
+              Modo Apresentação
+            </Button>
           </DialogHeader>
           <div className="flex-1 min-h-0">
             <iframe
@@ -378,6 +408,15 @@ export default function Treinamentos() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Presentation Mode */}
+      {presentationMode && (
+        <PdfPresentationMode
+          pdfUrl={presentationUrl}
+          title={presentationTitle}
+          onClose={() => setPresentationMode(false)}
+        />
+      )}
     </div>
   )
 }

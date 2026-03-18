@@ -69,6 +69,8 @@ function AppContent() {
         return 'Pipeline de Vendas';
       case '/producao':
         return 'Produção';
+      case '/treinamentos':
+        return 'Treinamentos';
       case '/fretes':
         return 'Controle de Fretes';
       case '/admin/usuarios':

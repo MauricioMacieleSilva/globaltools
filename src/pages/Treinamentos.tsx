@@ -56,6 +56,9 @@ export default function Treinamentos() {
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState('')
   const [viewerTitle, setViewerTitle] = useState('')
+  const [presentationMode, setPresentationMode] = useState(false)
+  const [presentationUrl, setPresentationUrl] = useState('')
+  const [presentationTitle, setPresentationTitle] = useState('')
   const [uploading, setUploading] = useState(false)
   const [filterCategoria, setFilterCategoria] = useState<string>('todas')
 

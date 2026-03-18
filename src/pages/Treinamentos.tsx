@@ -345,7 +345,12 @@ export default function Treinamentos() {
                     {getFileIcon(treinamento.file_type)}
                   </div>
                 )}
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {treinamento.file_type.includes('pdf') && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm text-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); handlePresentation(treinamento) }} title="Modo apresentação">
+                      <Presentation className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">{treinamento.categoria}</Badge>
                 </div>
                 {isAdmin && (

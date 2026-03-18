@@ -24,6 +24,7 @@ interface Treinamento {
   file_name: string
   file_type: string
   file_size: number | null
+  thumbnail_url: string | null
   created_by: string | null
   created_at: string
   is_active: boolean

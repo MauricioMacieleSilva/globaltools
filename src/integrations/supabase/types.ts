@@ -2651,6 +2651,7 @@ export type Database = {
           file_url: string
           id: string
           is_active: boolean
+          thumbnail_url: string | null
           titulo: string
           updated_at: string
         }
@@ -2665,6 +2666,7 @@ export type Database = {
           file_url: string
           id?: string
           is_active?: boolean
+          thumbnail_url?: string | null
           titulo: string
           updated_at?: string
         }
@@ -2679,6 +2681,7 @@ export type Database = {
           file_url?: string
           id?: string
           is_active?: boolean
+          thumbnail_url?: string | null
           titulo?: string
           updated_at?: string
         }

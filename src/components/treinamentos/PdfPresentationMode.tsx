@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, X, Maximize, Minimize } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 // Configure worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`

@@ -180,6 +180,13 @@ export default function Treinamentos() {
     }
   }
 
+  const handlePresentation = (treinamento: Treinamento) => {
+    setPresentationUrl(treinamento.file_url)
+    setPresentationTitle(treinamento.titulo)
+    setPresentationMode(true)
+    setViewerOpen(false)
+  }
+
   const resetForm = () => {
     setTitulo('')
     setDescricao('')

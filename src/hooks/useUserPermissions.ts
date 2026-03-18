@@ -129,10 +129,11 @@ interface PermissionCheck {
 export const useUserPermissions = () => {
   const { user, userProfile } = useAuth()
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([])
+  const [defaultPermissions, setDefaultPermissions] = useState<{ page_key: string; access_type: AccessType }[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  // Buscar permissões do usuário atual
+  // Buscar permissões do usuário atual + permissões padrão do perfil
   const fetchUserPermissions = async () => {
     if (!user?.id) {
       setLoading(false)
@@ -140,24 +141,35 @@ export const useUserPermissions = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_permissions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
+      // Buscar permissões individuais e roles em paralelo
+      const [permResult, roleResult] = await Promise.all([
+        supabase
+          .from('user_permissions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true),
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+      ])
 
-      if (error) throw error
+      if (permResult.error) throw permResult.error
+      setUserPermissions(permResult.data || [])
 
-      setUserPermissions(data || [])
+      const adminFound = !roleResult.error && !!roleResult.data?.some((r: any) => r.role === 'admin')
+      setIsAdmin(adminFound)
 
-      // Também checar papel em user_roles para reconhecer administradores
-      const { data: roles, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
+      // Buscar permissões padrão do perfil do usuário (role)
+      const userRole = userProfile?.role
+      if (userRole && userRole !== 'admin') {
+        const { data: defaultPerms } = await supabase
+          .from('default_role_permissions')
+          .select('page_key, access_type')
+          .eq('role', userRole)
+          .eq('is_active', true)
 
-      if (!roleError) {
-        setIsAdmin(!!roles?.some((r: any) => r.role === 'admin'))
+        setDefaultPermissions(defaultPerms || [])
       }
     } catch (error) {
       console.error('Erro ao buscar permissões do usuário:', error)
@@ -230,7 +242,7 @@ export const useUserPermissions = () => {
       return { canView: true, canEdit: true }
     }
 
-    // Verificar permissões granulares
+    // Verificar permissões individuais do usuário
     const viewPermission = userPermissions.find(
       p => p.page_key === pageKey && p.access_type === 'view' && p.is_active
     )
@@ -238,9 +250,17 @@ export const useUserPermissions = () => {
       p => p.page_key === pageKey && p.access_type === 'edit' && p.is_active
     )
 
-    // Se tem permissão de edição, automaticamente tem de visualização
-    const canEdit = !!editPermission
-    const canView = canEdit || !!viewPermission
+    // Verificar permissões padrão do perfil (default_role_permissions)
+    const defaultView = defaultPermissions.some(
+      p => p.page_key === pageKey && p.access_type === 'view'
+    )
+    const defaultEdit = defaultPermissions.some(
+      p => p.page_key === pageKey && p.access_type === 'edit'
+    )
+
+    // Combinar: usuário tem acesso se tem permissão individual OU padrão do perfil
+    const canEdit = !!editPermission || defaultEdit
+    const canView = canEdit || !!viewPermission || defaultView
 
     return { canView, canEdit }
   }
@@ -277,7 +297,7 @@ export const useUserPermissions = () => {
 
   useEffect(() => {
     fetchUserPermissions()
-  }, [user?.id])
+  }, [user?.id, userProfile?.role])
 
   return {
     userPermissions,

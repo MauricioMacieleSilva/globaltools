@@ -242,7 +242,7 @@ export const useUserPermissions = () => {
       return { canView: true, canEdit: true }
     }
 
-    // Verificar permissões granulares
+    // Verificar permissões individuais do usuário
     const viewPermission = userPermissions.find(
       p => p.page_key === pageKey && p.access_type === 'view' && p.is_active
     )
@@ -250,9 +250,17 @@ export const useUserPermissions = () => {
       p => p.page_key === pageKey && p.access_type === 'edit' && p.is_active
     )
 
-    // Se tem permissão de edição, automaticamente tem de visualização
-    const canEdit = !!editPermission
-    const canView = canEdit || !!viewPermission
+    // Verificar permissões padrão do perfil (default_role_permissions)
+    const defaultView = defaultPermissions.some(
+      p => p.page_key === pageKey && p.access_type === 'view'
+    )
+    const defaultEdit = defaultPermissions.some(
+      p => p.page_key === pageKey && p.access_type === 'edit'
+    )
+
+    // Combinar: usuário tem acesso se tem permissão individual OU padrão do perfil
+    const canEdit = !!editPermission || defaultEdit
+    const canView = canEdit || !!viewPermission || defaultView
 
     return { canView, canEdit }
   }

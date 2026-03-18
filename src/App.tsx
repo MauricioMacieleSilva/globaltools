@@ -34,6 +34,7 @@ import CRM from "./pages/CRM";
 import { Navigate } from "react-router-dom";
 import Fretes from "./pages/Fretes";
 import Auth from "./pages/Auth";
+import Treinamentos from "./pages/Treinamentos";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 
 const queryClient = new QueryClient();

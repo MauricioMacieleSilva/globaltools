@@ -22,6 +22,31 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
   const containerRef = useRef<HTMLDivElement>(null)
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Auto-enter fullscreen on mount
+  useEffect(() => {
+    const enterFullscreen = async () => {
+      try {
+        await containerRef.current?.requestFullscreen()
+      } catch {}
+    }
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(enterFullscreen, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Exit presentation when leaving fullscreen
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement) {
+        onClose()
+      } else if (pdfDoc) {
+        renderPage(currentPage)
+      }
+    }
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [pdfDoc, currentPage, onClose])
+
   // Load PDF document
   useEffect(() => {
     let cancelled = false
@@ -60,13 +85,15 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
     const scaleY = containerHeight / viewport.height
     const scale = Math.min(scaleX, scaleY)
 
-    const scaledViewport = page.getViewport({ scale: scale * window.devicePixelRatio })
+    const dpr = window.devicePixelRatio || 1
+    const scaledViewport = page.getViewport({ scale: scale * dpr })
 
     canvas.width = scaledViewport.width
     canvas.height = scaledViewport.height
-    canvas.style.width = `${scaledViewport.width / window.devicePixelRatio}px`
-    canvas.style.height = `${scaledViewport.height / window.devicePixelRatio}px`
+    canvas.style.width = `${scaledViewport.width / dpr}px`
+    canvas.style.height = `${scaledViewport.height / dpr}px`
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
     await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise
   }, [pdfDoc])
 
@@ -91,8 +118,10 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
         e.preventDefault()
         setCurrentPage(p => Math.max(p - 1, 1))
       } else if (e.key === 'Escape') {
-        if (isFullscreen) exitFullscreen()
-        else onClose()
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
+        }
+        onClose()
       } else if (e.key === 'Home') {
         setCurrentPage(1)
       } else if (e.key === 'End') {
@@ -101,31 +130,7 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [totalPages, isFullscreen, onClose])
-
-  // Fullscreen
-  const enterFullscreen = async () => {
-    try {
-      await containerRef.current?.requestFullscreen()
-      setIsFullscreen(true)
-    } catch {}
-  }
-
-  const exitFullscreen = async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen()
-      setIsFullscreen(false)
-    } catch {}
-  }
-
-  useEffect(() => {
-    const handler = () => {
-      setIsFullscreen(!!document.fullscreenElement)
-      if (pdfDoc) renderPage(currentPage)
-    }
-    document.addEventListener('fullscreenchange', handler)
-    return () => document.removeEventListener('fullscreenchange', handler)
-  }, [pdfDoc, currentPage, renderPage])
+  }, [totalPages, onClose])
 
   // Auto-hide controls
   const resetControlsTimer = useCallback(() => {
@@ -138,6 +143,13 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
     resetControlsTimer()
     return () => { if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current) }
   }, [resetControlsTimer])
+
+  const handleClose = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    }
+    onClose()
+  }
 
   const goNext = () => setCurrentPage(p => Math.min(p + 1, totalPages))
   const goPrev = () => setCurrentPage(p => Math.max(p - 1, 1))
@@ -171,7 +183,7 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
           >
             <div className="flex items-center justify-between px-4 sm:px-8 py-4 bg-gradient-to-t from-black/80 to-transparent">
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 h-9 w-9">
+                <Button variant="ghost" size="icon" onClick={handleClose} className="text-white hover:bg-white/20 h-9 w-9">
                   <X className="h-5 w-5" />
                 </Button>
                 <span className="text-white/80 text-sm font-medium truncate max-w-[200px] sm:max-w-none">
@@ -191,9 +203,7 @@ export default function PdfPresentationMode({ pdfUrl, title, onClose }: PdfPrese
                 </Button>
               </div>
 
-              <Button variant="ghost" size="icon" onClick={isFullscreen ? exitFullscreen : enterFullscreen} className="text-white hover:bg-white/20 h-9 w-9">
-                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-              </Button>
+              <div className="w-9" /> {/* Spacer for alignment */}
             </div>
           </div>
         </>

@@ -108,6 +108,17 @@ export default function Treinamentos() {
         .from('treinamentos')
         .getPublicUrl(filePath)
 
+      let thumbnailPublicUrl: string | null = null
+      if (thumbnail) {
+        const thumbPath = `thumbs/${Date.now()}_${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: thumbError } = await supabase.storage
+          .from('treinamentos')
+          .upload(thumbPath, thumbnail)
+        if (!thumbError) {
+          thumbnailPublicUrl = supabase.storage.from('treinamentos').getPublicUrl(thumbPath).data.publicUrl
+        }
+      }
+
       const { error: insertError } = await supabase
         .from('treinamentos')
         .insert({
@@ -118,6 +129,7 @@ export default function Treinamentos() {
           file_name: arquivo.name,
           file_type: arquivo.type || fileExt || 'unknown',
           file_size: arquivo.size,
+          thumbnail_url: thumbnailPublicUrl,
           created_by: user?.id,
         })
 

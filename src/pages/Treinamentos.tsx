@@ -382,8 +382,22 @@ export default function Treinamentos() {
       {/* PDF Viewer Dialog */}
       <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
         <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between pr-8">
             <DialogTitle>{viewerTitle}</DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPresentationUrl(viewerUrl)
+                setPresentationTitle(viewerTitle)
+                setPresentationMode(true)
+                setViewerOpen(false)
+              }}
+              className="gap-2"
+            >
+              <Presentation className="h-4 w-4" />
+              Modo Apresentação
+            </Button>
           </DialogHeader>
           <div className="flex-1 min-h-0">
             <iframe
@@ -394,6 +408,15 @@ export default function Treinamentos() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Presentation Mode */}
+      {presentationMode && (
+        <PdfPresentationMode
+          pdfUrl={presentationUrl}
+          title={presentationTitle}
+          onClose={() => setPresentationMode(false)}
+        />
+      )}
     </div>
   )
 }

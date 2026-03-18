@@ -72,6 +72,12 @@ export const SYSTEM_PAGES = {
     supportsEdit: false,
     route: '/central-precos'
   },
+  treinamentos: { 
+    label: 'Treinamentos', 
+    category: 'Principais',
+    supportsEdit: false,
+    route: '/treinamentos'
+  },
   reunioes: { 
     label: 'Reuniões', 
     category: 'Principais',

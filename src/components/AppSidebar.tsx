@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -85,6 +85,13 @@ const menuItems = [
     icon: Monitor,
     pageKey: 'assistente',
     tourId: 'sidebar-assistente',
+  },
+  {
+    title: 'Treinamentos',
+    url: '/treinamentos',
+    icon: GraduationCap,
+    pageKey: 'treinamentos',
+    tourId: 'sidebar-treinamentos',
   },
   {
     title: 'Reuniões',

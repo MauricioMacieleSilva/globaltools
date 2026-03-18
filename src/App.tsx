@@ -34,6 +34,7 @@ import CRM from "./pages/CRM";
 import { Navigate } from "react-router-dom";
 import Fretes from "./pages/Fretes";
 import Auth from "./pages/Auth";
+import Treinamentos from "./pages/Treinamentos";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,8 @@ function AppContent() {
         return 'Pipeline de Vendas';
       case '/producao':
         return 'Produção';
+      case '/treinamentos':
+        return 'Treinamentos';
       case '/fretes':
         return 'Controle de Fretes';
       case '/admin/usuarios':
@@ -102,6 +105,8 @@ function AppContent() {
         return 'Leads encaminhados pelos SDRs para atendimento comercial';
       case '/producao':
         return 'Acompanhamento de pedidos em produção';
+      case '/treinamentos':
+        return 'Materiais de capacitação e treinamento';
       case '/fretes':
         return 'Gestão de fretes e entregas por pedido';
       case '/admin/usuarios':
@@ -235,6 +240,14 @@ function AppContent() {
                                   element={
                                     <ProtectedRoute requirePageAccess="/producao">
                                       <Fretes />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/treinamentos"
+                                  element={
+                                    <ProtectedRoute requirePageAccess="/treinamentos">
+                                      <Treinamentos />
                                     </ProtectedRoute>
                                   }
                                 />

@@ -63,6 +63,7 @@ export default function Treinamentos() {
   const [descricao, setDescricao] = useState('')
   const [categoria, setCategoria] = useState('Geral')
   const [arquivo, setArquivo] = useState<File | null>(null)
+  const [thumbnail, setThumbnail] = useState<File | null>(null)
 
   const fetchTreinamentos = async () => {
     try {

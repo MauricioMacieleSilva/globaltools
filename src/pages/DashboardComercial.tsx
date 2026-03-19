@@ -262,10 +262,10 @@ export default function DashboardComercial({ tvMode = false }: { tvMode?: boolea
                     </ErrorBoundary>
                   </div>
                   
-                  {/* Coluna direita: Mapa de Bolhas */}
-                  <div className="lg:row-span-1" data-tour="dashboard-mapa">
+                  {/* Coluna direita: Indicadores Empilhados */}
+                  <div className="lg:row-span-1" data-tour="dashboard-indicators">
                     <ErrorBoundary>
-                      <BrazilBubbleMap />
+                      <DashboardSideIndicators />
                     </ErrorBoundary>
                   </div>
                 </div>

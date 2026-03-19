@@ -23,7 +23,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OrcamentosSection } from '@/components/dashboard/OrcamentosSection';
 import { FollowUpSection } from '@/components/dashboard/FollowUpSection';
 
-import { BrazilBubbleMap } from '@/components/dashboard/BrazilBubbleMap';
+import { DashboardSideIndicators } from '@/components/dashboard/DashboardSideIndicators';
 import { useComercial } from '@/context/ComercialContext';
 import { useOrcamentosData } from '@/hooks/useOrcamentosData';
 
@@ -262,10 +262,10 @@ export default function DashboardComercial({ tvMode = false }: { tvMode?: boolea
                     </ErrorBoundary>
                   </div>
                   
-                  {/* Coluna direita: Mapa de Bolhas */}
-                  <div className="lg:row-span-1" data-tour="dashboard-mapa">
+                  {/* Coluna direita: Indicadores Empilhados */}
+                  <div className="lg:row-span-1" data-tour="dashboard-indicators">
                     <ErrorBoundary>
-                      <BrazilBubbleMap />
+                      <DashboardSideIndicators />
                     </ErrorBoundary>
                   </div>
                 </div>

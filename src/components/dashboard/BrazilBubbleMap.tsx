@@ -3,36 +3,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
 import { useComercial } from '@/context/ComercialContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  Marker,
+} from 'react-simple-maps';
+import { Tooltip } from 'react-tooltip';
 
-// Approximate center coordinates for each Brazilian state on a 400x450 viewBox
-const STATE_COORDS: Record<string, { x: number; y: number; name: string }> = {
-  AC: { x: 62, y: 230, name: 'Acre' },
-  AL: { x: 355, y: 230, name: 'Alagoas' },
-  AM: { x: 115, y: 160, name: 'Amazonas' },
-  AP: { x: 220, y: 80, name: 'Amapá' },
-  BA: { x: 320, y: 260, name: 'Bahia' },
-  CE: { x: 340, y: 180, name: 'Ceará' },
-  DF: { x: 260, y: 290, name: 'Distrito Federal' },
-  ES: { x: 330, y: 320, name: 'Espírito Santo' },
-  GO: { x: 245, y: 300, name: 'Goiás' },
-  MA: { x: 280, y: 160, name: 'Maranhão' },
-  MG: { x: 290, y: 320, name: 'Minas Gerais' },
-  MS: { x: 195, y: 340, name: 'Mato Grosso do Sul' },
-  MT: { x: 180, y: 260, name: 'Mato Grosso' },
-  PA: { x: 200, y: 140, name: 'Pará' },
-  PB: { x: 360, y: 195, name: 'Paraíba' },
-  PE: { x: 350, y: 210, name: 'Pernambuco' },
-  PI: { x: 305, y: 195, name: 'Piauí' },
-  PR: { x: 215, y: 380, name: 'Paraná' },
-  RJ: { x: 305, y: 350, name: 'Rio de Janeiro' },
-  RN: { x: 360, y: 178, name: 'Rio Grande do Norte' },
-  RO: { x: 118, y: 250, name: 'Rondônia' },
-  RR: { x: 130, y: 80, name: 'Roraima' },
-  RS: { x: 205, y: 420, name: 'Rio Grande do Sul' },
-  SC: { x: 230, y: 400, name: 'Santa Catarina' },
-  SE: { x: 355, y: 245, name: 'Sergipe' },
-  SP: { x: 255, y: 355, name: 'São Paulo' },
-  TO: { x: 255, y: 230, name: 'Tocantins' },
+const GEO_URL = '/data/brazil-states.json';
+
+// Real centroid coordinates [longitude, latitude] for each Brazilian state
+const STATE_CENTROIDS: Record<string, { coords: [number, number]; name: string }> = {
+  AC: { coords: [-70.47, -9.02], name: 'Acre' },
+  AL: { coords: [-36.62, -9.57], name: 'Alagoas' },
+  AM: { coords: [-64.66, -3.77], name: 'Amazonas' },
+  AP: { coords: [-51.07, 1.41], name: 'Amapá' },
+  BA: { coords: [-41.73, -12.58], name: 'Bahia' },
+  CE: { coords: [-39.32, -5.20], name: 'Ceará' },
+  DF: { coords: [-47.80, -15.78], name: 'Distrito Federal' },
+  ES: { coords: [-40.31, -19.57], name: 'Espírito Santo' },
+  GO: { coords: [-49.64, -15.93], name: 'Goiás' },
+  MA: { coords: [-45.27, -5.06], name: 'Maranhão' },
+  MG: { coords: [-44.68, -18.51], name: 'Minas Gerais' },
+  MS: { coords: [-54.79, -20.51], name: 'Mato Grosso do Sul' },
+  MT: { coords: [-55.91, -12.64], name: 'Mato Grosso' },
+  PA: { coords: [-52.48, -3.79], name: 'Pará' },
+  PB: { coords: [-36.62, -7.12], name: 'Paraíba' },
+  PE: { coords: [-37.86, -8.28], name: 'Pernambuco' },
+  PI: { coords: [-42.99, -7.72], name: 'Piauí' },
+  PR: { coords: [-51.44, -24.89], name: 'Paraná' },
+  RJ: { coords: [-43.21, -22.91], name: 'Rio de Janeiro' },
+  RN: { coords: [-36.51, -5.79], name: 'Rio Grande do Norte' },
+  RO: { coords: [-62.84, -10.83], name: 'Rondônia' },
+  RR: { coords: [-61.40, 2.74], name: 'Roraima' },
+  RS: { coords: [-53.21, -29.75], name: 'Rio Grande do Sul' },
+  SC: { coords: [-50.35, -27.24], name: 'Santa Catarina' },
+  SE: { coords: [-37.07, -10.57], name: 'Sergipe' },
+  SP: { coords: [-48.73, -22.19], name: 'São Paulo' },
+  TO: { coords: [-48.33, -10.18], name: 'Tocantins' },
 };
 
 type ViewMode = 'valor' | 'peso';
@@ -49,7 +58,7 @@ export function BrazilBubbleMap() {
     const map: Record<string, { valor: number; peso: number; uf: string }> = {};
     faturados.forEach(item => {
       const uf = (item.uf || '').toUpperCase().trim();
-      if (!uf || !STATE_COORDS[uf]) return;
+      if (!uf || !STATE_CENTROIDS[uf]) return;
       if (!map[uf]) map[uf] = { valor: 0, peso: 0, uf };
       map[uf].valor += item.valor || 0;
       map[uf].peso += item.peso || 0;
@@ -64,9 +73,9 @@ export function BrazilBubbleMap() {
   }, [stateData, viewMode]);
 
   const getRadius = (value: number) => {
-    if (maxValue === 0) return 4;
+    if (maxValue === 0) return 3;
     const ratio = value / maxValue;
-    return Math.max(5, Math.sqrt(ratio) * 30);
+    return Math.max(4, Math.sqrt(ratio) * 28);
   };
 
   const formatCurrency = (v: number) =>
@@ -74,10 +83,6 @@ export function BrazilBubbleMap() {
 
   const formatWeight = (v: number) =>
     `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(v)} t`;
-
-  const bubbleColor = viewMode === 'valor' ? 'hsl(var(--primary))' : 'hsl(25, 95%, 53%)';
-  const bubbleColorFill = viewMode === 'valor' ? 'hsl(var(--primary) / 0.35)' : 'hsla(25, 95%, 53%, 0.35)';
-  const bubbleColorStroke = viewMode === 'valor' ? 'hsl(var(--primary) / 0.7)' : 'hsla(25, 95%, 53%, 0.7)';
 
   if (isLoading) {
     return (
@@ -109,91 +114,96 @@ export function BrazilBubbleMap() {
           </SelectContent>
         </Select>
       </CardHeader>
-      <CardContent className="px-2 pb-2 flex-1 flex items-center justify-center">
-        <svg
-          viewBox="30 50 370 410"
-          className="w-full h-full max-h-[380px]"
-          style={{ overflow: 'visible' }}
-        >
-          {/* Brazil outline silhouette - simplified path */}
-          <path
-            d="M220,65 C230,60 250,65 260,75 L280,80 C290,75 300,80 310,90
-               L330,110 C345,120 355,140 360,160 L365,180 C370,195 370,210 365,225
-               L355,245 C350,255 340,260 335,270 L330,290 C328,300 325,310 320,320
-               L310,340 C305,350 300,355 295,360 L280,370 C270,375 260,380 250,385
-               L240,390 C230,400 225,410 220,420 L210,430 C205,435 200,435 195,430
-               L185,410 C180,395 175,385 170,375 L165,360 C160,350 155,340 150,330
-               L140,310 C130,295 120,280 110,270 L95,255 C85,245 75,235 70,225
-               L60,210 C55,195 55,180 60,165 L70,145 C75,130 85,120 95,110
-               L110,100 C120,90 130,85 140,80 L160,75 C175,70 190,65 200,65 Z"
-            fill="hsl(var(--muted))"
-            stroke="hsl(var(--border))"
-            strokeWidth="1"
-            opacity="0.5"
-          />
-
-          {/* Bubbles */}
-          {stateData
-            .sort((a, b) => (viewMode === 'valor' ? b.valor - a.valor : b.peso - a.peso))
-            .map(state => {
-              const coords = STATE_COORDS[state.uf];
-              if (!coords) return null;
-              const value = viewMode === 'valor' ? state.valor : state.peso;
-              const r = getRadius(value);
-
-              return (
-                <g key={state.uf} className="group">
-                  <circle
-                    cx={coords.x}
-                    cy={coords.y}
-                    r={r}
-                    fill={bubbleColorFill}
-                    stroke={bubbleColorStroke}
-                    strokeWidth="1.5"
-                    className="transition-all duration-500 ease-out"
-                    style={{ cursor: 'pointer' }}
+      <CardContent className="px-1 pb-1 flex-1 flex items-center justify-center min-h-0">
+        <div className="w-full h-full max-h-[380px] relative">
+          <ComposableMap
+            projection="geoMercator"
+            projectionConfig={{
+              scale: 580,
+              center: [-54, -15.5],
+            }}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill="hsl(var(--muted))"
+                    stroke="hsl(var(--border))"
+                    strokeWidth={0.5}
+                    style={{
+                      default: { outline: 'none' },
+                      hover: { outline: 'none', fill: 'hsl(var(--accent))' },
+                      pressed: { outline: 'none' },
+                    }}
                   />
-                  {r > 10 && (
-                    <text
-                      x={coords.x}
-                      y={coords.y}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      className="fill-foreground pointer-events-none select-none"
-                      style={{ fontSize: Math.max(7, Math.min(r * 0.55, 11)) }}
-                      fontWeight="600"
-                    >
-                      {state.uf}
-                    </text>
-                  )}
+                ))
+              }
+            </Geographies>
 
-                  {/* Tooltip on hover */}
-                  <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" style={{ zIndex: 50 }}>
-                    <rect
-                      x={coords.x + r + 4}
-                      y={coords.y - 32}
-                      width="140"
-                      height="56"
-                      rx="6"
-                      fill="hsl(var(--popover))"
-                      stroke="hsl(var(--border))"
-                      strokeWidth="1"
-                      filter="drop-shadow(0 2px 6px rgba(0,0,0,0.15))"
+            {stateData
+              .sort((a, b) => (viewMode === 'valor' ? b.valor - a.valor : b.peso - a.peso))
+              .map(state => {
+                const centroid = STATE_CENTROIDS[state.uf];
+                if (!centroid) return null;
+                const value = viewMode === 'valor' ? state.valor : state.peso;
+                const r = getRadius(value);
+
+                return (
+                  <Marker key={state.uf} coordinates={centroid.coords}>
+                    <circle
+                      r={r}
+                      fill={viewMode === 'valor' ? 'hsl(var(--primary) / 0.4)' : 'hsla(25, 95%, 53%, 0.4)'}
+                      stroke={viewMode === 'valor' ? 'hsl(var(--primary) / 0.8)' : 'hsla(25, 95%, 53%, 0.8)'}
+                      strokeWidth={1.5}
+                      style={{
+                        cursor: 'pointer',
+                        transition: 'r 500ms ease-out, fill 300ms ease, stroke 300ms ease',
+                      }}
+                      data-tooltip-id="map-tooltip"
+                      data-tooltip-html={`
+                        <div style="text-align:left">
+                          <strong>${centroid.name} (${state.uf})</strong><br/>
+                          Valor: ${formatCurrency(state.valor)}<br/>
+                          Peso: ${formatWeight(state.peso)}
+                        </div>
+                      `}
                     />
-                    <text x={coords.x + r + 12} y={coords.y - 16} fill="hsl(var(--popover-foreground))" style={{ fontSize: 10 }} fontWeight="700">
-                      {coords.name} ({state.uf})
-                    </text>
-                    <text x={coords.x + r + 12} y={coords.y} fill="hsl(var(--popover-foreground))" style={{ fontSize: 9 }}>
-                      Valor: {formatCurrency(state.valor)}
-                    </text>
-                    <text x={coords.x + r + 12} y={coords.y + 14} fill="hsl(var(--popover-foreground))" style={{ fontSize: 9 }}>
-                      Peso: {formatWeight(state.peso)}
-                    </text>
-                  </g>
-                </g>
-              );
-            })}
-        </svg>
+                    {r > 12 && (
+                      <text
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        style={{
+                          fontSize: Math.max(7, Math.min(r * 0.5, 10)),
+                          fontWeight: 600,
+                          fill: 'hsl(var(--foreground))',
+                          pointerEvents: 'none',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {state.uf}
+                      </text>
+                    )}
+                  </Marker>
+                );
+              })}
+          </ComposableMap>
+          <Tooltip
+            id="map-tooltip"
+            style={{
+              backgroundColor: 'hsl(var(--popover))',
+              color: 'hsl(var(--popover-foreground))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              zIndex: 50,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

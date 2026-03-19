@@ -23,7 +23,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OrcamentosSection } from '@/components/dashboard/OrcamentosSection';
 import { FollowUpSection } from '@/components/dashboard/FollowUpSection';
 
-import { TemperaturaIndicatorVendas } from '@/components/dashboard/TemperaturaIndicatorVendas';
+import { BrazilBubbleMap } from '@/components/dashboard/BrazilBubbleMap';
 import { useComercial } from '@/context/ComercialContext';
 import { useOrcamentosData } from '@/hooks/useOrcamentosData';
 
@@ -262,14 +262,10 @@ export default function DashboardComercial({ tvMode = false }: { tvMode?: boolea
                     </ErrorBoundary>
                   </div>
                   
-                  {/* Coluna direita: Card de Temperatura */}
-                  <div className="lg:row-span-1" data-tour="dashboard-temperatura">
+                  {/* Coluna direita: Mapa de Bolhas */}
+                  <div className="lg:row-span-1" data-tour="dashboard-mapa">
                     <ErrorBoundary>
-                      <TemperaturaIndicatorVendas 
-                        stats={temperatureStats} 
-                        data={orcamentosData} 
-                        ratings={orcamentosDataHook.ratings} 
-                      />
+                      <BrazilBubbleMap />
                     </ErrorBoundary>
                   </div>
                 </div>

@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { useComercial } from '@/context/ComercialContext';
 import { 
   Target, Receipt, Scale, UserPlus, 
-  BarChart3, MapPin, TrendingUp, CalendarDays 
+  BarChart3, CalendarDays 
 } from 'lucide-react';
 
 function formatCurrency(v: number) {

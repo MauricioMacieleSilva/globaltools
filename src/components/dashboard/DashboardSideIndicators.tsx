@@ -176,35 +176,6 @@ export function DashboardSideIndicators() {
         </CardContent>
       </Card>
 
-      {/* Top UFs */}
-      <Card>
-        <CardContent className="p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">Top Estados</span>
-          </div>
-          <div className="space-y-1.5">
-            {topUFs.map((item, i) => (
-              <div key={item.name} className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-muted-foreground w-3">{i + 1}.</span>
-                <span className="text-[10px] font-semibold text-foreground w-6">{item.name}</span>
-                <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-accent rounded-full transition-all" 
-                    style={{ width: `${item.percent}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                  {formatCurrency(item.value)}
-                </span>
-              </div>
-            ))}
-            {topUFs.length === 0 && (
-              <span className="text-[10px] text-muted-foreground">Sem dados</span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -23,7 +23,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OrcamentosSection } from '@/components/dashboard/OrcamentosSection';
 import { FollowUpSection } from '@/components/dashboard/FollowUpSection';
 
-import { BrazilBubbleMap } from '@/components/dashboard/BrazilBubbleMap';
+import { DashboardSideIndicators } from '@/components/dashboard/DashboardSideIndicators';
 import { useComercial } from '@/context/ComercialContext';
 import { useOrcamentosData } from '@/hooks/useOrcamentosData';
 

@@ -243,6 +243,32 @@ export function ComercialCharts() {
       .sort((a, b) => b.valor - a.valor);
   }, [filteredData]);
 
+  // Top clientes por faturamento
+  const topClientes = useMemo(() => {
+    const dadosFaturados = filteredData.filter(
+      item => (item.situacao === 'Emitida' || item.situacao === 'Pedido') && item.faturamento_tipo === 1 && item.vendedor !== 'VENDEDOR'
+    );
+
+    const agrupado = dadosFaturados.reduce((acc, item) => {
+      const cliente = item.cliente || 'Desconhecido';
+      if (!acc[cliente]) {
+        acc[cliente] = { valor: 0, pedidos: new Set<string>() };
+      }
+      acc[cliente].valor += item.valor;
+      acc[cliente].pedidos.add(item.numeropedido);
+      return acc;
+    }, {} as Record<string, { valor: number; pedidos: Set<string> }>);
+
+    return Object.entries(agrupado)
+      .map(([cliente, data]) => ({
+        cliente,
+        valor: data.valor,
+        pedidos: data.pedidos.size
+      }))
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, 7);
+  }, [filteredData]);
+
   // Calcular ranking de vendedores com detalhes completos
   const rankingVendedores = useMemo(() => {
     const dadosFaturados = filteredData.filter(

@@ -56,23 +56,6 @@ export function DashboardSideIndicators() {
     return sorted.map(([name, value]) => ({ name, value, percent: (value / max) * 100 }));
   }, [filteredData]);
 
-  // Top UFs by revenue
-  const topUFs = useMemo(() => {
-    const faturados = filteredData.filter(
-      item => (item.situacao === 'Emitida' || item.situacao === 'Pedido') && item.faturamento_tipo === 1
-    );
-    const map: Record<string, number> = {};
-    faturados.forEach(item => {
-      const uf = (item.uf || '').toUpperCase().trim();
-      if (!uf) return;
-      map[uf] = (map[uf] || 0) + (item.valor || 0);
-    });
-    const sorted = Object.entries(map)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5);
-    const max = sorted[0]?.[1] || 1;
-    return sorted.map(([name, value]) => ({ name, value, percent: (value / max) * 100 }));
-  }, [filteredData]);
 
   return (
     <div className="space-y-2">

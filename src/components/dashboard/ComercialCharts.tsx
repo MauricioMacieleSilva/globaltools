@@ -877,36 +877,50 @@ export function ComercialCharts() {
         </Card>
 
 
-        {/* Gráfico de Faturamento por Classe */}
-        <Card className="h-48 sm:h-56">
-          <CardHeader className="pb-1 sm:pb-2 px-2 sm:px-3 pt-2 sm:pt-3">
-            <CardTitle className="text-xs sm:text-sm font-semibold">Fat. por Classe</CardTitle>
+        {/* Top Clientes por Faturamento */}
+        <Card className="p-2 sm:p-4 h-48 sm:h-56 flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 px-0 pt-0 flex-shrink-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-primary flex items-center gap-1 sm:gap-2">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              Top Clientes
+            </CardTitle>
           </CardHeader>
-          <CardContent className="px-1 sm:px-3 pb-2 sm:pb-3">
-            <div className="h-36 sm:h-44">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={faturamentoClasseData} margin={{ left: -10, right: 5, top: 5, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="classe" tick={{ fontSize: 8 }} />
-                  <YAxis 
-                    tickFormatter={formatLabel} 
-                    tick={{ fontSize: 8 }}
-                    allowDecimals={false}
-                    width={35}
-                    domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.15)]}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="valor" fill="hsl(var(--primary))">
-                    <LabelList 
-                      dataKey="valor" 
-                      position="top" 
-                      formatter={formatLabel}
-                      style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <CardContent className="px-0 pb-0 overflow-hidden flex-1 min-h-0">
+            <ScrollArea className="h-full min-h-0">
+              <div className="space-y-1 sm:space-y-1.5 pr-1 sm:pr-2">
+                {topClientes.map((item, index) => (
+                  <div
+                    key={item.cliente}
+                    className="flex items-center justify-between p-1 sm:p-1.5 rounded-lg hover:bg-muted/50 transition-all"
+                  >
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                      <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-[10px] font-bold flex-shrink-0 ${
+                        index === 0 ? 'bg-yellow-500 text-white' :
+                        index === 1 ? 'bg-gray-400 text-white' :
+                        index === 2 ? 'bg-orange-500 text-white' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {index + 1}
+                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-medium text-[10px] sm:text-xs truncate" title={item.cliente}>
+                          {item.cliente}
+                        </span>
+                        <span className="text-[8px] sm:text-[10px] text-muted-foreground">
+                          {item.pedidos} ped.
+                        </span>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-[10px] sm:text-xs text-green-600 whitespace-nowrap ml-1">
+                      {formatCurrency(item.valor)}
+                    </span>
+                  </div>
+                ))}
+                {topClientes.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhum dado disponível</p>
+                )}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>

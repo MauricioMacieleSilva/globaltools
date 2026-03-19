@@ -23,7 +23,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OrcamentosSection } from '@/components/dashboard/OrcamentosSection';
 import { FollowUpSection } from '@/components/dashboard/FollowUpSection';
 
-import { TemperaturaIndicatorVendas } from '@/components/dashboard/TemperaturaIndicatorVendas';
+import { BrazilBubbleMap } from '@/components/dashboard/BrazilBubbleMap';
 import { useComercial } from '@/context/ComercialContext';
 import { useOrcamentosData } from '@/hooks/useOrcamentosData';
 

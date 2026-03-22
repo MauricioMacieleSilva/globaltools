@@ -19,8 +19,7 @@ interface AnaliseFinanceiraResponseDialogProps {
 const PARECER_OPTIONS = [
   { value: 'aprovado', label: 'Aprovado', icon: CheckCircle2, description: 'Cliente aprovado para faturamento normal', color: 'text-emerald-600' },
   { value: 'precisa_info', label: 'Precisa de mais informações', icon: AlertCircle, description: 'Documentação insuficiente ou dados pendentes', color: 'text-amber-600' },
-  { value: 'somente_vista', label: 'Somente à vista', icon: CreditCard, description: 'Liberado apenas para pagamento à vista', color: 'text-blue-600' },
-  { value: 'somente_cartao', label: 'Somente cartão de crédito', icon: CreditCard, description: 'Liberado apenas para pagamento via cartão', color: 'text-purple-600' },
+  { value: 'pagamento_antecipado', label: 'Pagamento antecipado', icon: CreditCard, description: 'Liberado apenas para pagamento à vista ou cartão de crédito', color: 'text-blue-600' },
 ] as const;
 
 export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, leadName, onConfirm }: AnaliseFinanceiraResponseDialogProps) {

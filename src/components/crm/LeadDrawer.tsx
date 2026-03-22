@@ -21,6 +21,7 @@ import { LeadEditDialog } from './LeadEditDialog';
 import { LeadAttachments } from './LeadAttachments';
 import { AnaliseFinanceiraResponseDialog } from './AnaliseFinanceiraResponseDialog';
 import { fetchComercialData } from '@/services/googleSheetsService';
+import { parseDate } from '@/lib/utils-comercial';
 
 interface LeadActivity {
   id: string;
@@ -85,46 +86,65 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
   }, [lead?.id, open]);
 
-  // Always fetch order value from commercial data to ensure accuracy
   useEffect(() => {
-    if (!lead?.budget_number || !open) { setOrderValue(null); return; }
+    if (!lead?.budget_number || !open) {
+      setOrderValue(null);
+      return;
+    }
+
     const orderNums = lead.budget_number.split(',').map(s => s.trim()).filter(Boolean);
-    if (orderNums.length === 0) { setOrderValue(null); return; }
+    if (orderNums.length === 0) {
+      setOrderValue(null);
+      return;
+    }
+
     const meta = (lead as any).linked_orders_meta || {};
-    fetchComercialData().then((data) => {
-      let total = 0;
-      for (const num of orderNums) {
-        let matches = data.filter(d => String(d.numeropedido).trim() === num);
-        if (matches.length === 0) continue;
-        // Filter by linked client name for accuracy
-        const nameToMatch = meta[num] || lead.client_name;
-        if (nameToMatch) {
-          const norm = nameToMatch.trim().toLowerCase();
-          const clientMatches = matches.filter(d => {
-            const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
-            return nome.includes(norm) || norm.includes(nome);
+
+    fetchComercialData()
+      .then((data) => {
+        let total = 0;
+
+        for (const num of orderNums) {
+          let matches = data.filter(d => String(d.numeropedido).trim() === num);
+          if (matches.length === 0) continue;
+
+          const nameToMatch = meta[num] || lead.empresa || lead.cliente_nome || lead.client_name;
+          if (nameToMatch) {
+            const norm = nameToMatch.trim().toLowerCase();
+            const clientMatches = matches.filter(d => {
+              const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
+              return nome.includes(norm) || norm.includes(nome);
+            });
+            if (clientMatches.length > 0) {
+              matches = clientMatches;
+            }
+          }
+
+          const sorted = [...matches].sort((a, b) => {
+            const da = parseDate(a.data_emissao)?.getTime() || 0;
+            const db = parseDate(b.data_emissao)?.getTime() || 0;
+            return db - da;
           });
-          if (clientMatches.length > 0) matches = clientMatches;
+
+          const mostRecentDate = sorted[0]?.data_emissao;
+          const finalItems = mostRecentDate
+            ? matches.filter(d => d.data_emissao === mostRecentDate)
+            : matches;
+
+          total += finalItems.reduce((sum, item) => sum + (item.valor || 0), 0);
         }
-        // Use most recent date entries only
-        const sorted = [...matches].sort((a, b) => {
-          const da = a.data_emissao ? new Date(a.data_emissao).getTime() : 0;
-          const db = b.data_emissao ? new Date(b.data_emissao).getTime() : 0;
-          return db - da;
-        });
-        const mostRecentDate = sorted[0]?.data_emissao;
-        const finalItems = mostRecentDate ? matches.filter(d => d.data_emissao === mostRecentDate) : matches;
-        for (const item of finalItems) {
-          total += (item.valor || 0);
+
+        setOrderValue(total);
+
+        if (total > 0 && total !== lead.valor_estimado) {
+          (supabase as any)
+            .from('leads')
+            .update({ valor_estimado: total })
+            .eq('id', lead.id);
         }
-      }
-      setOrderValue(total);
-      // Sync valor_estimado in DB if different
-      if (total > 0 && total !== lead.valor_estimado) {
-        (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
-      }
-    }).catch(() => setOrderValue(null));
-  }, [lead?.budget_number, lead?.id, open]);
+      })
+      .catch(() => setOrderValue(null));
+  }, [lead?.budget_number, lead?.empresa, lead?.cliente_nome, lead?.client_name, lead?.valor_estimado, lead?.id, open]);
 
   const handleAddOrderFromDrawer = async (orderNumber: string, orderValue: number, orderClientName: string) => {
     if (!lead) return;
@@ -138,7 +158,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
     existingOrders.push(orderNumber);
     const newBudgetNumber = existingOrders.join(', ');
-    const newValue = (lead.valor_estimado || 0) + orderValue;
+    const newValue = (orderValue || 0) + (existingOrders.length > 1 ? (orderValue || 0) : 0);
     const existingMeta = (lead as any).linked_orders_meta || {};
     const newMeta = { ...existingMeta, [orderNumber]: orderClientName };
     await (supabase as any).from('leads').update({

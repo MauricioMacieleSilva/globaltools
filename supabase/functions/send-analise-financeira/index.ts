@@ -29,8 +29,8 @@ Deno.serve(async (req) => {
 <head><meta charset="utf-8"></head>
 <body style="font-family: Arial, sans-serif; background: #f4f4f7; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-    <div style="background: #ea580c; padding: 20px 24px;">
-      <h1 style="color: #fff; margin: 0; font-size: 18px;">📋 Análise Financeira Solicitada</h1>
+     <div style="background: #2563eb; padding: 20px 24px;">
+       <h1 style="color: #fff; margin: 0; font-size: 18px;">📋 Análise Financeira Solicitada</h1>
     </div>
     <div style="padding: 24px;">
       <p style="color: #333; font-size: 14px; margin-bottom: 16px;">

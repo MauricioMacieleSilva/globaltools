@@ -882,6 +882,18 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           onLeadUpdated();
         }}
       />
+
+      {/* Análise Financeira Response Dialog */}
+      <AnaliseFinanceiraResponseDialog
+        open={analiseResponseOpen}
+        onOpenChange={setAnaliseResponseOpen}
+        leadId={lead.id}
+        leadName={name || ''}
+        onConfirm={() => {
+          loadActivities(lead.id);
+          onLeadUpdated();
+        }}
+      />
     </>
   );
 }

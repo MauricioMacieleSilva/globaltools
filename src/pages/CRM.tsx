@@ -714,6 +714,13 @@ export default function CRM() {
           onOpenChange={(v) => { setAnaliseFinOpen(v); if (!v) setPendingAnaliseLead(null); }}
           leadId={pendingAnaliseLead.id}
           leadName={pendingAnaliseLead.client_name || pendingAnaliseLead.cliente_nome}
+          leadEmpresa={pendingAnaliseLead.empresa}
+          leadCnpj={pendingAnaliseLead.cliente_cnpj}
+          leadCidade={pendingAnaliseLead.cidade}
+          leadEstado={pendingAnaliseLead.estado}
+          leadRamoAtuacao={pendingAnaliseLead.ramo_atuacao}
+          leadProdutoInteresse={pendingAnaliseLead.produto_interesse}
+          leadBudgetNumber={pendingAnaliseLead.budget_number}
           onConfirm={handleAnaliseFinConfirmed}
         />
       )}

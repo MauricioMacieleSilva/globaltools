@@ -377,7 +377,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         return;
       }
 
-      const appUrl = window.location.origin;
+      const appUrl = 'https://globaltools.lovable.app';
 
       for (const email of emails) {
         await supabase.functions.invoke('send-analise-financeira', {

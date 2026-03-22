@@ -128,7 +128,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   };
 
   const loadNextVisit = async (leadId: string) => {
-    // Load upcoming visits first
     const { data } = await (supabase as any)
       .from('crm_visits')
       .select('id, visit_date, location')
@@ -139,6 +138,22 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       setNextVisit({ id: data[0].id, date: data[0].visit_date, location: data[0].location });
     } else {
       setNextVisit(null);
+    }
+  };
+
+  const loadNextFollowUp = async (leadId: string) => {
+    const { data } = await supabase
+      .from('follow_ups')
+      .select('id, data_agendada, titulo, tipo')
+      .eq('lead_id', leadId)
+      .eq('concluido', false)
+      .gte('data_agendada', new Date().toISOString())
+      .order('data_agendada', { ascending: true })
+      .limit(1);
+    if (data?.[0]) {
+      setNextFollowUp({ id: data[0].id, data_agendada: data[0].data_agendada, titulo: data[0].titulo, tipo: data[0].tipo });
+    } else {
+      setNextFollowUp(null);
     }
   };
 

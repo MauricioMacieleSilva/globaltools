@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       </table>
 
       ${descricao ? `
-      <div style="background: #f8f9fa; border-left: 3px solid #ea580c; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
+      <div style="background: #f8f9fa; border-left: 3px solid #2563eb; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
         <p style="color: #666; font-size: 12px; margin: 0 0 4px;">Observações do comercial:</p>
         <p style="color: #333; font-size: 13px; margin: 0; white-space: pre-wrap;">${descricao}</p>
       </div>` : ""}

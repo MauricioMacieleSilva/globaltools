@@ -20,6 +20,10 @@ interface AnaliseFinanceiraDialogProps {
   leadProdutoInteresse?: string;
   leadBudgetNumber?: string;
   leadValorEstimado?: number;
+  leadWebsite?: string;
+  leadRegimeTributario?: string;
+  leadTelefone?: string;
+  leadEmail?: string;
   onConfirm: () => void;
 }
 
@@ -30,7 +34,7 @@ interface UploadedFile {
   type: string;
 }
 
-export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadRamoAtuacao, leadProdutoInteresse, leadBudgetNumber, leadValorEstimado, onConfirm }: AnaliseFinanceiraDialogProps) {
+export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadRamoAtuacao, leadProdutoInteresse, leadBudgetNumber, leadValorEstimado, leadWebsite, leadRegimeTributario, leadTelefone, leadEmail, onConfirm }: AnaliseFinanceiraDialogProps) {
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);

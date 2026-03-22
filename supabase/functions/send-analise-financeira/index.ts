@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       </div>` : ""}
 
       <div style="text-align: center; margin-top: 24px;">
-        <a href="${deepLink}" style="display: inline-block; background: #ea580c; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+        <a href="${deepLink}" style="display: inline-block; background: #2563eb; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
           Abrir no CRM e Responder
         </a>
       </div>

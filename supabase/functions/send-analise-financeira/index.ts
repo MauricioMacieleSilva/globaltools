@@ -29,8 +29,8 @@ Deno.serve(async (req) => {
 <head><meta charset="utf-8"></head>
 <body style="font-family: Arial, sans-serif; background: #f4f4f7; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-    <div style="background: #ea580c; padding: 20px 24px;">
-      <h1 style="color: #fff; margin: 0; font-size: 18px;">📋 Análise Financeira Solicitada</h1>
+     <div style="background: #2563eb; padding: 20px 24px;">
+       <h1 style="color: #fff; margin: 0; font-size: 18px;">📋 Análise Financeira Solicitada</h1>
     </div>
     <div style="padding: 24px;">
       <p style="color: #333; font-size: 14px; margin-bottom: 16px;">
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
       </table>
 
       ${descricao ? `
-      <div style="background: #f8f9fa; border-left: 3px solid #ea580c; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
+      <div style="background: #f8f9fa; border-left: 3px solid #2563eb; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
         <p style="color: #666; font-size: 12px; margin: 0 0 4px;">Observações do comercial:</p>
         <p style="color: #333; font-size: 13px; margin: 0; white-space: pre-wrap;">${descricao}</p>
       </div>` : ""}
@@ -81,13 +81,13 @@ Deno.serve(async (req) => {
       </div>` : ""}
 
       <div style="text-align: center; margin-top: 24px;">
-        <a href="${deepLink}" style="display: inline-block; background: #ea580c; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+        <a href="${deepLink}" style="display: inline-block; background: #2563eb; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
           Abrir no CRM e Responder
         </a>
       </div>
       
       <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
-        Este e-mail foi enviado automaticamente pelo sistema Global Tools.
+        Este e-mail foi enviado automaticamente pelo sistema Comercial Global Aço.
       </p>
     </div>
   </div>
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: "Global Tools <onboarding@resend.dev>",
+        from: "Comercial Global Aço <onboarding@resend.dev>",
         to: [destinatarioEmail],
         subject: `📋 Análise Financeira — ${empresa || leadName}`,
         html: htmlBody,

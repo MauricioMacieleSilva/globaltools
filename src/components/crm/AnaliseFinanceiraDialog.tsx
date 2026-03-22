@@ -85,10 +85,6 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
   };
 
   const handleConfirm = async () => {
-    if (files.length === 0) {
-      toast.error('Anexe pelo menos um documento para análise financeira');
-      return;
-    }
 
     try {
       const { data: userData } = await supabase.auth.getUser();

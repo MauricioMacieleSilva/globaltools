@@ -91,9 +91,10 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
       const userId = userData.user?.id || '';
 
       // Log activity with description
-      const desc = description.trim()
-        ? `Enviado para Análise Financeira: ${description.trim()}`
-        : `Enviado para Análise Financeira (${files.length} documento${files.length > 1 ? 's' : ''} anexado${files.length > 1 ? 's' : ''})`;
+      const parts: string[] = ['Enviado para Análise Financeira'];
+      if (files.length > 0) parts.push(`(${files.length} documento${files.length > 1 ? 's' : ''} anexado${files.length > 1 ? 's' : ''})`);
+      if (description.trim()) parts.push(`- ${description.trim()}`);
+      const desc = parts.join(' ');
 
       await supabase.from('lead_activities').insert({
         lead_id: leadId,

@@ -158,12 +158,11 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
     existingOrders.push(orderNumber);
     const newBudgetNumber = existingOrders.join(', ');
-    const newValue = (orderValue || 0) + (existingOrders.length > 1 ? (orderValue || 0) : 0);
     const existingMeta = (lead as any).linked_orders_meta || {};
     const newMeta = { ...existingMeta, [orderNumber]: orderClientName };
     await (supabase as any).from('leads').update({
       budget_number: newBudgetNumber,
-      valor_estimado: newValue,
+      valor_estimado: null,
       linked_orders_meta: newMeta,
       updated_at: new Date().toISOString(),
     }).eq('id', lead.id);

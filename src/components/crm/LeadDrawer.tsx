@@ -506,6 +506,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Contact Responsibility */}
             {(firstContact || lastContact) && (
               <div className="space-y-2 rounded-lg border p-3 bg-accent/30">
                 <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">

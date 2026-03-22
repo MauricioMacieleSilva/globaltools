@@ -912,6 +912,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         onOpenChange={setAnaliseResponseOpen}
         leadId={lead.id}
         leadName={name || ''}
+        leadEmpresa={lead.empresa}
+        leadCnpj={lead.cliente_cnpj}
+        leadCidade={lead.cidade}
+        leadEstado={lead.estado}
+        leadBudgetNumber={lead.budget_number}
+        leadValor={orderValue ?? undefined}
         onConfirm={() => {
           loadActivities(lead.id);
           onLeadUpdated();

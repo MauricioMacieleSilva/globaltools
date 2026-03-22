@@ -68,17 +68,8 @@ Deno.serve(async (req) => {
         </tr>` : ""}
       </table>
 
-      ${descricao ? `
-      <div style="background: #f8f9fa; border-left: 3px solid #2563eb; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
-        <p style="color: #666; font-size: 12px; margin: 0 0 4px;">Observações do comercial:</p>
-        <p style="color: #333; font-size: 13px; margin: 0; white-space: pre-wrap;">${descricao}</p>
-      </div>` : ""}
 
-      ${observacoes ? `
-      <div style="background: #f8f9fa; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
-        <p style="color: #666; font-size: 12px; margin: 0 0 4px;">Notas do lead:</p>
-        <p style="color: #333; font-size: 13px; margin: 0; white-space: pre-wrap;">${observacoes}</p>
-      </div>` : ""}
+
 
       <div style="text-align: center; margin-top: 24px;">
         <a href="${deepLink}" style="display: inline-block; background: #2563eb; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">

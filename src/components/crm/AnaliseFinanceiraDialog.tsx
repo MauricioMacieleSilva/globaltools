@@ -122,7 +122,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
-            <FileText className="h-4 w-4 text-amber-600" />
+            <FileText className="h-4 w-4 text-blue-600" />
             Análise Financeira
           </DialogTitle>
           <DialogDescription className="text-xs">

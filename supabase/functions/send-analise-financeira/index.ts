@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: "Global Tools <onboarding@resend.dev>",
+        from: "Comercial Global Aço <onboarding@resend.dev>",
         to: [destinatarioEmail],
         subject: `📋 Análise Financeira — ${empresa || leadName}`,
         html: htmlBody,

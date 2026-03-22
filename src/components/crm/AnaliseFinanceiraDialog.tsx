@@ -85,19 +85,16 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
   };
 
   const handleConfirm = async () => {
-    if (files.length === 0) {
-      toast.error('Anexe pelo menos um documento para análise financeira');
-      return;
-    }
 
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id || '';
 
       // Log activity with description
-      const desc = description.trim()
-        ? `Enviado para Análise Financeira: ${description.trim()}`
-        : `Enviado para Análise Financeira (${files.length} documento${files.length > 1 ? 's' : ''} anexado${files.length > 1 ? 's' : ''})`;
+      const parts: string[] = ['Enviado para Análise Financeira'];
+      if (files.length > 0) parts.push(`(${files.length} documento${files.length > 1 ? 's' : ''} anexado${files.length > 1 ? 's' : ''})`);
+      if (description.trim()) parts.push(`- ${description.trim()}`);
+      const desc = parts.join(' ');
 
       await supabase.from('lead_activities').insert({
         lead_id: leadId,
@@ -129,7 +126,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
             Análise Financeira
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Anexe os documentos necessários para análise de <strong>{leadName}</strong>
+            Anexe documentos (opcional) e adicione uma descrição para análise de <strong>{leadName}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -187,7 +184,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
           <Button variant="outline" size="sm" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleConfirm} disabled={files.length === 0 || uploading}>
+          <Button size="sm" onClick={handleConfirm} disabled={uploading}>
             <FileText className="h-3.5 w-3.5 mr-1.5" />
             Enviar para Análise
           </Button>

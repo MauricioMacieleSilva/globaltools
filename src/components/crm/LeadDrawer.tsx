@@ -776,6 +776,19 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <LeadEnrichForm lead={lead} onUpdated={() => { onLeadUpdated(); setShowEnrichAfterContact(false); }} />
         </DialogContent>
       </Dialog>
+
+      {/* Follow-up schedule dialog */}
+      <FollowUpScheduleDialog
+        open={followUpDialogOpen}
+        onOpenChange={setFollowUpDialogOpen}
+        leadId={lead.id}
+        leadName={name || ''}
+        onConfirm={() => {
+          loadNextFollowUp(lead.id);
+          loadActivities(lead.id);
+          onLeadUpdated();
+        }}
+      />
     </>
   );
 }

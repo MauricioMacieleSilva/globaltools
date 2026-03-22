@@ -329,24 +329,14 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       const lastNotes = activities.filter(a => a.description.includes('Análise Financeira'));
       const descricao = lastNotes.length > 0 ? lastNotes[0].description : '';
 
-      // Find all users with email to send analysis to (admins)
-      const { data: allProfiles } = await supabase
-        .from('user_profiles')
-        .select('id, email, full_name');
+      // Get admin emails using security definer function (bypasses RLS)
+      const { data: adminEmails, error: adminError } = await supabase.rpc('get_admin_emails' as any);
+      
+      const emails = (adminEmails || []).map((r: any) => r.email).filter(Boolean);
 
-      // Filter profiles that have admin role by checking user_roles
-      const { data: adminRoles } = await supabase
-        .from('user_roles' as any)
-        .select('user_id')
-        .in('role', ['admin']);
-      const adminIds = new Set((adminRoles || []).map((r: any) => r.user_id));
-
-      const emails = (allProfiles || [])
-        .filter((p: any) => adminIds.has(p.id) && p.email)
-        .map((p: any) => p.email);
-
-      if (emails.length === 0) {
+      if (emails.length === 0 || adminError) {
         toast.error('Nenhum destinatário encontrado para enviar');
+        console.error('Admin emails error:', adminError);
         return;
       }
 

@@ -193,7 +193,7 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
               Análise Financeira
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Registre o parecer da análise financeira de <strong>{leadName}</strong>
+              Registre o parecer da análise financeira de <strong>{leadEmpresa || leadName}</strong>
             </DialogDescription>
           </DialogHeader>
 
@@ -276,7 +276,7 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar envio do parecer</AlertDialogTitle>
             <AlertDialogDescription>
-              O parecer <strong>"{parecerLabel}"</strong> será registrado e um e-mail será enviado ao solicitante informando o resultado da análise financeira de <strong>{leadName}</strong>.
+              O parecer <strong>"{parecerLabel}"</strong> será registrado e um e-mail será enviado ao solicitante informando o resultado da análise financeira de <strong>{leadEmpresa || leadName}</strong>.
               {consideracoes.trim() && (
                 <span className="block mt-2 text-xs italic">Considerações: "{consideracoes.trim()}"</span>
               )}

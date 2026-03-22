@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, leadName, empresa, cnpj, cidade, estado, ramoAtuacao, produtoInteresse, valorEstimado, budgetNumber, observacoes, descricao, destinatarioEmail, remetenteNome, appUrl } = await req.json();
+    const { leadId, leadName, empresa, cnpj, cidade, estado, ramoAtuacao, produtoInteresse, valorEstimado, budgetNumber, destinatarioEmail, remetenteNome, appUrl } = await req.json();
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {

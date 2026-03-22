@@ -193,7 +193,7 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
               Análise Financeira
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Registre o parecer da análise financeira de <strong>{leadName}</strong>
+              Registre o parecer da análise financeira de <strong>{leadEmpresa || leadName}</strong>
             </DialogDescription>
           </DialogHeader>
 

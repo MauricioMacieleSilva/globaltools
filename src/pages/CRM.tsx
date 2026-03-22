@@ -721,6 +721,10 @@ export default function CRM() {
           leadRamoAtuacao={pendingAnaliseLead.ramo_atuacao}
           leadProdutoInteresse={pendingAnaliseLead.produto_interesse}
           leadBudgetNumber={pendingAnaliseLead.budget_number}
+          leadWebsite={pendingAnaliseLead.website}
+          leadRegimeTributario={pendingAnaliseLead.regime_tributario}
+          leadTelefone={pendingAnaliseLead.cliente_telefone}
+          leadEmail={pendingAnaliseLead.cliente_email}
           onConfirm={handleAnaliseFinConfirmed}
         />
       )}

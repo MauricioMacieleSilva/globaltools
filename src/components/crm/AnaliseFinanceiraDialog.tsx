@@ -20,6 +20,10 @@ interface AnaliseFinanceiraDialogProps {
   leadProdutoInteresse?: string;
   leadBudgetNumber?: string;
   leadValorEstimado?: number;
+  leadWebsite?: string;
+  leadRegimeTributario?: string;
+  leadTelefone?: string;
+  leadEmail?: string;
   onConfirm: () => void;
 }
 
@@ -30,7 +34,7 @@ interface UploadedFile {
   type: string;
 }
 
-export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadRamoAtuacao, leadProdutoInteresse, leadBudgetNumber, leadValorEstimado, onConfirm }: AnaliseFinanceiraDialogProps) {
+export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadRamoAtuacao, leadProdutoInteresse, leadBudgetNumber, leadValorEstimado, leadWebsite, leadRegimeTributario, leadTelefone, leadEmail, onConfirm }: AnaliseFinanceiraDialogProps) {
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -148,6 +152,10 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
             produtoInteresse: leadProdutoInteresse,
             valorEstimado: leadValorEstimado,
             budgetNumber: leadBudgetNumber,
+            website: leadWebsite,
+            regimeTributario: leadRegimeTributario,
+            telefone: leadTelefone,
+            emailContato: leadEmail,
             destinatarioEmail: email,
             remetenteNome: userName,
             appUrl,
@@ -191,7 +199,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
               Análise Financeira
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Anexe documentos (opcional) e adicione uma descrição para análise de <strong>{leadName}</strong>
+              Anexe documentos (opcional) e adicione uma descrição para análise de <strong>{leadEmpresa || leadName}</strong>
             </DialogDescription>
           </DialogHeader>
 
@@ -264,10 +272,10 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
             <AlertDialogDescription>
               {files.length > 0 ? (
                 <>
-                  <strong>{files.length}</strong> documento{files.length > 1 ? 's' : ''} será{files.length > 1 ? 'ão' : ''} enviado{files.length > 1 ? 's' : ''} junto com a solicitação de análise financeira de <strong>{leadName}</strong>.
+                  <strong>{files.length}</strong> documento{files.length > 1 ? 's' : ''} será{files.length > 1 ? 'ão' : ''} enviado{files.length > 1 ? 's' : ''} junto com a solicitação de análise financeira de <strong>{leadEmpresa || leadName}</strong>.
                 </>
               ) : (
-                <>A solicitação de análise financeira de <strong>{leadName}</strong> será enviada por e-mail.</>
+                <>A solicitação de análise financeira de <strong>{leadEmpresa || leadName}</strong> será enviada por e-mail.</>
               )}
               {description.trim() && (
                 <span className="block mt-2 text-xs italic">Descrição: "{description.trim()}"</span>

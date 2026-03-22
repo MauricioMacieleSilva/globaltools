@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, leadName, empresa, cnpj, cidade, estado, ramoAtuacao, produtoInteresse, valorEstimado, budgetNumber, destinatarioEmail, remetenteNome, appUrl } = await req.json();
+    const { leadId, leadName, empresa, cnpj, cidade, estado, ramoAtuacao, produtoInteresse, valorEstimado, budgetNumber, website, regimeTributario, telefone, emailContato, destinatarioEmail, remetenteNome, appUrl } = await req.json();
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
@@ -39,16 +39,32 @@ Deno.serve(async (req) => {
       
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
         <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px; width: 140px;">Empresa/Cliente</td>
+          <td style="padding: 8px 0; color: #666; font-size: 13px; width: 160px;">Empresa/Cliente</td>
           <td style="padding: 8px 0; color: #333; font-size: 13px; font-weight: 600;">${empresa || leadName}</td>
         </tr>
+        ${leadName && empresa && leadName !== empresa ? `<tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px 0; color: #666; font-size: 13px;">Contato</td>
+          <td style="padding: 8px 0; color: #333; font-size: 13px;">${leadName}</td>
+        </tr>` : ""}
         ${cnpj ? `<tr style="border-bottom: 1px solid #eee;">
           <td style="padding: 8px 0; color: #666; font-size: 13px;">CNPJ</td>
           <td style="padding: 8px 0; color: #333; font-size: 13px;">${cnpj}</td>
         </tr>` : ""}
+        ${regimeTributario ? `<tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px 0; color: #666; font-size: 13px;">Regime Tributário</td>
+          <td style="padding: 8px 0; color: #333; font-size: 13px;">${regimeTributario}</td>
+        </tr>` : ""}
         ${localidade ? `<tr style="border-bottom: 1px solid #eee;">
           <td style="padding: 8px 0; color: #666; font-size: 13px;">Localidade</td>
           <td style="padding: 8px 0; color: #333; font-size: 13px;">${localidade}</td>
+        </tr>` : ""}
+        ${telefone ? `<tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px 0; color: #666; font-size: 13px;">Telefone</td>
+          <td style="padding: 8px 0; color: #333; font-size: 13px;">${telefone}</td>
+        </tr>` : ""}
+        ${emailContato ? `<tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px 0; color: #666; font-size: 13px;">E-mail</td>
+          <td style="padding: 8px 0; color: #333; font-size: 13px;">${emailContato}</td>
         </tr>` : ""}
         ${ramoAtuacao ? `<tr style="border-bottom: 1px solid #eee;">
           <td style="padding: 8px 0; color: #666; font-size: 13px;">Ramo de Atuação</td>
@@ -57,6 +73,10 @@ Deno.serve(async (req) => {
         ${produtoInteresse ? `<tr style="border-bottom: 1px solid #eee;">
           <td style="padding: 8px 0; color: #666; font-size: 13px;">Produto de Interesse</td>
           <td style="padding: 8px 0; color: #333; font-size: 13px;">${produtoInteresse}</td>
+        </tr>` : ""}
+        ${website ? `<tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px 0; color: #666; font-size: 13px;">Site</td>
+          <td style="padding: 8px 0; color: #333; font-size: 13px;"><a href="${website.startsWith('http') ? website : 'https://' + website}" target="_blank" style="color: #2563eb; text-decoration: underline;">${website}</a></td>
         </tr>` : ""}
         <tr style="border-bottom: 1px solid #eee;">
           <td style="padding: 8px 0; color: #666; font-size: 13px;">Valor Estimado</td>
@@ -67,9 +87,6 @@ Deno.serve(async (req) => {
           <td style="padding: 8px 0; color: #333; font-size: 13px;">${budgetNumber}</td>
         </tr>` : ""}
       </table>
-
-
-
 
       <div style="text-align: center; margin-top: 24px;">
         <a href="${deepLink}" style="display: inline-block; background: #2563eb; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">

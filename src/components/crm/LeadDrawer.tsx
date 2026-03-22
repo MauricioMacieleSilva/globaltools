@@ -564,6 +564,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   </a>
                 </Button>
               )}
+              <Button size="sm" variant="outline" onClick={() => setFollowUpDialogOpen(true)} className="gap-1.5">
+                <ClipboardList className="h-3.5 w-3.5" />
+                Agendar Follow-up
+              </Button>
             </div>
 
             {/* Move Stage */}

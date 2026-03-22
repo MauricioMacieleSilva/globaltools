@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -69,12 +70,15 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [selectedOrderNum, setSelectedOrderNum] = useState<string | null>(null);
   const [addOrderOpen, setAddOrderOpen] = useState(false);
+  const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
+  const [nextFollowUp, setNextFollowUp] = useState<{ id: string; data_agendada: string; titulo: string; tipo: string } | null>(null);
 
   useEffect(() => {
     if (lead?.id && open) {
       setNewNote('');
       loadActivities(lead.id);
       loadNextVisit(lead.id);
+      loadNextFollowUp(lead.id);
     }
   }, [lead?.id, open]);
 
@@ -124,7 +128,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   };
 
   const loadNextVisit = async (leadId: string) => {
-    // Load upcoming visits first
     const { data } = await (supabase as any)
       .from('crm_visits')
       .select('id, visit_date, location')
@@ -135,6 +138,22 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       setNextVisit({ id: data[0].id, date: data[0].visit_date, location: data[0].location });
     } else {
       setNextVisit(null);
+    }
+  };
+
+  const loadNextFollowUp = async (leadId: string) => {
+    const { data } = await supabase
+      .from('follow_ups')
+      .select('id, data_agendada, titulo, tipo')
+      .eq('lead_id', leadId)
+      .eq('concluido', false)
+      .gte('data_agendada', new Date().toISOString())
+      .order('data_agendada', { ascending: true })
+      .limit(1);
+    if (data?.[0]) {
+      setNextFollowUp({ id: data[0].id, data_agendada: data[0].data_agendada, titulo: data[0].titulo, tipo: data[0].tipo });
+    } else {
+      setNextFollowUp(null);
     }
   };
 
@@ -472,6 +491,23 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               </div>
             )}
 
+            {/* Próximo Follow-up */}
+            {nextFollowUp && (
+              <div className="flex items-center justify-between rounded-lg border p-3 bg-accent/30">
+                <div className="flex items-center gap-2 text-sm">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {nextFollowUp.titulo}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(nextFollowUp.data_agendada).toLocaleDateString('pt-BR')} às {new Date(nextFollowUp.data_agendada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Contact Responsibility */}
             {(firstContact || lastContact) && (
               <div className="space-y-2 rounded-lg border p-3 bg-accent/30">
@@ -528,6 +564,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   </a>
                 </Button>
               )}
+              <Button size="sm" variant="outline" onClick={() => setFollowUpDialogOpen(true)} className="gap-1.5">
+                <ClipboardList className="h-3.5 w-3.5" />
+                Agendar Follow-up
+              </Button>
             </div>
 
             {/* Move Stage */}
@@ -736,6 +776,19 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <LeadEnrichForm lead={lead} onUpdated={() => { onLeadUpdated(); setShowEnrichAfterContact(false); }} />
         </DialogContent>
       </Dialog>
+
+      {/* Follow-up schedule dialog */}
+      <FollowUpScheduleDialog
+        open={followUpDialogOpen}
+        onOpenChange={setFollowUpDialogOpen}
+        leadId={lead.id}
+        leadName={name || ''}
+        onConfirm={() => {
+          loadNextFollowUp(lead.id);
+          loadActivities(lead.id);
+          onLeadUpdated();
+        }}
+      />
     </>
   );
 }

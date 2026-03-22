@@ -693,6 +693,16 @@ export default function CRM() {
         onCancel={() => { setPendingOrderLead(null); setOrderLinkOpen(false); }}
       />
 
+      {pendingAnaliseLead && (
+        <AnaliseFinanceiraDialog
+          open={analiseFinOpen}
+          onOpenChange={(v) => { setAnaliseFinOpen(v); if (!v) setPendingAnaliseLead(null); }}
+          leadId={pendingAnaliseLead.id}
+          leadName={pendingAnaliseLead.client_name || pendingAnaliseLead.cliente_nome}
+          onConfirm={handleAnaliseFinConfirmed}
+        />
+      )}
+
       {isMobile && (
         <button
           onClick={() => setNewLeadOpen(true)}

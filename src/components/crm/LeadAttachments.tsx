@@ -64,7 +64,8 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
           .upload(path, file);
 
         if (uploadError) {
-          toast.error(`Erro ao enviar ${file.name}`);
+          console.error('Upload error:', uploadError);
+          toast.error(`Erro ao enviar ${file.name}`, { description: uploadError.message });
           continue;
         }
 

@@ -329,7 +329,36 @@ export default function CRM() {
     }
   };
 
-  const handleVisitConfirmed = async () => {
+  const handleAnaliseFinConfirmed = async () => {
+    if (!pendingAnaliseLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const oldStatus = pendingAnaliseLead.status;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'analise_financeira', updated_at: new Date().toISOString() })
+        .eq('id', pendingAnaliseLead.id);
+
+      setLeads(prev => prev.map(l => l.id === pendingAnaliseLead.id ? { ...l, status: 'analise_financeira' as any, updated_at: new Date().toISOString() } : l));
+
+      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingAnaliseLead.id,
+        activity_type: 'mudanca_status',
+        description: `Movido de "${oldLabel}" para "Análise Financeira"`,
+        user_id: user?.id || '',
+      } as any);
+
+      toast.success('Lead enviado para Análise Financeira');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao mover lead');
+    } finally {
+      setPendingAnaliseLead(null);
+      setAnaliseFinOpen(false);
+    }
+  };
+
     if (!pendingVisitLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;

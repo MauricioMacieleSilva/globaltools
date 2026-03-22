@@ -73,7 +73,7 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
           .from('lead-attachments')
           .getPublicUrl(path);
 
-        await (supabase as any).from('lead_attachments').insert({
+        const { error: insertError } = await (supabase as any).from('lead_attachments').insert({
           lead_id: leadId,
           file_name: file.name,
           file_url: urlData.publicUrl,
@@ -82,6 +82,12 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
           uploaded_by: user?.id,
           uploaded_by_name: profile?.full_name || 'Usuário',
         });
+
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          toast.error(`Erro ao salvar registro de ${file.name}`, { description: insertError.message });
+          continue;
+        }
       }
 
       toast.success('Arquivo(s) anexado(s)');

@@ -491,7 +491,21 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               </div>
             )}
 
-            {/* Contact Responsibility */}
+            {/* Próximo Follow-up */}
+            {nextFollowUp && (
+              <div className="flex items-center justify-between rounded-lg border p-3 bg-accent/30">
+                <div className="flex items-center gap-2 text-sm">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {nextFollowUp.titulo}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(nextFollowUp.data_agendada).toLocaleDateString('pt-BR')} às {new Date(nextFollowUp.data_agendada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              </div>
             {(firstContact || lastContact) && (
               <div className="space-y-2 rounded-lg border p-3 bg-accent/30">
                 <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">

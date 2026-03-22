@@ -16,6 +16,7 @@ import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
 import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
+import { AnaliseFinanceiraDialog } from '@/components/crm/AnaliseFinanceiraDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -64,6 +65,7 @@ export const CRM_STAGES = [
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
   { key: 'visita_reuniao', label: 'Visita / Reunião', color: 'hsl(262, 52%, 47%)' },
   { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },
+  { key: 'analise_financeira', label: 'Análise Financeira', color: 'hsl(25, 95%, 53%)' },
   { key: 'pedido_fechado', label: 'Pedido Fechado', color: 'hsl(173, 80%, 36%)' },
 ] as const;
 
@@ -116,6 +118,9 @@ export default function CRM() {
   const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [carouselOpen, setCarouselOpen] = useState(false);
+  // Analise Financeira dialog
+  const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
+  const [pendingAnaliseLead, setPendingAnaliseLead] = useState<CRMLead | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   const isMobile = useIsMobile();
@@ -279,6 +284,13 @@ export default function CRM() {
       return;
     }
 
+    // Intercept analise_financeira: require document attachment
+    if (newStatus === 'analise_financeira') {
+      setPendingAnaliseLead(lead);
+      setAnaliseFinOpen(true);
+      return;
+    }
+
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const oldStatus = lead.status;
@@ -300,18 +312,50 @@ export default function CRM() {
         user_id: user?.id || '',
       } as any);
 
-      // Register contact on every stage move
-      await supabase.from('lead_activities').insert({
-        lead_id: leadId,
-        activity_type: 'contato_inicial',
-        description: 'Contato registrado via movimentação CRM',
-        user_id: user?.id || '',
-      } as any);
+      // Register contact on every stage move (except analise_financeira — handled separately)
+      if (newStatus !== 'analise_financeira') {
+        await supabase.from('lead_activities').insert({
+          lead_id: leadId,
+          activity_type: 'contato_inicial',
+          description: 'Contato registrado via movimentação CRM',
+          user_id: user?.id || '',
+        } as any);
+      }
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast.error('Erro ao atualizar status do lead');
+    }
+  };
+
+  const handleAnaliseFinConfirmed = async () => {
+    if (!pendingAnaliseLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const oldStatus = pendingAnaliseLead.status;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'analise_financeira', updated_at: new Date().toISOString() })
+        .eq('id', pendingAnaliseLead.id);
+
+      setLeads(prev => prev.map(l => l.id === pendingAnaliseLead.id ? { ...l, status: 'analise_financeira' as any, updated_at: new Date().toISOString() } : l));
+
+      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingAnaliseLead.id,
+        activity_type: 'mudanca_status',
+        description: `Movido de "${oldLabel}" para "Análise Financeira"`,
+        user_id: user?.id || '',
+      } as any);
+
+      toast.success('Lead enviado para Análise Financeira');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao mover lead');
+    } finally {
+      setPendingAnaliseLead(null);
+      setAnaliseFinOpen(false);
     }
   };
 
@@ -649,6 +693,16 @@ export default function CRM() {
         onConfirm={handleOrderLinked}
         onCancel={() => { setPendingOrderLead(null); setOrderLinkOpen(false); }}
       />
+
+      {pendingAnaliseLead && (
+        <AnaliseFinanceiraDialog
+          open={analiseFinOpen}
+          onOpenChange={(v) => { setAnaliseFinOpen(v); if (!v) setPendingAnaliseLead(null); }}
+          leadId={pendingAnaliseLead.id}
+          leadName={pendingAnaliseLead.client_name || pendingAnaliseLead.cliente_nome}
+          onConfirm={handleAnaliseFinConfirmed}
+        />
+      )}
 
       {isMobile && (
         <button

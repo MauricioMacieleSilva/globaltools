@@ -64,6 +64,7 @@ export const CRM_STAGES = [
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
   { key: 'visita_reuniao', label: 'Visita / Reunião', color: 'hsl(262, 52%, 47%)' },
   { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },
+  { key: 'analise_financeira', label: 'Análise Financeira', color: 'hsl(25, 95%, 53%)' },
   { key: 'pedido_fechado', label: 'Pedido Fechado', color: 'hsl(173, 80%, 36%)' },
 ] as const;
 

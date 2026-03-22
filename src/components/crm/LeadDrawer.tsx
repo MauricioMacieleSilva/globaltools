@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
@@ -19,6 +19,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { LeadEnrichForm } from './LeadEnrichForm';
 import { LeadEditDialog } from './LeadEditDialog';
 import { LeadAttachments } from './LeadAttachments';
+import { AnaliseFinanceiraResponseDialog } from './AnaliseFinanceiraResponseDialog';
 import { fetchComercialData } from '@/services/googleSheetsService';
 
 interface LeadActivity {
@@ -72,6 +73,8 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [addOrderOpen, setAddOrderOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [nextFollowUp, setNextFollowUp] = useState<{ id: string; data_agendada: string; titulo: string; tipo: string } | null>(null);
+  const [analiseResponseOpen, setAnaliseResponseOpen] = useState(false);
+  const [sendingAnalise, setSendingAnalise] = useState(false);
 
   useEffect(() => {
     if (lead?.id && open) {
@@ -315,6 +318,83 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
   };
 
+  const handleSendAnaliseEmail = async () => {
+    if (!lead) return;
+    setSendingAnalise(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', userData.user?.id || '').maybeSingle();
+
+      // Get last note with description for context
+      const lastNotes = activities.filter(a => a.description.includes('Análise Financeira'));
+      const descricao = lastNotes.length > 0 ? lastNotes[0].description : '';
+
+      // Find admins/financeiro to send email to
+      const { data: adminRoles } = await (supabase as any)
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+      const adminIds = (adminRoles || []).map((r: any) => r.user_id);
+
+      if (adminIds.length === 0) {
+        toast.error('Nenhum administrador encontrado para enviar');
+        return;
+      }
+
+      const { data: adminProfiles } = await supabase
+        .from('user_profiles')
+        .select('id, email')
+        .in('id', adminIds);
+
+      const emails = (adminProfiles || []).map((p: any) => p.email).filter(Boolean);
+      if (emails.length === 0) {
+        toast.error('Nenhum e-mail de administrador encontrado');
+        return;
+      }
+
+      const appUrl = window.location.origin;
+
+      for (const email of emails) {
+        await supabase.functions.invoke('send-analise-financeira', {
+          body: {
+            leadId: lead.id,
+            leadName: lead.client_name || lead.cliente_nome,
+            empresa: lead.empresa,
+            cnpj: lead.cliente_cnpj,
+            cidade: lead.cidade,
+            estado: lead.estado,
+            ramoAtuacao: lead.ramo_atuacao,
+            produtoInteresse: lead.produto_interesse,
+            valorEstimado: lead.valor_estimado,
+            budgetNumber: lead.budget_number,
+            observacoes: lead.notes,
+            descricao,
+            destinatarioEmail: email,
+            remetenteNome: profile?.full_name || 'Comercial',
+            appUrl,
+          },
+        });
+      }
+
+      // Log activity
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        activity_type: 'nota',
+        description: `Análise Financeira enviada por e-mail para ${emails.length} destinatário(s)`,
+        user_id: userData.user?.id || '',
+        sdr_name: profile?.full_name || 'Usuário',
+      } as any);
+
+      toast.success('Análise enviada por e-mail');
+      loadActivities(lead.id);
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao enviar e-mail', { description: err?.message });
+    } finally {
+      setSendingAnalise(false);
+    }
+  };
+
   if (!lead) return null;
 
   const name = lead.client_name || lead.cliente_nome;
@@ -552,10 +632,23 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={openContactDialog} className="gap-1.5">
-                <Phone className="h-3.5 w-3.5" />
-                Registrar Contato
-              </Button>
+              {lead.status === 'analise_financeira' ? (
+                <>
+                  <Button size="sm" onClick={() => setAnaliseResponseOpen(true)} className="gap-1.5 bg-amber-600 hover:bg-amber-700">
+                    <FileText className="h-3.5 w-3.5" />
+                    Análise Financeira
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleSendAnaliseEmail} disabled={sendingAnalise} className="gap-1.5">
+                    {sendingAnalise ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Enviar para Análise
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" onClick={openContactDialog} className="gap-1.5">
+                  <Phone className="h-3.5 w-3.5" />
+                  Registrar Contato
+                </Button>
+              )}
               {whatsappUrl && (
                 <Button size="sm" variant="outline" asChild className="gap-1.5">
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
@@ -785,6 +878,18 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         leadName={name || ''}
         onConfirm={() => {
           loadNextFollowUp(lead.id);
+          loadActivities(lead.id);
+          onLeadUpdated();
+        }}
+      />
+
+      {/* Análise Financeira Response Dialog */}
+      <AnaliseFinanceiraResponseDialog
+        open={analiseResponseOpen}
+        onOpenChange={setAnaliseResponseOpen}
+        leadId={lead.id}
+        leadName={name || ''}
+        onConfirm={() => {
           loadActivities(lead.id);
           onLeadUpdated();
         }}

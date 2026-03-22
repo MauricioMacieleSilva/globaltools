@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { FileText, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
+import { FileText, CheckCircle2, AlertCircle, CreditCard, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -13,6 +14,12 @@ interface AnaliseFinanceiraResponseDialogProps {
   onOpenChange: (open: boolean) => void;
   leadId: string;
   leadName: string;
+  leadEmpresa?: string;
+  leadCnpj?: string;
+  leadCidade?: string;
+  leadEstado?: string;
+  leadBudgetNumber?: string;
+  leadValor?: number;
   onConfirm: () => void;
 }
 
@@ -22,21 +29,28 @@ const PARECER_OPTIONS = [
   { value: 'pagamento_antecipado', label: 'Pagamento antecipado', icon: CreditCard, description: 'Liberado apenas para pagamento à vista ou cartão de crédito', color: 'text-blue-600' },
 ] as const;
 
-export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, leadName, onConfirm }: AnaliseFinanceiraResponseDialogProps) {
+export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadBudgetNumber, leadValor, onConfirm }: AnaliseFinanceiraResponseDialogProps) {
   const [parecer, setParecer] = useState<string>('');
   const [consideracoes, setConsideracoes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!parecer) {
       toast.error('Selecione um parecer');
       return;
     }
+    // Show confirmation dialog
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmAndSend = async () => {
+    setConfirmOpen(false);
     setSubmitting(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id || '';
-      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', userId).maybeSingle();
+      const { data: profile } = await supabase.from('user_profiles').select('full_name, email').eq('id', userId).maybeSingle();
       const userName = profile?.full_name || 'Usuário';
 
       const parecerLabel = PARECER_OPTIONS.find(o => o.value === parecer)?.label || parecer;
@@ -44,6 +58,7 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
       if (consideracoes.trim()) parts.push(consideracoes.trim());
       const desc = parts.join('\n');
 
+      // Register activity
       await supabase.from('lead_activities').insert({
         lead_id: leadId,
         activity_type: 'nota',
@@ -55,7 +70,64 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
       // Update lead updated_at
       await (supabase as any).from('leads').update({ updated_at: new Date().toISOString() }).eq('id', leadId);
 
-      toast.success('Parecer financeiro registrado');
+      // Find who requested the analysis (the activity that sent the email)
+      const { data: requestActivity } = await supabase
+        .from('lead_activities')
+        .select('user_id, sdr_name')
+        .eq('lead_id', leadId)
+        .ilike('description', '%Análise Financeira enviada por e-mail%')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      // Get requester emails + all admin emails
+      const recipientEmails: string[] = [];
+
+      if (requestActivity && requestActivity.length > 0) {
+        const requesterId = requestActivity[0].user_id;
+        const { data: requesterProfile } = await supabase
+          .from('user_profiles')
+          .select('email')
+          .eq('id', requesterId)
+          .maybeSingle();
+        if (requesterProfile?.email) {
+          recipientEmails.push(requesterProfile.email);
+        }
+      }
+
+      // Also send to admins
+      const { data: adminEmails } = await supabase.rpc('get_admin_emails' as any);
+      const admins = (adminEmails || []).map((r: any) => r.email).filter(Boolean);
+      for (const email of admins) {
+        if (!recipientEmails.includes(email)) {
+          recipientEmails.push(email);
+        }
+      }
+
+      const appUrl = 'https://globaltools.lovable.app';
+
+      // Send email to each recipient
+      for (const email of recipientEmails) {
+        await supabase.functions.invoke('send-analise-financeira-response', {
+          body: {
+            leadId,
+            leadName,
+            empresa: leadEmpresa,
+            cnpj: leadCnpj,
+            cidade: leadCidade,
+            estado: leadEstado,
+            budgetNumber: leadBudgetNumber,
+            valorEstimado: leadValor,
+            parecer: parecerLabel,
+            parecerTipo: parecer,
+            consideracoes: consideracoes.trim() || null,
+            analistaNome: userName,
+            destinatarioEmail: email,
+            appUrl,
+          },
+        });
+      }
+
+      toast.success('Parecer financeiro registrado e e-mail enviado');
       onConfirm();
       handleClose();
     } catch (err) {
@@ -72,56 +144,80 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
     onOpenChange(false);
   };
 
+  const parecerLabel = PARECER_OPTIONS.find(o => o.value === parecer)?.label || parecer;
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-base flex items-center gap-2">
-            <FileText className="h-4 w-4 text-blue-600" />
-            Análise Financeira
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Registre o parecer da análise financeira de <strong>{leadName}</strong>
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-blue-600" />
+              Análise Financeira
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Registre o parecer da análise financeira de <strong>{leadName}</strong>
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <RadioGroup value={parecer} onValueChange={setParecer} className="space-y-2">
-            {PARECER_OPTIONS.map((option) => {
-              const Icon = option.icon;
-              return (
-                <div key={option.value} className="flex items-start space-x-3 rounded-lg border p-3 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setParecer(option.value)}>
-                  <RadioGroupItem value={option.value} id={option.value} className="mt-0.5" />
-                  <Label htmlFor={option.value} className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <Icon className={`h-4 w-4 ${option.color}`} />
-                      <span className="text-sm font-medium">{option.label}</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{option.description}</p>
-                  </Label>
-                </div>
-              );
-            })}
-          </RadioGroup>
+          <div className="space-y-4">
+            <RadioGroup value={parecer} onValueChange={setParecer} className="space-y-2">
+              {PARECER_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <div key={option.value} className="flex items-start space-x-3 rounded-lg border p-3 hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setParecer(option.value)}>
+                    <RadioGroupItem value={option.value} id={option.value} className="mt-0.5" />
+                    <Label htmlFor={option.value} className="flex-1 cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <Icon className={`h-4 w-4 ${option.color}`} />
+                        <span className="text-sm font-medium">{option.label}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{option.description}</p>
+                    </Label>
+                  </div>
+                );
+              })}
+            </RadioGroup>
 
-          <Textarea
-            value={consideracoes}
-            onChange={(e) => setConsideracoes(e.target.value)}
-            placeholder="Considerações adicionais (opcional)..."
-            className="text-sm min-h-[80px] resize-none"
-          />
-        </div>
+            <Textarea
+              value={consideracoes}
+              onChange={(e) => setConsideracoes(e.target.value)}
+              placeholder="Considerações adicionais (opcional)..."
+              className="text-sm min-h-[80px] resize-none"
+            />
+          </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" size="sm" onClick={handleClose}>
-            Cancelar
-          </Button>
-          <Button size="sm" onClick={handleSubmit} disabled={!parecer || submitting}>
-            <FileText className="h-3.5 w-3.5 mr-1.5" />
-            Registrar Parecer
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={handleClose}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleSubmit} disabled={!parecer || submitting}>
+              {submitting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 mr-1.5" />}
+              Registrar Parecer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar envio do parecer</AlertDialogTitle>
+            <AlertDialogDescription>
+              O parecer <strong>"{parecerLabel}"</strong> será registrado e um e-mail será enviado ao solicitante informando o resultado da análise financeira de <strong>{leadName}</strong>.
+              {consideracoes.trim() && (
+                <span className="block mt-2 text-xs italic">Considerações: "{consideracoes.trim()}"</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAndSend}>
+              Confirmar e Enviar E-mail
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -206,6 +206,20 @@ export default function CRM() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Deep link: auto-open lead card from URL param (e.g. /crm?lead=<uuid>)
+  useEffect(() => {
+    const leadId = searchParams.get('lead');
+    if (leadId && leads.length > 0 && !loading) {
+      const found = leads.find(l => l.id === leadId);
+      if (found) {
+        setSelectedLead(found);
+        setDrawerOpen(true);
+        searchParams.delete('lead');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, leads, loading, setSearchParams]);
+
 
   useEffect(() => {
     loadLeads();

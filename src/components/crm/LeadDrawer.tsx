@@ -644,7 +644,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             <div className="flex flex-wrap gap-2">
               {lead.status === 'analise_financeira' ? (
                 <>
-                  <Button size="sm" onClick={() => setAnaliseResponseOpen(true)} className="gap-1.5 bg-amber-600 hover:bg-amber-700">
+                  <Button size="sm" onClick={() => setAnaliseResponseOpen(true)} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
                     <FileText className="h-3.5 w-3.5" />
                     Análise Financeira
                   </Button>

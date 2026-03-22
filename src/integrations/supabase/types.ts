@@ -2935,6 +2935,7 @@ export type Database = {
         | "visita_reuniao"
         | "pedido"
         | "pedido_fechado"
+        | "analise_financeira"
       orcamento_status:
         | "aberto"
         | "enviado"
@@ -3090,6 +3091,7 @@ export const Constants = {
         "visita_reuniao",
         "pedido",
         "pedido_fechado",
+        "analise_financeira",
       ],
       orcamento_status: [
         "aberto",

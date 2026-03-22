@@ -118,6 +118,9 @@ export default function CRM() {
   const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [carouselOpen, setCarouselOpen] = useState(false);
+  // Analise Financeira dialog
+  const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
+  const [pendingAnaliseLead, setPendingAnaliseLead] = useState<CRMLead | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   const isMobile = useIsMobile();

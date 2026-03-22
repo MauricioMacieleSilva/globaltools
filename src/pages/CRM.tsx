@@ -359,6 +359,7 @@ export default function CRM() {
     }
   };
 
+  const handleVisitConfirmed = async () => {
     if (!pendingVisitLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;

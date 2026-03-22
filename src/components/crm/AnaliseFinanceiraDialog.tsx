@@ -184,7 +184,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
           <Button variant="outline" size="sm" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleConfirm} disabled={files.length === 0 || uploading}>
+          <Button size="sm" onClick={handleConfirm} disabled={uploading}>
             <FileText className="h-3.5 w-3.5 mr-1.5" />
             Enviar para Análise
           </Button>

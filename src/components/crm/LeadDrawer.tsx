@@ -75,7 +75,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [nextFollowUp, setNextFollowUp] = useState<{ id: string; data_agendada: string; titulo: string; tipo: string } | null>(null);
   const [analiseResponseOpen, setAnaliseResponseOpen] = useState(false);
-  const [sendingAnalise, setSendingAnalise] = useState(false);
+  
 
   useEffect(() => {
     if (lead?.id && open) {
@@ -359,64 +359,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
   };
 
-  const handleSendAnaliseEmail = async () => {
-    if (!lead) return;
-    setSendingAnalise(true);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', userData.user?.id || '').maybeSingle();
-
-      // Get admin emails using security definer function (bypasses RLS)
-      const { data: adminEmails, error: adminError } = await supabase.rpc('get_admin_emails' as any);
-      
-      const emails = (adminEmails || []).map((r: any) => r.email).filter(Boolean);
-
-      if (emails.length === 0 || adminError) {
-        toast.error('Nenhum destinatário encontrado para enviar');
-        console.error('Admin emails error:', adminError);
-        return;
-      }
-
-      const appUrl = 'https://globaltools.lovable.app';
-
-      for (const email of emails) {
-        await supabase.functions.invoke('send-analise-financeira', {
-          body: {
-            leadId: lead.id,
-            leadName: lead.client_name || lead.cliente_nome,
-            empresa: lead.empresa,
-            cnpj: lead.cliente_cnpj,
-            cidade: lead.cidade,
-            estado: lead.estado,
-            ramoAtuacao: lead.ramo_atuacao,
-            produtoInteresse: lead.produto_interesse,
-            valorEstimado: orderValue,
-            budgetNumber: lead.budget_number,
-            destinatarioEmail: email,
-            remetenteNome: profile?.full_name || 'Comercial',
-            appUrl,
-          },
-        });
-      }
-
-      // Log activity
-      await supabase.from('lead_activities').insert({
-        lead_id: lead.id,
-        activity_type: 'nota',
-        description: `Análise Financeira enviada por e-mail para ${emails.length} destinatário(s)`,
-        user_id: userData.user?.id || '',
-        sdr_name: profile?.full_name || 'Usuário',
-      } as any);
-
-      toast.success('Análise enviada por e-mail');
-      loadActivities(lead.id);
-    } catch (err: any) {
-      console.error(err);
-      toast.error('Erro ao enviar e-mail', { description: err?.message });
-    } finally {
-      setSendingAnalise(false);
-    }
-  };
+  
 
   if (!lead) return null;
 
@@ -656,16 +599,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
               {lead.status === 'analise_financeira' ? (
-                <>
-                  <Button size="sm" onClick={() => setAnaliseResponseOpen(true)} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
-                    <FileText className="h-3.5 w-3.5" />
-                    Análise Financeira
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleSendAnaliseEmail} disabled={sendingAnalise} className="gap-1.5">
-                    {sendingAnalise ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    Enviar para Análise
-                  </Button>
-                </>
+                <Button size="sm" onClick={() => setAnaliseResponseOpen(true)} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
+                  <FileText className="h-3.5 w-3.5" />
+                  Análise Financeira
+                </Button>
               ) : (
                 <Button size="sm" onClick={openContactDialog} className="gap-1.5">
                   <Phone className="h-3.5 w-3.5" />

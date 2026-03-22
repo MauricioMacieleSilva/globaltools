@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       </div>
       
       <p style="color: #999; font-size: 11px; text-align: center; margin-top: 20px;">
-        Este e-mail foi enviado automaticamente pelo sistema Global Tools.
+        Este e-mail foi enviado automaticamente pelo sistema Comercial Global Aço.
       </p>
     </div>
   </div>

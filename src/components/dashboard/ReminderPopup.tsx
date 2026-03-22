@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bell, Calendar, Clock, Check, X, EyeOff } from 'lucide-react';
-import { useFollowUps, FollowUp, FollowUpType } from '@/hooks/useFollowUps';
+import { Bell, Calendar, Check, EyeOff, MapPin, ClipboardList } from 'lucide-react';
+import { useFollowUps, FollowUpType } from '@/hooks/useFollowUps';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
@@ -43,64 +44,168 @@ const followUpTypeColors: Record<FollowUpType, string> = {
   outro: "bg-slate-100 text-slate-800",
 };
 
+interface UnifiedReminder {
+  id: string;
+  type: 'budget_followup' | 'crm_visit' | 'crm_followup';
+  title: string;
+  subtitle?: string;
+  time: string;
+  badge: string;
+  badgeClass: string;
+  raw: any;
+}
+
 export function ReminderPopup() {
   const { getTodayReminders, markAsCompleted, hideForToday } = useFollowUps();
-  const [reminders, setReminders] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<UnifiedReminder[]>([]);
   const [open, setOpen] = useState(false);
   const [hiddenReminders, setHiddenReminders] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const { user } = useAuth();
 
   useEffect(() => {
-    const loadReminders = async () => {
+    const loadAllReminders = async () => {
       if (!user) return;
 
-      const todayReminders = await getTodayReminders();
-      if (todayReminders.length > 0) {
-        // Check if user has already seen reminders today in this session
-        const sessionKey = `reminders_shown_${user.id}_${new Date().toDateString()}`;
-        const hasSeenToday = sessionStorage.getItem(sessionKey);
-        
-        if (!hasSeenToday) {
-          setReminders(todayReminders);
-          setOpen(true);
-          sessionStorage.setItem(sessionKey, 'true');
+      const sessionKey = `reminders_shown_${user.id}_${new Date().toDateString()}`;
+      const hasSeenToday = sessionStorage.getItem(sessionKey);
+      if (hasSeenToday) return;
+
+      const unified: UnifiedReminder[] = [];
+
+      // 1. Budget follow-ups (existing)
+      const budgetReminders = await getTodayReminders();
+      for (const r of budgetReminders) {
+        unified.push({
+          id: `bf_${r.id}`,
+          type: 'budget_followup',
+          title: r.client_name || 'Cliente não informado',
+          subtitle: r.subject || r.budget_number ? `Pedido ${r.budget_number}` : undefined,
+          time: formatTime(r.scheduled_date),
+          badge: followUpTypeLabels[r.type as FollowUpType] || r.type,
+          badgeClass: followUpTypeColors[r.type as FollowUpType] || 'bg-muted text-muted-foreground',
+          raw: r,
+        });
+      }
+
+      // 2. CRM Visits for today
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+
+      const { data: visits } = await (supabase as any)
+        .from('crm_visits')
+        .select('id, visit_date, location, lead_id')
+        .eq('user_id', user.id)
+        .gte('visit_date', startOfDay)
+        .lt('visit_date', endOfDay)
+        .order('visit_date', { ascending: true });
+
+      if (visits?.length) {
+        // Fetch lead names
+        const leadIds = visits.map((v: any) => v.lead_id);
+        const { data: leads } = await supabase
+          .from('leads')
+          .select('id, cliente_nome, client_name, empresa')
+          .in('id', leadIds);
+        const leadMap: Record<string, string> = {};
+        leads?.forEach((l: any) => { leadMap[l.id] = l.empresa || l.client_name || l.cliente_nome || 'Lead'; });
+
+        for (const v of visits) {
+          unified.push({
+            id: `visit_${v.id}`,
+            type: 'crm_visit',
+            title: leadMap[v.lead_id] || 'Lead',
+            subtitle: v.location || undefined,
+            time: formatTime(v.visit_date),
+            badge: 'Visita/Reunião',
+            badgeClass: 'bg-primary/10 text-primary',
+            raw: v,
+          });
         }
+      }
+
+      // 3. CRM Follow-ups for today
+      const { data: followUps } = await supabase
+        .from('follow_ups')
+        .select('id, data_agendada, titulo, tipo, descricao, lead_id')
+        .eq('user_id', user.id)
+        .eq('concluido', false)
+        .gte('data_agendada', startOfDay)
+        .lt('data_agendada', endOfDay)
+        .order('data_agendada', { ascending: true });
+
+      if (followUps?.length) {
+        const leadIds = followUps.map(f => f.lead_id).filter(Boolean) as string[];
+        let leadMap: Record<string, string> = {};
+        if (leadIds.length) {
+          const { data: leads } = await supabase
+            .from('leads')
+            .select('id, cliente_nome, client_name, empresa')
+            .in('id', leadIds);
+          leads?.forEach((l: any) => { leadMap[l.id] = l.empresa || l.client_name || l.cliente_nome || 'Lead'; });
+        }
+
+        for (const f of followUps) {
+          unified.push({
+            id: `fu_${f.id}`,
+            type: 'crm_followup',
+            title: f.lead_id ? (leadMap[f.lead_id] || f.titulo) : f.titulo,
+            subtitle: f.descricao || undefined,
+            time: formatTime(f.data_agendada),
+            badge: 'Follow-up',
+            badgeClass: 'bg-accent text-accent-foreground',
+            raw: f,
+          });
+        }
+      }
+
+      // Sort by time
+      unified.sort((a, b) => a.time.localeCompare(b.time));
+
+      if (unified.length > 0) {
+        setReminders(unified);
+        setOpen(true);
+        sessionStorage.setItem(sessionKey, 'true');
       }
     };
 
-    // Only load reminders if user is logged in
     if (user) {
-      loadReminders();
+      loadAllReminders();
     }
-  }, [getTodayReminders, user]);
-
-  const handleMarkAsCompleted = async (id: string) => {
-    const success = await markAsCompleted(id);
-    if (success) {
-      setReminders(prev => prev.filter(r => r.id !== id));
-      if (reminders.length <= 1) {
-        setOpen(false);
-      }
-      // Navigate to follow-up section
-      navigate('/?tab=followup');
-    }
-  };
-
-  const handleHideForToday = async (id: string) => {
-    const success = await hideForToday(id);
-    if (success) {
-      setHiddenReminders(prev => new Set([...prev, id]));
-      setReminders(prev => prev.filter(r => r.id !== id));
-      if (reminders.length <= 1) {
-        setOpen(false);
-      }
-    }
-  };
+  }, [user]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleAction = async (reminder: UnifiedReminder) => {
+    if (reminder.type === 'budget_followup') {
+      await markAsCompleted(reminder.raw.id);
+      navigate('/?tab=followup');
+    } else if (reminder.type === 'crm_visit' || reminder.type === 'crm_followup') {
+      navigate('/crm');
+    }
+    setReminders(prev => prev.filter(r => r.id !== reminder.id));
+    if (reminders.length <= 1) setOpen(false);
+  };
+
+  const handleHide = async (reminder: UnifiedReminder) => {
+    if (reminder.type === 'budget_followup') {
+      await hideForToday(reminder.raw.id);
+    }
+    setHiddenReminders(prev => new Set([...prev, reminder.id]));
+    setReminders(prev => prev.filter(r => r.id !== reminder.id));
+    if (reminders.length <= 1) setOpen(false);
+  };
+
+  const getIcon = (type: UnifiedReminder['type']) => {
+    switch (type) {
+      case 'crm_visit': return <MapPin className="h-3.5 w-3.5 text-primary" />;
+      case 'crm_followup': return <ClipboardList className="h-3.5 w-3.5 text-accent-foreground" />;
+      default: return <Calendar className="h-3.5 w-3.5 text-muted-foreground" />;
+    }
   };
 
   if (reminders.length === 0) return null;
@@ -110,11 +215,11 @@ export function ReminderPopup() {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-blue-600" />
-            Lembretes de Hoje
+            <Bell className="h-5 w-5 text-primary" />
+            Compromissos de Hoje
           </DialogTitle>
           <DialogDescription>
-            Você tem {reminders.length} lembrete{reminders.length > 1 ? 's' : ''} para hoje.
+            Você tem {reminders.length} compromisso{reminders.length > 1 ? 's' : ''} para hoje.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,33 +232,31 @@ export function ReminderPopup() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <Badge className={followUpTypeColors[reminder.type]}>
-                      {followUpTypeLabels[reminder.type]}
+                    {getIcon(reminder.type)}
+                    <Badge className={reminder.badgeClass}>
+                      {reminder.badge}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {formatTime(reminder.scheduled_date)}
+                      {reminder.time}
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <p className="font-medium text-sm">
-                    {reminder.client_name || 'Cliente não informado'}
-                    {reminder.budget_number && ` - Pedido ${reminder.budget_number}`}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {reminder.subject}
-                  </p>
+                  <p className="font-medium text-sm">{reminder.title}</p>
+                  {reminder.subtitle && (
+                    <p className="text-sm text-muted-foreground">{reminder.subtitle}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-2">
                   <Button
                     size="sm"
-                    onClick={() => handleMarkAsCompleted(reminder.id)}
+                    onClick={() => handleAction(reminder)}
                     className="flex-1 h-8"
                   >
                     <Check className="h-3 w-3 mr-1" />
-                    Ir para a Atividade
+                    {reminder.type === 'budget_followup' ? 'Ir para a Atividade' : 'Ir para o CRM'}
                   </Button>
                   <TooltipProvider>
                     <Tooltip>
@@ -161,7 +264,7 @@ export function ReminderPopup() {
                         <Button
                           size="sm"
                           variant={hiddenReminders.has(reminder.id) ? "secondary" : "outline"}
-                          onClick={() => handleHideForToday(reminder.id)}
+                          onClick={() => handleHide(reminder)}
                           className={`h-8 ${hiddenReminders.has(reminder.id) ? 'bg-muted text-muted-foreground' : ''}`}
                         >
                           <EyeOff className="h-3 w-3" />

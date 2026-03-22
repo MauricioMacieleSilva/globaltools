@@ -199,7 +199,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
               Análise Financeira
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Anexe documentos (opcional) e adicione uma descrição para análise de <strong>{leadName}</strong>
+              Anexe documentos (opcional) e adicione uma descrição para análise de <strong>{leadEmpresa || leadName}</strong>
             </DialogDescription>
           </DialogHeader>
 

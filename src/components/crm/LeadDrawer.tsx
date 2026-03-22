@@ -329,26 +329,24 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       const lastNotes = activities.filter(a => a.description.includes('Análise Financeira'));
       const descricao = lastNotes.length > 0 ? lastNotes[0].description : '';
 
-      // Find admins/financeiro to send email to
-      const { data: adminRoles } = await (supabase as any)
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'admin');
-      const adminIds = (adminRoles || []).map((r: any) => r.user_id);
-
-      if (adminIds.length === 0) {
-        toast.error('Nenhum administrador encontrado para enviar');
-        return;
-      }
-
-      const { data: adminProfiles } = await supabase
+      // Find all users with email to send analysis to (admins)
+      const { data: allProfiles } = await supabase
         .from('user_profiles')
-        .select('id, email')
-        .in('id', adminIds);
+        .select('id, email, full_name');
 
-      const emails = (adminProfiles || []).map((p: any) => p.email).filter(Boolean);
+      // Filter profiles that have admin role by checking user_roles
+      const { data: adminRoles } = await supabase
+        .from('user_roles' as any)
+        .select('user_id')
+        .in('role', ['admin']);
+      const adminIds = new Set((adminRoles || []).map((r: any) => r.user_id));
+
+      const emails = (allProfiles || [])
+        .filter((p: any) => adminIds.has(p.id) && p.email)
+        .map((p: any) => p.email);
+
       if (emails.length === 0) {
-        toast.error('Nenhum e-mail de administrador encontrado');
+        toast.error('Nenhum destinatário encontrado para enviar');
         return;
       }
 

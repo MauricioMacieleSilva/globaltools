@@ -78,6 +78,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       setNewNote('');
       loadActivities(lead.id);
       loadNextVisit(lead.id);
+      loadNextFollowUp(lead.id);
     }
   }, [lead?.id, open]);
 

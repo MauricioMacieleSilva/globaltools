@@ -272,10 +272,10 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
             <AlertDialogDescription>
               {files.length > 0 ? (
                 <>
-                  <strong>{files.length}</strong> documento{files.length > 1 ? 's' : ''} será{files.length > 1 ? 'ão' : ''} enviado{files.length > 1 ? 's' : ''} junto com a solicitação de análise financeira de <strong>{leadName}</strong>.
+                  <strong>{files.length}</strong> documento{files.length > 1 ? 's' : ''} será{files.length > 1 ? 'ão' : ''} enviado{files.length > 1 ? 's' : ''} junto com a solicitação de análise financeira de <strong>{leadEmpresa || leadName}</strong>.
                 </>
               ) : (
-                <>A solicitação de análise financeira de <strong>{leadName}</strong> será enviada por e-mail.</>
+                <>A solicitação de análise financeira de <strong>{leadEmpresa || leadName}</strong> será enviada por e-mail.</>
               )}
               {description.trim() && (
                 <span className="block mt-2 text-xs italic">Descrição: "{description.trim()}"</span>

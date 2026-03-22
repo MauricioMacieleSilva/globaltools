@@ -73,6 +73,8 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [addOrderOpen, setAddOrderOpen] = useState(false);
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [nextFollowUp, setNextFollowUp] = useState<{ id: string; data_agendada: string; titulo: string; tipo: string } | null>(null);
+  const [analiseResponseOpen, setAnaliseResponseOpen] = useState(false);
+  const [sendingAnalise, setSendingAnalise] = useState(false);
 
   useEffect(() => {
     if (lead?.id && open) {

@@ -284,6 +284,13 @@ export default function CRM() {
       return;
     }
 
+    // Intercept analise_financeira: require document attachment
+    if (newStatus === 'analise_financeira') {
+      setPendingAnaliseLead(lead);
+      setAnaliseFinOpen(true);
+      return;
+    }
+
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const oldStatus = lead.status;
@@ -305,13 +312,15 @@ export default function CRM() {
         user_id: user?.id || '',
       } as any);
 
-      // Register contact on every stage move
-      await supabase.from('lead_activities').insert({
-        lead_id: leadId,
-        activity_type: 'contato_inicial',
-        description: 'Contato registrado via movimentação CRM',
-        user_id: user?.id || '',
-      } as any);
+      // Register contact on every stage move (except analise_financeira — handled separately)
+      if (newStatus !== 'analise_financeira') {
+        await supabase.from('lead_activities').insert({
+          lead_id: leadId,
+          activity_type: 'contato_inicial',
+          description: 'Contato registrado via movimentação CRM',
+          user_id: user?.id || '',
+        } as any);
+      }
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
     } catch (error) {

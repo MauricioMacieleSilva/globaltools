@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Comercial Global Aço <onboarding@resend.dev>",
         to: [destinatarioEmail],
-        subject: `📋 Análise Financeira — ${empresa || leadName}${budgetNumber ? ` — Pedido ${budgetNumber}` : ''}`,
+        subject: `📋 Análise Financeira — ${empresa || leadName}${budgetNumber ? ` | Pedido ${budgetNumber}` : ''}`,
         html: htmlBody,
       }),
     });

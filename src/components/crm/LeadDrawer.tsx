@@ -366,10 +366,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       const { data: userData } = await supabase.auth.getUser();
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', userData.user?.id || '').maybeSingle();
 
-      // Get last note with description for context
-      const lastNotes = activities.filter(a => a.description.includes('Análise Financeira'));
-      const descricao = lastNotes.length > 0 ? lastNotes[0].description : '';
-
       // Get admin emails using security definer function (bypasses RLS)
       const { data: adminEmails, error: adminError } = await supabase.rpc('get_admin_emails' as any);
       
@@ -394,10 +390,8 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             estado: lead.estado,
             ramoAtuacao: lead.ramo_atuacao,
             produtoInteresse: lead.produto_interesse,
-            valorEstimado: lead.valor_estimado,
+            valorEstimado: orderValue,
             budgetNumber: lead.budget_number,
-            observacoes: lead.notes,
-            descricao,
             destinatarioEmail: email,
             remetenteNome: profile?.full_name || 'Comercial',
             appUrl,

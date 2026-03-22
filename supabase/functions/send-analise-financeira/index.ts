@@ -92,9 +92,9 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: "Comercial Global Aço <onboarding@resend.dev>",
+        from: "Financeiro Global Aço <onboarding@resend.dev>",
         to: [destinatarioEmail],
-        subject: `📋 Análise Financeira — ${empresa || leadName}`,
+        subject: `📋 Análise Financeira — ${empresa || leadName}${budgetNumber ? ` — Pedido ${budgetNumber}` : ''}`,
         html: htmlBody,
       }),
     });

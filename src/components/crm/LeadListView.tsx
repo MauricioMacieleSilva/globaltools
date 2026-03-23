@@ -147,7 +147,7 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
               <Card key={lead.id} className="p-3">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onLeadClick(lead)}>
-                    <p className="text-sm font-semibold text-foreground truncate">{lead.client_name || lead.cliente_nome}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
                     {lead.empresa && <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>}
                   </div>
                   <div className="flex items-center gap-1 ml-2 shrink-0">

@@ -292,6 +292,18 @@ export default function CRM() {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return;
 
+    // Ownership check
+    if (!isOwnerOrManager(lead)) {
+      setOwnershipWarning({
+        open: true,
+        ownerName: lead.vendedor?.full_name || 'Outro usuário',
+        ownerAvatarUrl: lead.vendedor?.avatar_url || null,
+        entityName: lead.empresa || lead.client_name || lead.cliente_nome,
+        leadId: lead.id,
+      });
+      return;
+    }
+
     if (newStatus === 'perdido') {
       setPendingLostLead(lead);
       setLostDialogOpen(true);

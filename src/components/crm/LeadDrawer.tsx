@@ -770,7 +770,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
             <AlertDialogDescription>
-              Deseja mover o lead <strong>{lead?.client_name || lead?.cliente_nome}</strong> para <strong>{pendingMove?.label}</strong>?
+              Deseja mover o lead <strong>{lead?.empresa || lead?.client_name || lead?.cliente_nome}</strong> para <strong>{pendingMove?.label}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -74,20 +74,15 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           }
         });
 
-      // Fetch latest financial analysis result
+      // Fetch financial parecer directly from leads table
       (supabase as any)
-        .from('lead_activities')
-        .select('description')
-        .eq('lead_id', lead.id)
-        .ilike('description', 'Análise Financeira — Parecer:%')
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .from('leads')
+        .select('finance_parecer')
+        .eq('id', lead.id)
+        .maybeSingle()
         .then(({ data }: any) => {
-          if (!cancelled && data?.[0]) {
-            const desc: string = data[0].description;
-            if (desc.includes('Aprovado')) setFinanceParecer('aprovado');
-            else if (desc.includes('Precisa de mais informações')) setFinanceParecer('precisa_info');
-            else if (desc.includes('Pagamento antecipado')) setFinanceParecer('pagamento_antecipado');
+          if (!cancelled && data?.finance_parecer) {
+            setFinanceParecer(data.finance_parecer);
           }
         });
     });

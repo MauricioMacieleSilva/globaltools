@@ -11,7 +11,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { leadId, leadName, empresa, cnpj, cidade, estado, budgetNumber, valorEstimado, parecer, parecerTipo, consideracoes, analistaNome, destinatarioEmail, appUrl } = await req.json();
+    const {
+      leadId, leadName, empresa, cnpj, cidade, estado,
+      budgetNumber, valorEstimado, parecer, parecerTipo,
+      consideracoes, analistaNome, destinatarioEmail, appUrl,
+      ramoAtuacao, produtoInteresse, website, regimeTributario,
+      telefone, emailContato,
+    } = await req.json();
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
@@ -22,7 +28,6 @@ Deno.serve(async (req) => {
     const localidade = [cidade, estado].filter(Boolean).join(" / ");
     const valor = valorEstimado ? `R$ ${Number(valorEstimado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Não informado";
 
-    // Color based on parecer type
     let parecerColor = "#2563eb";
     let parecerIcon = "📋";
     if (parecerTipo === "aprovado") {
@@ -34,6 +39,34 @@ Deno.serve(async (req) => {
     } else if (parecerTipo === "pagamento_antecipado") {
       parecerColor = "#2563eb";
       parecerIcon = "💳";
+    }
+
+    // Build optional data rows
+    const dataRows: string[] = [];
+
+    const addRow = (label: string, value: string | null | undefined) => {
+      if (value) {
+        dataRows.push(`
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px 0; color: #666; font-size: 13px; width: 160px;">${label}</td>
+          <td style="padding: 8px 0; color: #333; font-size: 13px; font-weight: 600;">${value}</td>
+        </tr>`);
+      }
+    };
+
+    addRow("Empresa/Cliente", empresa || leadName);
+    addRow("CNPJ", cnpj);
+    addRow("Localidade", localidade);
+    addRow("Ramo de Atuação", ramoAtuacao);
+    addRow("Regime Tributário", regimeTributario);
+    addRow("Produto de Interesse", produtoInteresse);
+    addRow("Valor do Pedido", valor);
+    addRow("Pedido(s)", budgetNumber);
+    addRow("Telefone", telefone);
+    addRow("E-mail", emailContato);
+    if (website) {
+      const siteUrl = website.startsWith("http") ? website : `https://${website}`;
+      addRow("Website", `<a href="${siteUrl}" style="color: #2563eb; text-decoration: none;">${website}</a>`);
     }
 
     const htmlBody = `
@@ -52,30 +85,17 @@ Deno.serve(async (req) => {
       
       <div style="background: ${parecerColor}10; border-left: 4px solid ${parecerColor}; padding: 12px 16px; border-radius: 0 6px 6px 0; margin-bottom: 20px;">
         <p style="margin: 0; font-size: 16px; font-weight: 700; color: ${parecerColor};">${parecerIcon} ${parecer}</p>
-        ${consideracoes ? `<p style="margin: 8px 0 0 0; font-size: 13px; color: #555;">${consideracoes}</p>` : ""}
       </div>
 
+      ${consideracoes ? `
+      <div style="background: #f8f9fa; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;">
+        <p style="margin: 0 0 4px 0; font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase;">Considerações do Financeiro</p>
+        <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">${consideracoes}</p>
+      </div>
+      ` : ""}
+
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-        <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px; width: 140px;">Empresa/Cliente</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px; font-weight: 600;">${empresa || leadName}</td>
-        </tr>
-        ${cnpj ? `<tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">CNPJ</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px;">${cnpj}</td>
-        </tr>` : ""}
-        ${localidade ? `<tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">Localidade</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px;">${localidade}</td>
-        </tr>` : ""}
-        <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">Valor do Pedido</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px; font-weight: 600;">${valor}</td>
-        </tr>
-        ${budgetNumber ? `<tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">Pedido(s)</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px;">${budgetNumber}</td>
-        </tr>` : ""}
+        ${dataRows.join("")}
       </table>
 
       <div style="text-align: center; margin-top: 24px;">

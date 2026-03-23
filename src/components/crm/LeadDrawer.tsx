@@ -75,7 +75,22 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [nextFollowUp, setNextFollowUp] = useState<{ id: string; data_agendada: string; titulo: string; tipo: string } | null>(null);
   const [analiseResponseOpen, setAnaliseResponseOpen] = useState(false);
-  
+  const [canAccessFinanceiro, setCanAccessFinanceiro] = useState(false);
+
+  useEffect(() => {
+    const checkFinanceAccess = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) return;
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+      const role = (roleData as any)?.role;
+      setCanAccessFinanceiro(role === 'admin' || role === 'financeiro' || role === 'comercial');
+    };
+    checkFinanceAccess();
+  }, []);
 
   useEffect(() => {
     if (lead?.id && open) {
@@ -605,7 +620,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
-              {lead.status === 'analise_financeira' ? (
+              {lead.status === 'analise_financeira' && canAccessFinanceiro ? (
                 <Button size="sm" onClick={() => setAnaliseResponseOpen(true)} className="gap-1.5 bg-blue-600 hover:bg-blue-700">
                   <FileText className="h-3.5 w-3.5" />
                   Análise Financeira
@@ -862,6 +877,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         leadEstado={lead.estado}
         leadBudgetNumber={lead.budget_number}
         leadValor={orderValue ?? undefined}
+        leadRamoAtuacao={lead.ramo_atuacao}
+        leadProdutoInteresse={lead.produto_interesse}
+        leadWebsite={lead.website}
+        leadRegimeTributario={lead.regime_tributario}
+        leadTelefone={lead.cliente_telefone}
+        leadEmail={lead.cliente_email}
         onConfirm={() => {
           loadActivities(lead.id);
           onLeadUpdated();

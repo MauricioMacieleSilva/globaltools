@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'comercial' | 'operacional' | 'visitante' | 'sdr'
+export type UserRole = 'admin' | 'comercial' | 'operacional' | 'visitante' | 'sdr' | 'financeiro'
 
 export interface UserProfile {
   id: string
@@ -23,6 +23,7 @@ export const hasPermission = (userRole: UserRole, requiredRole: UserRole): boole
   const roleHierarchy: Record<UserRole, number> = {
     admin: 4,
     comercial: 3,
+    financeiro: 3,
     operacional: 2,
     sdr: 2,
     visitante: 1

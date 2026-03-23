@@ -30,6 +30,12 @@ interface AnaliseFinanceiraResponseDialogProps {
   leadEstado?: string;
   leadBudgetNumber?: string;
   leadValor?: number;
+  leadRamoAtuacao?: string;
+  leadProdutoInteresse?: string;
+  leadWebsite?: string;
+  leadRegimeTributario?: string;
+  leadTelefone?: string;
+  leadEmail?: string;
   onConfirm: () => void;
 }
 
@@ -46,7 +52,7 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadBudgetNumber, leadValor, onConfirm }: AnaliseFinanceiraResponseDialogProps) {
+export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadBudgetNumber, leadValor, leadRamoAtuacao, leadProdutoInteresse, leadWebsite, leadRegimeTributario, leadTelefone, leadEmail, onConfirm }: AnaliseFinanceiraResponseDialogProps) {
   const [parecer, setParecer] = useState<string>('');
   const [consideracoes, setConsideracoes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -108,7 +114,14 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
         sdr_name: userName,
       } as any);
 
-      await (supabase as any).from('leads').update({ updated_at: new Date().toISOString() }).eq('id', leadId);
+      // Save parecer to leads table for persistence
+      await (supabase as any).from('leads').update({
+        updated_at: new Date().toISOString(),
+        finance_parecer: parecer,
+        finance_consideracoes: consideracoes.trim() || null,
+        finance_analyst_name: userName,
+        finance_parecer_at: new Date().toISOString(),
+      }).eq('id', leadId);
 
       const { data: requestActivity } = await supabase
         .from('lead_activities')
@@ -159,6 +172,12 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
             analistaNome: userName,
             destinatarioEmail: email,
             appUrl,
+            ramoAtuacao: leadRamoAtuacao || null,
+            produtoInteresse: leadProdutoInteresse || null,
+            website: leadWebsite || null,
+            regimeTributario: leadRegimeTributario || null,
+            telefone: leadTelefone || null,
+            emailContato: leadEmail || null,
           },
         });
       }

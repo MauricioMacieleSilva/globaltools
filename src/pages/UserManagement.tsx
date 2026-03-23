@@ -20,6 +20,7 @@ import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog'
 import { DefaultPermissionsConfig } from '@/components/admin/DefaultPermissionsConfig'
 import { GoalsManagement } from '@/components/admin/GoalsManagement'
 import { VendorGoalsManagement } from '@/components/admin/VendorGoalsManagement'
+import { LeadClientAssignment } from '@/components/admin/LeadClientAssignment'
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([])

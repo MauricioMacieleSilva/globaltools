@@ -52,6 +52,8 @@ interface ExistingLead {
   contact_phone: string | null;
   contact_email: string | null;
   finance_parecer: string | null;
+  budget_number: string | null;
+  linked_orders_meta: any;
 }
 
 const DEFAULT_ORIGENS_FALLBACK = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];
@@ -156,7 +158,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     try {
       const { data } = await (supabase as any)
         .from('leads')
-        .select('id, cliente_nome, empresa, cliente_telefone, cliente_email, cliente_cnpj, source, produto_interesse, notes, website, ramo_atuacao, regime_tributario, estado, cidade, status, contact_name, contact_phone, contact_email, finance_parecer')
+        .select('id, cliente_nome, empresa, cliente_telefone, cliente_email, cliente_cnpj, source, produto_interesse, notes, website, ramo_atuacao, regime_tributario, estado, cidade, status, contact_name, contact_phone, contact_email, finance_parecer, budget_number, linked_orders_meta')
         .order('updated_at', { ascending: false });
       setExistingLeads(data || []);
     } catch { setExistingLeads([]); }
@@ -332,10 +334,67 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
            if (activitiesError) throw activitiesError;
          }
 
+        // Build rich reopening description with loss reason and/or order info
+        let reopenDesc = `Lead reaberto a partir de negociação anterior (${selectedLead.empresa || selectedLead.cliente_nome}). Status anterior: ${statusLabel(selectedLead.status)}.`;
+
+        // If lost, fetch the loss reason
+        if (selectedLead.status === 'perdido') {
+          const { data: disposition } = await (supabase as any)
+            .from('lead_dispositions')
+            .select('reason, custom_reason, notes, disposition_type')
+            .eq('lead_id', selectedLead.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (disposition) {
+            const reasonMap: Record<string, string> = {
+              'preco': 'Preço',
+              'concorrencia': 'Concorrência',
+              'prazo': 'Prazo',
+              'sem_retorno': 'Sem retorno',
+              'sem_interesse': 'Sem interesse',
+              'nao_atende': 'Não atende',
+              'lost': 'Perdido',
+              'outro': 'Outro',
+            };
+            const reasonLabel = reasonMap[disposition.reason] || disposition.reason || disposition.disposition_type || 'Não informado';
+            const extra = disposition.custom_reason || disposition.notes || '';
+            reopenDesc += ` Motivo da perda: ${reasonLabel}${extra ? ` — ${extra}` : ''}.`;
+          }
+        }
+
+        // If had linked orders/budget, fetch order details
+        if (selectedLead.budget_number) {
+          const { data: orderData } = await (supabase as any)
+            .from('pedidos')
+            .select('numero_pedido, valor_total')
+            .eq('numero_pedido', selectedLead.budget_number)
+            .maybeSingle();
+
+          if (orderData) {
+            const valorFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(orderData.valor_total || 0);
+            reopenDesc += ` Pedido anterior: ${orderData.numero_pedido} (${valorFormatted}).`;
+          }
+        }
+
+        // Also check linked_orders_meta for order info
+        if (selectedLead.linked_orders_meta && typeof selectedLead.linked_orders_meta === 'object') {
+          const meta = selectedLead.linked_orders_meta as any;
+          const orders = Array.isArray(meta) ? meta : (meta.orders || []);
+          if (orders.length > 0) {
+            const orderParts = orders.map((o: any) => {
+              const val = o.valor_total ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(o.valor_total) : '';
+              return `${o.numero_pedido || o.number || '?'}${val ? ` (${val})` : ''}`;
+            });
+            reopenDesc += ` Pedidos vinculados: ${orderParts.join(', ')}.`;
+          }
+        }
+
         await (supabase as any).from('lead_activities').insert({
           lead_id: newLead.id,
           activity_type: 'nota',
-          description: `Lead reaberto a partir de negociação anterior (${selectedLead.empresa || selectedLead.cliente_nome}). Status anterior: ${statusLabel(selectedLead.status)}.`,
+          description: reopenDesc,
           user_id: user?.id || '',
         });
       }

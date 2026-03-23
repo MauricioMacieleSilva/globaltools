@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowUpDown, Edit2, Trash2, Eye, MoreHorizontal, RotateCcw } from 'lucide-react';
+import { Search, ArrowUpDown, Edit2, Trash2, Eye, MoreHorizontal, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,8 @@ import { CRM_STAGES, type CRMLead } from '@/pages/CRM';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card } from '@/components/ui/card';
 import { LeadEditDialog } from './LeadEditDialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { usePagination } from '@/hooks/usePagination';
 
 interface LeadListViewProps {
   leads: CRMLead[];
@@ -68,7 +70,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
     });
 
     return result;
-  }, [leads, search, statusFilter, dateFilter, sortKey, sortAsc]);
+   }, [leads, search, statusFilter, dateFilter, sortKey, sortAsc]);
+
+  const { paginatedData, currentPage, totalPages, startIndex, endIndex, goToPage, nextPage, previousPage, canGoNext, canGoPrevious } = usePagination({ data: filteredLeads, itemsPerPage: 50 });
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -140,42 +144,59 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
             </Select>
           </div>
         </div>
-        <div className="space-y-2">
-          {filteredLeads.map(lead => {
-            const stage = CRM_STAGES.find(s => s.key === lead.status);
-            return (
-              <Card key={lead.id} className="p-3">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onLeadClick(lead)}>
-                    <p className="text-sm font-semibold text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
-                    {lead.empresa && <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>}
+        <ScrollArea className="h-[calc(100vh-280px)]">
+          <div className="space-y-2">
+            {paginatedData.map(lead => {
+              const stage = CRM_STAGES.find(s => s.key === lead.status);
+              return (
+                <Card key={lead.id} className="p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onLeadClick(lead)}>
+                      <p className="text-sm font-semibold text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
+                      {lead.empresa && <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                      {stage && <Badge style={{ backgroundColor: stage.color, color: '#fff' }} className="text-[10px]">{stage.label}</Badge>}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onLeadClick(lead)}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditLead(lead)}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
+                          {lead.status === 'perdido' && (
+                            <DropdownMenuItem onClick={() => handleReactivate(lead)}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 ml-2 shrink-0">
-                    {stage && <Badge style={{ backgroundColor: stage.color, color: '#fff' }} className="text-[10px]">{stage.label}</Badge>}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onLeadClick(lead)}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditLead(lead)}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
-                        {lead.status === 'perdido' && (
-                          <DropdownMenuItem onClick={() => handleReactivate(lead)}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                    <span>{lead.source || lead.origem || '—'}</span>
+                    <span>{new Date(lead.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                  <span>{lead.source || lead.origem || '—'}</span>
-                  <span>{new Date(lead.created_at).toLocaleDateString('pt-BR')}</span>
-                </div>
-              </Card>
-            );
-          })}
-          {filteredLeads.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum lead encontrado</p>}
-        </div>
+                </Card>
+              );
+            })}
+            {filteredLeads.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum lead encontrado</p>}
+          </div>
+        </ScrollArea>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-muted-foreground">{startIndex}–{endIndex} de {filteredLeads.length}</p>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" disabled={!canGoPrevious} onClick={previousPage} className="h-8 px-2">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground px-2">{currentPage}/{totalPages}</span>
+              <Button size="sm" variant="outline" disabled={!canGoNext} onClick={nextPage} className="h-8 px-2">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         <LeadEditDialog lead={editLead} open={!!editLead} onOpenChange={(v) => !v && setEditLead(null)} onUpdated={onLeadUpdated} />
         <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
@@ -220,62 +241,80 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
         </Select>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead><SortHeader label="Cliente" sortKeyName="cliente_nome" /></TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead><SortHeader label="Status" sortKeyName="status" /></TableHead>
-              <TableHead>Origem</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead><SortHeader label="Criado em" sortKeyName="created_at" /></TableHead>
-              <TableHead><SortHeader label="Atualizado" sortKeyName="updated_at" /></TableHead>
-              <TableHead className="w-[80px]">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredLeads.map(lead => {
-              const stage = CRM_STAGES.find(s => s.key === lead.status);
-              return (
-                <TableRow key={lead.id} className="cursor-pointer hover:bg-accent/50" onClick={() => onLeadClick(lead)}>
-                  <TableCell className="font-medium text-sm">{lead.empresa || lead.client_name || lead.cliente_nome}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{lead.empresa || '—'}</TableCell>
-                  <TableCell>
-                    {stage ? <Badge style={{ backgroundColor: stage.color, color: '#fff' }} className="text-[10px]">{stage.label}</Badge>
-                      : <Badge variant="outline" className="text-[10px]">{lead.status}</Badge>}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{lead.source || lead.origem || '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{lead.contact_phone || lead.cliente_telefone || '—'}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{new Date(lead.created_at).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{new Date(lead.updated_at).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => e.stopPropagation()}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onLeadClick(lead); }}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditLead(lead); }}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
-                        {lead.status === 'perdido' && (
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReactivate(lead); }}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {filteredLeads.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">Nenhum lead encontrado</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
+      <ScrollArea className="h-[calc(100vh-280px)]">
+        <div className="rounded-lg border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead><SortHeader label="Cliente" sortKeyName="cliente_nome" /></TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead><SortHeader label="Status" sortKeyName="status" /></TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead><SortHeader label="Criado em" sortKeyName="created_at" /></TableHead>
+                <TableHead><SortHeader label="Atualizado" sortKeyName="updated_at" /></TableHead>
+                <TableHead className="w-[80px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.map(lead => {
+                const stage = CRM_STAGES.find(s => s.key === lead.status);
+                return (
+                  <TableRow key={lead.id} className="cursor-pointer hover:bg-accent/50" onClick={() => onLeadClick(lead)}>
+                    <TableCell className="font-medium text-sm">{lead.empresa || lead.client_name || lead.cliente_nome}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{lead.empresa || '—'}</TableCell>
+                    <TableCell>
+                      {stage ? <Badge style={{ backgroundColor: stage.color, color: '#fff' }} className="text-[10px]">{stage.label}</Badge>
+                        : <Badge variant="outline" className="text-[10px]">{lead.status}</Badge>}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{lead.source || lead.origem || '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{lead.contact_phone || lead.cliente_telefone || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{new Date(lead.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{new Date(lead.updated_at).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => e.stopPropagation()}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onLeadClick(lead); }}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditLead(lead); }}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
+                          {lead.status === 'perdido' && (
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReactivate(lead); }}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {filteredLeads.length === 0 && (
+                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">Nenhum lead encontrado</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </ScrollArea>
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {filteredLeads.length > 0 ? `${startIndex}–${endIndex} de ${filteredLeads.length} lead(s)` : '0 lead(s) encontrado(s)'}
+        </p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="outline" disabled={!canGoPrevious} onClick={previousPage} className="h-8 px-2">
+              <ChevronLeft className="h-4 w-4" /> <span className="ml-1 text-xs">Anterior</span>
+            </Button>
+            <span className="text-xs text-muted-foreground px-2">Página {currentPage} de {totalPages}</span>
+            <Button size="sm" variant="outline" disabled={!canGoNext} onClick={nextPage} className="h-8 px-2">
+              <span className="mr-1 text-xs">Próxima</span> <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
-      <p className="text-xs text-muted-foreground">{filteredLeads.length} lead(s) encontrado(s)</p>
 
       <LeadEditDialog lead={editLead} open={!!editLead} onOpenChange={(v) => !v && setEditLead(null)} onUpdated={onLeadUpdated} />
 

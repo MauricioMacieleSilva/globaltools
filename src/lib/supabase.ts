@@ -23,6 +23,7 @@ export const hasPermission = (userRole: UserRole, requiredRole: UserRole): boole
   const roleHierarchy: Record<UserRole, number> = {
     admin: 4,
     comercial: 3,
+    financeiro: 3,
     operacional: 2,
     sdr: 2,
     visitante: 1

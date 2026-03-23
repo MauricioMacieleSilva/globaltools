@@ -52,7 +52,7 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadBudgetNumber, leadValor, onConfirm }: AnaliseFinanceiraResponseDialogProps) {
+export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, leadName, leadEmpresa, leadCnpj, leadCidade, leadEstado, leadBudgetNumber, leadValor, leadRamoAtuacao, leadProdutoInteresse, leadWebsite, leadRegimeTributario, leadTelefone, leadEmail, onConfirm }: AnaliseFinanceiraResponseDialogProps) {
   const [parecer, setParecer] = useState<string>('');
   const [consideracoes, setConsideracoes] = useState('');
   const [submitting, setSubmitting] = useState(false);

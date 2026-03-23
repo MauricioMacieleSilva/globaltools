@@ -24,6 +24,9 @@ interface Visit {
   notes: string | null;
   lead_name?: string;
   lead_status?: string;
+  type: 'visit' | 'followup';
+  followup_tipo?: string;
+  followup_titulo?: string;
 }
 
 interface VisitCalendarProps {
@@ -47,19 +50,32 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
   }, []);
 
   const loadVisits = async () => {
-    const { data } = await (supabase as any)
-      .from('crm_visits')
-      .select('*')
-      .gte('visit_date', new Date(Date.now() - 90 * 86400000).toISOString())
-      .order('visit_date', { ascending: true });
+    const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
 
-    if (data) {
-      const enriched = data.map((v: any) => {
-        const lead = leads.find(l => l.id === v.lead_id);
-        return { ...v, lead_name: lead?.client_name || lead?.cliente_nome || 'Lead', lead_status: lead?.status };
-      });
-      setVisits(enriched);
-    }
+    const [visitsRes, followupsRes] = await Promise.all([
+      (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true }),
+      (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', cutoff).order('data_agendada', { ascending: true }),
+    ]);
+
+    const enrichedVisits: Visit[] = (visitsRes.data || []).map((v: any) => {
+      const lead = leads.find(l => l.id === v.lead_id);
+      return { ...v, lead_name: lead?.client_name || lead?.cliente_nome || 'Lead', lead_status: lead?.status, type: 'visit' as const };
+    });
+
+    const enrichedFollowups: Visit[] = (followupsRes.data || []).map((f: any) => {
+      const lead = leads.find(l => l.id === f.lead_id);
+      return {
+        id: f.id, lead_id: f.lead_id, visit_date: f.data_agendada,
+        location: null, notes: f.descricao,
+        lead_name: lead?.client_name || lead?.cliente_nome || 'Lead', lead_status: lead?.status,
+        type: 'followup' as const, followup_tipo: f.tipo, followup_titulo: f.titulo,
+      };
+    });
+
+    const all = [...enrichedVisits, ...enrichedFollowups].sort(
+      (a, b) => new Date(a.visit_date).getTime() - new Date(b.visit_date).getTime()
+    );
+    setVisits(all);
     setLoading(false);
   };
 
@@ -70,10 +86,7 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
 
   const handleVisitUpdated = () => {
     loadVisits();
-    // Refresh day detail dialog if open
-    if (selectedDayVisits) {
-      setSelectedDayVisits(null);
-    }
+    if (selectedDayVisits) setSelectedDayVisits(null);
   };
 
   // Group by date
@@ -86,32 +99,22 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
 
   const sortedDates = Object.keys(grouped).sort();
 
-  // Build calendar grid for current month
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const calStart = startOfWeek(monthStart, { locale: ptBR });
     const calEnd = endOfWeek(monthEnd, { locale: ptBR });
-
     const days: Date[] = [];
     let day = calStart;
-    while (day <= calEnd) {
-      days.push(day);
-      day = addDays(day, 1);
-    }
+    while (day <= calEnd) { days.push(day); day = addDays(day, 1); }
     return days;
   }, [currentMonth]);
 
-  const getVisitsForDay = (date: Date): Visit[] => {
-    const key = format(date, 'yyyy-MM-dd');
-    return grouped[key] || [];
-  };
+  const getVisitsForDay = (date: Date): Visit[] => grouped[format(date, 'yyyy-MM-dd')] || [];
 
   const handleDayClick = (date: Date) => {
     const dayVisits = getVisitsForDay(date);
-    if (dayVisits.length > 0) {
-      setSelectedDayVisits({ date, visits: dayVisits });
-    }
+    if (dayVisits.length > 0) setSelectedDayVisits({ date, visits: dayVisits });
   };
 
   if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando agenda...</p>;
@@ -119,36 +122,39 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
   const VisitCard = ({ visit, showEdit = true }: { visit: Visit; showEdit?: boolean }) => {
     const lead = leads.find(l => l.id === visit.lead_id);
     const today = isToday(new Date(visit.visit_date));
+    const isFollowup = visit.type === 'followup';
     return (
       <Card
-        className={`p-3 cursor-pointer hover:shadow-md transition-shadow ${today ? 'border-primary/30' : ''}`}
+        className={cn('p-3 cursor-pointer hover:shadow-md transition-shadow', today && 'border-primary/30', isFollowup && 'border-l-4 border-l-amber-500')}
         onClick={() => lead && onLeadClick(lead)}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{visit.lead_name}</p>
+            <div className="flex items-center gap-1.5">
+              {isFollowup && (
+                <Badge variant="outline" className="text-[10px] h-4 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+                  Follow-up
+                </Badge>
+              )}
+              <p className="text-sm font-semibold text-foreground truncate">{visit.lead_name}</p>
+            </div>
+            {isFollowup && visit.followup_titulo && (
+              <p className="text-xs text-muted-foreground truncate">{visit.followup_titulo}</p>
+            )}
             {visit.location && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <MapPin className="h-3 w-3 shrink-0" /> {visit.location}
               </p>
             )}
-            {visit.notes && (
-              <p className="text-xs text-muted-foreground truncate">{visit.notes}</p>
-            )}
+            {visit.notes && <p className="text-xs text-muted-foreground truncate">{visit.notes}</p>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               {format(new Date(visit.visit_date), 'HH:mm')}
             </div>
-            {showEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => handleEditClick(e, visit)}
-                title="Editar visita"
-              >
+            {showEdit && !isFollowup && (
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleEditClick(e, visit)} title="Editar visita">
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             )}
@@ -160,36 +166,23 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
 
   return (
     <div className="space-y-4">
-      {/* Toggle buttons */}
       <div className="flex items-center gap-2">
-        <Button
-          variant={viewMode === 'list' ? 'default' : 'outline'}
-          size="sm"
-          className="gap-1.5 h-8 text-xs"
-          onClick={() => setViewMode('list')}
-        >
+        <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('list')}>
           <List className="h-3.5 w-3.5" /> Lista
         </Button>
-        <Button
-          variant={viewMode === 'calendar' ? 'default' : 'outline'}
-          size="sm"
-          className="gap-1.5 h-8 text-xs"
-          onClick={() => setViewMode('calendar')}
-        >
+        <Button variant={viewMode === 'calendar' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('calendar')}>
           <CalendarDays className="h-3.5 w-3.5" /> Calendário
         </Button>
       </div>
 
       {viewMode === 'list' ? (
-        /* LIST VIEW */
         sortedDates.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">Nenhuma visita agendada</p>
+          <p className="text-sm text-muted-foreground text-center py-12">Nenhuma visita ou follow-up agendado</p>
         ) : (
           sortedDates.map(dateKey => {
             const date = new Date(dateKey + 'T12:00:00');
             const today = isToday(date);
             const past = isBefore(date, startOfDay(new Date())) && !today;
-
             return (
               <div key={dateKey} className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -199,49 +192,33 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
                   </span>
                   {today && <Badge className="text-[10px] h-5">Hoje</Badge>}
                   <Badge variant="outline" className="text-[10px] h-5 ml-auto">
-                    {grouped[dateKey].length} visita{grouped[dateKey].length > 1 ? 's' : ''}
+                    {grouped[dateKey].length} compromisso{grouped[dateKey].length > 1 ? 's' : ''}
                   </Badge>
                 </div>
                 <div className="grid gap-2 pl-6">
-                  {grouped[dateKey].map(visit => (
-                    <VisitCard key={visit.id} visit={visit} />
-                  ))}
+                  {grouped[dateKey].map(visit => <VisitCard key={visit.id} visit={visit} />)}
                 </div>
               </div>
             );
           })
         )
       ) : (
-        /* FULL CALENDAR GRID VIEW */
         <div className="space-y-3">
-          {/* Month navigation */}
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h3 className="text-base font-bold text-foreground capitalize">
-              {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
-            </h3>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
+            <h3 className="text-base font-bold text-foreground capitalize">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</h3>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setCurrentMonth(new Date())}>
-                Hoje
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setCurrentMonth(new Date())}>Hoje</Button>
+              <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
 
-          {/* Weekday headers */}
           <div className="grid grid-cols-7 border-b border-border">
             {WEEKDAYS.map(day => (
-              <div key={day} className="py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                {day}
-              </div>
+              <div key={day} className="py-2 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">{day}</div>
             ))}
           </div>
 
-          {/* Day cells */}
           <div className="grid grid-cols-7 border-l border-border">
             {calendarDays.map((day, idx) => {
               const dayVisits = getVisitsForDay(day);
@@ -255,12 +232,10 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
                   key={idx}
                   className={cn(
                     'border-r border-b border-border min-h-[80px] sm:min-h-[100px] p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative',
-                    !inMonth && 'bg-muted/20',
-                    today && 'bg-primary/5',
+                    !inMonth && 'bg-muted/20', today && 'bg-primary/5',
                   )}
                   onClick={() => handleDayClick(day)}
                 >
-                  {/* Day number */}
                   <div className={cn(
                     'text-xs sm:text-sm font-medium mb-0.5 w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full',
                     today && 'bg-primary text-primary-foreground font-bold',
@@ -270,7 +245,6 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
                     {format(day, 'd')}
                   </div>
 
-                  {/* Visit entries */}
                   <div className="space-y-0.5">
                     {dayVisits.slice(0, maxShow).map(visit => (
                       <TooltipProvider key={visit.id} delayDuration={200}>
@@ -278,8 +252,10 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
                           <TooltipTrigger asChild>
                             <div
                               className={cn(
-                                'text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer',
-                                'bg-primary/15 text-primary border-l-2 border-primary hover:bg-primary/25 transition-colors',
+                                'text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded truncate cursor-pointer transition-colors',
+                                visit.type === 'followup'
+                                  ? 'bg-amber-500/15 text-amber-700 border-l-2 border-amber-500 hover:bg-amber-500/25 dark:text-amber-300'
+                                  : 'bg-primary/15 text-primary border-l-2 border-primary hover:bg-primary/25',
                               )}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -288,11 +264,14 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
                               }}
                             >
                               <span className="font-medium">{format(new Date(visit.visit_date), 'HH:mm')}</span>
-                              {!isMobile && <span className="ml-1">{visit.lead_name}</span>}
+                              {!isMobile && <span className="ml-1">{visit.type === 'followup' ? `📋 ${visit.lead_name}` : visit.lead_name}</span>}
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-[220px]">
                             <p className="font-semibold text-xs">{visit.lead_name}</p>
+                            {visit.type === 'followup' && visit.followup_titulo && (
+                              <p className="text-xs text-muted-foreground mt-0.5">📋 {visit.followup_titulo}</p>
+                            )}
                             {visit.location && (
                               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                                 <MapPin className="h-3 w-3" /> {visit.location}
@@ -314,21 +293,14 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
             })}
           </div>
 
-          {/* Legend */}
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-primary" />
-              <span>Hoje</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-primary/15 border-l-2 border-primary" />
-              <span>Visita agendada</span>
-            </div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-primary" /><span>Hoje</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-primary/15 border-l-2 border-primary" /><span>Visita</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-500/15 border-l-2 border-amber-500" /><span>Follow-up</span></div>
           </div>
         </div>
       )}
 
-      {/* Day detail dialog */}
       <Dialog open={!!selectedDayVisits} onOpenChange={(v) => { if (!v) setSelectedDayVisits(null); }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
           {selectedDayVisits && (
@@ -339,21 +311,17 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
                   {format(selectedDayVisits.date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </h3>
                 <Badge variant="outline" className="text-[10px] h-5">
-                  {selectedDayVisits.visits.length} visita{selectedDayVisits.visits.length !== 1 ? 's' : ''}
+                  {selectedDayVisits.visits.length} compromisso{selectedDayVisits.visits.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
-
               <div className="space-y-2">
-                {selectedDayVisits.visits.map(visit => (
-                  <VisitCard key={visit.id} visit={visit} />
-                ))}
+                {selectedDayVisits.visits.map(visit => <VisitCard key={visit.id} visit={visit} />)}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Edit visit dialog */}
       <VisitEditDialog
         open={!!editingVisit}
         onOpenChange={(v) => { if (!v) setEditingVisit(null); }}

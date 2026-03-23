@@ -114,7 +114,14 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
         sdr_name: userName,
       } as any);
 
-      await (supabase as any).from('leads').update({ updated_at: new Date().toISOString() }).eq('id', leadId);
+      // Save parecer to leads table for persistence
+      await (supabase as any).from('leads').update({
+        updated_at: new Date().toISOString(),
+        finance_parecer: parecer,
+        finance_consideracoes: consideracoes.trim() || null,
+        finance_analyst_name: userName,
+        finance_parecer_at: new Date().toISOString(),
+      }).eq('id', leadId);
 
       const { data: requestActivity } = await supabase
         .from('lead_activities')

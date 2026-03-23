@@ -297,15 +297,41 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         insertPayload.estado = selectedLead.estado || null;
         insertPayload.cidade = selectedLead.cidade || null;
         insertPayload.finance_parecer = selectedLead.finance_parecer || null;
-        // Annotate origin
-        insertPayload.observacoes = `Reaberto a partir do lead anterior (ID: ${selectedLead.id})`;
       }
 
       const { data: newLead, error } = await (supabase as any).from('leads').insert(insertPayload).select('id').single();
       if (error) throw error;
 
-      // If from existing lead, copy a note in the history referencing the original
+       // If from existing lead, carry over the prior activity timeline and register the reopening event
       if (selectedLead && newLead?.id) {
+         const { data: previousActivities } = await (supabase as any)
+           .from('lead_activities')
+           .select('activity_type, description, result, next_action, next_contact_date, sdr_id, sdr_name, created_at, conversation_started, user_id')
+           .eq('lead_id', selectedLead.id)
+           .order('created_at', { ascending: true });
+
+         if (previousActivities?.length) {
+           const clonedActivities = previousActivities.map((activity: any) => ({
+             lead_id: newLead.id,
+             user_id: activity.user_id || user?.id || '',
+             activity_type: activity.activity_type,
+             description: activity.description,
+             result: activity.result || null,
+             next_action: activity.next_action || null,
+             next_contact_date: activity.next_contact_date || null,
+             sdr_id: activity.sdr_id || null,
+             sdr_name: activity.sdr_name || null,
+             created_at: activity.created_at,
+             conversation_started: activity.conversation_started ?? false,
+           }));
+
+           const { error: activitiesError } = await (supabase as any)
+             .from('lead_activities')
+             .insert(clonedActivities);
+
+           if (activitiesError) throw activitiesError;
+         }
+
         await (supabase as any).from('lead_activities').insert({
           lead_id: newLead.id,
           activity_type: 'nota',
@@ -314,7 +340,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         });
       }
 
-      toast({ title: 'Lead criado com sucesso!' });
+       toast({ title: `Lead ${empresaName} criado com sucesso!` });
       resetForm();
       onOpenChange(false);
       onLeadCreated();

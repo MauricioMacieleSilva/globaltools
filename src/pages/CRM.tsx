@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
+import { OwnershipWarningDialog } from '@/components/crm/OwnershipWarningDialog';
 
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { CRMDashboard } from '@/components/crm/CRMDashboard';
@@ -122,8 +123,34 @@ export default function CRM() {
   const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
   const [pendingAnaliseLead, setPendingAnaliseLead] = useState<CRMLead | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [ownershipWarning, setOwnershipWarning] = useState<{
+    open: boolean;
+    ownerName: string;
+    ownerAvatarUrl: string | null;
+    entityName: string;
+    leadId: string;
+  }>({ open: false, ownerName: '', ownerAvatarUrl: null, entityName: '', leadId: '' });
   
   const isMobile = useIsMobile();
+
+  // Load current user info for ownership checks
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData.user) {
+        setCurrentUserId(authData.user.id);
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', authData.user.id)
+          .maybeSingle();
+        setCurrentUserRole(roleData?.role || null);
+      }
+    };
+    loadCurrentUser();
+  }, []);
 
   const loadLeads = useCallback(async () => {
     try {
@@ -264,6 +291,18 @@ export default function CRM() {
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
     const lead = leads.find(l => l.id === leadId);
     if (!lead) return;
+
+    // Ownership check
+    if (!isOwnerOrManager(lead)) {
+      setOwnershipWarning({
+        open: true,
+        ownerName: lead.vendedor?.full_name || 'Outro usuário',
+        ownerAvatarUrl: lead.vendedor?.avatar_url || null,
+        entityName: lead.empresa || lead.client_name || lead.cliente_nome,
+        leadId: lead.id,
+      });
+      return;
+    }
 
     if (newStatus === 'perdido') {
       setPendingLostLead(lead);
@@ -531,7 +570,41 @@ export default function CRM() {
     }
   };
 
+  const isOwnerOrManager = (lead: CRMLead) => {
+    if (!currentUserId) return true;
+    if (currentUserRole === 'admin' || currentUserRole === 'comercial') return true;
+    if (!lead.vendedor_id) return true;
+    return lead.vendedor_id === currentUserId;
+  };
+
+  const handleRequestTransfer = async () => {
+    if (!ownershipWarning.leadId || !currentUserId) return;
+    try {
+      // Log transfer request as activity
+      await supabase.from('lead_activities').insert({
+        lead_id: ownershipWarning.leadId,
+        activity_type: 'nota',
+        description: `Solicitação de transferência de lead pelo usuário. Aguardando aprovação do gestor.`,
+        user_id: currentUserId,
+      } as any);
+      toast.success('Solicitação de transferência enviada', { description: 'O gestor será notificado.' });
+    } catch {
+      toast.error('Erro ao solicitar transferência');
+    }
+    setOwnershipWarning(prev => ({ ...prev, open: false }));
+  };
+
   const openLeadDrawer = (lead: CRMLead) => {
+    if (!isOwnerOrManager(lead)) {
+      setOwnershipWarning({
+        open: true,
+        ownerName: lead.vendedor?.full_name || 'Outro usuário',
+        ownerAvatarUrl: lead.vendedor?.avatar_url || null,
+        entityName: lead.empresa || lead.client_name || lead.cliente_nome,
+        leadId: lead.id,
+      });
+      return;
+    }
     setSelectedLead(lead);
     setDrawerOpen(true);
   };
@@ -728,6 +801,16 @@ export default function CRM() {
           onConfirm={handleAnaliseFinConfirmed}
         />
       )}
+
+      <OwnershipWarningDialog
+        open={ownershipWarning.open}
+        onOpenChange={(v) => setOwnershipWarning(prev => ({ ...prev, open: v }))}
+        ownerName={ownershipWarning.ownerName}
+        ownerAvatarUrl={ownershipWarning.ownerAvatarUrl}
+        entityType="lead"
+        entityName={ownershipWarning.entityName}
+        onRequestTransfer={handleRequestTransfer}
+      />
 
       {isMobile && (
         <button

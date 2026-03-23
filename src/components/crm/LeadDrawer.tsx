@@ -75,7 +75,22 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [nextFollowUp, setNextFollowUp] = useState<{ id: string; data_agendada: string; titulo: string; tipo: string } | null>(null);
   const [analiseResponseOpen, setAnaliseResponseOpen] = useState(false);
-  
+  const [canAccessFinanceiro, setCanAccessFinanceiro] = useState(false);
+
+  useEffect(() => {
+    const checkFinanceAccess = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) return;
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+      const role = (roleData as any)?.role;
+      setCanAccessFinanceiro(role === 'admin' || role === 'financeiro' || role === 'comercial');
+    };
+    checkFinanceAccess();
+  }, []);
 
   useEffect(() => {
     if (lead?.id && open) {

@@ -119,6 +119,30 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           )}
         </div>
 
+        {/* Financial analysis badge */}
+        {financeParecer && (
+          <div className="flex">
+            {financeParecer === 'aprovado' && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800">
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                Aprovado
+              </Badge>
+            )}
+            {financeParecer === 'precisa_info' && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
+                <AlertCircle className="h-2.5 w-2.5" />
+                Mais informações
+              </Badge>
+            )}
+            {financeParecer === 'pagamento_antecipado' && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                <CreditCard className="h-2.5 w-2.5" />
+                Pgto. Antecipado
+              </Badge>
+            )}
+          </div>
+        )}
+
         {/* Ramo + Localidade inline */}
         {(lead.ramo_atuacao || localidade) && (
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground truncate">

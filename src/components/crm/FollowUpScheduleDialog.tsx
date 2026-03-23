@@ -57,12 +57,15 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
       const combined = new Date(date);
       combined.setHours(hours, minutes, 0, 0);
 
+      const tipoLabel = FOLLOWUP_TYPES.find(t => t.value === tipo)?.label || tipo;
+      const descFull = [tipoLabel, descricao.trim()].filter(Boolean).join(' - ');
+
       const { error: insertError } = await supabase.from('follow_ups').insert({
         lead_id: leadId,
         user_id: user?.id || '',
-        tipo,
+        tipo: 'lead',
         titulo: titulo.trim(),
-        descricao: descricao.trim() || null,
+        descricao: descFull || null,
         data_agendada: combined.toISOString(),
       });
       if (insertError) throw insertError;

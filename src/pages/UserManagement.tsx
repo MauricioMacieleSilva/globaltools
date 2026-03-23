@@ -299,6 +299,10 @@ export const UserManagement: React.FC = () => {
             <DefaultPermissionsConfig />
           </TabsContent>
 
+          <TabsContent value="assignment" className="mt-4">
+            <LeadClientAssignment />
+          </TabsContent>
+
           <TabsContent value="lead-config" className="mt-4">
             <div className="space-y-6">
               <LeadQualificationConfig />

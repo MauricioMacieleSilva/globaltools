@@ -37,6 +37,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [financeParecer, setFinanceParecer] = useState<string | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -57,7 +58,9 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   useEffect(() => {
     let cancelled = false;
     setNextVisit(null);
+    setFinanceParecer(null);
     import('@/integrations/supabase/client').then(({ supabase }) => {
+      // Fetch next visit
       (supabase as any)
         .from('crm_visits')
         .select('visit_date, location')
@@ -68,6 +71,23 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         .then(({ data }: any) => {
           if (!cancelled) {
             setNextVisit(data?.[0] ? { date: data[0].visit_date, location: data[0].location } : null);
+          }
+        });
+
+      // Fetch latest financial analysis result
+      (supabase as any)
+        .from('lead_activities')
+        .select('description')
+        .eq('lead_id', lead.id)
+        .ilike('description', 'Análise Financeira — Parecer:%')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }: any) => {
+          if (!cancelled && data?.[0]) {
+            const desc: string = data[0].description;
+            if (desc.includes('Aprovado')) setFinanceParecer('aprovado');
+            else if (desc.includes('Precisa de mais informações')) setFinanceParecer('precisa_info');
+            else if (desc.includes('Pagamento antecipado')) setFinanceParecer('pagamento_antecipado');
           }
         });
     });

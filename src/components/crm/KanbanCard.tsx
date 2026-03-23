@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 import { OrderDetailDialog } from './OrderDetailDialog';
@@ -36,6 +37,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [financeParecer, setFinanceParecer] = useState<string | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -56,7 +58,9 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   useEffect(() => {
     let cancelled = false;
     setNextVisit(null);
+    setFinanceParecer(null);
     import('@/integrations/supabase/client').then(({ supabase }) => {
+      // Fetch next visit
       (supabase as any)
         .from('crm_visits')
         .select('visit_date, location')
@@ -67,6 +71,23 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         .then(({ data }: any) => {
           if (!cancelled) {
             setNextVisit(data?.[0] ? { date: data[0].visit_date, location: data[0].location } : null);
+          }
+        });
+
+      // Fetch latest financial analysis result
+      (supabase as any)
+        .from('lead_activities')
+        .select('description')
+        .eq('lead_id', lead.id)
+        .ilike('description', 'Análise Financeira — Parecer:%')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }: any) => {
+          if (!cancelled && data?.[0]) {
+            const desc: string = data[0].description;
+            if (desc.includes('Aprovado')) setFinanceParecer('aprovado');
+            else if (desc.includes('Precisa de mais informações')) setFinanceParecer('precisa_info');
+            else if (desc.includes('Pagamento antecipado')) setFinanceParecer('pagamento_antecipado');
           }
         });
     });
@@ -97,6 +118,30 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
             </a>
           )}
         </div>
+
+        {/* Financial analysis badge */}
+        {financeParecer && (
+          <div className="flex">
+            {financeParecer === 'aprovado' && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800">
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                Aprovado
+              </Badge>
+            )}
+            {financeParecer === 'precisa_info' && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
+                <AlertCircle className="h-2.5 w-2.5" />
+                Mais informações
+              </Badge>
+            )}
+            {financeParecer === 'pagamento_antecipado' && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                <CreditCard className="h-2.5 w-2.5" />
+                Pgto. Antecipado
+              </Badge>
+            )}
+          </div>
+        )}
 
         {/* Ramo + Localidade inline */}
         {(lead.ramo_atuacao || localidade) && (

@@ -104,7 +104,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
       } as any);
 
       toast.success('Lead reativado com sucesso', {
-        description: `${lead.client_name || lead.cliente_nome} voltou para a carteira`,
+        description: `${lead.empresa || lead.client_name || lead.cliente_nome} voltou para a carteira`,
       });
       onLeadReactivated?.();
     } catch {

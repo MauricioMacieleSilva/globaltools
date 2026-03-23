@@ -70,7 +70,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
     });
 
     return result;
-  }, [leads, search, statusFilter, dateFilter, sortKey, sortAsc]);
+   }, [leads, search, statusFilter, dateFilter, sortKey, sortAsc]);
+
+  const { paginatedData, currentPage, totalPages, startIndex, endIndex, goToPage, nextPage, previousPage, canGoNext, canGoPrevious } = usePagination({ data: filteredLeads, itemsPerPage: 50 });
 
   const handleDelete = async () => {
     if (!deleteTarget) return;

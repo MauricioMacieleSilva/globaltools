@@ -558,7 +558,41 @@ export default function CRM() {
     }
   };
 
+  const isOwnerOrManager = (lead: CRMLead) => {
+    if (!currentUserId) return true;
+    if (currentUserRole === 'admin' || currentUserRole === 'comercial') return true;
+    if (!lead.vendedor_id) return true;
+    return lead.vendedor_id === currentUserId;
+  };
+
+  const handleRequestTransfer = async () => {
+    if (!ownershipWarning.leadId || !currentUserId) return;
+    try {
+      // Log transfer request as activity
+      await supabase.from('lead_activities').insert({
+        lead_id: ownershipWarning.leadId,
+        activity_type: 'nota',
+        description: `Solicitação de transferência de lead pelo usuário. Aguardando aprovação do gestor.`,
+        user_id: currentUserId,
+      } as any);
+      toast.success('Solicitação de transferência enviada', { description: 'O gestor será notificado.' });
+    } catch {
+      toast.error('Erro ao solicitar transferência');
+    }
+    setOwnershipWarning(prev => ({ ...prev, open: false }));
+  };
+
   const openLeadDrawer = (lead: CRMLead) => {
+    if (!isOwnerOrManager(lead)) {
+      setOwnershipWarning({
+        open: true,
+        ownerName: lead.vendedor?.full_name || 'Outro usuário',
+        ownerAvatarUrl: lead.vendedor?.avatar_url || null,
+        entityName: lead.empresa || lead.client_name || lead.cliente_nome,
+        leadId: lead.id,
+      });
+      return;
+    }
     setSelectedLead(lead);
     setDrawerOpen(true);
   };

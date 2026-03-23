@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ArrowUpDown, Edit2, Trash2, Eye, MoreHorizontal, RotateCcw } from 'lucide-react';
+import { Search, ArrowUpDown, Edit2, Trash2, Eye, MoreHorizontal, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,8 @@ import { CRM_STAGES, type CRMLead } from '@/pages/CRM';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card } from '@/components/ui/card';
 import { LeadEditDialog } from './LeadEditDialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { usePagination } from '@/hooks/usePagination';
 
 interface LeadListViewProps {
   leads: CRMLead[];

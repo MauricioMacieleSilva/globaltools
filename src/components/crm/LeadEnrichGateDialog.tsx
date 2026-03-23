@@ -215,7 +215,7 @@ export function LeadEnrichGateDialog({ open, onOpenChange, lead, onConfirm }: Le
             Enriquecer Lead antes de Mover
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Para mover <strong>{lead.client_name || lead.cliente_nome}</strong> para "Contato Feito", preencha pelo menos um campo abaixo.
+            Para mover <strong>{lead.empresa || lead.client_name || lead.cliente_nome}</strong> para "Contato Feito", preencha pelo menos um campo abaixo.
           </DialogDescription>
         </DialogHeader>
 

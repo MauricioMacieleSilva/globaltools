@@ -207,7 +207,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
               <div key={lead.id} className="p-3 rounded-lg border bg-card space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <span className="text-sm font-medium text-foreground">{lead.client_name || lead.cliente_nome}</span>
+                    <span className="text-sm font-medium text-foreground">{lead.empresa || lead.client_name || lead.cliente_nome}</span>
                     {lead.empresa && (
                       <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>
                     )}

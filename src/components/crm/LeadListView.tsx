@@ -239,7 +239,7 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
               const stage = CRM_STAGES.find(s => s.key === lead.status);
               return (
                 <TableRow key={lead.id} className="cursor-pointer hover:bg-accent/50" onClick={() => onLeadClick(lead)}>
-                  <TableCell className="font-medium text-sm">{lead.client_name || lead.cliente_nome}</TableCell>
+                  <TableCell className="font-medium text-sm">{lead.empresa || lead.client_name || lead.cliente_nome}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{lead.empresa || '—'}</TableCell>
                   <TableCell>
                     {stage ? <Badge style={{ backgroundColor: stage.color, color: '#fff' }} className="text-[10px]">{stage.label}</Badge>

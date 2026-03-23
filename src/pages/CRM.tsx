@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
+import { OwnershipWarningDialog } from '@/components/crm/OwnershipWarningDialog';
 
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
 import { CRMDashboard } from '@/components/crm/CRMDashboard';

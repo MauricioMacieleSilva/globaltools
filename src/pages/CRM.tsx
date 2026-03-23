@@ -123,8 +123,34 @@ export default function CRM() {
   const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
   const [pendingAnaliseLead, setPendingAnaliseLead] = useState<CRMLead | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [ownershipWarning, setOwnershipWarning] = useState<{
+    open: boolean;
+    ownerName: string;
+    ownerAvatarUrl: string | null;
+    entityName: string;
+    leadId: string;
+  }>({ open: false, ownerName: '', ownerAvatarUrl: null, entityName: '', leadId: '' });
   
   const isMobile = useIsMobile();
+
+  // Load current user info for ownership checks
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData.user) {
+        setCurrentUserId(authData.user.id);
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', authData.user.id)
+          .maybeSingle();
+        setCurrentUserRole(roleData?.role || null);
+      }
+    };
+    loadCurrentUser();
+  }, []);
 
   const loadLeads = useCallback(async () => {
     try {

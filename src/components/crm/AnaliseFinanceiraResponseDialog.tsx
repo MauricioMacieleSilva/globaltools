@@ -30,6 +30,12 @@ interface AnaliseFinanceiraResponseDialogProps {
   leadEstado?: string;
   leadBudgetNumber?: string;
   leadValor?: number;
+  leadRamoAtuacao?: string;
+  leadProdutoInteresse?: string;
+  leadWebsite?: string;
+  leadRegimeTributario?: string;
+  leadTelefone?: string;
+  leadEmail?: string;
   onConfirm: () => void;
 }
 

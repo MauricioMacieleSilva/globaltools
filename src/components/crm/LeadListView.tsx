@@ -144,42 +144,59 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
             </Select>
           </div>
         </div>
-        <div className="space-y-2">
-          {filteredLeads.map(lead => {
-            const stage = CRM_STAGES.find(s => s.key === lead.status);
-            return (
-              <Card key={lead.id} className="p-3">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onLeadClick(lead)}>
-                    <p className="text-sm font-semibold text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
-                    {lead.empresa && <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>}
+        <ScrollArea className="h-[calc(100vh-280px)]">
+          <div className="space-y-2">
+            {paginatedData.map(lead => {
+              const stage = CRM_STAGES.find(s => s.key === lead.status);
+              return (
+                <Card key={lead.id} className="p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onLeadClick(lead)}>
+                      <p className="text-sm font-semibold text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
+                      {lead.empresa && <p className="text-xs text-muted-foreground truncate">{lead.empresa}</p>}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                      {stage && <Badge style={{ backgroundColor: stage.color, color: '#fff' }} className="text-[10px]">{stage.label}</Badge>}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onLeadClick(lead)}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditLead(lead)}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
+                          {lead.status === 'perdido' && (
+                            <DropdownMenuItem onClick={() => handleReactivate(lead)}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 ml-2 shrink-0">
-                    {stage && <Badge style={{ backgroundColor: stage.color, color: '#fff' }} className="text-[10px]">{stage.label}</Badge>}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onLeadClick(lead)}><Eye className="h-3.5 w-3.5 mr-2" />Ver detalhes</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditLead(lead)}><Edit2 className="h-3.5 w-3.5 mr-2" />Editar</DropdownMenuItem>
-                        {lead.status === 'perdido' && (
-                          <DropdownMenuItem onClick={() => handleReactivate(lead)}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                    <span>{lead.source || lead.origem || '—'}</span>
+                    <span>{new Date(lead.created_at).toLocaleDateString('pt-BR')}</span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                  <span>{lead.source || lead.origem || '—'}</span>
-                  <span>{new Date(lead.created_at).toLocaleDateString('pt-BR')}</span>
-                </div>
-              </Card>
-            );
-          })}
-          {filteredLeads.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum lead encontrado</p>}
-        </div>
+                </Card>
+              );
+            })}
+            {filteredLeads.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Nenhum lead encontrado</p>}
+          </div>
+        </ScrollArea>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-muted-foreground">{startIndex}–{endIndex} de {filteredLeads.length}</p>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" disabled={!canGoPrevious} onClick={previousPage} className="h-8 px-2">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground px-2">{currentPage}/{totalPages}</span>
+              <Button size="sm" variant="outline" disabled={!canGoNext} onClick={nextPage} className="h-8 px-2">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         <LeadEditDialog lead={editLead} open={!!editLead} onOpenChange={(v) => !v && setEditLead(null)} onUpdated={onLeadUpdated} />
         <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>

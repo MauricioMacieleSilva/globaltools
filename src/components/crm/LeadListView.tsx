@@ -98,7 +98,7 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
         user_id: user?.id || '',
       } as any);
       toast.success('Lead reativado com sucesso', {
-        description: `${lead.client_name || lead.cliente_nome} voltou para a carteira`,
+        description: `${lead.empresa || lead.client_name || lead.cliente_nome} voltou para a carteira`,
       });
       onLeadUpdated();
     } catch {

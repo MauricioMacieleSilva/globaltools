@@ -52,6 +52,8 @@ interface ExistingLead {
   contact_phone: string | null;
   contact_email: string | null;
   finance_parecer: string | null;
+  budget_number: string | null;
+  linked_orders_meta: any;
 }
 
 const DEFAULT_ORIGENS_FALLBACK = ['Indicação', 'Site', 'WhatsApp', 'Telefone', 'Visita', 'Feira/Evento', 'LinkedIn', 'Outro'];

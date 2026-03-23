@@ -1663,6 +1663,10 @@ export type Database = {
           empresa: string | null
           especialista_id: string | null
           estado: string | null
+          finance_analyst_name: string | null
+          finance_consideracoes: string | null
+          finance_parecer: string | null
+          finance_parecer_at: string | null
           id: string
           linked_orders_meta: Json | null
           notes: string | null
@@ -1699,6 +1703,10 @@ export type Database = {
           empresa?: string | null
           especialista_id?: string | null
           estado?: string | null
+          finance_analyst_name?: string | null
+          finance_consideracoes?: string | null
+          finance_parecer?: string | null
+          finance_parecer_at?: string | null
           id?: string
           linked_orders_meta?: Json | null
           notes?: string | null
@@ -1735,6 +1743,10 @@ export type Database = {
           empresa?: string | null
           especialista_id?: string | null
           estado?: string | null
+          finance_analyst_name?: string | null
+          finance_consideracoes?: string | null
+          finance_parecer?: string | null
+          finance_parecer_at?: string | null
           id?: string
           linked_orders_meta?: Json | null
           notes?: string | null
@@ -2955,7 +2967,13 @@ export type Database = {
         | "entregue"
         | "cancelado"
       producao_status: "aguardando" | "em_producao" | "finalizado" | "pausado"
-      user_role: "admin" | "comercial" | "operacional" | "visitante" | "sdr"
+      user_role:
+        | "admin"
+        | "comercial"
+        | "operacional"
+        | "visitante"
+        | "sdr"
+        | "financeiro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3114,7 +3132,14 @@ export const Constants = {
         "cancelado",
       ],
       producao_status: ["aguardando", "em_producao", "finalizado", "pausado"],
-      user_role: ["admin", "comercial", "operacional", "visitante", "sdr"],
+      user_role: [
+        "admin",
+        "comercial",
+        "operacional",
+        "visitante",
+        "sdr",
+        "financeiro",
+      ],
     },
   },
 } as const

@@ -172,6 +172,12 @@ export function AnaliseFinanceiraResponseDialog({ open, onOpenChange, leadId, le
             analistaNome: userName,
             destinatarioEmail: email,
             appUrl,
+            ramoAtuacao: leadRamoAtuacao || null,
+            produtoInteresse: leadProdutoInteresse || null,
+            website: leadWebsite || null,
+            regimeTributario: leadRegimeTributario || null,
+            telefone: leadTelefone || null,
+            emailContato: leadEmail || null,
           },
         });
       }

@@ -802,6 +802,16 @@ export default function CRM() {
         />
       )}
 
+      <OwnershipWarningDialog
+        open={ownershipWarning.open}
+        onOpenChange={(v) => setOwnershipWarning(prev => ({ ...prev, open: v }))}
+        ownerName={ownershipWarning.ownerName}
+        ownerAvatarUrl={ownershipWarning.ownerAvatarUrl}
+        entityType="lead"
+        entityName={ownershipWarning.entityName}
+        onRequestTransfer={handleRequestTransfer}
+      />
+
       {isMobile && (
         <button
           onClick={() => setNewLeadOpen(true)}

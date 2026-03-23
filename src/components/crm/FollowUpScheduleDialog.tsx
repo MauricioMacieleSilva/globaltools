@@ -57,7 +57,7 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
       const combined = new Date(date);
       combined.setHours(hours, minutes, 0, 0);
 
-      await supabase.from('follow_ups').insert({
+      const { error: insertError } = await supabase.from('follow_ups').insert({
         lead_id: leadId,
         user_id: user?.id || '',
         tipo,
@@ -65,6 +65,7 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
         descricao: descricao.trim() || null,
         data_agendada: combined.toISOString(),
       });
+      if (insertError) throw insertError;
 
       // Log activity
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();

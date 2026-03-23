@@ -268,13 +268,15 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     setLoading(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
-      const contactName = form.cliente_nome.trim() || form.empresa.trim();
+      const empresaName = form.empresa.trim();
+      const contactName = form.cliente_nome.trim() || empresaName;
 
       // Build insert payload — carry over all data from existing lead except order-related fields
       const insertPayload: Record<string, any> = {
-        cliente_nome: contactName,
-        client_name: contactName,
-        empresa: form.empresa.trim(),
+        cliente_nome: empresaName,
+        client_name: empresaName,
+        empresa: empresaName,
+        contact_name: form.cliente_nome.trim() || null,
         source: form.source || null,
         cliente_telefone: form.cliente_telefone || null,
         contact_phone: form.cliente_telefone || null,

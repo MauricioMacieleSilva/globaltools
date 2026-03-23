@@ -49,7 +49,7 @@ export function PortfolioHealth({ leads, onLeadClick }: PortfolioHealthProps) {
                 onClick={() => onLeadClick(lead)}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-foreground truncate">{lead.client_name || lead.cliente_nome}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
                   <p className="text-[10px] text-muted-foreground">{lead.empresa || 'Sem empresa'}</p>
                 </div>
                 <div className="flex items-center gap-1 text-warning shrink-0">

@@ -195,7 +195,7 @@ export const UserManagement: React.FC = () => {
         <UserStats users={users} />
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Usuários
@@ -203,6 +203,10 @@ export const UserManagement: React.FC = () => {
             <TabsTrigger value="goals" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
               Metas
+            </TabsTrigger>
+            <TabsTrigger value="assignment" className="flex items-center gap-2">
+              <ArrowRightLeft className="h-4 w-4" />
+              Carteiras
             </TabsTrigger>
             <TabsTrigger value="default-permissions" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />

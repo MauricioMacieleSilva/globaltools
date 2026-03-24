@@ -65,6 +65,10 @@ export function BaseClientesTableMobile({
           }
           fields={[
             { 
+              label: 'Responsável', 
+              value: cliente.responsavel || '—'
+            },
+            { 
               label: 'Faturado', 
               value: formatCurrencyCompact(cliente.totalFaturado)
             },

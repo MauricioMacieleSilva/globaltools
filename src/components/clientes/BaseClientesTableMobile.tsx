@@ -12,6 +12,7 @@ interface ClienteInfo {
   ativo: boolean;
   pedidosFaturados: number;
   ticketMedio: number;
+  responsavel?: string;
 }
 
 interface BaseClientesTableMobileProps {

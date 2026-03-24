@@ -572,6 +572,7 @@ export function BaseClientesTable() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Responsável</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Total Faturado</TableHead>
                     <TableHead>Pedidos</TableHead>

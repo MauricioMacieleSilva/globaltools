@@ -622,8 +622,9 @@ export default function CRM() {
   const filteredLeads = leads.filter(l => {
     if (l.status === 'perdido') return false;
     if (vendorFilter && vendorFilter !== 'all') {
-      const effectiveVendor = (l as any)._effective_vendor_id || l.vendedor_id;
-      if (effectiveVendor !== vendorFilter) return false;
+      const involvedIds: string[] = (l as any)._involved_vendor_ids || [];
+      const isInvolved = involvedIds.includes(vendorFilter) || l.vendedor_id === vendorFilter;
+      if (!isInvolved) return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();

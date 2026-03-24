@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ClientFollowUpDialog } from "./ClientFollowUpDialog";
 import { BaseClientesTableMobile } from "./BaseClientesTableMobile";
 import { ClientesKPIsMobile } from "./ClientesKPIsMobile";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClienteInfo {
   nome: string;

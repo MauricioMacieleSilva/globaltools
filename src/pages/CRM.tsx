@@ -175,12 +175,20 @@ export default function CRM() {
           const seenLeads = new Set<string>();
           const userIds = new Set<string>();
           const latestPerLead: Record<string, any> = {};
+          // Build map of ALL user_ids involved per lead (for filtering)
+          const allVendorsPerLead: Record<string, Set<string>> = {};
           
           for (const act of activities) {
+            // Track all users per lead
+            if (act.user_id) {
+              if (!allVendorsPerLead[act.lead_id]) allVendorsPerLead[act.lead_id] = new Set();
+              allVendorsPerLead[act.lead_id].add(act.user_id);
+              userIds.add(act.user_id);
+            }
+            // Track latest per lead (for card display)
             if (!seenLeads.has(act.lead_id)) {
               seenLeads.add(act.lead_id);
               latestPerLead[act.lead_id] = act;
-              if (act.user_id) userIds.add(act.user_id);
             }
           }
 
@@ -208,6 +216,8 @@ export default function CRM() {
                     full_name: profile.full_name,
                     avatar_url: profile.avatar_url,
                   };
+                  // Store all vendor IDs involved with this lead
+                  lead._involved_vendor_ids = Array.from(allVendorsPerLead[leadId] || []);
                 }
               }
             }
@@ -611,7 +621,11 @@ export default function CRM() {
 
   const filteredLeads = leads.filter(l => {
     if (l.status === 'perdido') return false;
-    if (vendorFilter && vendorFilter !== 'all' && l.vendedor_id !== vendorFilter) return false;
+    if (vendorFilter && vendorFilter !== 'all') {
+      const involvedIds: string[] = (l as any)._involved_vendor_ids || [];
+      const isInvolved = involvedIds.includes(vendorFilter) || l.vendedor_id === vendorFilter;
+      if (!isInvolved) return false;
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const fields = [

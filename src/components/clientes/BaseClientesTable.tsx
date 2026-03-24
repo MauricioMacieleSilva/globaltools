@@ -554,7 +554,13 @@ export function BaseClientesTable() {
         <CardContent className="p-3 sm:p-4 pt-0">
           {isMobile ? (
             <BaseClientesTableMobile
-              clientes={clientes}
+              clientes={clientes.map(c => ({
+                ...c,
+                responsavel: (() => {
+                  const vendedores = clienteVendedorIndex.get(c.nome);
+                  return vendedores ? Array.from(vendedores).join(', ') : undefined;
+                })()
+              }))}
               onViewHistory={(cliente) => {
                 const clienteComHistorico = carregarHistorico(cliente.nome);
                 setSelectedCliente(clienteComHistorico);

@@ -554,7 +554,13 @@ export function BaseClientesTable() {
         <CardContent className="p-3 sm:p-4 pt-0">
           {isMobile ? (
             <BaseClientesTableMobile
-              clientes={clientes}
+              clientes={clientes.map(c => ({
+                ...c,
+                responsavel: (() => {
+                  const vendedores = clienteVendedorIndex.get(c.nome);
+                  return vendedores ? Array.from(vendedores).join(', ') : undefined;
+                })()
+              }))}
               onViewHistory={(cliente) => {
                 const clienteComHistorico = carregarHistorico(cliente.nome);
                 setSelectedCliente(clienteComHistorico);
@@ -572,6 +578,7 @@ export function BaseClientesTable() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Responsável</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Total Faturado</TableHead>
                     <TableHead>Pedidos</TableHead>
@@ -584,6 +591,14 @@ export function BaseClientesTable() {
                   {clientes.map((cliente, index) => (
                     <TableRow key={cliente.nome}>
                       <TableCell className="font-medium">{cliente.nome}</TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {(() => {
+                            const vendedores = clienteVendedorIndex.get(cliente.nome);
+                            return vendedores ? Array.from(vendedores).join(', ') : '—';
+                          })()}
+                        </span>
+                      </TableCell>
                       <TableCell>{getStatusBadge(cliente.ativo)}</TableCell>
                       <TableCell>
                         {formatCurrency(cliente.totalFaturado)}

@@ -208,6 +208,7 @@ export default function CRM() {
                     full_name: profile.full_name,
                     avatar_url: profile.avatar_url,
                   };
+                  lead._effective_vendor_id = act.user_id;
                 }
               }
             }

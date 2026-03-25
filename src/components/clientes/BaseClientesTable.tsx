@@ -157,68 +157,6 @@ export function BaseClientesTable() {
     return index;
   }, [data]);
 
-  // Fetch lead ownership from CRM (leads with vendedor_id)
-  const [leadVendedorIndex, setLeadVendedorIndex] = useState<Map<string, Set<string>>>(new Map());
-  
-  useEffect(() => {
-    const fetchLeadOwnership = async () => {
-      try {
-        const { data: leadsData } = await supabase
-          .from('leads')
-          .select('cliente_nome, vendedor_id')
-          .not('vendedor_id', 'is', null);
-        
-        if (!leadsData || leadsData.length === 0) return;
-
-        // Get unique vendor IDs
-        const vendorIds = [...new Set(leadsData.map(l => l.vendedor_id!))];
-        const { data: profiles } = await supabase
-          .from('user_profiles')
-          .select('id, full_name')
-          .in('id', vendorIds);
-
-        const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
-        const index = new Map<string, Set<string>>();
-
-        leadsData.forEach(lead => {
-          const nome = lead.cliente_nome;
-          const vendorName = profileMap.get(lead.vendedor_id!);
-          if (nome && vendorName) {
-            if (!index.has(nome)) index.set(nome, new Set());
-            index.get(nome)!.add(vendorName);
-          }
-        });
-
-        setLeadVendedorIndex(index);
-      } catch (err) {
-        console.error('Erro ao buscar responsáveis de leads:', err);
-      }
-    };
-    fetchLeadOwnership();
-  }, []);
-
-  // Índice de vendedores por cliente (merge orders + leads)
-  const clienteVendedorIndex = useMemo(() => {
-    if (!data) return leadVendedorIndex;
-    const index = new Map<string, Set<string>>();
-    
-    // From commercial orders
-    data.forEach(item => {
-      const nome = item.cliente;
-      if (item.vendedor) {
-        if (!index.has(nome)) index.set(nome, new Set());
-        index.get(nome)!.add(item.vendedor);
-      }
-    });
-
-    // Merge lead ownership
-    leadVendedorIndex.forEach((vendedores, nome) => {
-      if (!index.has(nome)) index.set(nome, new Set());
-      vendedores.forEach(v => index.get(nome)!.add(v));
-    });
-
-    return index;
-  }, [data, leadVendedorIndex]);
 
   // Lista de vendedores únicos para o filtro
   const vendedoresUnicos = useMemo(() => {

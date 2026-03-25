@@ -157,6 +157,19 @@ export function BaseClientesTable() {
     return index;
   }, [data]);
 
+  // Índice de vendedores por cliente (from commercial data)
+  const clienteVendedorIndex = useMemo(() => {
+    if (!data) return new Map<string, Set<string>>();
+    const index = new Map<string, Set<string>>();
+    data.forEach(item => {
+      const nome = item.cliente;
+      if (item.vendedor) {
+        if (!index.has(nome)) index.set(nome, new Set());
+        index.get(nome)!.add(item.vendedor);
+      }
+    });
+    return index;
+  }, [data]);
 
   // Lista de vendedores únicos para o filtro
   const vendedoresUnicos = useMemo(() => {

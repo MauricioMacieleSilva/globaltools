@@ -578,14 +578,6 @@ export function BaseClientesTable() {
                   {clientes.map((cliente, index) => (
                     <TableRow key={cliente.nome}>
                       <TableCell className="font-medium">{cliente.nome}</TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">
-                          {(() => {
-                            const vendedores = clienteVendedorIndex.get(cliente.nome);
-                            return vendedores ? Array.from(vendedores).join(', ') : '—';
-                          })()}
-                        </span>
-                      </TableCell>
                       <TableCell>{getStatusBadge(cliente.ativo)}</TableCell>
                       <TableCell>
                         {formatCurrency(cliente.totalFaturado)}

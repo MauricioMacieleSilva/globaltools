@@ -308,7 +308,6 @@ export function LeadClientAssignment() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{lead.empresa || lead.cliente_nome}</p>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px]">{statusLabels[lead.status] || lead.status}</Badge>
                         <UserBadge name={lead.vendedor_name} />
                       </div>
                     </div>

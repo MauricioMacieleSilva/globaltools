@@ -742,6 +742,10 @@ export default function CRM() {
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
           <ProspeccaoPanel onLeadsApproved={loadLeads} />
         </TabsContent>
+
+        <TabsContent value="carteira" className="mt-3 overflow-y-auto flex-1">
+          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} />
+        </TabsContent>
       </Tabs>
 
       <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />

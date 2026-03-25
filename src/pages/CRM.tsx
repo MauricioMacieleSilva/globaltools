@@ -163,70 +163,8 @@ export default function CRM() {
         .order('updated_at', { ascending: false });
       if (error) throw error;
 
-      // Fetch last activity per lead to determine "responsible" user shown on card
-      const leadIds = (data || []).map((l: any) => l.id);
-      let lastActivityMap: Record<string, { user_name: string; user_id: string }> = {};
-      if (leadIds.length > 0) {
-        const { data: activities } = await (supabase as any)
-          .from('lead_activities')
-          .select('lead_id, user_id, sdr_name, created_at')
-          .in('lead_id', leadIds)
-          .order('created_at', { ascending: false });
-        
-        if (activities) {
-          // Get unique user_ids to fetch their profiles
-          const seenLeads = new Set<string>();
-          const userIds = new Set<string>();
-          const latestPerLead: Record<string, any> = {};
-          // Build map of ALL user_ids involved per lead (for filtering)
-          const allVendorsPerLead: Record<string, Set<string>> = {};
-          
-          for (const act of activities) {
-            // Track all users per lead
-            if (act.user_id) {
-              if (!allVendorsPerLead[act.lead_id]) allVendorsPerLead[act.lead_id] = new Set();
-              allVendorsPerLead[act.lead_id].add(act.user_id);
-              userIds.add(act.user_id);
-            }
-            // Track latest per lead (for card display)
-            if (!seenLeads.has(act.lead_id)) {
-              seenLeads.add(act.lead_id);
-              latestPerLead[act.lead_id] = act;
-            }
-          }
-
-          // Fetch user profiles for avatars
-          if (userIds.size > 0) {
-            const { data: profiles } = await (supabase as any)
-              .from('user_profiles')
-              .select('id, full_name, avatar_url')
-              .in('id', Array.from(userIds));
-            
-            const profileMap: Record<string, any> = {};
-            (profiles || []).forEach((p: any) => { profileMap[p.id] = p; });
-
-            for (const [leadId, act] of Object.entries(latestPerLead) as any) {
-              const profile = profileMap[act.user_id];
-              if (profile) {
-                lastActivityMap[leadId] = {
-                  user_name: profile.full_name,
-                  user_id: act.user_id,
-                };
-                // Enrich lead's vendedor with last contact user
-                const lead = (data as any[]).find((l: any) => l.id === leadId);
-                if (lead) {
-                  lead.vendedor = {
-                    full_name: profile.full_name,
-                    avatar_url: profile.avatar_url,
-                  };
-                  // Store all vendor IDs involved with this lead
-                  lead._involved_vendor_ids = Array.from(allVendorsPerLead[leadId] || []);
-                }
-              }
-            }
-          }
-        }
-      }
+      // vendedor from DB join is the real owner — do NOT overwrite it.
+      // We keep it as-is for ownership checks, card display, and filtering.
 
       setLeads(data || []);
       setLastUpdated(new Date());

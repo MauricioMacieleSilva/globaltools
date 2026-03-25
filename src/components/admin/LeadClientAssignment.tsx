@@ -206,10 +206,6 @@ export function LeadClientAssignment() {
     );
   };
 
-  const statusLabels: Record<string, string> = {
-    lead: 'Lead', contato_feito: 'Contato', visita_reuniao: 'Visita',
-    analise_financeira: 'Análise', proposta: 'Proposta', pedido_fechado: 'Fechado', perdido: 'Perdido',
-  };
 
   if (loading) return (
     <Card>

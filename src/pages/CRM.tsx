@@ -21,8 +21,9 @@ import { AnaliseFinanceiraDialog } from '@/components/crm/AnaliseFinanceiraDialo
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor } from 'lucide-react';
+import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users } from 'lucide-react';
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
+import { MinhaCarteira } from '@/components/crm/MinhaCarteira';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
 import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
 import DashboardComercial from '@/pages/DashboardComercial';
@@ -82,6 +83,8 @@ export default function CRM() {
   const [pendingLostLead, setPendingLostLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
+
+  
 
   // Initialize vendor filter: admins/gestors see all, others see own leads
   useEffect(() => {
@@ -681,6 +684,9 @@ export default function CRM() {
             <TabsTrigger value="prospeccao" className="text-xs gap-1 h-7 px-3">
               <Sparkles className="h-3.5 w-3.5" /> Prospecção
             </TabsTrigger>
+            <TabsTrigger value="carteira" className="text-xs gap-1 h-7 px-3">
+              <Users className="h-3.5 w-3.5" /> Minha Carteira
+            </TabsTrigger>
           </TabsList>
             <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
           </div>
@@ -735,6 +741,10 @@ export default function CRM() {
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
           <ProspeccaoPanel onLeadsApproved={loadLeads} />
+        </TabsContent>
+
+        <TabsContent value="carteira" className="mt-3 overflow-y-auto flex-1">
+          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} />
         </TabsContent>
       </Tabs>
 

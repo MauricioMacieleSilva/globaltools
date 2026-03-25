@@ -12,7 +12,7 @@ interface ClienteInfo {
   ativo: boolean;
   pedidosFaturados: number;
   ticketMedio: number;
-  responsavel?: string;
+  
 }
 
 interface BaseClientesTableMobileProps {
@@ -64,10 +64,6 @@ export function BaseClientesTableMobile({
             )
           }
           fields={[
-            { 
-              label: 'Responsável', 
-              value: cliente.responsavel || '—'
-            },
             { 
               label: 'Faturado', 
               value: formatCurrencyCompact(cliente.totalFaturado)

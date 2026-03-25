@@ -67,10 +67,21 @@ export function LeadClientAssignment() {
       (usersRes.data || []).forEach((u: any) => userMap.set(u.id, u));
       setUsers(usersRes.data || []);
 
-      setLeads((leadsRes.data || []).map((l: any) => ({
-        ...l,
-        vendedor_name: l.vendedor_id ? userMap.get(l.vendedor_id)?.full_name || 'Desconhecido' : null,
-      })));
+          // Deduplicate leads by empresa/cliente_nome - keep only the most recent
+          const leadsRaw = (leadsRes.data || []).map((l: any) => ({
+            ...l,
+            vendedor_name: l.vendedor_id ? userMap.get(l.vendedor_id)?.full_name || 'Desconhecido' : null,
+          }));
+          const deduped = new Map<string, any>();
+          leadsRaw.forEach((l: any) => {
+            const key = (l.empresa || l.cliente_nome || '').toLowerCase().trim();
+            if (!key) return;
+            const existing = deduped.get(key);
+            if (!existing || new Date(l.created_at) > new Date(existing.created_at)) {
+              deduped.set(key, l);
+            }
+          });
+          setLeads(Array.from(deduped.values()));
 
       setClientes((clientesRes.data || []).map((c: any) => ({
         ...c,
@@ -195,10 +206,6 @@ export function LeadClientAssignment() {
     );
   };
 
-  const statusLabels: Record<string, string> = {
-    lead: 'Lead', contato_feito: 'Contato', visita_reuniao: 'Visita',
-    analise_financeira: 'Análise', proposta: 'Proposta', pedido_fechado: 'Fechado', perdido: 'Perdido',
-  };
 
   if (loading) return (
     <Card>
@@ -297,7 +304,6 @@ export function LeadClientAssignment() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{lead.empresa || lead.cliente_nome}</p>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px]">{statusLabels[lead.status] || lead.status}</Badge>
                         <UserBadge name={lead.vendedor_name} />
                       </div>
                     </div>

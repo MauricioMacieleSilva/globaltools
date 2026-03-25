@@ -84,7 +84,7 @@ export default function CRM() {
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
 
-  const [currentUserId, setCurrentUserId] = useState<string>('');
+  
 
   // Initialize vendor filter: admins/gestors see all, others see own leads
   useEffect(() => {

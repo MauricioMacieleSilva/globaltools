@@ -684,6 +684,9 @@ export default function CRM() {
             <TabsTrigger value="prospeccao" className="text-xs gap-1 h-7 px-3">
               <Sparkles className="h-3.5 w-3.5" /> Prospecção
             </TabsTrigger>
+            <TabsTrigger value="carteira" className="text-xs gap-1 h-7 px-3">
+              <Users className="h-3.5 w-3.5" /> Minha Carteira
+            </TabsTrigger>
           </TabsList>
             <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
           </div>

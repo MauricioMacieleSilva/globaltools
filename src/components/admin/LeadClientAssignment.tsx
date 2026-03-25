@@ -67,10 +67,21 @@ export function LeadClientAssignment() {
       (usersRes.data || []).forEach((u: any) => userMap.set(u.id, u));
       setUsers(usersRes.data || []);
 
-      setLeads((leadsRes.data || []).map((l: any) => ({
-        ...l,
-        vendedor_name: l.vendedor_id ? userMap.get(l.vendedor_id)?.full_name || 'Desconhecido' : null,
-      })));
+          // Deduplicate leads by empresa/cliente_nome - keep only the most recent
+          const leadsRaw = (leadsRes.data || []).map((l: any) => ({
+            ...l,
+            vendedor_name: l.vendedor_id ? userMap.get(l.vendedor_id)?.full_name || 'Desconhecido' : null,
+          }));
+          const deduped = new Map<string, any>();
+          leadsRaw.forEach((l: any) => {
+            const key = (l.empresa || l.cliente_nome || '').toLowerCase().trim();
+            if (!key) return;
+            const existing = deduped.get(key);
+            if (!existing || new Date(l.created_at) > new Date(existing.created_at)) {
+              deduped.set(key, l);
+            }
+          });
+          setLeads(Array.from(deduped.values()));
 
       setClientes((clientesRes.data || []).map((c: any) => ({
         ...c,

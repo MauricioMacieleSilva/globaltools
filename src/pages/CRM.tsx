@@ -91,7 +91,6 @@ export default function CRM() {
     const initFilter = async () => {
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) { setVendorFilter('all'); return; }
-      setCurrentUserId(authData.user.id);
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')

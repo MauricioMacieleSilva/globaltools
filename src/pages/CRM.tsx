@@ -18,6 +18,7 @@ import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
 import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { AnaliseFinanceiraDialog } from '@/components/crm/AnaliseFinanceiraDialog';
+import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

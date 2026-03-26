@@ -386,7 +386,48 @@ export default function CRM() {
     }
   };
 
-  const handleVisitConfirmed = async () => {
+  const handlePassagemBastaoConfirmed = async (vendorId: string) => {
+    if (!pendingPassagemLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      // Assign vendor and move to next stage (visita_reuniao by default)
+      const newStatus = 'visita_reuniao';
+      await (supabase as any)
+        .from('leads')
+        .update({ 
+          status: newStatus, 
+          vendedor_id: vendorId,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', pendingPassagemLead.id);
+
+      // Get vendor name for activity log
+      const { data: vendorProfile } = await supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', vendorId)
+        .maybeSingle();
+
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingPassagemLead.id,
+        activity_type: 'mudanca_status',
+        description: `Passagem de Bastão: lead atribuído a ${vendorProfile?.full_name || 'vendedor'} e movido para "Visita / Reunião"`,
+        user_id: user?.id || '',
+      } as any);
+
+      loadLeads();
+      toast.success('Lead atribuído com sucesso', { 
+        description: `Responsável: ${vendorProfile?.full_name || 'vendedor'}` 
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao atribuir lead');
+    } finally {
+      setPendingPassagemLead(null);
+      setPassagemBastaoOpen(false);
+    }
+  };
+
     if (!pendingVisitLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;

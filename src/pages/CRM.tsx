@@ -67,7 +67,7 @@ export const CRM_STAGES = [
   { key: 'lead', label: 'Lead', color: 'hsl(200, 98%, 39%)' },
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
   { key: 'passagem_bastao', label: 'Passagem de Bastão', color: 'hsl(330, 70%, 50%)' },
-  { key: 'visita_reuniao', label: 'Visita / Reunião', color: 'hsl(262, 52%, 47%)' },
+  { key: 'visita_reuniao', label: 'Oportunidade', color: 'hsl(262, 52%, 47%)' },
   { key: 'analise_financeira', label: 'Análise Financeira', color: 'hsl(217, 91%, 50%)' },
   { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },
   { key: 'pedido_fechado', label: 'Pedido Fechado', color: 'hsl(173, 80%, 36%)' },
@@ -279,9 +279,12 @@ export default function CRM() {
       return;
     }
 
-    // Intercept move to passagem_bastao (any role can place leads here)
+    // Intercept move to passagem_bastao — confirm first (irreversible)
     if (newStatus === 'passagem_bastao') {
-      // Move directly, no special dialog needed
+      const confirmed = window.confirm(
+        `Atenção: Ao mover "${lead.cliente_nome}" para Passagem de Bastão, o lead ficará travado até que um gestor atribua um vendedor.\n\nEssa ação não pode ser desfeita. Deseja continuar?`
+      );
+      if (!confirmed) return;
     }
 
     // Intercept visita_reuniao -> open schedule dialog

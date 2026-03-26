@@ -127,6 +127,9 @@ export default function CRM() {
   // Analise Financeira dialog
   const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
   const [pendingAnaliseLead, setPendingAnaliseLead] = useState<CRMLead | null>(null);
+  // Passagem de bastão dialog
+  const [passagemBastaoOpen, setPassagemBastaoOpen] = useState(false);
+  const [pendingPassagemLead, setPendingPassagemLead] = useState<CRMLead | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);

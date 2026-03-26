@@ -260,10 +260,28 @@ export default function CRM() {
       return;
     }
 
+    // Block non-admin/comercial from moving leads OUT of passagem_bastao
+    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin' && currentUserRole !== 'comercial') {
+      toast.error('Apenas gestores podem mover leads da etapa Passagem de Bastão');
+      return;
+    }
+
+    // When admin/gestor moves a lead FROM passagem_bastao, open vendor assignment dialog
+    if (lead.status === 'passagem_bastao' && (currentUserRole === 'admin' || currentUserRole === 'comercial') && newStatus !== 'perdido') {
+      setPendingPassagemLead(lead);
+      setPassagemBastaoOpen(true);
+      return;
+    }
+
     if (newStatus === 'perdido') {
       setPendingLostLead(lead);
       setLostDialogOpen(true);
       return;
+    }
+
+    // Intercept move to passagem_bastao (any role can place leads here)
+    if (newStatus === 'passagem_bastao') {
+      // Move directly, no special dialog needed
     }
 
     // Intercept visita_reuniao -> open schedule dialog

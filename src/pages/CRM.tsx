@@ -18,6 +18,7 @@ import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
 import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
 import { AnaliseFinanceiraDialog } from '@/components/crm/AnaliseFinanceiraDialog';
+import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -65,6 +66,7 @@ export interface CRMLead {
 export const CRM_STAGES = [
   { key: 'lead', label: 'Lead', color: 'hsl(200, 98%, 39%)' },
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
+  { key: 'passagem_bastao', label: 'Passagem de Bastão', color: 'hsl(330, 70%, 50%)' },
   { key: 'visita_reuniao', label: 'Visita / Reunião', color: 'hsl(262, 52%, 47%)' },
   { key: 'analise_financeira', label: 'Análise Financeira', color: 'hsl(217, 91%, 50%)' },
   { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },
@@ -125,6 +127,9 @@ export default function CRM() {
   // Analise Financeira dialog
   const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
   const [pendingAnaliseLead, setPendingAnaliseLead] = useState<CRMLead | null>(null);
+  // Passagem de bastão dialog
+  const [passagemBastaoOpen, setPassagemBastaoOpen] = useState(false);
+  const [pendingPassagemLead, setPendingPassagemLead] = useState<CRMLead | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -255,10 +260,28 @@ export default function CRM() {
       return;
     }
 
+    // Block non-admin/comercial from moving leads OUT of passagem_bastao
+    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin' && currentUserRole !== 'comercial') {
+      toast.error('Apenas gestores podem mover leads da etapa Passagem de Bastão');
+      return;
+    }
+
+    // When admin/gestor moves a lead FROM passagem_bastao, open vendor assignment dialog
+    if (lead.status === 'passagem_bastao' && (currentUserRole === 'admin' || currentUserRole === 'comercial') && newStatus !== 'perdido') {
+      setPendingPassagemLead(lead);
+      setPassagemBastaoOpen(true);
+      return;
+    }
+
     if (newStatus === 'perdido') {
       setPendingLostLead(lead);
       setLostDialogOpen(true);
       return;
+    }
+
+    // Intercept move to passagem_bastao (any role can place leads here)
+    if (newStatus === 'passagem_bastao') {
+      // Move directly, no special dialog needed
     }
 
     // Intercept visita_reuniao -> open schedule dialog
@@ -360,6 +383,48 @@ export default function CRM() {
     } finally {
       setPendingAnaliseLead(null);
       setAnaliseFinOpen(false);
+    }
+  };
+
+  const handlePassagemBastaoConfirmed = async (vendorId: string) => {
+    if (!pendingPassagemLead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      // Assign vendor and move to next stage (visita_reuniao by default)
+      const newStatus = 'visita_reuniao';
+      await (supabase as any)
+        .from('leads')
+        .update({ 
+          status: newStatus, 
+          vendedor_id: vendorId,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', pendingPassagemLead.id);
+
+      // Get vendor name for activity log
+      const { data: vendorProfile } = await supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', vendorId)
+        .maybeSingle();
+
+      await supabase.from('lead_activities').insert({
+        lead_id: pendingPassagemLead.id,
+        activity_type: 'mudanca_status',
+        description: `Passagem de Bastão: lead atribuído a ${vendorProfile?.full_name || 'vendedor'} e movido para "Visita / Reunião"`,
+        user_id: user?.id || '',
+      } as any);
+
+      loadLeads();
+      toast.success('Lead atribuído com sucesso', { 
+        description: `Responsável: ${vendorProfile?.full_name || 'vendedor'}` 
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao atribuir lead');
+    } finally {
+      setPendingPassagemLead(null);
+      setPassagemBastaoOpen(false);
     }
   };
 
@@ -760,6 +825,16 @@ export default function CRM() {
           leadTelefone={pendingAnaliseLead.cliente_telefone}
           leadEmail={pendingAnaliseLead.cliente_email}
           onConfirm={handleAnaliseFinConfirmed}
+        />
+      )}
+
+      {pendingPassagemLead && (
+        <PassagemBastaoDialog
+          open={passagemBastaoOpen}
+          onOpenChange={(v) => { setPassagemBastaoOpen(v); if (!v) setPendingPassagemLead(null); }}
+          leadName={pendingPassagemLead.empresa || pendingPassagemLead.client_name || pendingPassagemLead.cliente_nome}
+          onConfirm={handlePassagemBastaoConfirmed}
+          onCancel={() => { setPendingPassagemLead(null); setPassagemBastaoOpen(false); }}
         />
       )}
 

@@ -2950,6 +2950,7 @@ export type Database = {
         | "perdido"
         | "lead"
         | "contato_feito"
+        | "passagem_bastao"
         | "visita_reuniao"
         | "pedido"
         | "pedido_fechado"
@@ -3112,6 +3113,7 @@ export const Constants = {
         "perdido",
         "lead",
         "contato_feito",
+        "passagem_bastao",
         "visita_reuniao",
         "pedido",
         "pedido_fechado",

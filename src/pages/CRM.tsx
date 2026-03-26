@@ -828,7 +828,16 @@ export default function CRM() {
         />
       )}
 
-      <OwnershipWarningDialog
+      {pendingPassagemLead && (
+        <PassagemBastaoDialog
+          open={passagemBastaoOpen}
+          onOpenChange={(v) => { setPassagemBastaoOpen(v); if (!v) setPendingPassagemLead(null); }}
+          leadName={pendingPassagemLead.empresa || pendingPassagemLead.client_name || pendingPassagemLead.cliente_nome}
+          onConfirm={handlePassagemBastaoConfirmed}
+          onCancel={() => { setPendingPassagemLead(null); setPassagemBastaoOpen(false); }}
+        />
+      )}
+
         open={ownershipWarning.open}
         onOpenChange={(v) => setOwnershipWarning(prev => ({ ...prev, open: v }))}
         ownerName={ownershipWarning.ownerName}

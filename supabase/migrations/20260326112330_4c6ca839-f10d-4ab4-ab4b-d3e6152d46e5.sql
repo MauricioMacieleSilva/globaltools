@@ -1,0 +1,1 @@
+ALTER TYPE public.lead_status ADD VALUE IF NOT EXISTS 'passagem_bastao' AFTER 'contato_feito';

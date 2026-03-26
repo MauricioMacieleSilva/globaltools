@@ -336,6 +336,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <SelectItem value="comercial">Comercial</SelectItem>
                 <SelectItem value="financeiro">Financeiro</SelectItem>
                 <SelectItem value="operacional">Operacional</SelectItem>
+                <SelectItem value="sdr">SDR</SelectItem>
                 <SelectItem value="visitante">Visitante</SelectItem>
               </SelectContent>
             </Select>

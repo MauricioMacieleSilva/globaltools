@@ -182,9 +182,20 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
 
       // Se a role mudou, atualizar tabela de roles e permissões padrão
       if (roleChanged) {
+        // Delete old role first, then insert new one
+        // (upsert doesn't work because the unique key includes role)
+        const { error: deleteRoleError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', user.id)
+
+        if (deleteRoleError) {
+          throw deleteRoleError
+        }
+
         const { error: roleError } = await supabase
           .from('user_roles')
-          .upsert({ user_id: user.id, role: formData.role })
+          .insert({ user_id: user.id, role: formData.role })
 
         if (roleError) {
           throw roleError

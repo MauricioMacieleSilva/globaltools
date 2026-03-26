@@ -66,6 +66,7 @@ export interface CRMLead {
 export const CRM_STAGES = [
   { key: 'lead', label: 'Lead', color: 'hsl(200, 98%, 39%)' },
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
+  { key: 'passagem_bastao', label: 'Passagem de Bastão', color: 'hsl(330, 70%, 50%)' },
   { key: 'visita_reuniao', label: 'Visita / Reunião', color: 'hsl(262, 52%, 47%)' },
   { key: 'analise_financeira', label: 'Análise Financeira', color: 'hsl(217, 91%, 50%)' },
   { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },

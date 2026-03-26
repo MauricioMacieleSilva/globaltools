@@ -838,6 +838,7 @@ export default function CRM() {
         />
       )}
 
+      <OwnershipWarningDialog
         open={ownershipWarning.open}
         onOpenChange={(v) => setOwnershipWarning(prev => ({ ...prev, open: v }))}
         ownerName={ownershipWarning.ownerName}

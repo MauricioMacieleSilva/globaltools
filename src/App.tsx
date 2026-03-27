@@ -36,6 +36,7 @@ import Fretes from "./pages/Fretes";
 import Auth from "./pages/Auth";
 import Treinamentos from "./pages/Treinamentos";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
+import { LeadAssignmentNotification } from "@/components/crm/LeadAssignmentNotification";
 
 const queryClient = new QueryClient();
 
@@ -278,6 +279,7 @@ function AppContent() {
                             </main>
                           </SidebarInset>
                           <PWAInstallPrompt />
+                          <LeadAssignmentNotification />
                         </div>
                       </SidebarProvider>
                     </PreVendasProvider>

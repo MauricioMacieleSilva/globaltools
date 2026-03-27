@@ -168,19 +168,19 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
   const lostPercent = activeLeads > 0 ? ((lostLeads.length / (activeLeads + lostLeads.length)) * 100).toFixed(1) : '0';
 
-  // Today's contacts for progress — compare in local timezone
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  // Today's contacts for progress — use dateFilter if set, else today
+  const selectedDateStr = dateFilter || format(new Date(), 'yyyy-MM-dd');
   const todayContacts = uniqueDailyContacts.filter(a => {
     const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
-    return localDate === todayStr;
+    return localDate === selectedDateStr;
   }).length;
   const todayVisitsCount = useMemo(() => {
     return activities.filter(a => {
       if (a.activity_type !== 'visita') return false;
       const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
-      return localDate === todayStr;
+      return localDate === selectedDateStr;
     }).length;
-  }, [activities, todayStr]);
+  }, [activities, selectedDateStr]);
 
   // Daily contacts chart
   const dailyContactsData = useMemo(() => {
@@ -520,7 +520,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           </Card>
 
           {/* Contatos Card - vertical scroll */}
-          <Card className="border-l-4 border-l-secondary h-[188px] overflow-hidden">
+          <Card className="border-l-4 border-l-secondary overflow-hidden">
             <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-base font-semibold text-foreground">Contatos</span>

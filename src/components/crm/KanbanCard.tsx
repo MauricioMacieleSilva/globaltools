@@ -38,6 +38,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [financeParecer, setFinanceParecer] = useState<string | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -59,6 +60,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     let cancelled = false;
     setNextVisit(null);
     setFinanceParecer(null);
+    setFailedAttempts(0);
     import('@/integrations/supabase/client').then(({ supabase }) => {
       // Fetch next visit
       (supabase as any)
@@ -84,6 +86,16 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           if (!cancelled && data?.finance_parecer) {
             setFinanceParecer(data.finance_parecer);
           }
+        });
+
+      // Fetch failed contact attempts count
+      (supabase as any)
+        .from('lead_activities')
+        .select('id', { count: 'exact', head: true })
+        .eq('lead_id', lead.id)
+        .eq('activity_type', 'contato_sem_sucesso')
+        .then(({ count }: any) => {
+          if (!cancelled) setFailedAttempts(count || 0);
         });
     });
     return () => { cancelled = true; };

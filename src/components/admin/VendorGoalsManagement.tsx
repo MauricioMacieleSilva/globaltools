@@ -20,6 +20,7 @@ interface VendorGoal {
   daily_visits_goal: number;
   daily_proposals_goal: number;
   daily_orders_goal: number;
+  daily_handoffs_goal: number;
 }
 
 export function VendorGoalsManagement() {
@@ -68,6 +69,7 @@ export function VendorGoalsManagement() {
           daily_visits_goal: existing?.daily_visits_goal || 0,
           daily_proposals_goal: existing?.daily_proposals_goal || 0,
           daily_orders_goal: existing?.daily_orders_goal || 0,
+          daily_handoffs_goal: existing?.daily_handoffs_goal || 0,
         };
       });
 
@@ -107,7 +109,8 @@ export function VendorGoalsManagement() {
             v.daily_contacts_goal > 0 ||
             v.daily_visits_goal > 0 ||
             v.daily_proposals_goal > 0 ||
-            v.daily_orders_goal > 0
+            v.daily_orders_goal > 0 ||
+            v.daily_handoffs_goal > 0
         )
         .map((goal) => ({
           vendor_id: goal.vendor_id,
@@ -116,6 +119,7 @@ export function VendorGoalsManagement() {
           daily_visits_goal: goal.daily_visits_goal,
           daily_proposals_goal: goal.daily_proposals_goal,
           daily_orders_goal: goal.daily_orders_goal,
+          daily_handoffs_goal: goal.daily_handoffs_goal,
           updated_at: new Date().toISOString(),
         }));
 
@@ -126,6 +130,7 @@ export function VendorGoalsManagement() {
             v.daily_visits_goal === 0 &&
             v.daily_proposals_goal === 0 &&
             v.daily_orders_goal === 0 &&
+            v.daily_handoffs_goal === 0 &&
             existingVendorIds.has(v.vendor_id)
         )
         .map((v) => v.vendor_id);
@@ -209,6 +214,7 @@ export function VendorGoalsManagement() {
                   <TableHead className="text-xs text-center">Visitas/dia</TableHead>
                   <TableHead className="text-xs text-center">Propostas/dia</TableHead>
                   <TableHead className="text-xs text-center">Pedidos/dia</TableHead>
+                  <TableHead className="text-xs text-center">P. Bastão/dia</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -261,6 +267,16 @@ export function VendorGoalsManagement() {
                         min={0}
                         value={vendor.daily_orders_goal || ''}
                         onChange={e => updateGoal(vendor.vendor_id, 'daily_orders_goal', parseInt(e.target.value) || 0)}
+                        className="h-7 text-xs text-center w-16 mx-auto"
+                        placeholder="0"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={vendor.daily_handoffs_goal || ''}
+                        onChange={e => updateGoal(vendor.vendor_id, 'daily_handoffs_goal', parseInt(e.target.value) || 0)}
                         className="h-7 text-xs text-center w-16 mx-auto"
                         placeholder="0"
                       />

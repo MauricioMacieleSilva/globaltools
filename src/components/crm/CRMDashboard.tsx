@@ -502,7 +502,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-muted-foreground">Visitas Hoje</span>
+                    <span className="text-sm text-muted-foreground">{dateFilter ? 'Visitas' : 'Visitas Hoje'}</span>
                     <span className="text-lg font-bold text-foreground">
                       {todayVisitsCount}{currentGoals.dailyVisits > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyVisits}</span>}
                     </span>

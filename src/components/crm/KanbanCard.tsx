@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -147,6 +147,16 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
                 Pgto. Antecipado
               </Badge>
             )}
+          </div>
+        )}
+
+        {/* Failed contact attempts */}
+        {failedAttempts > 0 && (
+          <div className="flex">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-destructive/30 bg-destructive/5 text-destructive">
+              <PhoneMissed className="h-2.5 w-2.5" />
+              {failedAttempts} tentativa{failedAttempts > 1 ? 's' : ''} sem sucesso
+            </Badge>
           </div>
         )}
 

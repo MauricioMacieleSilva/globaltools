@@ -395,6 +395,7 @@ export type Database = {
         Row: {
           created_at: string
           daily_contacts_goal: number
+          daily_handoffs_goal: number
           daily_orders_goal: number
           daily_proposals_goal: number
           daily_visits_goal: number
@@ -406,6 +407,7 @@ export type Database = {
         Insert: {
           created_at?: string
           daily_contacts_goal?: number
+          daily_handoffs_goal?: number
           daily_orders_goal?: number
           daily_proposals_goal?: number
           daily_visits_goal?: number
@@ -417,6 +419,7 @@ export type Database = {
         Update: {
           created_at?: string
           daily_contacts_goal?: number
+          daily_handoffs_goal?: number
           daily_orders_goal?: number
           daily_proposals_goal?: number
           daily_visits_goal?: number

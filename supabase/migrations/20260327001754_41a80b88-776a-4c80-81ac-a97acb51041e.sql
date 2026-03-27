@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_vendor_goals ADD COLUMN IF NOT EXISTS daily_handoffs_goal integer NOT NULL DEFAULT 0;

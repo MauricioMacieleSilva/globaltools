@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe } from 'lucide-react';
+import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe, CalendarDays } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine } from 'recharts';
@@ -33,6 +33,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const [lossReasons, setLossReasons] = useState<any[]>([]);
   const [vendorFilter, setVendorFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
+  const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [vendorGoals, setVendorGoals] = useState<any[]>([]);
 
@@ -145,13 +146,13 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
   const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
 
-  // Helper: deduplicate contato_inicial — count only the first per lead per day (local tz)
+  // Helper: deduplicate contato_inicial — count only the first per lead per day per user (local tz)
   const uniqueDailyContacts = useMemo(() => {
     const seen = new Set<string>();
     return activities.filter(a => {
       if (a.activity_type !== 'contato_inicial') return false;
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
-      const key = `${a.lead_id}_${day}`;
+      const key = `${a.lead_id}_${a.user_id}_${day}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -167,19 +168,19 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
   const lostPercent = activeLeads > 0 ? ((lostLeads.length / (activeLeads + lostLeads.length)) * 100).toFixed(1) : '0';
 
-  // Today's contacts for progress — compare in local timezone
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  // Today's contacts for progress — use dateFilter if set, else today
+  const selectedDateStr = dateFilter || format(new Date(), 'yyyy-MM-dd');
   const todayContacts = uniqueDailyContacts.filter(a => {
     const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
-    return localDate === todayStr;
+    return localDate === selectedDateStr;
   }).length;
   const todayVisitsCount = useMemo(() => {
     return activities.filter(a => {
       if (a.activity_type !== 'visita') return false;
       const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
-      return localDate === todayStr;
+      return localDate === selectedDateStr;
     }).length;
-  }, [activities, todayStr]);
+  }, [activities, selectedDateStr]);
 
   // Daily contacts chart
   const dailyContactsData = useMemo(() => {
@@ -345,8 +346,9 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const clearFilters = () => {
     setVendorFilter('all');
     setPeriodFilter(format(new Date(), 'yyyy-MM'));
+    setDateFilter('');
   };
-  const hasFilters = vendorFilter !== 'all' || periodFilter !== format(new Date(), 'yyyy-MM');
+  const hasFilters = vendorFilter !== 'all' || periodFilter !== format(new Date(), 'yyyy-MM') || dateFilter !== '';
 
   const formatCurrency = (value: number) => {
     if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(2).replace('.', ',')}mi`;
@@ -411,6 +413,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               </SelectContent>
             </Select>
 
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="h-3 w-3 text-muted-foreground shrink-0" />
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
+              />
+            </div>
+
             {hasFilters && (
               <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearFilters}>
                 <X className="h-3 w-3" /> Limpar
@@ -471,14 +483,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           <Card className="border-l-4 border-l-accent h-[188px]">
             <CardContent className="p-5 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-base font-semibold text-foreground">Progresso Diário</span>
+                <span className="text-base font-semibold text-foreground">
+                  {dateFilter ? `Progresso ${new Date(dateFilter + 'T12:00:00').toLocaleDateString('pt-BR')}` : 'Progresso Diário'}
+                </span>
                 <Phone className="h-4 w-4 text-muted-foreground" />
               </div>
 
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-muted-foreground">Contatos Hoje</span>
+                    <span className="text-sm text-muted-foreground">{dateFilter ? 'Contatos' : 'Contatos Hoje'}</span>
                     <span className="text-lg font-bold text-foreground">
                       {todayContacts}{currentGoals.dailyContacts > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyContacts}</span>}
                     </span>
@@ -488,7 +502,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-muted-foreground">Visitas Hoje</span>
+                    <span className="text-sm text-muted-foreground">{dateFilter ? 'Visitas' : 'Visitas Hoje'}</span>
                     <span className="text-lg font-bold text-foreground">
                       {todayVisitsCount}{currentGoals.dailyVisits > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyVisits}</span>}
                     </span>
@@ -508,7 +522,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           </Card>
 
           {/* Contatos Card - vertical scroll */}
-          <Card className="border-l-4 border-l-secondary h-[188px] overflow-hidden">
+          <Card className="border-l-4 border-l-secondary overflow-hidden">
             <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-base font-semibold text-foreground">Contatos</span>

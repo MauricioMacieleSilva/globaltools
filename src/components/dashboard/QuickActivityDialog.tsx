@@ -65,6 +65,7 @@ export const QuickActivityDialog: React.FC<QuickActivityDialogProps> = ({ open, 
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="contato_inicial">Contato Inicial</SelectItem>
+                <SelectItem value="contato_sem_sucesso">Contato sem Sucesso</SelectItem>
                 <SelectItem value="resposta_recebida">Resposta Recebida</SelectItem>
                 <SelectItem value="qualificacao">Qualificação</SelectItem>
                 <SelectItem value="encaminhamento">Encaminhamento</SelectItem>

@@ -696,7 +696,7 @@ export default function CRM() {
             <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
           </div>
           <div className="flex items-center gap-2">
-            {activeTab === 'kanban' && (
+            {(activeTab === 'kanban' || activeTab === 'lista') && (
               <div data-tour="crm-filters">
                 <CRMFilters
                   searchQuery={searchQuery}
@@ -729,7 +729,7 @@ export default function CRM() {
 
         <TabsContent value="lista" className="mt-3">
           <LeadListView
-            leads={leads}
+            leads={filteredLeads}
             onLeadClick={openLeadDrawer}
             onLeadUpdated={loadLeads}
           />

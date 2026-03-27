@@ -45,6 +45,9 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
     setDragOverColumn(null);
     setDraggedLeadId(null);
     if (leadId) {
+      // Check if lead is being dropped in the same column — do nothing
+      const lead = leads.find(l => l.id === leadId);
+      if (lead && lead.status === stageKey) return;
       onStatusChange(leadId, stageKey);
     }
   };

@@ -413,6 +413,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               </SelectContent>
             </Select>
 
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="h-3 w-3 text-muted-foreground shrink-0" />
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
+              />
+            </div>
+
             {hasFilters && (
               <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={clearFilters}>
                 <X className="h-3 w-3" /> Limpar

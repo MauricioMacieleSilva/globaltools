@@ -483,14 +483,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           <Card className="border-l-4 border-l-accent h-[188px]">
             <CardContent className="p-5 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-base font-semibold text-foreground">Progresso Diário</span>
+                <span className="text-base font-semibold text-foreground">
+                  {dateFilter ? `Progresso ${new Date(dateFilter + 'T12:00:00').toLocaleDateString('pt-BR')}` : 'Progresso Diário'}
+                </span>
                 <Phone className="h-4 w-4 text-muted-foreground" />
               </div>
 
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-muted-foreground">Contatos Hoje</span>
+                    <span className="text-sm text-muted-foreground">{dateFilter ? 'Contatos' : 'Contatos Hoje'}</span>
                     <span className="text-lg font-bold text-foreground">
                       {todayContacts}{currentGoals.dailyContacts > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyContacts}</span>}
                     </span>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe } from 'lucide-react';
+import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe, CalendarDays } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine } from 'recharts';
@@ -33,6 +33,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const [lossReasons, setLossReasons] = useState<any[]>([]);
   const [vendorFilter, setVendorFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
+  const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [vendorGoals, setVendorGoals] = useState<any[]>([]);
 
@@ -345,8 +346,9 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const clearFilters = () => {
     setVendorFilter('all');
     setPeriodFilter(format(new Date(), 'yyyy-MM'));
+    setDateFilter('');
   };
-  const hasFilters = vendorFilter !== 'all' || periodFilter !== format(new Date(), 'yyyy-MM');
+  const hasFilters = vendorFilter !== 'all' || periodFilter !== format(new Date(), 'yyyy-MM') || dateFilter !== '';
 
   const formatCurrency = (value: number) => {
     if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(2).replace('.', ',')}mi`;

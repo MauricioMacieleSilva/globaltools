@@ -145,13 +145,13 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
   const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
 
-  // Helper: deduplicate contato_inicial — count only the first per lead per day (local tz)
+  // Helper: deduplicate contato_inicial — count only the first per lead per day per user (local tz)
   const uniqueDailyContacts = useMemo(() => {
     const seen = new Set<string>();
     return activities.filter(a => {
       if (a.activity_type !== 'contato_inicial') return false;
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
-      const key = `${a.lead_id}_${day}`;
+      const key = `${a.lead_id}_${a.user_id}_${day}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;

@@ -374,7 +374,25 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
   };
 
-  
+  const handleFailedContact = async () => {
+    if (!lead) return;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').single();
+      await supabase.from('lead_activities').insert({
+        lead_id: lead.id,
+        activity_type: 'contato_sem_sucesso',
+        description: 'Tentativa de contato sem sucesso (cliente não atendeu)',
+        user_id: user?.id || '',
+        sdr_name: profile?.full_name || 'Usuário',
+      } as any);
+      await (supabase as any).from('leads').update({ updated_at: new Date().toISOString() }).eq('id', lead.id);
+      toast.success('Tentativa registrada', { description: 'Contato sem sucesso registrado.' });
+      loadActivities(lead.id);
+    } catch {
+      toast.error('Erro ao registrar tentativa');
+    }
+  };
 
   if (!lead) return null;
 

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2 } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
@@ -631,6 +631,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   Registrar Contato
                 </Button>
               )}
+              <Button size="sm" variant="outline" onClick={handleFailedContact} className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5">
+                <PhoneMissed className="h-3.5 w-3.5" />
+                Sem Sucesso
+              </Button>
               {whatsappUrl && (
                 <Button size="sm" variant="outline" asChild className="gap-1.5">
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">

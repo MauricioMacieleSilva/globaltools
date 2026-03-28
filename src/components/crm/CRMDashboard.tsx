@@ -29,6 +29,7 @@ const CHART_COLOR = 'hsl(200, 98%, 39%)';
 export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
+  const [allActivities, setAllActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
   const [lossReasons, setLossReasons] = useState<any[]>([]);
   const [vendorFilter, setVendorFilter] = useState('all');
@@ -65,18 +66,21 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const start = startOfMonth(new Date(year, month - 1));
     const end = endOfMonth(new Date(year, month - 1));
 
-    let query = supabase
+    // Always load ALL activities for the month (unfiltered) for global metrics
+    const { data: allData } = await supabase
       .from('lead_activities')
       .select('*')
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString());
+    
+    setAllActivities(allData || []);
 
+    // Then set filtered activities based on vendor
     if (vendorFilter !== 'all') {
-      query = query.eq('user_id', vendorFilter);
+      setActivities((allData || []).filter(a => a.user_id === vendorFilter));
+    } else {
+      setActivities(allData || []);
     }
-
-    const { data } = await query;
-    setActivities(data || []);
 
     let lossQuery = (supabase as any)
       .from('lead_dispositions')
@@ -159,6 +163,19 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
   }, [activities]);
 
+  // ALL unique daily contacts (unfiltered) for global progress
+  const allUniqueDailyContacts = useMemo(() => {
+    const seen = new Set<string>();
+    return allActivities.filter(a => {
+      if (a.activity_type !== 'contato_inicial') return false;
+      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const key = `${a.lead_id}_${a.user_id}_${day}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [allActivities]);
+
   // KPIs
   const totalContacts = uniqueDailyContacts.length;
   const totalVisits = activities.filter(a => a.activity_type === 'visita').length;
@@ -169,20 +186,26 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const lostPercent = activeLeads > 0 ? ((lostLeads.length / (activeLeads + lostLeads.length)) * 100).toFixed(1) : '0';
 
   // Today's contacts for progress — use dateFilter if set, else today
+  // When "all" vendors, use allActivities to sum ALL users' contacts
   const selectedDateStr = dateFilter || format(new Date(), 'yyyy-MM-dd');
-  const todayContacts = uniqueDailyContacts.filter(a => {
-    const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
-    return localDate === selectedDateStr;
-  }).length;
+  const todayContacts = useMemo(() => {
+    const source = vendorFilter === 'all' ? allUniqueDailyContacts : uniqueDailyContacts;
+    return source.filter(a => {
+      const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
+      return localDate === selectedDateStr;
+    }).length;
+  }, [allUniqueDailyContacts, uniqueDailyContacts, vendorFilter, selectedDateStr]);
+
   const todayVisitsCount = useMemo(() => {
-    return activities.filter(a => {
+    const source = vendorFilter === 'all' ? allActivities : activities;
+    return source.filter(a => {
       if (a.activity_type !== 'visita') return false;
       const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
       return localDate === selectedDateStr;
     }).length;
-  }, [activities, selectedDateStr]);
+  }, [allActivities, activities, vendorFilter, selectedDateStr]);
 
-  // Daily contacts chart
+  // Daily contacts chart — use filtered activities
   const dailyContactsData = useMemo(() => {
     const [year, month] = periodFilter.split('-').map(Number);
     const start = startOfMonth(new Date(year, month - 1));
@@ -215,42 +238,39 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   };
 
-  // Leads per vendor (ordered by value)
-  const vendorLeadsData = useMemo(() => {
-    const map: Record<string, { count: number; value: number; contacts: number; avatar_url: string | null; vendorId: string | null }> = {};
+  // Contacts per vendor for the contacts card — uses ALL activities (unfiltered by vendor)
+  // Shows today's contacts prominently + monthly total
+  const vendorContactsCardData = useMemo(() => {
+    const map: Record<string, { todayContacts: number; monthContacts: number; avatar_url: string | null; vendorId: string }> = {};
 
-    filteredLeads.forEach(l => {
-      const vendorId = l.vendedor_id || 'unknown';
-      const vendorInfo = vendors.find(v => v.id === vendorId);
-      const vendorName = vendorInfo?.name || l.vendedor?.full_name || 'Sem vendedor';
+    // Build per-user contact counts from ALL activities
+    const allContactsSeen = new Set<string>();
+    allActivities.forEach(a => {
+      if (a.activity_type !== 'contato_inicial') return;
+      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const key = `${a.lead_id}_${a.user_id}_${day}`;
+      if (allContactsSeen.has(key)) return;
+      allContactsSeen.add(key);
 
-      if (!map[vendorId]) {
-        map[vendorId] = {
-          count: 0,
-          value: 0,
-          contacts: 0,
-          avatar_url: vendorInfo?.avatar_url || null,
-          vendorId,
-        };
-      }
-
-      map[vendorId].count++;
-      map[vendorId].value += l.valor_estimado || 0;
-    });
-
-    uniqueDailyContacts.forEach(a => {
       const userId = a.user_id || 'unknown';
-      if (map[userId]) map[userId].contacts++;
+      if (!map[userId]) {
+        const vendorInfo = vendors.find(v => v.id === userId);
+        map[userId] = { todayContacts: 0, monthContacts: 0, avatar_url: vendorInfo?.avatar_url || null, vendorId: userId };
+      }
+      map[userId].monthContacts++;
+      if (day === selectedDateStr) {
+        map[userId].todayContacts++;
+      }
     });
 
     return Object.entries(map)
-      .sort((a, b) => b[1].value - a[1].value)
+      .sort((a, b) => b[1].todayContacts - a[1].todayContacts || b[1].monthContacts - a[1].monthContacts)
       .map(([id, data], idx) => {
         const vendorInfo = vendors.find(v => v.id === id);
         const fullName = vendorInfo?.name || 'Sem vendedor';
         return { name: formatFirstName(fullName), fullName, ...data, rank: idx + 1 };
       });
-  }, [filteredLeads, vendors, uniqueDailyContacts]);
+  }, [allActivities, vendors, selectedDateStr]);
 
   // Cities/States chart
   const locationData = useMemo(() => {
@@ -327,21 +347,35 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       .map(([name, value]) => ({ name, value }));
   }, [lossReasons]);
 
-  // Contacts per vendor
+  // Contacts per vendor chart — uses ALL activities (unfiltered) so SDR contacts are included
   const vendorContactsData = useMemo(() => {
     if (vendorFilter !== 'all') return [];
     const map: Record<string, { contatos: number; visitas: number }> = {};
-    activities.forEach(a => {
+    
+    // Use allActivities to include SDR contacts
+    const seen = new Set<string>();
+    allActivities.forEach(a => {
       const fullName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
       const firstName = fullName.split(' ')[0];
-      if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
-      if (a.activity_type === 'contato_inicial') map[firstName].contatos++;
-      if (a.activity_type === 'visita') map[firstName].visitas++;
+
+      if (a.activity_type === 'contato_inicial') {
+        const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+        const key = `${a.lead_id}_${a.user_id}_${day}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
+          map[firstName].contatos++;
+        }
+      }
+      if (a.activity_type === 'visita') {
+        if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
+        map[firstName].visitas++;
+      }
     });
     return Object.entries(map)
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => (b.contatos + b.visitas) - (a.contatos + a.visitas));
-  }, [activities, vendors, vendorFilter]);
+  }, [allActivities, vendors, vendorFilter]);
 
   const clearFilters = () => {
     setVendorFilter('all');
@@ -521,50 +555,38 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardContent>
           </Card>
 
-          {/* Contatos Card - vertical scroll */}
+          {/* Contatos Card - compact two-column layout */}
           <Card className="border-l-4 border-l-secondary overflow-hidden">
-            <CardContent className="p-4 h-full flex flex-col">
+            <CardContent className="p-3 h-full flex flex-col">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-base font-semibold text-foreground">Contatos</span>
-                <Badge variant="outline" className="text-xs">{activeLeads} leads</Badge>
+                <span className="text-sm font-semibold text-foreground">Contatos</span>
+                <Badge variant="outline" className="text-[10px]">
+                  {dateFilter ? new Date(dateFilter + 'T12:00:00').toLocaleDateString('pt-BR') : 'Hoje'}
+                </Badge>
               </div>
 
-              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-1.5 pr-1">
-                {vendorLeadsData.map((vendor, idx) => (
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 flex-1 overflow-y-auto pr-0.5">
+                {vendorContactsCardData.map((vendor, idx) => (
                   <div
                     key={vendor.vendorId || vendor.name}
-                    className="flex items-center gap-2 rounded-md border bg-card p-2"
+                    className="flex items-center gap-1.5 rounded-md border bg-card p-1.5"
                   >
-                    <div className="relative flex-shrink-0">
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src={vendor.avatar_url || ''} />
-                        <AvatarFallback className="text-[9px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <span
-                        className={cn(
-                          'absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[7px] font-bold',
-                          idx === 0
-                            ? 'bg-primary text-primary-foreground'
-                            : idx === 1
-                            ? 'bg-muted text-foreground'
-                            : idx === 2
-                            ? 'bg-secondary text-secondary-foreground'
-                            : 'bg-accent text-accent-foreground'
-                        )}
-                      >
-                        {vendor.rank}
-                      </span>
-                    </div>
+                    <Avatar className="h-5 w-5 shrink-0">
+                      <AvatarImage src={vendor.avatar_url || ''} />
+                      <AvatarFallback className="text-[7px] bg-muted">{vendor.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{vendor.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{vendor.count} leads • {vendor.contacts} cont.</p>
+                      <p className="text-[10px] font-medium text-foreground truncate">{vendor.name}</p>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-primary">{vendor.todayContacts}</span>
+                        <span className="text-[8px] text-muted-foreground">/ {vendor.monthContacts} mês</span>
+                      </div>
                     </div>
-                    <span className="text-xs font-bold text-foreground whitespace-nowrap">{formatCurrency(vendor.value)}</span>
                   </div>
                 ))}
 
-                {vendorLeadsData.length === 0 && (
-                  <p className="text-xs text-muted-foreground py-2">Sem dados</p>
+                {vendorContactsCardData.length === 0 && (
+                  <p className="text-xs text-muted-foreground py-2 col-span-2">Sem dados</p>
                 )}
               </div>
             </CardContent>

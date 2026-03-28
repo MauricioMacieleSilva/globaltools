@@ -47,15 +47,36 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
 
   useEffect(() => {
     loadVisits();
-  }, []);
+  }, [leads]);
 
   const loadVisits = async () => {
     const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
 
-    const [visitsRes, followupsRes] = await Promise.all([
-      (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true }),
-      (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', cutoff).order('data_agendada', { ascending: true }),
-    ]);
+    // Get current user for filtering
+    const { data: { user } } = await supabase.auth.getUser();
+    let userId: string | null = null;
+    let isManager = false;
+    if (user) {
+      userId = user.id;
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const role = (roleData as any)?.role;
+      isManager = role === 'admin' || role === 'comercial';
+    }
+
+    let visitsQuery = (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true });
+    let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', cutoff).order('data_agendada', { ascending: true });
+
+    // Filter by current user if not manager
+    if (!isManager && userId) {
+      visitsQuery = visitsQuery.eq('user_id', userId);
+      followupsQuery = followupsQuery.eq('user_id', userId);
+    }
+
+    const [visitsRes, followupsRes] = await Promise.all([visitsQuery, followupsQuery]);
 
     const enrichedVisits: Visit[] = (visitsRes.data || []).map((v: any) => {
       const lead = leads.find(l => l.id === v.lead_id);

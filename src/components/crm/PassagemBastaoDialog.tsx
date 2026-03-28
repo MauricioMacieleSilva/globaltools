@@ -28,11 +28,11 @@ export function PassagemBastaoDialog({ open, onOpenChange, leadName, onConfirm, 
   useEffect(() => {
     if (!open) return;
     const loadVendors = async () => {
-      // Get users with comercial role (vendedores)
+      // Get users with comercial, admin roles (vendedores + gestores)
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('user_id')
-        .eq('role', 'comercial');
+        .in('role', ['comercial', 'admin']);
       
       if (!roleData?.length) return;
       

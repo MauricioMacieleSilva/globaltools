@@ -1188,6 +1188,7 @@ export type Database = {
       lead_activities: {
         Row: {
           activity_type: string
+          contact_channel: string | null
           conversation_started: boolean | null
           created_at: string
           description: string
@@ -1202,6 +1203,7 @@ export type Database = {
         }
         Insert: {
           activity_type: string
+          contact_channel?: string | null
           conversation_started?: boolean | null
           created_at?: string
           description: string
@@ -1216,6 +1218,7 @@ export type Database = {
         }
         Update: {
           activity_type?: string
+          contact_channel?: string | null
           conversation_started?: boolean | null
           created_at?: string
           description?: string
@@ -1232,7 +1235,12 @@ export type Database = {
       }
       lead_attachments: {
         Row: {
+          competitor_date: string | null
+          competitor_materials: string | null
+          competitor_name: string | null
+          competitor_value: number | null
           created_at: string
+          document_type: string | null
           file_name: string
           file_size: number | null
           file_type: string | null
@@ -1243,7 +1251,12 @@ export type Database = {
           uploaded_by_name: string | null
         }
         Insert: {
+          competitor_date?: string | null
+          competitor_materials?: string | null
+          competitor_name?: string | null
+          competitor_value?: number | null
           created_at?: string
+          document_type?: string | null
           file_name: string
           file_size?: number | null
           file_type?: string | null
@@ -1254,7 +1267,12 @@ export type Database = {
           uploaded_by_name?: string | null
         }
         Update: {
+          competitor_date?: string | null
+          competitor_materials?: string | null
+          competitor_name?: string | null
+          competitor_value?: number | null
           created_at?: string
+          document_type?: string | null
           file_name?: string
           file_size?: number | null
           file_type?: string | null

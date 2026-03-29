@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
@@ -30,6 +31,7 @@ interface LeadActivity {
   created_at: string;
   sdr_name?: string;
   user_id: string;
+  contact_channel?: string;
 }
 
 interface UserProfileInfo {
@@ -59,6 +61,13 @@ function UserAvatar({ name, avatarUrl, size = 'sm' }: { name: string; avatarUrl?
   );
 }
 
+const CONTACT_CHANNELS = [
+  { value: 'ligacao', label: 'Ligação', icon: '📞' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  { value: 'email', label: 'E-mail', icon: '📧' },
+  { value: 'reuniao', label: 'Reunião', icon: '🤝' },
+];
+
 export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated }: LeadDrawerProps) {
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [userProfiles, setUserProfiles] = useState<Record<string, UserProfileInfo>>({});
@@ -76,6 +85,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [nextFollowUp, setNextFollowUp] = useState<{ id: string; data_agendada: string; titulo: string; tipo: string } | null>(null);
   const [analiseResponseOpen, setAnaliseResponseOpen] = useState(false);
   const [canAccessFinanceiro, setCanAccessFinanceiro] = useState(false);
+  const [failedConfirmOpen, setFailedConfirmOpen] = useState(false);
 
   useEffect(() => {
     const checkFinanceAccess = async () => {
@@ -220,7 +230,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     if (!nextVisit || !lead) return;
     try {
       await (supabase as any).from('crm_visits').delete().eq('id', nextVisit.id);
-      // Log activity
       const user = (await supabase.auth.getUser()).data.user;
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
       await supabase.from('lead_activities').insert({
@@ -230,7 +239,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         description: `Reunião desmarcada: ${new Date(nextVisit.date).toLocaleDateString('pt-BR')} ${new Date(nextVisit.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${nextVisit.location ? ` em ${nextVisit.location}` : ''}`,
         sdr_name: (profile as any)?.full_name || 'Usuário',
       });
-      // Always touch updated_at so cards refresh; revert status if in visita_reuniao
       const updatePayload: any = { updated_at: new Date().toISOString() };
       if (lead.status === 'visita_reuniao') {
         updatePayload.status = 'contato_feito';
@@ -255,7 +263,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     const acts = (data as LeadActivity[]) || [];
     setActivities(acts);
 
-    // Load user profiles for all unique user_ids
     const userIds = [...new Set(acts.map(a => a.user_id).filter(Boolean))];
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
@@ -315,10 +322,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [showEnrichAfterContact, setShowEnrichAfterContact] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [contactNote, setContactNote] = useState('');
+  const [contactChannel, setContactChannel] = useState('ligacao');
   const [contactSubmitting, setContactSubmitting] = useState(false);
 
   const openContactDialog = () => {
     setContactNote('');
+    setContactChannel('ligacao');
     setContactDialogOpen(true);
   };
 
@@ -334,6 +343,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       const user = (await supabase.auth.getUser()).data.user;
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').single();
       const userName = profile?.full_name || 'Usuário';
+      const channelLabel = CONTACT_CHANNELS.find(c => c.value === contactChannel)?.label || contactChannel;
       // Save note
       await supabase.from('lead_activities').insert({
         lead_id: lead.id,
@@ -341,16 +351,18 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         description: contactNote.trim(),
         user_id: user?.id || '',
         sdr_name: userName,
+        contact_channel: contactChannel,
       } as any);
-      // Always register a new contato_inicial
+      // Register contato_inicial with channel
       await supabase.from('lead_activities').insert({
         lead_id: lead.id,
         activity_type: 'contato_inicial',
-        description: 'Contato registrado',
+        description: `Contato registrado via ${channelLabel}`,
         user_id: user?.id || '',
         sdr_name: userName,
+        contact_channel: contactChannel,
       } as any);
-      // Update lead updated_at to refresh cards
+      // Update lead updated_at
       await (supabase as any).from('leads').update({ updated_at: new Date().toISOString() }).eq('id', lead.id);
       if (lead.status === 'lead') {
         onStatusChange(lead.id, 'contato_feito');
@@ -364,7 +376,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       setContactNote('');
       setContactDialogOpen(false);
       loadActivities(lead.id);
-      // Open enrich form after contact
       setShowEnrichAfterContact(true);
     } catch (err: any) {
       console.error('Erro ao registrar contato:', err);
@@ -389,6 +400,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       await (supabase as any).from('leads').update({ updated_at: new Date().toISOString() }).eq('id', lead.id);
       toast.success('Tentativa registrada', { description: 'Contato sem sucesso registrado.' });
       loadActivities(lead.id);
+      onLeadUpdated(); // Force immediate refresh so KanbanCard re-fetches count
     } catch {
       toast.error('Erro ao registrar tentativa');
     }
@@ -411,12 +423,20 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'contato_inicial': return <Phone className="h-3 w-3" />;
+      case 'contato_sem_sucesso': return <PhoneMissed className="h-3 w-3" />;
       case 'nota': return <FileText className="h-3 w-3" />;
       case 'encaminhamento': return <Send className="h-3 w-3" />;
       case 'visita': return <MapPin className="h-3 w-3" />;
       case 'mudanca_status': return <ArrowRightLeft className="h-3 w-3" />;
       default: return <Clock className="h-3 w-3" />;
     }
+  };
+
+  const getChannelBadge = (channel?: string) => {
+    if (!channel) return null;
+    const ch = CONTACT_CHANNELS.find(c => c.value === channel);
+    if (!ch) return null;
+    return <span className="text-[9px] text-muted-foreground ml-1">({ch.icon} {ch.label})</span>;
   };
 
   return (
@@ -649,7 +669,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                   Registrar Contato
                 </Button>
               )}
-              <Button size="sm" variant="outline" onClick={handleFailedContact} className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5">
+              <Button size="sm" variant="outline" onClick={() => setFailedConfirmOpen(true)} className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5">
                 <PhoneMissed className="h-3.5 w-3.5" />
                 Sem Sucesso
               </Button>
@@ -764,6 +784,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                             <div className="p-0.5 rounded bg-accent text-accent-foreground">
                               {getActivityIcon(activity.activity_type)}
                             </div>
+                            {getChannelBadge(activity.contact_channel)}
                           </div>
                           <p className="text-xs text-foreground mt-0.5">{activity.description}</p>
                           <span className="text-[10px] text-muted-foreground">
@@ -809,6 +830,29 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Failed contact confirmation dialog */}
+      <AlertDialog open={failedConfirmOpen} onOpenChange={setFailedConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Registrar tentativa sem sucesso</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirma o registro de tentativa de contato sem sucesso com <strong>{name}</strong>?
+              <br />
+              <span className="text-muted-foreground text-xs">O cliente não atendeu ou não respondeu.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setFailedConfirmOpen(false);
+              handleFailedContact();
+            }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Order detail popup */}
       {selectedOrderNum && (
         <OrderDetailDialog
@@ -839,6 +883,21 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             <p className="text-xs text-muted-foreground">
               Descreva o contato realizado com <strong>{name}</strong>
             </p>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Canal de contato</label>
+              <Select value={contactChannel} onValueChange={setContactChannel}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTACT_CHANNELS.map(ch => (
+                    <SelectItem key={ch.value} value={ch.value} className="text-xs">
+                      {ch.icon} {ch.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Textarea
               value={contactNote}
               onChange={(e) => setContactNote(e.target.value)}

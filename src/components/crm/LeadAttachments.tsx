@@ -4,6 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Paperclip, Upload, Trash2, FileText, Image, File, Download, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 interface Attachment {
   id: string;
@@ -13,7 +18,19 @@ interface Attachment {
   file_size: number | null;
   uploaded_by_name: string | null;
   created_at: string;
+  document_type?: string;
+  competitor_name?: string;
+  competitor_materials?: string;
+  competitor_value?: number;
+  competitor_date?: string;
 }
+
+const DOCUMENT_TYPES = [
+  { value: 'cadastro_credito', label: 'Cadastro e Análise de Crédito' },
+  { value: 'proposta_global', label: 'Proposta Global' },
+  { value: 'proposta_concorrencia', label: 'Proposta Concorrência' },
+  { value: 'geral', label: 'Outro' },
+];
 
 interface LeadAttachmentsProps {
   leadId: string;
@@ -23,6 +40,13 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [typeDialogOpen, setTypeDialogOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [docType, setDocType] = useState('geral');
+  const [competitorName, setCompetitorName] = useState('');
+  const [competitorMaterials, setCompetitorMaterials] = useState('');
+  const [competitorValue, setCompetitorValue] = useState('');
+  const [competitorDate, setCompetitorDate] = useState('');
 
   useEffect(() => {
     loadAttachments();
@@ -37,10 +61,27 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
     setAttachments(data || []);
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    setPendingFiles(Array.from(files));
+    setDocType('geral');
+    setCompetitorName('');
+    setCompetitorMaterials('');
+    setCompetitorValue('');
+    setCompetitorDate('');
+    setTypeDialogOpen(true);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
+  const handleUploadConfirm = async () => {
+    if (pendingFiles.length === 0) return;
+    if (docType === 'proposta_concorrencia' && !competitorName.trim()) {
+      toast.error('Informe o nome do concorrente');
+      return;
+    }
+
+    setTypeDialogOpen(false);
     setUploading(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
@@ -50,13 +91,12 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
         .eq('id', user?.id || '')
         .single();
 
-      for (const file of Array.from(files)) {
+      for (const file of pendingFiles) {
         if (file.size > 10 * 1024 * 1024) {
           toast.error(`${file.name} excede 10MB`);
           continue;
         }
 
-        const ext = file.name.split('.').pop();
         const path = `${leadId}/${Date.now()}_${file.name}`;
 
         const { error: uploadError } = await supabase.storage
@@ -73,7 +113,7 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
           .from('lead-attachments')
           .getPublicUrl(path);
 
-        const { error: insertError } = await (supabase as any).from('lead_attachments').insert({
+        const insertData: any = {
           lead_id: leadId,
           file_name: file.name,
           file_url: urlData.publicUrl,
@@ -81,7 +121,17 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
           file_size: file.size,
           uploaded_by: user?.id,
           uploaded_by_name: profile?.full_name || 'Usuário',
-        });
+          document_type: docType,
+        };
+
+        if (docType === 'proposta_concorrencia') {
+          insertData.competitor_name = competitorName;
+          insertData.competitor_materials = competitorMaterials;
+          insertData.competitor_value = competitorValue ? parseFloat(competitorValue) : null;
+          insertData.competitor_date = competitorDate || null;
+        }
+
+        const { error: insertError } = await (supabase as any).from('lead_attachments').insert(insertData);
 
         if (insertError) {
           console.error('Insert error:', insertError);
@@ -96,13 +146,12 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
       toast.error('Erro ao anexar arquivo');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setPendingFiles([]);
     }
   };
 
   const handleDelete = async (att: Attachment) => {
     try {
-      // Extract storage path from URL
       const urlParts = att.file_url.split('/lead-attachments/');
       const storagePath = urlParts[1] ? decodeURIComponent(urlParts[1]) : null;
 
@@ -133,6 +182,18 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
 
   const isImage = (type: string | null) => type?.startsWith('image/');
 
+  const getDocTypeBadge = (docType?: string) => {
+    if (!docType || docType === 'geral') return null;
+    const dt = DOCUMENT_TYPES.find(d => d.value === docType);
+    if (!dt) return null;
+    const colors: Record<string, string> = {
+      cadastro_credito: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+      proposta_global: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+      proposta_concorrencia: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+    };
+    return <Badge variant="outline" className={`text-[8px] px-1 py-0 ${colors[docType] || ''}`}>{dt.label}</Badge>;
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -156,7 +217,7 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
           multiple
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
           className="hidden"
-          onChange={handleUpload}
+          onChange={handleFileSelected}
         />
       </div>
 
@@ -186,9 +247,19 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
                 >
                   {att.file_name}
                 </a>
-                <p className="text-[10px] text-muted-foreground">
-                  {formatSize(att.file_size)} • {att.uploaded_by_name} • {new Date(att.created_at).toLocaleDateString('pt-BR')}
-                </p>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatSize(att.file_size)} • {att.uploaded_by_name} • {new Date(att.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                  {getDocTypeBadge(att.document_type)}
+                </div>
+                {att.document_type === 'proposta_concorrencia' && att.competitor_name && (
+                  <p className="text-[9px] text-amber-600 dark:text-amber-400 mt-0.5">
+                    🏢 {att.competitor_name}
+                    {att.competitor_value ? ` • R$ ${att.competitor_value.toLocaleString('pt-BR')}` : ''}
+                    {att.competitor_date ? ` • ${new Date(att.competitor_date + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}
+                  </p>
+                )}
               </div>
               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button size="icon" variant="ghost" className="h-6 w-6" asChild>
@@ -204,6 +275,66 @@ export function LeadAttachments({ leadId }: LeadAttachmentsProps) {
           ))}
         </div>
       )}
+
+      {/* Document type selection dialog */}
+      <Dialog open={typeDialogOpen} onOpenChange={setTypeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Tipo de documento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Categoria do documento</Label>
+              <Select value={docType} onValueChange={setDocType}>
+                <SelectTrigger className="h-8 text-xs mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DOCUMENT_TYPES.map(dt => (
+                    <SelectItem key={dt.value} value={dt.value} className="text-xs">{dt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {docType === 'proposta_concorrencia' && (
+              <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+                <div>
+                  <Label className="text-xs">Concorrente *</Label>
+                  <Input value={competitorName} onChange={e => setCompetitorName(e.target.value)} placeholder="Nome do concorrente" className="h-8 text-xs mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Materiais da proposta</Label>
+                  <Input value={competitorMaterials} onChange={e => setCompetitorMaterials(e.target.value)} placeholder="Ex: Perfil U, Chapa..." className="h-8 text-xs mt-1" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Valor total</Label>
+                    <Input type="number" value={competitorValue} onChange={e => setCompetitorValue(e.target.value)} placeholder="R$" className="h-8 text-xs mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Data da proposta</Label>
+                    <Input type="date" value={competitorDate} onChange={e => setCompetitorDate(e.target.value)} className="h-8 text-xs mt-1" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground">
+              {pendingFiles.length} arquivo(s) selecionado(s): {pendingFiles.map(f => f.name).join(', ')}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => { setTypeDialogOpen(false); setPendingFiles([]); }}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleUploadConfirm}>
+              <Upload className="h-3 w-3 mr-1" />
+              Enviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

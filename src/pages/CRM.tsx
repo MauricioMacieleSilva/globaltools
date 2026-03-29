@@ -702,13 +702,28 @@ export default function CRM() {
           </div>
           <div className="flex items-center gap-2">
             {(activeTab === 'kanban' || activeTab === 'lista') && (
-              <div data-tour="crm-filters">
+              <div data-tour="crm-filters" className="flex items-center gap-2">
                 <CRMFilters
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   vendorFilter={vendorFilter}
                   onVendorChange={setVendorFilter}
                 />
+                {activeTab === 'kanban' && (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      value={kanbanDateFilter}
+                      onChange={(e) => setKanbanDateFilter(e.target.value)}
+                      className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
+                    />
+                    {kanbanDateFilter && (
+                      <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => setKanbanDateFilter('')}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             <Button variant="outline" size="sm" onClick={() => setCarouselOpen(true)} className="gap-1.5 h-8 hidden sm:flex" title="Modo TV - Alternar dashboards">
@@ -724,8 +739,14 @@ export default function CRM() {
 
         <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden" data-tour="crm-kanban">
           <KanbanBoard
-            leads={filteredLeads}
-            stages={CRM_STAGES}
+            leads={kanbanDateFilter 
+              ? filteredLeads.filter(l => {
+                  const leadDate = l.updated_at ? l.updated_at.slice(0, 10) : '';
+                  const createdDate = l.created_at ? l.created_at.slice(0, 10) : '';
+                  return leadDate === kanbanDateFilter || createdDate === kanbanDateFilter;
+                })
+              : filteredLeads}
+            stages={KANBAN_STAGES}
             loading={loading}
             onStatusChange={updateLeadStatus}
             onCardClick={openLeadDrawer}

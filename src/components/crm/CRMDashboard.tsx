@@ -66,7 +66,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const start = startOfMonth(new Date(year, month - 1));
     const end = endOfMonth(new Date(year, month - 1));
 
-    // Always load ALL activities for the month (unfiltered) for global metrics
+    // Load ALL activities for the month — no limit (default 1000 should suffice for monthly data)
     const { data: allData } = await supabase
       .from('lead_activities')
       .select('*')
@@ -75,7 +75,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     
     setAllActivities(allData || []);
 
-    // Then set filtered activities based on vendor
+    // Set filtered activities based on vendor
     if (vendorFilter !== 'all') {
       setActivities((allData || []).filter(a => a.user_id === vendorFilter));
     } else {
@@ -127,7 +127,6 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
         dailyOrders: goal?.daily_orders_goal || 0,
       };
     }
-    // Sum all vendor goals
     return {
       dailyContacts: vendorGoals.reduce((s: number, g: any) => s + (g.daily_contacts_goal || 0), 0),
       dailyVisits: vendorGoals.reduce((s: number, g: any) => s + (g.daily_visits_goal || 0), 0),
@@ -148,36 +147,20 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   // All active leads (unfiltered) for funnel "Lead" stage
   const allActiveLeads = useMemo(() => leads.filter(l => l.status !== 'perdido'), [leads]);
 
-  const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
+  const lostLeads = useMemo(() => leads.filter(l => l.status !== 'perdido' ? false : true), [leads]);
 
-  // Helper: deduplicate contato_inicial — count only the first per lead per day per user (local tz)
-  const uniqueDailyContacts = useMemo(() => {
-    const seen = new Set<string>();
-    return activities.filter(a => {
-      if (a.activity_type !== 'contato_inicial') return false;
-      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
-      const key = `${a.lead_id}_${a.user_id}_${day}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  // NO deduplication — count every contato_inicial record
+  const contactActivities = useMemo(() => {
+    return activities.filter(a => a.activity_type === 'contato_inicial');
   }, [activities]);
 
-  // ALL unique daily contacts (unfiltered) for global progress
-  const allUniqueDailyContacts = useMemo(() => {
-    const seen = new Set<string>();
-    return allActivities.filter(a => {
-      if (a.activity_type !== 'contato_inicial') return false;
-      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
-      const key = `${a.lead_id}_${a.user_id}_${day}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  // ALL contact activities (unfiltered by vendor)
+  const allContactActivities = useMemo(() => {
+    return allActivities.filter(a => a.activity_type === 'contato_inicial');
   }, [allActivities]);
 
   // KPIs
-  const totalContacts = uniqueDailyContacts.length;
+  const totalContacts = contactActivities.length;
   const totalVisits = activities.filter(a => a.activity_type === 'visita').length;
   const totalActivities = activities.length;
   const activeLeads = filteredLeads.length;
@@ -186,15 +169,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const lostPercent = activeLeads > 0 ? ((lostLeads.length / (activeLeads + lostLeads.length)) * 100).toFixed(1) : '0';
 
   // Today's contacts for progress — use dateFilter if set, else today
-  // When "all" vendors, use allActivities to sum ALL users' contacts
   const selectedDateStr = dateFilter || format(new Date(), 'yyyy-MM-dd');
   const todayContacts = useMemo(() => {
-    const source = vendorFilter === 'all' ? allUniqueDailyContacts : uniqueDailyContacts;
+    const source = vendorFilter === 'all' ? allContactActivities : contactActivities;
     return source.filter(a => {
       const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
       return localDate === selectedDateStr;
     }).length;
-  }, [allUniqueDailyContacts, uniqueDailyContacts, vendorFilter, selectedDateStr]);
+  }, [allContactActivities, contactActivities, vendorFilter, selectedDateStr]);
 
   const todayVisitsCount = useMemo(() => {
     const source = vendorFilter === 'all' ? allActivities : activities;
@@ -205,7 +187,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     }).length;
   }, [allActivities, activities, vendorFilter, selectedDateStr]);
 
-  // Daily contacts chart — use filtered activities
+  // Daily contacts chart — use filtered activities, count ALL (no dedup)
   const dailyContactsData = useMemo(() => {
     const [year, month] = periodFilter.split('-').map(Number);
     const start = startOfMonth(new Date(year, month - 1));
@@ -216,11 +198,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       const dayActivities = activities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr);
       return {
         dia: format(day, 'dd', { locale: ptBR }),
-        contatos: uniqueDailyContacts.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr).length,
+        contatos: contactActivities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr).length,
         visitas: dayActivities.filter(a => a.activity_type === 'visita').length,
       };
     });
-  }, [activities, uniqueDailyContacts, periodFilter]);
+  }, [activities, contactActivities, periodFilter]);
 
   // Funnel data - Lead stage shows ALL active leads
   const funnelData = useMemo(() => {
@@ -238,19 +220,13 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   };
 
-  // Contacts per vendor for the contacts card — uses ALL activities (unfiltered by vendor)
-  // Shows today's contacts prominently + monthly total
+  // Contacts per vendor for the contacts card — uses ALL activities (unfiltered by vendor), NO dedup
   const vendorContactsCardData = useMemo(() => {
     const map: Record<string, { todayContacts: number; monthContacts: number; avatar_url: string | null; vendorId: string }> = {};
 
-    // Build per-user contact counts from ALL activities
-    const allContactsSeen = new Set<string>();
     allActivities.forEach(a => {
       if (a.activity_type !== 'contato_inicial') return;
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
-      const key = `${a.lead_id}_${a.user_id}_${day}`;
-      if (allContactsSeen.has(key)) return;
-      allContactsSeen.add(key);
 
       const userId = a.user_id || 'unknown';
       if (!map[userId]) {
@@ -347,25 +323,23 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       .map(([name, value]) => ({ name, value }));
   }, [lossReasons]);
 
-  // Contacts per vendor chart — uses ALL activities (unfiltered) so SDR contacts are included
+  // Contacts per vendor chart — uses ALL activities (unfiltered), NO dedup, count every record
   const vendorContactsData = useMemo(() => {
     if (vendorFilter !== 'all') return [];
     const map: Record<string, { contatos: number; visitas: number }> = {};
     
-    // Use allActivities to include SDR contacts
-    const seen = new Set<string>();
-    allActivities.forEach(a => {
+    // Filter by date if dateFilter is set
+    const filteredAll = dateFilter
+      ? allActivities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dateFilter)
+      : allActivities;
+
+    filteredAll.forEach(a => {
       const fullName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
       const firstName = fullName.split(' ')[0];
 
       if (a.activity_type === 'contato_inicial') {
-        const day = format(new Date(a.created_at), 'yyyy-MM-dd');
-        const key = `${a.lead_id}_${a.user_id}_${day}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
-          map[firstName].contatos++;
-        }
+        if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
+        map[firstName].contatos++;
       }
       if (a.activity_type === 'visita') {
         if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
@@ -375,7 +349,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return Object.entries(map)
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => (b.contatos + b.visitas) - (a.contatos + a.visitas));
-  }, [allActivities, vendors, vendorFilter]);
+  }, [allActivities, vendors, vendorFilter, dateFilter]);
 
   const clearFilters = () => {
     setVendorFilter('all');

@@ -63,6 +63,7 @@ export interface CRMLead {
   vendedor?: { full_name: string; avatar_url: string | null } | null;
 }
 
+// All stages (used for status tracking, drawer moves, dashboard funnel)
 export const CRM_STAGES = [
   { key: 'lead', label: 'Lead', color: 'hsl(200, 98%, 39%)' },
   { key: 'contato_feito', label: 'Contato Feito', color: 'hsl(38, 92%, 50%)' },
@@ -72,6 +73,9 @@ export const CRM_STAGES = [
   { key: 'proposta', label: 'Proposta', color: 'hsl(142, 76%, 36%)' },
   { key: 'pedido_fechado', label: 'Pedido Fechado', color: 'hsl(173, 80%, 36%)' },
 ] as const;
+
+// Kanban-visible stages (excludes Análise Financeira from columns)
+export const KANBAN_STAGES = CRM_STAGES.filter(s => s.key !== 'analise_financeira');
 
 export type CRMStageKey = typeof CRM_STAGES[number]['key'];
 
@@ -109,6 +113,7 @@ export default function CRM() {
   }, []);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
+  const [kanbanDateFilter, setKanbanDateFilter] = useState('');
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);

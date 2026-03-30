@@ -114,6 +114,8 @@ export default function CRM() {
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
   const [kanbanDateFilter, setKanbanDateFilter] = useState('');
+  // Follow-ups for hiding leads from kanban
+  const [pendingFollowUps, setPendingFollowUps] = useState<{ lead_id: string; data_agendada: string; titulo: string; user_id: string }[]>([]);
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
@@ -165,6 +167,24 @@ export default function CRM() {
     loadCurrentUser();
   }, []);
 
+  const loadFollowUps = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('follow_ups')
+        .select('lead_id, data_agendada, titulo, user_id')
+        .eq('concluido', false)
+        .not('lead_id', 'is', null);
+      setPendingFollowUps((data || []).map(d => ({
+        lead_id: d.lead_id!,
+        data_agendada: d.data_agendada,
+        titulo: d.titulo,
+        user_id: d.user_id,
+      })));
+    } catch (e) {
+      console.error('Erro ao carregar follow-ups:', e);
+    }
+  }, []);
+
   const loadLeads = useCallback(async () => {
     try {
       const { data, error } = await (supabase as any)
@@ -172,9 +192,6 @@ export default function CRM() {
         .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, avatar_url)')
         .order('updated_at', { ascending: false });
       if (error) throw error;
-
-      // vendedor from DB join is the real owner — do NOT overwrite it.
-      // We keep it as-is for ownership checks, card display, and filtering.
 
       setLeads(data || []);
       setLastUpdated(new Date());

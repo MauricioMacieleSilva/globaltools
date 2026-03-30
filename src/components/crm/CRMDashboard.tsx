@@ -214,15 +214,50 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
   }, [activities, contactActivities, periodFilter]);
 
-  // Funnel data - Lead stage shows ALL active leads
+  // Funnel data - Lead stage shows ALL active leads, exclude Análise Financeira
+  const FUNNEL_STAGES = CRM_STAGES.filter(s => s.key !== 'analise_financeira');
   const funnelData = useMemo(() => {
-    return CRM_STAGES.map((s, i) => ({
+    return FUNNEL_STAGES.map((s, i) => ({
       name: s.label,
       value: i === 0 ? allActiveLeads.length : filteredLeads.filter(l => l.status === s.key).length,
       amount: i === 0 ? allActiveLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0) : filteredLeads.filter(l => l.status === s.key).reduce((sum, l) => sum + (l.valor_estimado || 0), 0),
       fill: s.color,
     }));
   }, [filteredLeads, allActiveLeads]);
+
+  // Contact channel distribution
+  const CHANNEL_COLORS: Record<string, string> = {
+    'ligacao': 'hsl(200, 98%, 39%)',
+    'whatsapp': 'hsl(142, 76%, 36%)',
+    'email': 'hsl(38, 92%, 50%)',
+    'reuniao': 'hsl(262, 52%, 47%)',
+  };
+  const CHANNEL_LABELS: Record<string, string> = {
+    'ligacao': 'Ligação',
+    'whatsapp': 'WhatsApp',
+    'email': 'E-mail',
+    'reuniao': 'Reunião',
+  };
+  const channelData = useMemo(() => {
+    const source = vendorFilter === 'all' ? allActivities : activities;
+    const filtered = dateFilter
+      ? source.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dateFilter)
+      : source;
+    const map: Record<string, number> = {};
+    filtered.forEach(a => {
+      if (a.contact_channel) {
+        map[a.contact_channel] = (map[a.contact_channel] || 0) + 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([key, value]) => ({ name: CHANNEL_LABELS[key] || key, value, fill: CHANNEL_COLORS[key] || 'hsl(200, 98%, 39%)' }))
+      .sort((a, b) => b.value - a.value);
+  }, [allActivities, activities, vendorFilter, dateFilter]);
+
+  // Pending financial analyses count
+  const pendingAnalyses = useMemo(() => {
+    return leads.filter(l => l.status === 'analise_financeira');
+  }, [leads]);
 
   // Helper to format name: first name only, proper case
   const formatFirstName = (name: string) => {

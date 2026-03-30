@@ -200,7 +200,9 @@ export default function CRM() {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // Also refresh follow-ups
+    loadFollowUps();
+  }, [loadFollowUps]);
 
   // Auto-open carousel from URL param (e.g. /crm?tv=1)
   useEffect(() => {

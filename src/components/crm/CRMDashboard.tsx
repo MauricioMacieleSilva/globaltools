@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe, CalendarDays } from 'lucide-react';
+import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe, CalendarDays, MessageCircle } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine, PieChart as RPieChart, Pie, Cell } from 'recharts';

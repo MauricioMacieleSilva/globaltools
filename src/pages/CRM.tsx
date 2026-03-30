@@ -228,12 +228,39 @@ export default function CRM() {
 
   useEffect(() => {
     loadLeads();
+    loadFollowUps();
     // Auto-refresh every 15 minutes
     refreshTimerRef.current = setInterval(() => {
       loadLeads();
+      loadFollowUps();
     }, 15 * 60 * 1000);
     return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
-  }, [loadLeads]);
+  }, [loadLeads, loadFollowUps]);
+
+  // Notify user about leads returning today from follow-up
+  const notifiedFollowUpsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!currentUserId || pendingFollowUps.length === 0 || leads.length === 0) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    pendingFollowUps.forEach(fu => {
+      if (fu.user_id !== currentUserId) return;
+      const fuDate = new Date(fu.data_agendada);
+      if (fuDate >= today && fuDate < tomorrow && !notifiedFollowUpsRef.current.has(fu.lead_id)) {
+        notifiedFollowUpsRef.current.add(fu.lead_id);
+        const lead = leads.find(l => l.id === fu.lead_id);
+        if (lead) {
+          toast.info(`Follow-up hoje: ${lead.empresa || lead.cliente_nome}`, {
+            description: fu.titulo,
+            duration: 8000,
+          });
+        }
+      }
+    });
+  }, [pendingFollowUps, currentUserId, leads]);
 
   const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
     const today = new Date();

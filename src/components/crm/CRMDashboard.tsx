@@ -837,6 +837,80 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           </Card>
         </div>
 
+        {/* Row 4.5: Channel distribution + Pending Analyses */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Canal de Contato
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[220px] sm:h-[260px] px-1 sm:px-6">
+              {channelData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RPieChart>
+                    <Pie
+                      data={channelData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    >
+                      {channelData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  </RPieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs">Nenhum contato com canal registrado</div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pending Financial Analyses */}
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Análises Financeiras Pendentes
+                {pendingAnalyses.length > 0 && (
+                  <Badge variant="destructive" className="text-[10px] ml-1">{pendingAnalyses.length}</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 overflow-y-auto max-h-[220px] sm:max-h-[260px]">
+              {pendingAnalyses.length === 0 ? (
+                <div className="flex items-center justify-center h-[180px] text-muted-foreground text-xs">Nenhuma análise pendente</div>
+              ) : (
+                <div className="space-y-2">
+                  {pendingAnalyses.map(lead => (
+                    <div key={lead.id} className="flex items-center justify-between rounded-lg border p-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {lead.cidade && lead.estado && (
+                            <span className="text-[10px] text-muted-foreground">{lead.cidade}/{lead.estado}</span>
+                          )}
+                          {lead.budget_number && (
+                            <Badge variant="outline" className="text-[9px]">Pedido {lead.budget_number}</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                        {format(new Date(lead.updated_at), 'dd/MM', { locale: ptBR })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Row 5: Loss Reasons */}
         <Card>
           <CardHeader className="pb-2 px-3 sm:px-6">

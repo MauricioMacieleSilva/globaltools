@@ -66,20 +66,30 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const start = startOfMonth(new Date(year, month - 1));
     const end = endOfMonth(new Date(year, month - 1));
 
-    // Load ALL activities for the month — no limit (default 1000 should suffice for monthly data)
-    const { data: allData } = await supabase
-      .from('lead_activities')
-      .select('*')
-      .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString());
+    // Load ALL activities — paginate to overcome 1000 row limit
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: batch } = await supabase
+        .from('lead_activities')
+        .select('*')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
+        .range(from, from + pageSize - 1);
+      if (!batch || batch.length === 0) break;
+      allData = allData.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
     
-    setAllActivities(allData || []);
+    setAllActivities(allData);
 
     // Set filtered activities based on vendor
     if (vendorFilter !== 'all') {
-      setActivities((allData || []).filter(a => a.user_id === vendorFilter));
+      setActivities(allData.filter(a => a.user_id === vendorFilter));
     } else {
-      setActivities(allData || []);
+      setActivities(allData);
     }
 
     let lossQuery = (supabase as any)

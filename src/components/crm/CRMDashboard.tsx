@@ -5,16 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe, CalendarDays } from 'lucide-react';
+import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe, CalendarDays, MessageCircle } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine, PieChart as RPieChart, Pie, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import type { CRMLead } from '@/pages/CRM';
-import { CRM_STAGES } from '@/pages/CRM';
+import { CRM_STAGES, KANBAN_STAGES } from '@/pages/CRM';
 
 interface CRMDashboardProps {
   leads: CRMLead[];
@@ -66,20 +66,30 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const start = startOfMonth(new Date(year, month - 1));
     const end = endOfMonth(new Date(year, month - 1));
 
-    // Load ALL activities for the month — no limit (default 1000 should suffice for monthly data)
-    const { data: allData } = await supabase
-      .from('lead_activities')
-      .select('*')
-      .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString());
+    // Load ALL activities — paginate to overcome 1000 row limit
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: batch } = await supabase
+        .from('lead_activities')
+        .select('*')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
+        .range(from, from + pageSize - 1);
+      if (!batch || batch.length === 0) break;
+      allData = allData.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
     
-    setAllActivities(allData || []);
+    setAllActivities(allData);
 
     // Set filtered activities based on vendor
     if (vendorFilter !== 'all') {
-      setActivities((allData || []).filter(a => a.user_id === vendorFilter));
+      setActivities(allData.filter(a => a.user_id === vendorFilter));
     } else {
-      setActivities(allData || []);
+      setActivities(allData);
     }
 
     let lossQuery = (supabase as any)
@@ -204,15 +214,50 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
   }, [activities, contactActivities, periodFilter]);
 
-  // Funnel data - Lead stage shows ALL active leads
+  // Funnel data - Lead stage shows ALL active leads, exclude Análise Financeira
+  const FUNNEL_STAGES = CRM_STAGES.filter(s => s.key !== 'analise_financeira');
   const funnelData = useMemo(() => {
-    return CRM_STAGES.map((s, i) => ({
+    return FUNNEL_STAGES.map((s, i) => ({
       name: s.label,
       value: i === 0 ? allActiveLeads.length : filteredLeads.filter(l => l.status === s.key).length,
       amount: i === 0 ? allActiveLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0) : filteredLeads.filter(l => l.status === s.key).reduce((sum, l) => sum + (l.valor_estimado || 0), 0),
       fill: s.color,
     }));
   }, [filteredLeads, allActiveLeads]);
+
+  // Contact channel distribution
+  const CHANNEL_COLORS: Record<string, string> = {
+    'ligacao': 'hsl(200, 98%, 39%)',
+    'whatsapp': 'hsl(142, 76%, 36%)',
+    'email': 'hsl(38, 92%, 50%)',
+    'reuniao': 'hsl(262, 52%, 47%)',
+  };
+  const CHANNEL_LABELS: Record<string, string> = {
+    'ligacao': 'Ligação',
+    'whatsapp': 'WhatsApp',
+    'email': 'E-mail',
+    'reuniao': 'Reunião',
+  };
+  const channelData = useMemo(() => {
+    const source = vendorFilter === 'all' ? allActivities : activities;
+    const filtered = dateFilter
+      ? source.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dateFilter)
+      : source;
+    const map: Record<string, number> = {};
+    filtered.forEach(a => {
+      if (a.contact_channel) {
+        map[a.contact_channel] = (map[a.contact_channel] || 0) + 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([key, value]) => ({ name: CHANNEL_LABELS[key] || key, value, fill: CHANNEL_COLORS[key] || 'hsl(200, 98%, 39%)' }))
+      .sort((a, b) => b.value - a.value);
+  }, [allActivities, activities, vendorFilter, dateFilter]);
+
+  // Pending financial analyses count
+  const pendingAnalyses = useMemo(() => {
+    return leads.filter(l => l.status === 'analise_financeira');
+  }, [leads]);
 
   // Helper to format name: first name only, proper case
   const formatFirstName = (name: string) => {
@@ -787,6 +832,80 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-xs">Nenhum dado</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Row 4.5: Channel distribution + Pending Analyses */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Canal de Contato
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[220px] sm:h-[260px] px-1 sm:px-6">
+              {channelData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RPieChart>
+                    <Pie
+                      data={channelData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    >
+                      {channelData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                  </RPieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-xs">Nenhum contato com canal registrado</div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pending Financial Analyses */}
+          <Card>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Análises Financeiras Pendentes
+                {pendingAnalyses.length > 0 && (
+                  <Badge variant="destructive" className="text-[10px] ml-1">{pendingAnalyses.length}</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 overflow-y-auto max-h-[220px] sm:max-h-[260px]">
+              {pendingAnalyses.length === 0 ? (
+                <div className="flex items-center justify-center h-[180px] text-muted-foreground text-xs">Nenhuma análise pendente</div>
+              ) : (
+                <div className="space-y-2">
+                  {pendingAnalyses.map(lead => (
+                    <div key={lead.id} className="flex items-center justify-between rounded-lg border p-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {lead.cidade && lead.estado && (
+                            <span className="text-[10px] text-muted-foreground">{lead.cidade}/{lead.estado}</span>
+                          )}
+                          {lead.budget_number && (
+                            <Badge variant="outline" className="text-[9px]">Pedido {lead.budget_number}</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                        {format(new Date(lead.updated_at), 'dd/MM', { locale: ptBR })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

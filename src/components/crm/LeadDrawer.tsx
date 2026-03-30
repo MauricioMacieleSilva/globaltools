@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
@@ -673,6 +673,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <PhoneMissed className="h-3.5 w-3.5" />
                 Sem Sucesso
               </Button>
+              {lead.status !== 'analise_financeira' && canAccessFinanceiro && (
+                <Button size="sm" variant="outline" onClick={() => onStatusChange(lead.id, 'analise_financeira')} className="gap-1.5 text-blue-600 border-blue-300 hover:bg-blue-50">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  Enviar p/ Análise
+                </Button>
+              )}
               {whatsappUrl && (
                 <Button size="sm" variant="outline" asChild className="gap-1.5">
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">

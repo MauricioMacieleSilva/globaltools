@@ -22,7 +22,7 @@ import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X } from 'lucide-react';
+import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock } from 'lucide-react';
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 import { MinhaCarteira } from '@/components/crm/MinhaCarteira';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
@@ -797,18 +797,25 @@ export default function CRM() {
         </div>
 
         <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden" data-tour="crm-kanban">
+          {scheduledLeadsCount > 0 && (
+            <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
+              <Clock className="h-3.5 w-3.5 text-amber-500" />
+              <span><strong>{scheduledLeadsCount}</strong> lead{scheduledLeadsCount > 1 ? 's' : ''} oculto{scheduledLeadsCount > 1 ? 's' : ''} com follow-up agendado (retornam na data agendada)</span>
+            </div>
+          )}
           <KanbanBoard
             leads={kanbanDateFilter 
-              ? filteredLeads.filter(l => {
+              ? kanbanLeads.filter(l => {
                   const leadDate = l.updated_at ? l.updated_at.slice(0, 10) : '';
                   const createdDate = l.created_at ? l.created_at.slice(0, 10) : '';
                   return leadDate === kanbanDateFilter || createdDate === kanbanDateFilter;
                 })
-              : filteredLeads}
+              : kanbanLeads}
             stages={KANBAN_STAGES}
             loading={loading}
             onStatusChange={updateLeadStatus}
             onCardClick={openLeadDrawer}
+          />
           />
         </TabsContent>
 

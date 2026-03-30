@@ -14,7 +14,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, subMonth
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import type { CRMLead } from '@/pages/CRM';
-import { CRM_STAGES } from '@/pages/CRM';
+import { CRM_STAGES, KANBAN_STAGES } from '@/pages/CRM';
 
 interface CRMDashboardProps {
   leads: CRMLead[];

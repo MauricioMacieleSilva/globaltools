@@ -697,7 +697,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Mover para:</p>
               <div className="flex flex-wrap gap-1.5">
-                {CRM_STAGES.filter(s => s.key !== lead.status).map(stage => (
+                {CRM_STAGES.filter(s => s.key !== lead.status && s.key !== 'analise_financeira').map(stage => (
                   <Button
                     key={stage.key}
                     size="sm"

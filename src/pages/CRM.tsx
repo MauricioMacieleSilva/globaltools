@@ -708,6 +708,21 @@ export default function CRM() {
     return true;
   });
 
+  // Leads with future follow-ups (not today) should be hidden from kanban
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const leadsWithFutureFollowUp = new Set(
+    pendingFollowUps
+      .filter(fu => new Date(fu.data_agendada) >= tomorrow)
+      .map(fu => fu.lead_id)
+  );
+
+  const kanbanLeads = filteredLeads.filter(l => !leadsWithFutureFollowUp.has(l.id));
+  const scheduledLeadsCount = filteredLeads.filter(l => leadsWithFutureFollowUp.has(l.id)).length;
+
   const lostLeads = leads.filter(l => l.status === 'perdido');
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
 

@@ -22,7 +22,7 @@ import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X } from 'lucide-react';
+import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock } from 'lucide-react';
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 import { MinhaCarteira } from '@/components/crm/MinhaCarteira';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
@@ -114,6 +114,8 @@ export default function CRM() {
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
   const [kanbanDateFilter, setKanbanDateFilter] = useState('');
+  // Follow-ups for hiding leads from kanban
+  const [pendingFollowUps, setPendingFollowUps] = useState<{ lead_id: string; data_agendada: string; titulo: string; user_id: string }[]>([]);
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
@@ -165,6 +167,24 @@ export default function CRM() {
     loadCurrentUser();
   }, []);
 
+  const loadFollowUps = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from('follow_ups')
+        .select('lead_id, data_agendada, titulo, user_id')
+        .eq('concluido', false)
+        .not('lead_id', 'is', null);
+      setPendingFollowUps((data || []).map(d => ({
+        lead_id: d.lead_id!,
+        data_agendada: d.data_agendada,
+        titulo: d.titulo,
+        user_id: d.user_id,
+      })));
+    } catch (e) {
+      console.error('Erro ao carregar follow-ups:', e);
+    }
+  }, []);
+
   const loadLeads = useCallback(async () => {
     try {
       const { data, error } = await (supabase as any)
@@ -173,9 +193,6 @@ export default function CRM() {
         .order('updated_at', { ascending: false });
       if (error) throw error;
 
-      // vendedor from DB join is the real owner — do NOT overwrite it.
-      // We keep it as-is for ownership checks, card display, and filtering.
-
       setLeads(data || []);
       setLastUpdated(new Date());
     } catch (error) {
@@ -183,7 +200,9 @@ export default function CRM() {
     } finally {
       setLoading(false);
     }
-  }, []);
+    // Also refresh follow-ups
+    loadFollowUps();
+  }, [loadFollowUps]);
 
   // Auto-open carousel from URL param (e.g. /crm?tv=1)
   useEffect(() => {
@@ -211,12 +230,39 @@ export default function CRM() {
 
   useEffect(() => {
     loadLeads();
+    loadFollowUps();
     // Auto-refresh every 15 minutes
     refreshTimerRef.current = setInterval(() => {
       loadLeads();
+      loadFollowUps();
     }, 15 * 60 * 1000);
     return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
-  }, [loadLeads]);
+  }, [loadLeads, loadFollowUps]);
+
+  // Notify user about leads returning today from follow-up
+  const notifiedFollowUpsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!currentUserId || pendingFollowUps.length === 0 || leads.length === 0) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    pendingFollowUps.forEach(fu => {
+      if (fu.user_id !== currentUserId) return;
+      const fuDate = new Date(fu.data_agendada);
+      if (fuDate >= today && fuDate < tomorrow && !notifiedFollowUpsRef.current.has(fu.lead_id)) {
+        notifiedFollowUpsRef.current.add(fu.lead_id);
+        const lead = leads.find(l => l.id === fu.lead_id);
+        if (lead) {
+          toast.info(`Follow-up hoje: ${lead.empresa || lead.cliente_nome}`, {
+            description: fu.titulo,
+            duration: 8000,
+          });
+        }
+      }
+    });
+  }, [pendingFollowUps, currentUserId, leads]);
 
   const checkContactAlreadyToday = async (leadId: string): Promise<boolean> => {
     const today = new Date();
@@ -664,6 +710,21 @@ export default function CRM() {
     return true;
   });
 
+  // Leads with future follow-ups (not today) should be hidden from kanban
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const leadsWithFutureFollowUp = new Set(
+    pendingFollowUps
+      .filter(fu => new Date(fu.data_agendada) >= tomorrow)
+      .map(fu => fu.lead_id)
+  );
+
+  const kanbanLeads = filteredLeads.filter(l => !leadsWithFutureFollowUp.has(l.id));
+  const scheduledLeadsCount = filteredLeads.filter(l => leadsWithFutureFollowUp.has(l.id)).length;
+
   const lostLeads = leads.filter(l => l.status === 'perdido');
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
 
@@ -738,14 +799,20 @@ export default function CRM() {
         </div>
 
         <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden" data-tour="crm-kanban">
+          {scheduledLeadsCount > 0 && (
+            <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
+              <Clock className="h-3.5 w-3.5 text-amber-500" />
+              <span><strong>{scheduledLeadsCount}</strong> lead{scheduledLeadsCount > 1 ? 's' : ''} oculto{scheduledLeadsCount > 1 ? 's' : ''} com follow-up agendado (retornam na data agendada)</span>
+            </div>
+          )}
           <KanbanBoard
             leads={kanbanDateFilter 
-              ? filteredLeads.filter(l => {
+              ? kanbanLeads.filter(l => {
                   const leadDate = l.updated_at ? l.updated_at.slice(0, 10) : '';
                   const createdDate = l.created_at ? l.created_at.slice(0, 10) : '';
                   return leadDate === kanbanDateFilter || createdDate === kanbanDateFilter;
                 })
-              : filteredLeads}
+              : kanbanLeads}
             stages={KANBAN_STAGES}
             loading={loading}
             onStatusChange={updateLeadStatus}

@@ -816,7 +816,6 @@ export default function CRM() {
             onStatusChange={updateLeadStatus}
             onCardClick={openLeadDrawer}
           />
-          />
         </TabsContent>
 
         <TabsContent value="lista" className="mt-3">

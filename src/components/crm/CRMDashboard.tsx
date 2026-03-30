@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Maximize2, Minimize2, Phone, MapPin, Package, Briefcase, Users, TrendingUp, Calendar, X, Target, DollarSign, BarChart3, AlertTriangle, ArrowUpRight, ArrowDownRight, Globe, CalendarDays } from 'lucide-react';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList, ReferenceLine, PieChart as RPieChart, Pie, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

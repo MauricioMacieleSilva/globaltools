@@ -673,6 +673,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <PhoneMissed className="h-3.5 w-3.5" />
                 Sem Sucesso
               </Button>
+              {lead.status !== 'analise_financeira' && canAccessFinanceiro && (
+                <Button size="sm" variant="outline" onClick={() => onStatusChange(lead.id, 'analise_financeira')} className="gap-1.5 text-blue-600 border-blue-300 hover:bg-blue-50">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  Enviar p/ Análise
+                </Button>
+              )}
               {whatsappUrl && (
                 <Button size="sm" variant="outline" asChild className="gap-1.5">
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">

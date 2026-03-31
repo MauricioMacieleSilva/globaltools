@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,12 @@ interface FollowUpScheduleDialogProps {
   onConfirm: () => void;
 }
 
+interface OccupiedSlot {
+  time: string;
+  title: string;
+  lead_name: string;
+}
+
 export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, onConfirm }: FollowUpScheduleDialogProps) {
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState('09:00');
@@ -40,6 +47,58 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [loading, setLoading] = useState(false);
+  const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
+  const [timeConflict, setTimeConflict] = useState(false);
+
+  // Load occupied slots when date changes
+  useEffect(() => {
+    if (!date) { setOccupiedSlots([]); return; }
+    const loadOccupied = async () => {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) return;
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const [followups, visits] = await Promise.all([
+        supabase.from('follow_ups')
+          .select('data_agendada, titulo, lead_id')
+          .eq('user_id', user.id)
+          .eq('concluido', false)
+          .gte('data_agendada', dayStart.toISOString())
+          .lte('data_agendada', dayEnd.toISOString()),
+        (supabase as any).from('crm_visits')
+          .select('visit_date, notes, lead_id')
+          .eq('user_id', user.id)
+          .gte('visit_date', dayStart.toISOString())
+          .lte('visit_date', dayEnd.toISOString()),
+      ]);
+
+      const slots: OccupiedSlot[] = [];
+      (followups.data || []).forEach((f: any) => {
+        slots.push({
+          time: format(new Date(f.data_agendada), 'HH:mm'),
+          title: f.titulo || 'Follow-up',
+          lead_name: '',
+        });
+      });
+      (visits.data || []).forEach((v: any) => {
+        slots.push({
+          time: format(new Date(v.visit_date), 'HH:mm'),
+          title: 'Visita',
+          lead_name: '',
+        });
+      });
+      setOccupiedSlots(slots.sort((a, b) => a.time.localeCompare(b.time)));
+    };
+    loadOccupied();
+  }, [date]);
+
+  // Check for time conflict
+  useEffect(() => {
+    setTimeConflict(occupiedSlots.some(s => s.time === time));
+  }, [time, occupiedSlots]);
 
   const handleConfirm = async () => {
     if (!date) {
@@ -49,6 +108,10 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
     if (!titulo.trim()) {
       toast.error('Informe o título do follow-up');
       return;
+    }
+    if (timeConflict) {
+      const proceed = window.confirm(`Já existe um compromisso agendado para ${time} neste dia. Deseja agendar mesmo assim?`);
+      if (!proceed) return;
     }
     setLoading(true);
     try {
@@ -70,7 +133,6 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
       });
       if (insertError) throw insertError;
 
-      // Log activity
       const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
       await supabase.from('lead_activities').insert({
         lead_id: leadId,
@@ -85,6 +147,7 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
       setTitulo('');
       setDescricao('');
       setTipo('ligar');
+      setOccupiedSlots([]);
       onOpenChange(false);
       onConfirm();
     } catch (err: any) {
@@ -150,8 +213,27 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
             <div className="space-y-1.5">
               <Label>Hora *</Label>
               <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              {timeConflict && (
+                <p className="text-[11px] text-destructive flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> Horário já ocupado
+                </p>
+              )}
             </div>
           </div>
+
+          {/* Occupied slots for selected date */}
+          {date && occupiedSlots.length > 0 && (
+            <div className="bg-muted/50 rounded-md p-2 space-y-1">
+              <p className="text-[11px] font-medium text-muted-foreground">Horários ocupados em {format(date, 'dd/MM')}:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {occupiedSlots.map((slot, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] h-5 gap-1">
+                    {slot.time} — {slot.title}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Descrição</Label>

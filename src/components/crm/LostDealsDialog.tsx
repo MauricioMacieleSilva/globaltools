@@ -44,7 +44,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
       .from('crm_loss_reasons')
       .select('id, name')
       .eq('is_active', true)
-      .order('display_order', { ascending: true });
+      .order('name', { ascending: true });
     setReasons(data || []);
   };
 

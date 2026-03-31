@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,6 +39,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [financeParecer, setFinanceParecer] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [handoffBy, setHandoffBy] = useState<string | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -61,6 +62,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setNextVisit(null);
     setFinanceParecer(null);
     setFailedAttempts(0);
+    setHandoffBy(null);
     import('@/integrations/supabase/client').then(({ supabase }) => {
       // Fetch next visit
       (supabase as any)
@@ -96,6 +98,21 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         .eq('activity_type', 'contato_sem_sucesso')
         .then(({ count }: any) => {
           if (!cancelled) setFailedAttempts(count || 0);
+        });
+
+      // Fetch who handed off the lead (passagem de bastão)
+      (supabase as any)
+        .from('lead_activities')
+        .select('sdr_name, description')
+        .eq('lead_id', lead.id)
+        .eq('activity_type', 'mudanca_status')
+        .ilike('description', '%Passagem de Bastão%')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }: any) => {
+          if (!cancelled && data?.[0]) {
+            setHandoffBy(data[0].sdr_name || null);
+          }
         });
     });
     return () => { cancelled = true; };
@@ -150,7 +167,16 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {/* Failed contact attempts */}
+        {/* Handoff badge - who passed the lead */}
+        {handoffBy && (
+          <div className="flex">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-pink-300 bg-pink-50 text-pink-700 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-800">
+              <ArrowRightLeft className="h-2.5 w-2.5" />
+              Bastão: {handoffBy.split(' ')[0]}
+            </Badge>
+          </div>
+        )}
+
         {failedAttempts > 0 && (
           <div className="flex">
             <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-destructive/30 bg-destructive/5 text-destructive">

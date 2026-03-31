@@ -412,22 +412,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const rankColors = ['text-amber-500', 'text-slate-400', 'text-amber-700'];
 
   return (
-    <div className={cn(
-      isFullscreen && "fixed inset-0 z-50 bg-background overflow-auto"
-    )}>
-      {isFullscreen && (
-        <Button
-          variant="secondary"
-          size="icon"
-          className="fixed top-4 right-4 z-[60] shadow-lg"
-          onClick={() => setIsFullscreen(false)}
-          title="Sair do modo tela cheia"
-        >
-          <Minimize2 className="h-4 w-4" />
-        </Button>
-      )}
-
-      <div className={cn("space-y-3 sm:space-y-4", isFullscreen && "p-4 sm:p-6")}>
+    <div className="overflow-auto">
+      <div className="space-y-3 sm:space-y-4">
         {/* Last updated indicator */}
         {lastUpdated && !tvMode && (
           <div className="flex justify-end">
@@ -482,19 +468,6 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               </Button>
             )}
 
-            <div className="ml-auto">
-              {!isFullscreen && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsFullscreen(true)}
-                  title="Modo tela cheia"
-                  className="h-8 w-8 hidden sm:flex"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
           </div>
         )}
 

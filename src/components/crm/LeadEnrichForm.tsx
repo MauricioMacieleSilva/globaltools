@@ -78,11 +78,11 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
 
   const loadLookups = async () => {
     const [s, p] = await Promise.all([
-      (supabase as any).from('lead_business_types').select('id, name, label').eq('is_active', true).order('display_order', { ascending: true }),
-      (supabase as any).from('lead_product_interests').select('id, name, label').eq('is_active', true).order('display_order', { ascending: true }),
+      (supabase as any).from('lead_business_types').select('id, name, label').eq('is_active', true).order('label', { ascending: true }),
+      (supabase as any).from('lead_product_interests').select('id, name, label').eq('is_active', true).order('label', { ascending: true }),
     ]);
-    setSectors((s.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })));
-    setProducts((p.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })));
+    setSectors((s.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })).sort((a: any, b: any) => a.name.localeCompare(b.name)));
+    setProducts((p.data || []).map((d: any) => ({ id: d.id, name: d.label || d.name })).sort((a: any, b: any) => a.name.localeCompare(b.name)));
   };
 
   const handleAddSector = async () => {
@@ -138,7 +138,9 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
 
   const handleCidadeSearchChange = (value: string) => {
     setCidadeSearch(value);
-    setCidade(value);
+    // If the typed value exactly matches a city in the list (case-insensitive), set it as selected
+    const exactMatch = cidades.find(c => c.toLowerCase() === value.toLowerCase());
+    setCidade(exactMatch || value);
     setShowCidadeDropdown(true);
   };
 

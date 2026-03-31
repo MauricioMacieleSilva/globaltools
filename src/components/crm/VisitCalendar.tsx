@@ -4,8 +4,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays, ChevronLeft, ChevronRight, Pencil, Users } from 'lucide-react';
 import {
   format, isToday, isBefore, startOfDay, isSameMonth,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths
@@ -43,37 +44,51 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
+  const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
+  const [userFilter, setUserFilter] = useState('all');
+  const [isManager, setIsManager] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    loadVisits();
-  }, [leads]);
-
-  const loadVisits = async () => {
-    const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
-
-    // Get current user for filtering
-    const { data: { user } } = await supabase.auth.getUser();
-    let userId: string | null = null;
-    let isManager = false;
-    if (user) {
-      userId = user.id;
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .maybeSingle();
       const role = (roleData as any)?.role;
-      isManager = role === 'admin' || role === 'comercial';
-    }
+      const mgr = role === 'admin' || role === 'comercial';
+      setIsManager(mgr);
+      if (!mgr) setUserFilter(user.id);
+
+      // Load vendors for filter
+      if (mgr) {
+        const { data: profiles } = await supabase.from('user_profiles').select('id, full_name');
+        setVendors((profiles || []).map(p => ({ id: p.id, name: p.full_name })));
+      }
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (currentUserId) loadVisits();
+  }, [leads, userFilter, currentUserId]);
+
+  const loadVisits = async () => {
+    const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
 
     let visitsQuery = (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true });
     let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', cutoff).order('data_agendada', { ascending: true });
 
-    // Filter by current user if not manager
-    if (!isManager && userId) {
-      visitsQuery = visitsQuery.eq('user_id', userId);
-      followupsQuery = followupsQuery.eq('user_id', userId);
+    // Filter by selected user
+    const filterUserId = userFilter !== 'all' ? userFilter : null;
+    if (filterUserId) {
+      visitsQuery = visitsQuery.eq('user_id', filterUserId);
+      followupsQuery = followupsQuery.eq('user_id', filterUserId);
     }
 
     const [visitsRes, followupsRes] = await Promise.all([visitsQuery, followupsQuery]);
@@ -187,13 +202,27 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('list')}>
           <List className="h-3.5 w-3.5" /> Lista
         </Button>
         <Button variant={viewMode === 'calendar' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('calendar')}>
           <CalendarDays className="h-3.5 w-3.5" /> Calendário
         </Button>
+        {isManager && vendors.length > 0 && (
+          <Select value={userFilter} onValueChange={setUserFilter}>
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <Users className="h-3 w-3 mr-1.5 shrink-0" />
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Usuários</SelectItem>
+              {vendors.map(v => (
+                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {viewMode === 'list' ? (

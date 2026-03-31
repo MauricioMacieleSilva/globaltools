@@ -159,7 +159,15 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         .from('leads')
         .select('id, cliente_nome, empresa, cliente_telefone, cliente_email, cliente_cnpj, source, produto_interesse, notes, website, ramo_atuacao, regime_tributario, estado, cidade, status, contact_name, contact_phone, contact_email, finance_parecer, budget_number, linked_orders_meta')
         .order('updated_at', { ascending: false });
-      setExistingLeads(data || []);
+      // Deduplicate by empresa/cliente_nome — keep the most recent (first in list since ordered by updated_at desc)
+      const seen = new Map<string, ExistingLead>();
+      (data || []).forEach((lead: ExistingLead) => {
+        const key = (lead.empresa || lead.cliente_nome || '').toLowerCase().trim();
+        if (key && !seen.has(key)) {
+          seen.set(key, lead);
+        }
+      });
+      setExistingLeads(Array.from(seen.values()));
     } catch { setExistingLeads([]); }
   };
 

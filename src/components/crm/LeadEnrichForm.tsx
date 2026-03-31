@@ -138,7 +138,9 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
 
   const handleCidadeSearchChange = (value: string) => {
     setCidadeSearch(value);
-    setCidade(value);
+    // If the typed value exactly matches a city in the list (case-insensitive), set it as selected
+    const exactMatch = cidades.find(c => c.toLowerCase() === value.toLowerCase());
+    setCidade(exactMatch || value);
     setShowCidadeDropdown(true);
   };
 

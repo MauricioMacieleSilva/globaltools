@@ -468,19 +468,6 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               </Button>
             )}
 
-            <div className="ml-auto">
-              {!isFullscreen && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsFullscreen(true)}
-                  title="Modo tela cheia"
-                  className="h-8 w-8 hidden sm:flex"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
           </div>
         )}
 

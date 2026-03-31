@@ -120,10 +120,9 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       .from('crm_lead_sources')
       .select('id, name')
       .eq('is_active', true)
-      .order('display_order', { ascending: true })
       .order('name', { ascending: true });
     if (error) { setOrigens(DEFAULT_ORIGENS_FALLBACK); return; }
-    const names = (data || []).map((d: any) => d.name);
+    const names = (data || []).map((d: any) => d.name).sort((a: string, b: string) => a.localeCompare(b));
     setOrigens(names.length > 0 ? names : DEFAULT_ORIGENS_FALLBACK);
   };
 

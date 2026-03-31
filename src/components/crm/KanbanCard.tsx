@@ -167,7 +167,16 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {/* Failed contact attempts */}
+        {/* Handoff badge - who passed the lead */}
+        {handoffBy && (
+          <div className="flex">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-pink-300 bg-pink-50 text-pink-700 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-800">
+              <ArrowRightLeft className="h-2.5 w-2.5" />
+              Bastão: {handoffBy.split(' ')[0]}
+            </Badge>
+          </div>
+        )}
+
         {failedAttempts > 0 && (
           <div className="flex">
             <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-destructive/30 bg-destructive/5 text-destructive">

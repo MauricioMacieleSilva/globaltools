@@ -16,6 +16,7 @@ interface MinhaCarteiraProps {
 const statusLabels: Record<string, { label: string; color: string }> = {
   lead: { label: 'Lead', color: 'bg-blue-100 text-blue-800' },
   contato_feito: { label: 'Contato', color: 'bg-amber-100 text-amber-800' },
+  passagem_bastao: { label: 'Passagem', color: 'bg-pink-100 text-pink-800' },
   visita_reuniao: { label: 'Visita', color: 'bg-purple-100 text-purple-800' },
   analise_financeira: { label: 'Análise', color: 'bg-indigo-100 text-indigo-800' },
   proposta: { label: 'Proposta', color: 'bg-green-100 text-green-800' },
@@ -23,25 +24,48 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   perdido: { label: 'Perdido', color: 'bg-red-100 text-red-800' },
 };
 
+type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos';
+
 export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
 
   const myLeads = useMemo(() => {
     return leads.filter(l => l.vendedor_id === currentUserId);
   }, [leads, currentUserId]);
 
   const filtered = useMemo(() => {
-    if (!search) return myLeads;
-    const term = search.toLowerCase();
-    return myLeads.filter(l =>
-      (l.empresa || l.cliente_nome || '').toLowerCase().includes(term) ||
-      (l.cliente_cnpj || '').includes(term)
-    );
-  }, [myLeads, search]);
+    let result = myLeads;
+    
+    // Status filter
+    if (statusFilter === 'andamento') {
+      result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado');
+    } else if (statusFilter === 'fechados') {
+      result = result.filter(l => l.status === 'pedido_fechado');
+    } else if (statusFilter === 'perdidos') {
+      result = result.filter(l => l.status === 'perdido');
+    }
+    
+    // Text search
+    if (search) {
+      const term = search.toLowerCase();
+      result = result.filter(l =>
+        (l.empresa || l.cliente_nome || '').toLowerCase().includes(term) ||
+        (l.cliente_cnpj || '').includes(term) ||
+        (l.contact_name || '').toLowerCase().includes(term) ||
+        (l.cliente_telefone || '').includes(term)
+      );
+    }
+    
+    return result;
+  }, [myLeads, search, statusFilter]);
 
-  const activeLeads = filtered.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado');
-  const closedLeads = filtered.filter(l => l.status === 'pedido_fechado');
-  const lostLeads = filtered.filter(l => l.status === 'perdido');
+  const counts = useMemo(() => ({
+    total: myLeads.length,
+    andamento: myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado').length,
+    fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
+    perdidos: myLeads.filter(l => l.status === 'perdido').length,
+  }), [myLeads]);
 
   const renderLeadCard = (lead: CRMLead) => {
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
@@ -91,26 +115,29 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
     );
   };
 
+  const kpiCards: { key: StatusFilter; label: string; value: number; colorClass: string }[] = [
+    { key: 'todos', label: 'Total na Carteira', value: counts.total, colorClass: '' },
+    { key: 'andamento', label: 'Em Andamento', value: counts.andamento, colorClass: 'text-primary' },
+    { key: 'fechados', label: 'Fechados', value: counts.fechados, colorClass: 'text-green-600' },
+    { key: 'perdidos', label: 'Perdidos', value: counts.perdidos, colorClass: 'text-red-600' },
+  ];
+
   return (
     <div className="space-y-3">
-      {/* KPIs */}
+      {/* KPIs - clickable */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold">{myLeads.length}</p>
-          <p className="text-[11px] text-muted-foreground">Total na Carteira</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold text-primary">{myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado').length}</p>
-          <p className="text-[11px] text-muted-foreground">Em Andamento</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold text-green-600">{myLeads.filter(l => l.status === 'pedido_fechado').length}</p>
-          <p className="text-[11px] text-muted-foreground">Fechados</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-2xl font-bold text-red-600">{myLeads.filter(l => l.status === 'perdido').length}</p>
-          <p className="text-[11px] text-muted-foreground">Perdidos</p>
-        </CardContent></Card>
+        {kpiCards.map(kpi => (
+          <Card
+            key={kpi.key}
+            className={`cursor-pointer transition-all ${statusFilter === kpi.key ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-sm'}`}
+            onClick={() => setStatusFilter(statusFilter === kpi.key ? 'todos' : kpi.key)}
+          >
+            <CardContent className="p-3 text-center">
+              <p className={`text-2xl font-bold ${kpi.colorClass}`}>{kpi.value}</p>
+              <p className="text-[11px] text-muted-foreground">{kpi.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Search */}
@@ -126,33 +153,13 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
 
       <ScrollArea className="h-[calc(100vh-320px)]">
         <div className="space-y-4 pr-2">
-          {activeLeads.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold mb-2">Em Andamento ({activeLeads.length})</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {activeLeads.map(renderLeadCard)}
-              </div>
+          {filtered.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {filtered.map(renderLeadCard)}
             </div>
-          )}
-          {closedLeads.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold mb-2 text-green-700">Fechados ({closedLeads.length})</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {closedLeads.map(renderLeadCard)}
-              </div>
-            </div>
-          )}
-          {lostLeads.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold mb-2 text-red-700">Perdidos ({lostLeads.length})</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {lostLeads.map(renderLeadCard)}
-              </div>
-            </div>
-          )}
-          {filtered.length === 0 && (
+          ) : (
             <p className="text-center text-sm text-muted-foreground py-8">
-              {search ? 'Nenhum lead encontrado na busca' : 'Nenhum lead atribuído a você'}
+              {search ? 'Nenhum lead encontrado na busca' : 'Nenhum lead nesta categoria'}
             </p>
           )}
         </div>

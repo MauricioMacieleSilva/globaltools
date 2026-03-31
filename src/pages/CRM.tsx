@@ -257,7 +257,13 @@ export default function CRM() {
         if (lead) {
           toast.info(`Follow-up hoje: ${lead.empresa || lead.cliente_nome}`, {
             description: fu.titulo,
-            duration: 8000,
+            duration: 10000,
+            action: {
+              label: 'Ver Lead',
+              onClick: () => {
+                openLeadDrawer(lead);
+              },
+            },
           });
         }
       }

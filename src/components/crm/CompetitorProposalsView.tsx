@@ -48,8 +48,10 @@ export function CompetitorProposalsView() {
       if (error) throw error;
 
       // Fetch lead names for each attachment
-      const leadIds: string[] = [...new Set((data || []).map((a: any) => String(a.lead_id)))];
-      let leadMap: Record<string, { empresa: string | null; cliente_nome: string }> = {};
+      const idSet = new Set<string>();
+      (data || []).forEach((a: any) => idSet.add(String(a.lead_id)));
+      const leadIds = Array.from(idSet);
+      const leadMap: Record<string, { empresa: string | null; cliente_nome: string }> = {};
       if (leadIds.length > 0) {
         const { data: leadsData } = await supabase
           .from('leads')

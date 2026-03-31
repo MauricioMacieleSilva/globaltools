@@ -99,6 +99,21 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         .then(({ count }: any) => {
           if (!cancelled) setFailedAttempts(count || 0);
         });
+
+      // Fetch who handed off the lead (passagem de bastão)
+      (supabase as any)
+        .from('lead_activities')
+        .select('sdr_name, description')
+        .eq('lead_id', lead.id)
+        .eq('activity_type', 'mudanca_status')
+        .ilike('description', '%Passagem de Bastão%')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }: any) => {
+          if (!cancelled && data?.[0]) {
+            setHandoffBy(data[0].sdr_name || null);
+          }
+        });
     });
     return () => { cancelled = true; };
   }, [lead.id, lead.updated_at]);

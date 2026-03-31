@@ -202,13 +202,27 @@ export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('list')}>
           <List className="h-3.5 w-3.5" /> Lista
         </Button>
         <Button variant={viewMode === 'calendar' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('calendar')}>
           <CalendarDays className="h-3.5 w-3.5" /> Calendário
         </Button>
+        {isManager && vendors.length > 0 && (
+          <Select value={userFilter} onValueChange={setUserFilter}>
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <Users className="h-3 w-3 mr-1.5 shrink-0" />
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Usuários</SelectItem>
+              {vendors.map(v => (
+                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {viewMode === 'list' ? (

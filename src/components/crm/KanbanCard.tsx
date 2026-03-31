@@ -62,6 +62,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setNextVisit(null);
     setFinanceParecer(null);
     setFailedAttempts(0);
+    setHandoffBy(null);
     import('@/integrations/supabase/client').then(({ supabase }) => {
       // Fetch next visit
       (supabase as any)

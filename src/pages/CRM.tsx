@@ -469,11 +469,19 @@ export default function CRM() {
         .eq('id', vendorId)
         .maybeSingle();
 
+      // Get current user name (who passed the lead)
+      const { data: currentProfile } = await supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', user?.id || '')
+        .maybeSingle();
+
       await supabase.from('lead_activities').insert({
         lead_id: pendingPassagemLead.id,
         activity_type: 'mudanca_status',
-        description: `Passagem de Bastão: lead atribuído a ${vendorProfile?.full_name || 'vendedor'} e movido para "Visita / Reunião"`,
+        description: `Passagem de Bastão: lead atribuído a ${vendorProfile?.full_name || 'vendedor'} e movido para "Oportunidade"`,
         user_id: user?.id || '',
+        sdr_name: currentProfile?.full_name || null,
       } as any);
 
       loadLeads();

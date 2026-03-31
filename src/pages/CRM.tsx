@@ -852,7 +852,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="carteira" className="mt-3 overflow-y-auto flex-1">
-          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} />
+          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} />
         </TabsContent>
 
         <TabsContent value="concorrencia" className="mt-3 overflow-y-auto flex-1">

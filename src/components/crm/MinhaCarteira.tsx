@@ -1,16 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Search, Building2, Phone, Mail, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
 
 interface MinhaCarteiraProps {
   leads: CRMLead[];
   currentUserId: string;
   onLeadClick: (lead: CRMLead) => void;
+  onLeadReactivated?: () => void;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -26,9 +30,11 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos';
 
-export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCarteiraProps) {
+export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [reactivateConfirm, setReactivateConfirm] = useState<CRMLead | null>(null);
+  const [reactivating, setReactivating] = useState(false);
 
   const myLeads = useMemo(() => {
     return leads.filter(l => l.vendedor_id === currentUserId);
@@ -36,8 +42,6 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
 
   const filtered = useMemo(() => {
     let result = myLeads;
-    
-    // Status filter
     if (statusFilter === 'andamento') {
       result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado');
     } else if (statusFilter === 'fechados') {
@@ -45,8 +49,6 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
     } else if (statusFilter === 'perdidos') {
       result = result.filter(l => l.status === 'perdido');
     }
-    
-    // Text search
     if (search) {
       const term = search.toLowerCase();
       result = result.filter(l =>
@@ -56,7 +58,6 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
         (l.cliente_telefone || '').includes(term)
       );
     }
-    
     return result;
   }, [myLeads, search, statusFilter]);
 
@@ -67,8 +68,38 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
     perdidos: myLeads.filter(l => l.status === 'perdido').length,
   }), [myLeads]);
 
+  const handleReactivate = async () => {
+    if (!reactivateConfirm) return;
+    setReactivating(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      await (supabase as any)
+        .from('leads')
+        .update({ status: 'lead', updated_at: new Date().toISOString() })
+        .eq('id', reactivateConfirm.id);
+
+      await supabase.from('lead_activities').insert({
+        lead_id: reactivateConfirm.id,
+        activity_type: 'mudanca_status',
+        description: 'Novo atendimento iniciado — lead reativado de "Perdido" para "Lead"',
+        user_id: user?.id || '',
+      } as any);
+
+      toast.success('Novo atendimento iniciado', {
+        description: `${reactivateConfirm.empresa || reactivateConfirm.cliente_nome} voltou para o Kanban`,
+      });
+      onLeadReactivated?.();
+    } catch {
+      toast.error('Erro ao iniciar novo atendimento');
+    } finally {
+      setReactivating(false);
+      setReactivateConfirm(null);
+    }
+  };
+
   const renderLeadCard = (lead: CRMLead) => {
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
+    const isLost = lead.status === 'perdido';
     return (
       <Card
         key={lead.id}
@@ -110,6 +141,22 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
               R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           )}
+          {isLost && (
+            <div className="pt-1 border-t border-border/40">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1 w-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReactivateConfirm(lead);
+                }}
+              >
+                <RotateCcw className="h-3 w-3" />
+                Iniciar Novo Atendimento
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -124,7 +171,6 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
 
   return (
     <div className="space-y-3">
-      {/* KPIs - clickable */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {kpiCards.map(kpi => (
           <Card
@@ -140,7 +186,6 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
         ))}
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -164,6 +209,24 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick }: MinhaCartei
           )}
         </div>
       </ScrollArea>
+
+      <AlertDialog open={!!reactivateConfirm} onOpenChange={(v) => { if (!v) setReactivateConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Iniciar Novo Atendimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja iniciar um novo atendimento para <strong>{reactivateConfirm?.empresa || reactivateConfirm?.cliente_nome}</strong>?
+              O lead voltará para a etapa inicial do Kanban.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reactivating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReactivate} disabled={reactivating}>
+              {reactivating ? 'Iniciando...' : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

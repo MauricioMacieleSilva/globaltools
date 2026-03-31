@@ -39,6 +39,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [financeParecer, setFinanceParecer] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [handoffBy, setHandoffBy] = useState<string | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;

@@ -611,6 +611,35 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                     </p>
                   </div>
                 </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 text-xs"
+                  onClick={async () => {
+                    if (!lead) return;
+                    try {
+                      await supabase.from('follow_ups').update({ concluido: true }).eq('id', nextFollowUp.id);
+                      const user = (await supabase.auth.getUser()).data.user;
+                      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
+                      await supabase.from('lead_activities').insert({
+                        lead_id: lead.id,
+                        user_id: user?.id || '',
+                        activity_type: 'nota',
+                        description: `Follow-up cancelado: ${nextFollowUp.titulo}`,
+                        sdr_name: (profile as any)?.full_name || 'Usuário',
+                      } as any);
+                      setNextFollowUp(null);
+                      toast.success('Follow-up cancelado');
+                      onLeadUpdated();
+                      loadActivities(lead.id);
+                    } catch (err: any) {
+                      toast.error('Erro ao cancelar follow-up', { description: err.message });
+                    }
+                  }}
+                >
+                  <CalendarX2 className="h-3.5 w-3.5" />
+                  Cancelar
+                </Button>
               </div>
             )}
 

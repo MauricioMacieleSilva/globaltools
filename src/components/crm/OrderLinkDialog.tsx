@@ -37,7 +37,7 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
         const orderMap = new Map<string, OrderOption>();
         for (const d of data) {
           const sit = (d.situacao || '').toLowerCase();
-          if (d.numeropedido && (sit.includes('orçamento') || sit.includes('orcamento') || sit.includes('pedido'))) {
+          if (d.numeropedido && (sit.includes('orçamento') || sit.includes('orcamento') || sit.includes('pedido') || sit.includes('faturado'))) {
             const existing = orderMap.get(d.numeropedido);
             if (existing) {
               existing.valor += (d.valor || 0);

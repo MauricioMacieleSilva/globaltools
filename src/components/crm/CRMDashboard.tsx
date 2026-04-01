@@ -296,16 +296,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
   }, [activities, contactActivities, periodFilter]);
 
-  // Funnel data - Lead stage shows ALL active leads, exclude Análise Financeira
+  // Funnel data - historical totals per stage, exclude Análise Financeira
   const FUNNEL_STAGES = CRM_STAGES.filter(s => s.key !== 'analise_financeira');
   const funnelData = useMemo(() => {
-    return FUNNEL_STAGES.map((s, i) => ({
+    return FUNNEL_STAGES.map((s) => ({
       name: s.label,
-      value: i === 0 ? allActiveLeads.length : filteredLeads.filter(l => l.status === s.key).length,
-      amount: i === 0 ? allActiveLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0) : filteredLeads.filter(l => l.status === s.key).reduce((sum, l) => sum + (l.valor_estimado || 0), 0),
+      value: historicalStageCounts[s.key]?.count || 0,
+      amount: historicalStageCounts[s.key]?.value || 0,
       fill: s.color,
     }));
-  }, [filteredLeads, allActiveLeads]);
+  }, [historicalStageCounts]);
 
   // Contact channel distribution
   const CHANNEL_COLORS: Record<string, string> = {

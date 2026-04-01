@@ -241,14 +241,30 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
   const lostLeads = useMemo(() => leads.filter(l => l.status !== 'perdido' ? false : true), [leads]);
 
-  // NO deduplication — count every contato_inicial record
+  // For performance metrics: only count the FIRST contact per lead per day
   const contactActivities = useMemo(() => {
-    return activities.filter(a => a.activity_type === 'contato_inicial');
+    const allContacts = activities.filter(a => a.activity_type === 'contato_inicial');
+    const seen = new Set<string>();
+    return allContacts.filter(a => {
+      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const key = `${a.lead_id}_${day}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [activities]);
 
-  // ALL contact activities (unfiltered by vendor)
+  // ALL contact activities (unfiltered by vendor), deduplicated per lead per day
   const allContactActivities = useMemo(() => {
-    return allActivities.filter(a => a.activity_type === 'contato_inicial');
+    const allContacts = allActivities.filter(a => a.activity_type === 'contato_inicial');
+    const seen = new Set<string>();
+    return allContacts.filter(a => {
+      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const key = `${a.lead_id}_${day}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [allActivities]);
 
   // KPIs

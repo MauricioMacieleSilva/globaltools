@@ -154,6 +154,88 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return filtered;
   }, [leads, vendorFilter]);
 
+  // Load historical stage counts from lead_activities (mudanca_status)
+  const [historicalStageCounts, setHistoricalStageCounts] = useState<Record<string, { count: number; value: number }>>({});
+  const loadHistoricalFunnel = useCallback(async () => {
+    const [year, month] = periodFilter.split('-').map(Number);
+    const start = startOfMonth(new Date(year, month - 1));
+    const end = endOfMonth(new Date(year, month - 1));
+
+    // Get all stage move activities in period
+    let allMoves: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: batch } = await supabase
+        .from('lead_activities')
+        .select('lead_id, description, user_id')
+        .eq('activity_type', 'mudanca_status')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
+        .range(from, from + pageSize - 1);
+      if (!batch || batch.length === 0) break;
+      allMoves = allMoves.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+
+    // Also count leads created in the period (they enter "Lead" stage)
+    let leadsCreated: any[] = [];
+    from = 0;
+    while (true) {
+      const { data: batch } = await supabase
+        .from('leads')
+        .select('id, valor_estimado, vendedor_id')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
+        .range(from, from + pageSize - 1);
+      if (!batch || batch.length === 0) break;
+      leadsCreated = leadsCreated.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+
+    const counts: Record<string, { count: number; value: number }> = {};
+    
+    // Count leads entering "Lead" stage (created)
+    const filteredCreated = vendorFilter !== 'all' 
+      ? leadsCreated.filter((l: any) => l.vendedor_id === vendorFilter)
+      : leadsCreated;
+    counts['lead'] = { 
+      count: filteredCreated.length, 
+      value: filteredCreated.reduce((s: number, l: any) => s + (l.valor_estimado || 0), 0) 
+    };
+
+    // Parse activities to count entries into each stage
+    const stageLabels: Record<string, string> = {};
+    CRM_STAGES.forEach(s => { stageLabels[s.label.toLowerCase()] = s.key; });
+
+    const filteredMoves = vendorFilter !== 'all'
+      ? allMoves.filter(a => a.user_id === vendorFilter)
+      : allMoves;
+
+    filteredMoves.forEach((a: any) => {
+      const desc = (a.description || '').toLowerCase();
+      // Match "para "X"" pattern
+      const match = desc.match(/para\s+"([^"]+)"/);
+      if (match) {
+        const targetLabel = match[1].toLowerCase();
+        const stageKey = Object.entries(stageLabels).find(([label]) => label === targetLabel)?.[1];
+        if (stageKey && stageKey !== 'lead') {
+          if (!counts[stageKey]) counts[stageKey] = { count: 0, value: 0 };
+          counts[stageKey].count++;
+          // Find lead value
+          const leadObj = leads.find(l => l.id === a.lead_id);
+          if (leadObj) counts[stageKey].value += leadObj.valor_estimado || 0;
+        }
+      }
+    });
+
+    setHistoricalStageCounts(counts);
+  }, [periodFilter, vendorFilter, leads]);
+
+  useEffect(() => { loadHistoricalFunnel(); }, [loadHistoricalFunnel]);
+
   // All active leads (unfiltered) for funnel "Lead" stage
   const allActiveLeads = useMemo(() => leads.filter(l => l.status !== 'perdido'), [leads]);
 

@@ -703,13 +703,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               {funnelData.map((stage, idx) => {
                 const maxCount = Math.max(...funnelData.map(s => s.value), 1);
                 const pct = (stage.value / maxCount) * 100;
-                const previousStageValue = idx === 0
-                  ? stage.value
-                  : [...funnelData.slice(0, idx)].reverse().find((s) => s.value > 0)?.value ?? 0;
+                // Conversion % is always calculated from "Contato Feito" stage
+                const contatoFeitoValue = funnelData.find(s => s.name === 'Contato Feito')?.value || 0;
                 const conversionPct = idx === 0
                   ? '100.0'
-                  : previousStageValue > 0
-                  ? ((stage.value / previousStageValue) * 100).toFixed(1)
+                  : idx === 1
+                  ? '100.0' // Contato Feito is the base
+                  : contatoFeitoValue > 0
+                  ? ((stage.value / contatoFeitoValue) * 100).toFixed(1)
                   : '0.0';
                 return (
                   <div key={stage.name} className="space-y-1">

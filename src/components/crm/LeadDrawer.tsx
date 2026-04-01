@@ -460,10 +460,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <div className="mt-4 space-y-4 overflow-y-auto max-h-[calc(100vh-180px)]">
             {/* Info */}
             <div className="space-y-2">
-              {lead.empresa && (
+              {lead.contact_name && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span>{lead.empresa}</span>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>{lead.contact_name}</span>
                 </div>
               )}
               {phone && (

@@ -100,13 +100,13 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           if (!cancelled) setFailedAttempts(count || 0);
         });
 
-      // Fetch who handed off the lead (passagem de bastão)
+      // Fetch who moved the lead TO passagem de bastão (the SDR, not the admin)
       (supabase as any)
         .from('lead_activities')
         .select('sdr_name, description')
         .eq('lead_id', lead.id)
         .eq('activity_type', 'mudanca_status')
-        .ilike('description', '%Passagem de Bastão%')
+        .ilike('description', '%para "Passagem de Bastão"%')
         .order('created_at', { ascending: false })
         .limit(1)
         .then(({ data }: any) => {

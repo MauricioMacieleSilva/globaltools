@@ -21,6 +21,7 @@ interface LeadListViewProps {
   leads: CRMLead[];
   onLeadClick: (lead: CRMLead) => void;
   onLeadUpdated: () => void;
+  userRole?: string | null;
 }
 
 type SortKey = 'cliente_nome' | 'status' | 'updated_at' | 'created_at';

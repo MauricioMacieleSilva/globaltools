@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed, DollarSign } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed, DollarSign, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
@@ -460,10 +460,10 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <div className="mt-4 space-y-4 overflow-y-auto max-h-[calc(100vh-180px)]">
             {/* Info */}
             <div className="space-y-2">
-              {lead.empresa && (
+              {lead.contact_name && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span>{lead.empresa}</span>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>{lead.contact_name}</span>
                 </div>
               )}
               {phone && (
@@ -611,35 +611,66 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                     </p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 text-xs"
-                  onClick={async () => {
-                    if (!lead) return;
-                    try {
-                      await supabase.from('follow_ups').update({ concluido: true }).eq('id', nextFollowUp.id);
-                      const user = (await supabase.auth.getUser()).data.user;
-                      const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
-                      await supabase.from('lead_activities').insert({
-                        lead_id: lead.id,
-                        user_id: user?.id || '',
-                        activity_type: 'nota',
-                        description: `Follow-up cancelado: ${nextFollowUp.titulo}`,
-                        sdr_name: (profile as any)?.full_name || 'Usuário',
-                      } as any);
-                      setNextFollowUp(null);
-                      toast.success('Follow-up cancelado');
-                      onLeadUpdated();
-                      loadActivities(lead.id);
-                    } catch (err: any) {
-                      toast.error('Erro ao cancelar follow-up', { description: err.message });
-                    }
-                  }}
-                >
-                  <CalendarX2 className="h-3.5 w-3.5" />
-                  Cancelar
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 gap-1 text-xs"
+                    onClick={async () => {
+                      if (!lead) return;
+                      try {
+                        await supabase.from('follow_ups').update({ concluido: true }).eq('id', nextFollowUp.id);
+                        const user = (await supabase.auth.getUser()).data.user;
+                        const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
+                        await supabase.from('lead_activities').insert({
+                          lead_id: lead.id,
+                          user_id: user?.id || '',
+                          activity_type: 'nota',
+                          description: `Follow-up concluído: ${nextFollowUp.titulo}`,
+                          sdr_name: (profile as any)?.full_name || 'Usuário',
+                        } as any);
+                        setNextFollowUp(null);
+                        toast.success('Follow-up concluído');
+                        onLeadUpdated();
+                        loadActivities(lead.id);
+                      } catch (err: any) {
+                        toast.error('Erro ao concluir follow-up', { description: err.message });
+                      }
+                    }}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Concluir
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 text-xs"
+                    onClick={async () => {
+                      if (!lead) return;
+                      try {
+                        await supabase.from('follow_ups').update({ concluido: true }).eq('id', nextFollowUp.id);
+                        const user = (await supabase.auth.getUser()).data.user;
+                        const { data: profile } = await supabase.from('user_profiles').select('full_name').eq('id', user?.id || '').maybeSingle();
+                        await supabase.from('lead_activities').insert({
+                          lead_id: lead.id,
+                          user_id: user?.id || '',
+                          activity_type: 'nota',
+                          description: `Follow-up cancelado: ${nextFollowUp.titulo}`,
+                          sdr_name: (profile as any)?.full_name || 'Usuário',
+                        } as any);
+                        setNextFollowUp(null);
+                        toast.success('Follow-up cancelado');
+                        onLeadUpdated();
+                        loadActivities(lead.id);
+                      } catch (err: any) {
+                        toast.error('Erro ao cancelar follow-up', { description: err.message });
+                      }
+                    }}
+                  >
+                    <CalendarX2 className="h-3.5 w-3.5" />
+                    Cancelar
+                  </Button>
+                </div>
               </div>
             )}
 

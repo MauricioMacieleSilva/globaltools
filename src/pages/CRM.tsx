@@ -390,6 +390,13 @@ export default function CRM() {
 
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus, updated_at: new Date().toISOString() } : l));
 
+      // Get current user name for sdr_name
+      const { data: currentProfile } = await supabase
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', user?.id || '')
+        .maybeSingle();
+
       // Log stage move in activity history
       const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
       const newLabel = CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus;
@@ -398,6 +405,7 @@ export default function CRM() {
         activity_type: 'mudanca_status',
         description: `Movido de "${oldLabel}" para "${newLabel}"`,
         user_id: user?.id || '',
+        sdr_name: currentProfile?.full_name || null,
       } as any);
 
       // Register contact on every stage move (except analise_financeira — handled separately)
@@ -843,6 +851,7 @@ export default function CRM() {
             leads={filteredLeads}
             onLeadClick={openLeadDrawer}
             onLeadUpdated={loadLeads}
+            userRole={currentUserRole}
           />
         </TabsContent>
 

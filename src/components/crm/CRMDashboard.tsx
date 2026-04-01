@@ -154,19 +154,117 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return filtered;
   }, [leads, vendorFilter]);
 
+  // Load historical stage counts from lead_activities (mudanca_status)
+  const [historicalStageCounts, setHistoricalStageCounts] = useState<Record<string, { count: number; value: number }>>({});
+  const loadHistoricalFunnel = useCallback(async () => {
+    const [year, month] = periodFilter.split('-').map(Number);
+    const start = startOfMonth(new Date(year, month - 1));
+    const end = endOfMonth(new Date(year, month - 1));
+
+    // Get all stage move activities in period
+    let allMoves: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: batch } = await supabase
+        .from('lead_activities')
+        .select('lead_id, description, user_id')
+        .eq('activity_type', 'mudanca_status')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
+        .range(from, from + pageSize - 1);
+      if (!batch || batch.length === 0) break;
+      allMoves = allMoves.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+
+    // Also count leads created in the period (they enter "Lead" stage)
+    let leadsCreated: any[] = [];
+    from = 0;
+    while (true) {
+      const { data: batch } = await supabase
+        .from('leads')
+        .select('id, valor_estimado, vendedor_id')
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
+        .range(from, from + pageSize - 1);
+      if (!batch || batch.length === 0) break;
+      leadsCreated = leadsCreated.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+
+    const counts: Record<string, { count: number; value: number }> = {};
+    
+    // Count leads entering "Lead" stage (created)
+    const filteredCreated = vendorFilter !== 'all' 
+      ? leadsCreated.filter((l: any) => l.vendedor_id === vendorFilter)
+      : leadsCreated;
+    counts['lead'] = { 
+      count: filteredCreated.length, 
+      value: filteredCreated.reduce((s: number, l: any) => s + (l.valor_estimado || 0), 0) 
+    };
+
+    // Parse activities to count entries into each stage
+    const stageLabels: Record<string, string> = {};
+    CRM_STAGES.forEach(s => { stageLabels[s.label.toLowerCase()] = s.key; });
+
+    const filteredMoves = vendorFilter !== 'all'
+      ? allMoves.filter(a => a.user_id === vendorFilter)
+      : allMoves;
+
+    filteredMoves.forEach((a: any) => {
+      const desc = (a.description || '').toLowerCase();
+      // Match "para "X"" pattern
+      const match = desc.match(/para\s+"([^"]+)"/);
+      if (match) {
+        const targetLabel = match[1].toLowerCase();
+        const stageKey = Object.entries(stageLabels).find(([label]) => label === targetLabel)?.[1];
+        if (stageKey && stageKey !== 'lead') {
+          if (!counts[stageKey]) counts[stageKey] = { count: 0, value: 0 };
+          counts[stageKey].count++;
+          // Find lead value
+          const leadObj = leads.find(l => l.id === a.lead_id);
+          if (leadObj) counts[stageKey].value += leadObj.valor_estimado || 0;
+        }
+      }
+    });
+
+    setHistoricalStageCounts(counts);
+  }, [periodFilter, vendorFilter, leads]);
+
+  useEffect(() => { loadHistoricalFunnel(); }, [loadHistoricalFunnel]);
+
   // All active leads (unfiltered) for funnel "Lead" stage
   const allActiveLeads = useMemo(() => leads.filter(l => l.status !== 'perdido'), [leads]);
 
   const lostLeads = useMemo(() => leads.filter(l => l.status !== 'perdido' ? false : true), [leads]);
 
-  // NO deduplication — count every contato_inicial record
+  // For performance metrics: only count the FIRST contact per lead per day
   const contactActivities = useMemo(() => {
-    return activities.filter(a => a.activity_type === 'contato_inicial');
+    const allContacts = activities.filter(a => a.activity_type === 'contato_inicial');
+    const seen = new Set<string>();
+    return allContacts.filter(a => {
+      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const key = `${a.lead_id}_${day}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [activities]);
 
-  // ALL contact activities (unfiltered by vendor)
+  // ALL contact activities (unfiltered by vendor), deduplicated per lead per day
   const allContactActivities = useMemo(() => {
-    return allActivities.filter(a => a.activity_type === 'contato_inicial');
+    const allContacts = allActivities.filter(a => a.activity_type === 'contato_inicial');
+    const seen = new Set<string>();
+    return allContacts.filter(a => {
+      const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const key = `${a.lead_id}_${day}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [allActivities]);
 
   // KPIs
@@ -214,16 +312,16 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
   }, [activities, contactActivities, periodFilter]);
 
-  // Funnel data - Lead stage shows ALL active leads, exclude Análise Financeira
+  // Funnel data - historical totals per stage, exclude Análise Financeira
   const FUNNEL_STAGES = CRM_STAGES.filter(s => s.key !== 'analise_financeira');
   const funnelData = useMemo(() => {
-    return FUNNEL_STAGES.map((s, i) => ({
+    return FUNNEL_STAGES.map((s) => ({
       name: s.label,
-      value: i === 0 ? allActiveLeads.length : filteredLeads.filter(l => l.status === s.key).length,
-      amount: i === 0 ? allActiveLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0) : filteredLeads.filter(l => l.status === s.key).reduce((sum, l) => sum + (l.valor_estimado || 0), 0),
+      value: historicalStageCounts[s.key]?.count || 0,
+      amount: historicalStageCounts[s.key]?.value || 0,
       fill: s.color,
     }));
-  }, [filteredLeads, allActiveLeads]);
+  }, [historicalStageCounts]);
 
   // Contact channel distribution
   const CHANNEL_COLORS: Record<string, string> = {
@@ -265,13 +363,17 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   };
 
-  // Contacts per vendor for the contacts card — uses ALL activities (unfiltered by vendor), NO dedup
+  // Contacts per vendor for the contacts card — uses ALL activities, dedup by lead+day for performance
   const vendorContactsCardData = useMemo(() => {
     const map: Record<string, { todayContacts: number; monthContacts: number; avatar_url: string | null; vendorId: string }> = {};
+    const seen = new Set<string>();
 
     allActivities.forEach(a => {
       if (a.activity_type !== 'contato_inicial') return;
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const dedupKey = `${a.lead_id}_${day}`;
+      if (seen.has(dedupKey)) return;
+      seen.add(dedupKey);
 
       const userId = a.user_id || 'unknown';
       if (!map[userId]) {
@@ -368,10 +470,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       .map(([name, value]) => ({ name, value }));
   }, [lossReasons]);
 
-  // Contacts per vendor chart — uses ALL activities (unfiltered), NO dedup, count every record
+  // Contacts per vendor chart — dedup by lead+day for performance
   const vendorContactsData = useMemo(() => {
     if (vendorFilter !== 'all') return [];
     const map: Record<string, { contatos: number; visitas: number }> = {};
+    const seen = new Set<string>();
     
     // Filter by date if dateFilter is set
     const filteredAll = dateFilter
@@ -383,8 +486,13 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       const firstName = fullName.split(' ')[0];
 
       if (a.activity_type === 'contato_inicial') {
-        if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
-        map[firstName].contatos++;
+        const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+        const dedupKey = `${a.lead_id}_${day}`;
+        if (!seen.has(dedupKey)) {
+          seen.add(dedupKey);
+          if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
+          map[firstName].contatos++;
+        }
       }
       if (a.activity_type === 'visita') {
         if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
@@ -621,13 +729,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               {funnelData.map((stage, idx) => {
                 const maxCount = Math.max(...funnelData.map(s => s.value), 1);
                 const pct = (stage.value / maxCount) * 100;
-                const previousStageValue = idx === 0
-                  ? stage.value
-                  : [...funnelData.slice(0, idx)].reverse().find((s) => s.value > 0)?.value ?? 0;
+                // Conversion % is always calculated from "Contato Feito" stage
+                const contatoFeitoValue = funnelData.find(s => s.name === 'Contato Feito')?.value || 0;
                 const conversionPct = idx === 0
                   ? '100.0'
-                  : previousStageValue > 0
-                  ? ((stage.value / previousStageValue) * 100).toFixed(1)
+                  : idx === 1
+                  ? '100.0' // Contato Feito is the base
+                  : contatoFeitoValue > 0
+                  ? ((stage.value / contatoFeitoValue) * 100).toFixed(1)
                   : '0.0';
                 return (
                   <div key={stage.name} className="space-y-1">

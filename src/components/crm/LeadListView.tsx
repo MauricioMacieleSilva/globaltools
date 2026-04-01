@@ -21,11 +21,12 @@ interface LeadListViewProps {
   leads: CRMLead[];
   onLeadClick: (lead: CRMLead) => void;
   onLeadUpdated: () => void;
+  userRole?: string | null;
 }
 
 type SortKey = 'cliente_nome' | 'status' | 'updated_at' | 'created_at';
 
-export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListViewProps) {
+export function LeadListView({ leads, onLeadClick, onLeadUpdated, userRole }: LeadListViewProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
@@ -167,7 +168,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
                           {lead.status === 'perdido' && (
                             <DropdownMenuItem onClick={() => handleReactivate(lead)}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
                           )}
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                          {(userRole === 'admin' || userRole === 'comercial') && (
+                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(lead)}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -284,7 +287,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListView
                           {lead.status === 'perdido' && (
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReactivate(lead); }}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
                           )}
-                          <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                          {(userRole === 'admin' || userRole === 'comercial') && (
+                            <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

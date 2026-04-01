@@ -363,13 +363,17 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   };
 
-  // Contacts per vendor for the contacts card — uses ALL activities (unfiltered by vendor), NO dedup
+  // Contacts per vendor for the contacts card — uses ALL activities, dedup by lead+day for performance
   const vendorContactsCardData = useMemo(() => {
     const map: Record<string, { todayContacts: number; monthContacts: number; avatar_url: string | null; vendorId: string }> = {};
+    const seen = new Set<string>();
 
     allActivities.forEach(a => {
       if (a.activity_type !== 'contato_inicial') return;
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+      const dedupKey = `${a.lead_id}_${day}`;
+      if (seen.has(dedupKey)) return;
+      seen.add(dedupKey);
 
       const userId = a.user_id || 'unknown';
       if (!map[userId]) {

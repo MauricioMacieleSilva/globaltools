@@ -470,10 +470,11 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       .map(([name, value]) => ({ name, value }));
   }, [lossReasons]);
 
-  // Contacts per vendor chart — uses ALL activities (unfiltered), NO dedup, count every record
+  // Contacts per vendor chart — dedup by lead+day for performance
   const vendorContactsData = useMemo(() => {
     if (vendorFilter !== 'all') return [];
     const map: Record<string, { contatos: number; visitas: number }> = {};
+    const seen = new Set<string>();
     
     // Filter by date if dateFilter is set
     const filteredAll = dateFilter
@@ -485,8 +486,13 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       const firstName = fullName.split(' ')[0];
 
       if (a.activity_type === 'contato_inicial') {
-        if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
-        map[firstName].contatos++;
+        const day = format(new Date(a.created_at), 'yyyy-MM-dd');
+        const dedupKey = `${a.lead_id}_${day}`;
+        if (!seen.has(dedupKey)) {
+          seen.add(dedupKey);
+          if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };
+          map[firstName].contatos++;
+        }
       }
       if (a.activity_type === 'visita') {
         if (!map[firstName]) map[firstName] = { contatos: 0, visitas: 0 };

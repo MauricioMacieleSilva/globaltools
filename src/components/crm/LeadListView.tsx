@@ -26,7 +26,7 @@ interface LeadListViewProps {
 
 type SortKey = 'cliente_nome' | 'status' | 'updated_at' | 'created_at';
 
-export function LeadListView({ leads, onLeadClick, onLeadUpdated }: LeadListViewProps) {
+export function LeadListView({ leads, onLeadClick, onLeadUpdated, userRole }: LeadListViewProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');

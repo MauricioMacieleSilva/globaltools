@@ -287,7 +287,9 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated, userRole }: Le
                           {lead.status === 'perdido' && (
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReactivate(lead); }}><RotateCcw className="h-3.5 w-3.5 mr-2" />Reativar</DropdownMenuItem>
                           )}
-                          <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                          {(userRole === 'admin' || userRole === 'comercial') && (
+                            <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(lead); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Excluir</DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

@@ -851,6 +851,7 @@ export default function CRM() {
             leads={filteredLeads}
             onLeadClick={openLeadDrawer}
             onLeadUpdated={loadLeads}
+            userRole={currentUserRole}
           />
         </TabsContent>
 

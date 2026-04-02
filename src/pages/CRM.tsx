@@ -707,7 +707,7 @@ export default function CRM() {
     // Filter "pedido_fechado" to current month only
     if (l.status === 'pedido_fechado') {
       const now = new Date();
-      const closedAt = l.data_fechamento ? new Date(l.data_fechamento) : new Date(l.updated_at);
+      const closedAt = new Date(l.updated_at);
       if (closedAt.getMonth() !== now.getMonth() || closedAt.getFullYear() !== now.getFullYear()) {
         return false;
       }

@@ -99,6 +99,26 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
   };
 
   const handleSubmit = () => {
+    // Validate required fields
+    const missing: string[] = [];
+    if (!leadEmpresa) missing.push('Empresa');
+    if (!leadCnpj) missing.push('CNPJ');
+    if (!leadRamoAtuacao) missing.push('Ramo de Atuação');
+    if (!leadCidade) missing.push('Cidade');
+    if (!leadProdutoInteresse) missing.push('Produto de Interesse');
+    if (!description.trim()) missing.push('Descrição sobre o cliente ou negociação');
+
+    if (missing.length > 0) {
+      toast.error('Dados obrigatórios faltando', {
+        description: `Preencha: ${missing.join(', ')}`,
+        duration: 8000,
+      });
+      if (missing.some(m => m !== 'Descrição sobre o cliente ou negociação')) {
+        toast.info('Edite os dados do lead para preencher as informações faltantes', { duration: 5000 });
+      }
+      return;
+    }
+
     setConfirmOpen(true);
   };
 
@@ -248,7 +268,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descrição sobre o cliente ou negociação (opcional)..."
+              placeholder="Descrição sobre o cliente ou negociação (obrigatório)..."
               className="text-sm min-h-[80px] resize-none"
             />
           </div>

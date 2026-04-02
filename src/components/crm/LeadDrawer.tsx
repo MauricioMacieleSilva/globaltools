@@ -732,7 +732,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <PhoneMissed className="h-3.5 w-3.5" />
                 Sem Sucesso
               </Button>
-              {lead.status !== 'analise_financeira' && canAccessFinanceiro && (
+              {lead.status === 'analise_financeira' ? (
+                <Button size="sm" variant="outline" disabled className="gap-1.5 text-indigo-600 border-indigo-300 bg-indigo-50 cursor-not-allowed">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  Em Análise
+                </Button>
+              ) : (
                 <Button size="sm" variant="outline" onClick={() => onStatusChange(lead.id, 'analise_financeira')} className="gap-1.5 text-blue-600 border-blue-300 hover:bg-blue-50">
                   <DollarSign className="h-3.5 w-3.5" />
                   Enviar p/ Análise

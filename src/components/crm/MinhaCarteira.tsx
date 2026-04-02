@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Building2, Phone, Mail, MapPin, RotateCcw } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
@@ -35,10 +36,41 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [reactivateConfirm, setReactivateConfirm] = useState<CRMLead | null>(null);
   const [reactivating, setReactivating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
+  const [assignVendorOpen, setAssignVendorOpen] = useState(false);
+  const [assignVendorLead, setAssignVendorLead] = useState<CRMLead | null>(null);
+  const [selectedVendorId, setSelectedVendorId] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
+  useEffect(() => {
+    const checkRole = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) return;
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+      const role = (roleData as any)?.role;
+      setIsAdmin(role === 'admin' || role === 'comercial');
+    };
+    checkRole();
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      supabase.from('user_profiles').select('id, full_name').then(({ data }) => {
+        if (data) setVendors(data.map(v => ({ id: v.id, name: v.full_name })));
+      });
+    }
+  }, [isAdmin]);
+
+  // Admin sees ALL leads, regular user sees only their own
   const myLeads = useMemo(() => {
+    if (isAdmin) return leads;
     return leads.filter(l => l.vendedor_id === currentUserId);
-  }, [leads, currentUserId]);
+  }, [leads, currentUserId, isAdmin]);
 
   const filtered = useMemo(() => {
     let result = myLeads;
@@ -73,15 +105,28 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     setReactivating(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
+      
+      // If admin is reactivating and selected a vendor, assign to that vendor
+      const updatePayload: any = { status: 'lead', updated_at: new Date().toISOString() };
+      if (isAdmin && selectedVendorId) {
+        updatePayload.vendedor_id = selectedVendorId;
+      }
+      
       await (supabase as any)
         .from('leads')
-        .update({ status: 'lead', updated_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq('id', reactivateConfirm.id);
+
+      let desc = 'Novo atendimento iniciado — lead reativado de "Perdido" para "Lead"';
+      if (isAdmin && selectedVendorId) {
+        const vendorName = vendors.find(v => v.id === selectedVendorId)?.name || 'vendedor';
+        desc += ` — atribuído a ${vendorName}`;
+      }
 
       await supabase.from('lead_activities').insert({
         lead_id: reactivateConfirm.id,
         activity_type: 'mudanca_status',
-        description: 'Novo atendimento iniciado — lead reativado de "Perdido" para "Lead"',
+        description: desc,
         user_id: user?.id || '',
       } as any);
 
@@ -94,6 +139,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     } finally {
       setReactivating(false);
       setReactivateConfirm(null);
+      setSelectedVendorId('');
     }
   };
 
@@ -136,6 +182,12 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
               </span>
             )}
           </div>
+          {/* Show vendor name for admin view */}
+          {isAdmin && lead.vendedor?.full_name && (
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" /> {lead.vendedor.full_name}
+            </p>
+          )}
           {lead.valor_estimado && lead.valor_estimado > 0 && (
             <p className="text-xs font-medium text-primary">
               R$ {lead.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -189,7 +241,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar na minha carteira..."
+          placeholder={isAdmin ? "Buscar em todos os leads..." : "Buscar na minha carteira..."}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="pl-8"
@@ -210,7 +262,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
         </div>
       </ScrollArea>
 
-      <AlertDialog open={!!reactivateConfirm} onOpenChange={(v) => { if (!v) setReactivateConfirm(null); }}>
+      <AlertDialog open={!!reactivateConfirm} onOpenChange={(v) => { if (!v) { setReactivateConfirm(null); setSelectedVendorId(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Iniciar Novo Atendimento</AlertDialogTitle>
@@ -219,9 +271,24 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
               O lead voltará para a etapa inicial do Kanban.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {isAdmin && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Atribuir a:</p>
+              <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione o responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors.map(v => (
+                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={reactivating}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleReactivate} disabled={reactivating}>
+            <AlertDialogAction onClick={handleReactivate} disabled={reactivating || (isAdmin && !selectedVendorId)}>
               {reactivating ? 'Iniciando...' : 'Confirmar'}
             </AlertDialogAction>
           </AlertDialogFooter>

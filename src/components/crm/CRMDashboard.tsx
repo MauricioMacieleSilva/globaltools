@@ -969,24 +969,44 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                 <div className="flex items-center justify-center h-[180px] text-muted-foreground text-xs">Nenhuma análise pendente</div>
               ) : (
                 <div className="space-y-2">
-                  {pendingAnalyses.map(lead => (
-                    <div key={lead.id} className="flex items-center justify-between rounded-lg border p-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {lead.cidade && lead.estado && (
-                            <span className="text-[10px] text-muted-foreground">{lead.cidade}/{lead.estado}</span>
-                          )}
-                          {lead.budget_number && (
-                            <Badge variant="outline" className="text-[9px]">Pedido {lead.budget_number}</Badge>
-                          )}
+                  {pendingAnalyses.map(lead => {
+                    const daysSinceUpdate = Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / 86400000);
+                    const hours = Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / 3600000);
+                    const durationLabel = daysSinceUpdate >= 1 ? `${daysSinceUpdate}d` : `${hours}h`;
+                    return (
+                      <div
+                        key={lead.id}
+                        className="flex items-center justify-between rounded-lg border p-2.5 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          // Navigate to CRM kanban and open this lead
+                          const url = new URL(window.location.href);
+                          url.searchParams.set('lead', lead.id);
+                          window.history.pushState({}, '', url.toString());
+                          window.dispatchEvent(new PopStateEvent('popstate'));
+                        }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-foreground truncate">{lead.empresa || lead.client_name || lead.cliente_nome}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {lead.cidade && lead.estado && (
+                              <span className="text-[10px] text-muted-foreground">{lead.cidade}/{lead.estado}</span>
+                            )}
+                            {lead.budget_number && (
+                              <Badge variant="outline" className="text-[9px]">Pedido {lead.budget_number}</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end shrink-0 ml-2">
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(new Date(lead.updated_at), 'dd/MM', { locale: ptBR })}
+                          </span>
+                          <Badge variant="outline" className={cn("text-[9px] px-1 py-0 mt-0.5", daysSinceUpdate >= 3 ? 'border-destructive/50 text-destructive' : daysSinceUpdate >= 1 ? 'border-amber-400 text-amber-600' : '')}>
+                            {durationLabel}
+                          </Badge>
                         </div>
                       </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
-                        {format(new Date(lead.updated_at), 'dd/MM', { locale: ptBR })}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

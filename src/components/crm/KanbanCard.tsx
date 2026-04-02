@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,10 +27,10 @@ function getDaysInStage(updatedAt: string): number {
 }
 
 function getAgingColor(days: number): string {
-  if (days <= 2) return 'border-l-primary';        // Azul - Normal
-  if (days <= 5) return 'border-l-amber-500';       // Amber - Atenção
-  if (days <= 9) return 'border-l-orange-600';      // Laranja escuro - Urgente
-  return 'border-l-purple-600';                     // Roxo - Crítico
+  if (days <= 2) return 'border-l-primary';
+  if (days <= 5) return 'border-l-amber-500';
+  if (days <= 9) return 'border-l-orange-600';
+  return 'border-l-purple-600';
 }
 
 export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
@@ -40,6 +40,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [financeParecer, setFinanceParecer] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [handoffBy, setHandoffBy] = useState<string | null>(null);
+  const [isInAnalysis, setIsInAnalysis] = useState(false);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -63,6 +64,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setFinanceParecer(null);
     setFailedAttempts(0);
     setHandoffBy(null);
+    setIsInAnalysis(false);
     import('@/integrations/supabase/client').then(({ supabase }) => {
       // Fetch next visit
       (supabase as any)
@@ -100,37 +102,53 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           if (!cancelled) setFailedAttempts(count || 0);
         });
 
-      // Fetch the first contact activity for this lead — that's the SDR who prospected
+      // Fetch the handoff activity: the user who moved the card TO passagem_bastao
       (supabase as any)
         .from('lead_activities')
         .select('sdr_name')
         .eq('lead_id', lead.id)
-        .in('activity_type', ['contato', 'contato_sem_sucesso'])
-        .order('created_at', { ascending: true })
+        .eq('activity_type', 'mudanca_status')
+        .ilike('description', '%para "Passagem de Bastão"%')
+        .order('created_at', { ascending: false })
         .limit(1)
-        .then(({ data: contactData }: any) => {
-          if (!cancelled && contactData?.[0]?.sdr_name) {
-            setHandoffBy(contactData[0].sdr_name);
-          } else {
-            // Fallback: get sdr_name from the status change TO passagem de bastão
-            (supabase as any)
-              .from('lead_activities')
-              .select('sdr_name')
-              .eq('lead_id', lead.id)
-              .eq('activity_type', 'mudanca_status')
-              .ilike('description', '%para "Passagem de Bastão"%')
-              .order('created_at', { ascending: true })
-              .limit(1)
-              .then(({ data: moveData }: any) => {
-                if (!cancelled && moveData?.[0]) {
-                  setHandoffBy(moveData[0].sdr_name || null);
-                }
-              });
+        .then(({ data: moveData }: any) => {
+          if (!cancelled && moveData?.[0]?.sdr_name) {
+            setHandoffBy(moveData[0].sdr_name);
           }
         });
+
+      // Check if lead is currently in financial analysis (status = analise_financeira)
+      if (lead.status === 'analise_financeira') {
+        setIsInAnalysis(true);
+      } else {
+        // Check if there's a pending analysis (sent but no parecer yet)
+        (supabase as any)
+          .from('lead_activities')
+          .select('id')
+          .eq('lead_id', lead.id)
+          .eq('activity_type', 'nota')
+          .ilike('description', '%Enviado para Análise Financeira%')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .then(({ data: sentData }: any) => {
+            if (!cancelled && sentData?.length > 0) {
+              // Check if there's a parecer after the send
+              (supabase as any)
+                .from('leads')
+                .select('finance_parecer')
+                .eq('id', lead.id)
+                .maybeSingle()
+                .then(({ data: fp }: any) => {
+                  if (!cancelled && !fp?.finance_parecer) {
+                    setIsInAnalysis(true);
+                  }
+                });
+            }
+          });
+      }
     });
     return () => { cancelled = true; };
-  }, [lead.id, lead.updated_at]);
+  }, [lead.id, lead.updated_at, lead.status]);
 
   return (
     <Card
@@ -181,10 +199,20 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {/* Handoff badge - who passed the lead */}
+        {/* In analysis badge (no parecer yet) */}
+        {isInAnalysis && !financeParecer && (
+          <div className="flex">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800">
+              <ShieldCheck className="h-2.5 w-2.5" />
+              Em Análise de Crédito
+            </Badge>
+          </div>
+        )}
+
+        {/* Handoff badge - who moved the card to passagem de bastão (blue, discrete) */}
         {handoffBy && (
           <div className="flex">
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-pink-300 bg-pink-50 text-pink-700 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-800">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
               <ArrowRightLeft className="h-2.5 w-2.5" />
               Bastão: {handoffBy.split(' ')[0]}
             </Badge>

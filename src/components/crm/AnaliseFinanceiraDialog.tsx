@@ -268,7 +268,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descrição sobre o cliente ou negociação (opcional)..."
+              placeholder="Descrição sobre o cliente ou negociação (obrigatório)..."
               className="text-sm min-h-[80px] resize-none"
             />
           </div>

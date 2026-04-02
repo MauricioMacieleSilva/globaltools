@@ -244,10 +244,7 @@ export function ProducaoTable() {
   };
 
   const formatWeight = (weight: number) => {
-    if (weight >= 1000) {
-      return `${(weight / 1000).toFixed(1)}t`;
-    }
-    return `${weight.toFixed(0)}kg`;
+    return `${Math.round(weight).toLocaleString('pt-BR')}kg`;
   };
 
   const getStatusBadge = (status: string) => {

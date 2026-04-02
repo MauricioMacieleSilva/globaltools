@@ -100,18 +100,32 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           if (!cancelled) setFailedAttempts(count || 0);
         });
 
-      // Fetch who moved the lead TO passagem de bastão (the SDR, not the admin)
+      // Fetch the first contact activity for this lead — that's the SDR who prospected
       (supabase as any)
         .from('lead_activities')
-        .select('sdr_name, description')
+        .select('sdr_name')
         .eq('lead_id', lead.id)
-        .eq('activity_type', 'mudanca_status')
-        .ilike('description', '%para "Passagem de Bastão"%')
-        .order('created_at', { ascending: false })
+        .in('activity_type', ['contato', 'contato_sem_sucesso'])
+        .order('created_at', { ascending: true })
         .limit(1)
-        .then(({ data }: any) => {
-          if (!cancelled && data?.[0]) {
-            setHandoffBy(data[0].sdr_name || null);
+        .then(({ data: contactData }: any) => {
+          if (!cancelled && contactData?.[0]?.sdr_name) {
+            setHandoffBy(contactData[0].sdr_name);
+          } else {
+            // Fallback: get sdr_name from the status change TO passagem de bastão
+            (supabase as any)
+              .from('lead_activities')
+              .select('sdr_name')
+              .eq('lead_id', lead.id)
+              .eq('activity_type', 'mudanca_status')
+              .ilike('description', '%para "Passagem de Bastão"%')
+              .order('created_at', { ascending: true })
+              .limit(1)
+              .then(({ data: moveData }: any) => {
+                if (!cancelled && moveData?.[0]) {
+                  setHandoffBy(moveData[0].sdr_name || null);
+                }
+              });
           }
         });
     });

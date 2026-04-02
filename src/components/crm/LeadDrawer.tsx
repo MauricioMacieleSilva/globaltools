@@ -216,7 +216,6 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
       .select('id, data_agendada, titulo, tipo')
       .eq('lead_id', leadId)
       .eq('concluido', false)
-      .gte('data_agendada', new Date().toISOString())
       .order('data_agendada', { ascending: true })
       .limit(1);
     if (data?.[0]) {

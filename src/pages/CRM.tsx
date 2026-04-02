@@ -704,6 +704,14 @@ export default function CRM() {
 
   const filteredLeads = leads.filter(l => {
     if (l.status === 'perdido') return false;
+    // Filter "pedido_fechado" to current month only
+    if (l.status === 'pedido_fechado') {
+      const now = new Date();
+      const closedAt = new Date(l.updated_at);
+      if (closedAt.getMonth() !== now.getMonth() || closedAt.getFullYear() !== now.getFullYear()) {
+        return false;
+      }
+    }
     if (vendorFilter && vendorFilter !== 'all') {
       // Filter by the official owner (vendedor_id) only
       if (l.vendedor_id !== vendorFilter) return false;

@@ -58,12 +58,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Verificar se é dia útil (segunda a sexta)
-    const dayOfWeek = brasiliaTime.getDay(); // 0=Dom, 6=Sáb
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      console.log(`📅 Fim de semana (dia ${dayOfWeek}), pulando envio`);
+    // Check if today is a configured send day
+    const DAY_MAP: Record<number, string> = { 0: 'dom', 1: 'seg', 2: 'ter', 3: 'qua', 4: 'qui', 5: 'sex', 6: 'sab' };
+    const dayOfWeek = brasiliaTime.getDay();
+    const todayKey = DAY_MAP[dayOfWeek];
+    const sendDays: string[] = schedule.send_days || ['seg', 'ter', 'qua', 'qui', 'sex'];
+
+    if (!sendDays.includes(todayKey)) {
+      console.log(`📅 Hoje é ${todayKey} (dia ${dayOfWeek}), não está nos dias configurados: ${sendDays.join(', ')}`);
       return new Response(
-        JSON.stringify({ message: 'Fim de semana - envio apenas de segunda a sexta' }),
+        JSON.stringify({ message: `Hoje (${todayKey}) não está nos dias configurados` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

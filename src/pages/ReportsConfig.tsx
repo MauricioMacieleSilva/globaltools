@@ -122,10 +122,20 @@ function ProductionConfig() {
 
 
 function EstoqueConfig() {
-  const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string } | null>(null);
+  const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string; send_days: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const DAYS = [
+    { key: 'seg', label: 'Seg' },
+    { key: 'ter', label: 'Ter' },
+    { key: 'qua', label: 'Qua' },
+    { key: 'qui', label: 'Qui' },
+    { key: 'sex', label: 'Sex' },
+    { key: 'sab', label: 'Sáb' },
+    { key: 'dom', label: 'Dom' },
+  ];
 
   useEffect(() => {
     (async () => {
@@ -136,7 +146,8 @@ function EstoqueConfig() {
           .limit(1)
           .single();
         if (error) throw error;
-        setConfig(data as any);
+        const d = data as any;
+        setConfig({ id: d.id, is_active: d.is_active, send_time: d.send_time, send_days: d.send_days || ['seg','ter','qua','qui','sex'] });
       } catch (e) {
         console.error('Erro ao carregar configuração de estoque:', e);
       } finally {
@@ -145,19 +156,32 @@ function EstoqueConfig() {
     })();
   }, []);
 
+  const toggleDay = (day: string) => {
+    if (!config) return;
+    const days = config.send_days.includes(day)
+      ? config.send_days.filter(d => d !== day)
+      : [...config.send_days, day];
+    setConfig({ ...config, send_days: days });
+  };
+
   const handleSave = async () => {
     if (!config) return;
+    if (config.send_days.length === 0) {
+      toast({ title: 'Selecione ao menos um dia', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase
         .from('estoque_report_schedule' as any)
-        .update({ is_active: config.is_active, send_time: config.send_time, updated_at: new Date().toISOString() } as any)
+        .update({ is_active: config.is_active, send_time: config.send_time, send_days: config.send_days, updated_at: new Date().toISOString() } as any)
         .eq('id', config.id);
       if (error) throw error;
+      const dayLabels = DAYS.filter(d => config.send_days.includes(d.key)).map(d => d.label).join(', ');
       toast({
         title: 'Configuração salva',
         description: config.is_active
-          ? `Relatório de estoque será enviado de seg a sex às ${config.send_time}.`
+          ? `Relatório de estoque será enviado ${dayLabels} às ${config.send_time}.`
           : 'Envio automático de estoque desativado.',
       });
     } catch (error: any) {
@@ -170,22 +194,47 @@ function EstoqueConfig() {
   if (loading) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   if (!config) return null;
 
+  const selectedDayLabels = DAYS.filter(d => config.send_days.includes(d.key)).map(d => d.label).join(', ');
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <Label>Envio automático</Label>
-          <p className="text-sm text-muted-foreground">Enviar relatório de seg a sex para os destinatários configurados</p>
+          <p className="text-sm text-muted-foreground">Enviar relatório nos dias selecionados para os destinatários configurados</p>
         </div>
         <Switch checked={config.is_active} onCheckedChange={(checked) => setConfig({ ...config, is_active: checked })} />
       </div>
       {config.is_active && (
-        <div className="space-y-2">
-          <Label htmlFor="estoque-send-time" className="flex items-center gap-1">
-            <Clock className="h-3 w-3" /> Horário de Envio
-          </Label>
-          <Input id="estoque-send-time" type="time" value={config.send_time} onChange={(e) => setConfig({ ...config, send_time: e.target.value })} className="w-40" />
-        </div>
+        <>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" /> Dias de Envio
+            </Label>
+            <div className="flex gap-1.5 flex-wrap">
+              {DAYS.map(day => (
+                <button
+                  key={day.key}
+                  type="button"
+                  onClick={() => toggleDay(day.key)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                    config.send_days.includes(day.key)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted text-muted-foreground border-border hover:bg-accent'
+                  }`}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="estoque-send-time" className="flex items-center gap-1">
+              <Clock className="h-3 w-3" /> Horário de Envio
+            </Label>
+            <Input id="estoque-send-time" type="time" value={config.send_time} onChange={(e) => setConfig({ ...config, send_time: e.target.value })} className="w-40" />
+          </div>
+        </>
       )}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">

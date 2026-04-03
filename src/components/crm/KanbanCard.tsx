@@ -92,14 +92,28 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           }
         });
 
-      // Fetch failed contact attempts count
+      // Fetch failed contact attempts count - scoped to AFTER the last stage transition
       (supabase as any)
         .from('lead_activities')
-        .select('id', { count: 'exact', head: true })
+        .select('created_at')
         .eq('lead_id', lead.id)
-        .eq('activity_type', 'contato_sem_sucesso')
-        .then(({ count }: any) => {
-          if (!cancelled) setFailedAttempts(count || 0);
+        .eq('activity_type', 'mudanca_status')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data: moveData }: any) => {
+          if (cancelled) return;
+          const sinceDate = moveData?.[0]?.created_at || null;
+          let query = (supabase as any)
+            .from('lead_activities')
+            .select('id', { count: 'exact', head: true })
+            .eq('lead_id', lead.id)
+            .eq('activity_type', 'contato_sem_sucesso');
+          if (sinceDate) {
+            query = query.gt('created_at', sinceDate);
+          }
+          query.then(({ count }: any) => {
+            if (!cancelled) setFailedAttempts(count || 0);
+          });
         });
 
       // Fetch the handoff activity: the user who moved the card TO passagem_bastao

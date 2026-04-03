@@ -1,108 +1,43 @@
 
 
-# Plano: Nova Pagina CRM Unificada
+# Plan: Reset Failed Attempts on Oportunidade + Fix Estoque Report Scheduling
 
-## Visao Geral
+## Issue 1: Reset Failed Contact Attempts When Lead Moves to Oportunidade
 
-Unificar as paginas Pre-Vendas (`/pre-vendas`) e Pipeline de Vendas (`/pipeline`) em uma unica pagina CRM (`/crm`) com interface Kanban e funil simplificado.
+**Problem**: When a lead is moved from "Passagem de Bastão" to "Oportunidade" (assigned to a new user), the failed contact attempt counter ("tentativas sem sucesso") continues showing the old count from the previous SDR.
 
-## Etapas do Funil
+**Root Cause**: The `KanbanCard.tsx` counts ALL `contato_sem_sucesso` activities for a lead regardless of when they happened or who performed them. When a lead transitions to Oportunidade with a new owner, the counter should restart from zero.
 
-As 5 etapas solicitadas mapeadas ao banco de dados:
+**Solution**:
+1. **In `KanbanCard.tsx`**: Modify the failed attempts query to only count `contato_sem_sucesso` activities that occurred AFTER the lead was moved to "Oportunidade" (or whatever the current stage is). Specifically, find the latest `mudanca_status` activity containing `"Oportunidade"` and only count failed attempts after that timestamp.
+2. **In `CRM.tsx` (`handlePassagemBastaoConfirmed`)**: No changes needed to the status update logic — the filtering in KanbanCard will handle the reset automatically by scoping to activities after the stage transition.
 
-```text
-Lead → Contato Feito → Visita/Reuniao → Proposta → Pedido
-         (+ coluna "Perdidos" separada)
-```
+**Technical approach**:
+- Query `lead_activities` for the most recent `mudanca_status` that moved to the current stage (e.g., "Oportunidade")
+- Use that timestamp as a floor to count `contato_sem_sucesso` entries after it
+- This ensures each stage owner starts fresh
 
-Sera necessario alterar o enum `lead_status` no banco para refletir as novas etapas: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`, `perdido`.
+## Issue 2: Fix Estoque Report Automatic Scheduling
 
-## Estrutura da Pagina
+**Problem**: The estoque report at 17:30 is not being sent automatically despite the cron job and edge function being properly configured.
 
-```text
-┌─────────────────────────────────────────────────────┐
-│ KPIs: Contatos Hoje (X/meta) │ Funil │ Perdidos     │
-├─────────────────────────────────────────────────────┤
-│  Kanban Board (drag & drop entre colunas)           │
-│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌────────┐ ┌───┐ │
-│  │Lead  │ │Contato   │ │Visita/ │ │Proposta│ │Ped│ │
-│  │      │ │Feito     │ │Reuniao │ │        │ │ido│ │
-│  │card  │ │card      │ │card    │ │card    │ │   │ │
-│  │card  │ │          │ │        │ │        │ │   │ │
-│  └──────┘ └──────────┘ └────────┘ └────────┘ └───┘ │
-└─────────────────────────────────────────────────────┘
-```
+**Root Cause**: From analyzing the edge function logs, the function runs every 5 minutes and correctly converts to Brasilia time. The `last_sent_date` is `null`, meaning it has never sent successfully. The most likely cause is that the function wasn't deployed (or was redeployed) after the 17:30 window passed. Additionally, the `send-estoque-report` function relies on `RESEND_API_KEY` — if this secret is missing, the inner function call would fail silently.
 
-## Componentes Principais
+**Solution**:
+1. **Redeploy both edge functions** (`send-scheduled-estoque-report` and `send-estoque-report`) to ensure the latest code is live
+2. **Verify `RESEND_API_KEY`** secret is configured
+3. **Add better error logging** in `send-scheduled-estoque-report` to capture failures from the inner function invoke, including logging the response body
+4. **Ensure recipients exist**: The `send-estoque-report` function needs to know who to send to — verify the estoque report has configured recipients (check if it reads from `estoque_report_schedule` or another config table)
 
-1. **KPI Bar** (topo):
-   - Contatos diarios (atual/meta) com barra de progresso
-   - Mini funil visual com contagem por etapa
-   - Indicador de perdidos (quantidade + valor estimado)
+**Files to modify**:
+- `supabase/functions/send-scheduled-estoque-report/index.ts` — Improve error handling and logging
+- `supabase/functions/send-estoque-report/index.ts` — Verify recipient loading logic
 
-2. **Kanban Board**:
-   - 5 colunas (Lead, Contato Feito, Visita/Reuniao, Proposta, Pedido)
-   - Cards compactos: nome cliente, valor, dias na etapa, proximo passo
-   - Drag & drop para mover entre etapas (atualiza status no banco)
-   - Ao mover para "Perdido", abre dialog pedindo motivo
+## Summary of Changes
 
-3. **Card do Lead** (compacto):
-   - Nome do cliente, cidade/UF
-   - Valor estimado
-   - Dias na etapa atual
-   - Icone de WhatsApp para contato rapido
-   - Click abre drawer lateral com detalhes + historico + acoes
-
-4. **Drawer Lateral** (ao clicar no card):
-   - Dados do lead completos
-   - Timeline de atividades
-   - Botoes de acao rapida: registrar contato, agendar visita, criar proposta
-   - Marcar como perdido (com motivo)
-
-5. **Filtros** (acima do kanban):
-   - Busca por cliente
-   - Filtro por SDR/vendedor
-   - Periodo
-
-## Detalhes Tecnicos
-
-### Migracao de Banco
-- Adicionar novos valores ao enum `lead_status`: `lead`, `contato_feito`, `visita_reuniao`, `proposta`, `pedido`
-- Migrar dados existentes: `novo` → `lead`, `contatado`/`respondeu` → `contato_feito`, `qualificado`/`encaminhado` → `proposta`
-- O campo `pipeline_status` pode ser descontinuado — usar apenas `status`
-
-### Arquivos a Criar
-- `src/pages/CRM.tsx` — pagina principal
-- `src/components/crm/KanbanBoard.tsx` — board com colunas
-- `src/components/crm/KanbanCard.tsx` — card individual do lead
-- `src/components/crm/LeadDrawer.tsx` — drawer lateral com detalhes
-- `src/components/crm/CRMKPIs.tsx` — barra de KPIs
-- `src/components/crm/LostDealsDialog.tsx` — dialog/indicador de perdidos
-- `src/components/crm/QuickActionButtons.tsx` — acoes rapidas no drawer
-
-### Arquivos a Modificar
-- `src/App.tsx` — adicionar rota `/crm`, redirecionar `/pre-vendas` e `/pipeline` para `/crm`
-- `src/components/AppSidebar.tsx` — substituir 2 itens (Pre-Vendas + Pipeline) por 1 item "CRM"
-- `src/hooks/useUserPermissions.ts` — substituir `prevendas` + `pipeline` por `crm`
-- `src/context/PreVendasContext.tsx` — adaptar para novos status (ou criar novo CRMContext)
-
-### Drag & Drop
-- Usar a lib existente ou CSS nativo com `draggable` + `onDragOver`/`onDrop` para manter leve
-- Ao soltar em nova coluna, chamar `supabase.from('leads').update({ status: novoStatus })` 
-- Se soltar em "Perdido", abrir dialog de motivo antes de confirmar
-
-### Mobile
-- Kanban com scroll horizontal (snap) nas colunas
-- Cards empilhados verticalmente dentro de cada coluna
-- Drawer vira sheet de baixo (vaul)
-
-### Meta Diaria de Contatos
-- Reutilizar `admin_goals.daily_contacts_goal` ja existente
-- Contar atividades do tipo `contato_inicial` do dia atual
-- Exibir progresso visual no KPI bar
-
-### Controle de Perdidos
-- Card/badge no topo mostrando total de perdidos no periodo
-- Click abre lista filtrada dos leads perdidos com motivo e data
-- Indicador percentual (perdidos / total do funil)
+| File | Change |
+|------|--------|
+| `src/components/crm/KanbanCard.tsx` | Scope failed attempts count to activities after the last stage transition |
+| `supabase/functions/send-scheduled-estoque-report/index.ts` | Improve error logging for debugging |
+| Deploy edge functions | Redeploy `send-scheduled-estoque-report` and `send-estoque-report` |
 

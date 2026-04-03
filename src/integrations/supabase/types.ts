@@ -770,7 +770,7 @@ export type Database = {
           id: string
           is_active: boolean
           last_sent_date: string | null
-          send_day: string
+          send_days: string[]
           send_time: string
           updated_at: string
         }
@@ -779,7 +779,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_sent_date?: string | null
-          send_day?: string
+          send_days?: string[]
           send_time?: string
           updated_at?: string
         }
@@ -788,7 +788,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_sent_date?: string | null
-          send_day?: string
+          send_days?: string[]
           send_time?: string
           updated_at?: string
         }

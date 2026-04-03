@@ -90,31 +90,55 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('✅ Dentro da janela de envio, chamando send-estoque-report...');
 
-    // Call the existing send-estoque-report function
-    const { data, error } = await supabaseAdmin.functions.invoke('send-estoque-report', {
-      body: { scheduled: true }
-    });
+    // Call the existing send-estoque-report function via HTTP to get full response
+    const functionUrl = `${SUPABASE_URL}/functions/v1/send-estoque-report`;
+    console.log(`📡 Chamando: ${functionUrl}`);
 
-    if (error) {
-      console.error('❌ Erro ao enviar relatório de estoque:', error);
-      // Reset last_sent_date on failure so it can retry
+    try {
+      const invokeRes = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ scheduled: true }),
+      });
+
+      const responseText = await invokeRes.text();
+      console.log(`📬 send-estoque-report status: ${invokeRes.status}, body: ${responseText.substring(0, 500)}`);
+
+      if (!invokeRes.ok) {
+        console.error('❌ Erro ao enviar relatório de estoque, status:', invokeRes.status);
+        // Reset last_sent_date on failure so it can retry
+        await supabaseAdmin
+          .from('estoque_report_schedule')
+          .update({ last_sent_date: null })
+          .eq('id', schedule.id);
+
+        return new Response(
+          JSON.stringify({ error: `send-estoque-report returned ${invokeRes.status}`, details: responseText.substring(0, 500) }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('✅ Relatório de estoque agendado enviado com sucesso');
+
+      return new Response(
+        JSON.stringify({ success: true, response: responseText.substring(0, 500) }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (invokeError: any) {
+      console.error('❌ Exceção ao chamar send-estoque-report:', invokeError.message);
       await supabaseAdmin
         .from('estoque_report_schedule')
         .update({ last_sent_date: null })
         .eq('id', schedule.id);
 
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: invokeError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('✅ Relatório de estoque agendado enviado com sucesso');
-
-    return new Response(
-      JSON.stringify({ success: true, data }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
   } catch (error: any) {
     console.error('❌ Erro:', error);

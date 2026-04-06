@@ -401,16 +401,35 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Auth check
+    // Parse body to check scheduled flag
+    let bodyPayload: any = {};
+    try {
+      bodyPayload = await req.json();
+    } catch { /* no body or not json */ }
+
+    // Auth check - support both user JWT and internal service role calls
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
+    const token = authHeader?.replace('Bearer ', '') || '';
+    const isServiceRoleCall = token === SUPABASE_SERVICE_ROLE_KEY;
+    const isScheduled = isServiceRoleCall && bodyPayload?.scheduled === true;
+
+    if (!isServiceRoleCall && authHeader) {
+      // Regular user call - validate JWT
       const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
       if (authError || !user) {
+        console.error('❌ [send-estoque-report] Auth falhou para usuário:', authError?.message);
         return new Response(JSON.stringify({ error: 'Não autorizado' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+      console.log(`📦 [send-estoque-report] Chamada manual por usuário: ${user.email}`);
+    } else if (isServiceRoleCall) {
+      console.log('📦 [send-estoque-report] Chamada interna (service role) - agendado:', isScheduled);
+    } else {
+      console.error('❌ [send-estoque-report] Sem header de autorização');
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     console.log('📦 [send-estoque-report] Iniciando...');
@@ -573,7 +592,7 @@ const handler = async (req: Request): Promise<Response> => {
             report_type: 'estoque',
             status: success ? 'success' : 'failed',
             error_message: success ? null : JSON.stringify(data),
-            is_scheduled: false,
+            is_scheduled: isScheduled,
           });
         } catch (logErr) {
           console.error('⚠️ Erro ao registrar log:', logErr);
@@ -588,7 +607,7 @@ const handler = async (req: Request): Promise<Response> => {
             report_type: 'estoque',
             status: 'failed',
             error_message: error.message,
-            is_scheduled: false,
+            is_scheduled: isScheduled,
           });
         } catch (logErr) {
           console.error('⚠️ Erro ao registrar log:', logErr);

@@ -150,12 +150,13 @@ export function ReportHistoryTable() {
                   </TableCell>
                   <TableCell>{log.email}</TableCell>
                   <TableCell>
-                    <Badge variant={log.report_type === 'monthly_closing' || log.report_type === 'production' ? 'default' : 'outline'}>
+                    <Badge variant={log.report_type === 'monthly_closing' || log.report_type === 'production' || log.report_type === 'estoque' ? 'default' : 'outline'}>
                       {log.report_type === 'daily' ? 'Diário' : 
                        log.report_type === 'weekly' ? 'Semanal' : 
                        log.report_type === 'monthly' ? 'Mensal' :
-                     log.report_type === 'monthly_closing' ? '📅 Fechamento Mensal' :
+                       log.report_type === 'monthly_closing' ? '📅 Fechamento Mensal' :
                        log.report_type === 'production' ? '🏭 Produção' :
+                       log.report_type === 'estoque' ? '📦 Estoque' :
                        log.report_type === 'custom' ? 'Personalizado' : log.report_type}
                     </Badge>
                   </TableCell>

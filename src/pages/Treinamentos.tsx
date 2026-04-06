@@ -429,9 +429,14 @@ export default function Treinamentos() {
                   <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">{treinamento.categoria}</Badge>
                 </div>
                 {isAdmin && (
-                  <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-7 w-7 bg-background/80 backdrop-blur-sm text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); handleDelete(treinamento) }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="absolute top-2 left-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm text-foreground" onClick={e => { e.stopPropagation(); handleEdit(treinamento) }} title="Editar">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm text-destructive" onClick={e => { e.stopPropagation(); handleDelete(treinamento) }} title="Excluir">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 )}
               </div>
               <CardContent className="p-4">

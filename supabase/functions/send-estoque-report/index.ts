@@ -592,7 +592,7 @@ const handler = async (req: Request): Promise<Response> => {
             report_type: 'estoque',
             status: success ? 'success' : 'failed',
             error_message: success ? null : JSON.stringify(data),
-            is_scheduled: false,
+            is_scheduled: isScheduled,
           });
         } catch (logErr) {
           console.error('⚠️ Erro ao registrar log:', logErr);
@@ -607,7 +607,7 @@ const handler = async (req: Request): Promise<Response> => {
             report_type: 'estoque',
             status: 'failed',
             error_message: error.message,
-            is_scheduled: false,
+            is_scheduled: isScheduled,
           });
         } catch (logErr) {
           console.error('⚠️ Erro ao registrar log:', logErr);

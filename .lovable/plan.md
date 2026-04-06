@@ -1,43 +1,58 @@
 
+Objetivo: corrigir definitivamente o envio automático do Relatório de Estoque com base no que já está no código e no que os logs mostram.
 
-# Plan: Reset Failed Attempts on Oportunidade + Fix Estoque Report Scheduling
+Diagnóstico já confirmado
+- O agendamento existe e está ativo no banco: `estoque_report_schedule` está com `is_active = true`, horário `08:35`, dias `seg, ter, qua, qui, sex`.
+- A função agendada está rodando normalmente a cada poucos minutos. Os logs de `send-scheduled-estoque-report` comprovam isso.
+- O problema não está na tela de configuração nem no cron.
+- O ponto mais provável de quebra é a chamada da função agendada para `send-estoque-report`.
 
-## Issue 1: Reset Failed Contact Attempts When Lead Moves to Oportunidade
+Causa raiz mais provável
+- `send-scheduled-estoque-report` chama `send-estoque-report` via HTTP e envia `Authorization: Bearer <service role key>`.
+- `send-estoque-report` hoje interpreta qualquer `Authorization` como se fosse JWT de usuário e roda `auth.getUser(token)`.
+- A service role key não é um JWT de usuário válido para esse fluxo, então a chamada automática tende a falhar justamente no envio agendado.
+- Além disso, `send-estoque-report` grava `is_scheduled: false` sempre, então mesmo quando o automático funcionar ele não fica identificado corretamente no histórico, o que dificulta a auditoria.
 
-**Problem**: When a lead is moved from "Passagem de Bastão" to "Oportunidade" (assigned to a new user), the failed contact attempt counter ("tentativas sem sucesso") continues showing the old count from the previous SDR.
+Plano de correção
+1. Corrigir a autenticação da `send-estoque-report`
+- Ajustar a função para suportar dois caminhos de forma explícita:
+  - envio manual: exigir usuário autenticado normalmente;
+  - envio automático interno: aceitar a chamada vinda da função agendada de forma segura.
+- Não vou liberar `scheduled: true` apenas pelo body, porque isso abriria brecha. A validação precisa confiar no chamador interno, não no cliente.
 
-**Root Cause**: The `KanbanCard.tsx` counts ALL `contato_sem_sucesso` activities for a lead regardless of when they happened or who performed them. When a lead transitions to Oportunidade with a new owner, the counter should restart from zero.
+2. Padronizar a chamada interna do agendador
+- Revisar `send-scheduled-estoque-report/index.ts` para usar um fluxo interno consistente e seguro.
+- Se mantivermos a chamada HTTP, a `send-estoque-report` passará a reconhecer corretamente esse chamador interno.
+- Se for mais limpo, vou alinhar com o padrão do relatório de produção e simplificar a invocação entre funções.
 
-**Solution**:
-1. **In `KanbanCard.tsx`**: Modify the failed attempts query to only count `contato_sem_sucesso` activities that occurred AFTER the lead was moved to "Oportunidade" (or whatever the current stage is). Specifically, find the latest `mudanca_status` activity containing `"Oportunidade"` and only count failed attempts after that timestamp.
-2. **In `CRM.tsx` (`handlePassagemBastaoConfirmed`)**: No changes needed to the status update logic — the filtering in KanbanCard will handle the reset automatically by scoping to activities after the stage transition.
+3. Corrigir a telemetria/histórico do relatório de estoque
+- Em `send-estoque-report`, capturar `scheduled` corretamente e gravar `is_scheduled` real no `email_reports_log`.
+- Garantir que sucesso e falha do estoque apareçam claramente no histórico.
+- Ajustar a UI do histórico para identificar `report_type: 'estoque'` com rótulo legível.
 
-**Technical approach**:
-- Query `lead_activities` for the most recent `mudanca_status` that moved to the current stage (e.g., "Oportunidade")
-- Use that timestamp as a floor to count `contato_sem_sucesso` entries after it
-- This ensures each stage owner starts fresh
+4. Fortalecer logs para diagnóstico final
+- Adicionar logs objetivos em cada etapa:
+  - configuração carregada,
+  - dia/hora elegível,
+  - início da chamada interna,
+  - resposta da `send-estoque-report`,
+  - motivo exato da falha.
+- Isso evita novo “apagão de causa” se algo externo falhar.
 
-## Issue 2: Fix Estoque Report Automatic Scheduling
+5. Validar a lógica de idempotência
+- Manter `last_sent_date`, mas confirmar que ele só permanece preenchido quando a execução realmente completar.
+- Em caso de falha real, continuar limpando o campo para permitir nova tentativa.
 
-**Problem**: The estoque report at 17:30 is not being sent automatically despite the cron job and edge function being properly configured.
+Arquivos envolvidos
+- `supabase/functions/send-scheduled-estoque-report/index.ts`
+- `supabase/functions/send-estoque-report/index.ts`
+- `src/components/admin/ReportHistoryTable.tsx`
 
-**Root Cause**: From analyzing the edge function logs, the function runs every 5 minutes and correctly converts to Brasilia time. The `last_sent_date` is `null`, meaning it has never sent successfully. The most likely cause is that the function wasn't deployed (or was redeployed) after the 17:30 window passed. Additionally, the `send-estoque-report` function relies on `RESEND_API_KEY` — if this secret is missing, the inner function call would fail silently.
+O que não precisa mudar
+- Não vejo necessidade de migration no banco para resolver este problema.
+- A configuração de dias da semana e horário já está correta no modelo atual.
 
-**Solution**:
-1. **Redeploy both edge functions** (`send-scheduled-estoque-report` and `send-estoque-report`) to ensure the latest code is live
-2. **Verify `RESEND_API_KEY`** secret is configured
-3. **Add better error logging** in `send-scheduled-estoque-report` to capture failures from the inner function invoke, including logging the response body
-4. **Ensure recipients exist**: The `send-estoque-report` function needs to know who to send to — verify the estoque report has configured recipients (check if it reads from `estoque_report_schedule` or another config table)
-
-**Files to modify**:
-- `supabase/functions/send-scheduled-estoque-report/index.ts` — Improve error handling and logging
-- `supabase/functions/send-estoque-report/index.ts` — Verify recipient loading logic
-
-## Summary of Changes
-
-| File | Change |
-|------|--------|
-| `src/components/crm/KanbanCard.tsx` | Scope failed attempts count to activities after the last stage transition |
-| `supabase/functions/send-scheduled-estoque-report/index.ts` | Improve error logging for debugging |
-| Deploy edge functions | Redeploy `send-scheduled-estoque-report` and `send-estoque-report` |
-
+Resultado esperado após a correção
+- O estoque passará a disparar automaticamente nos dias configurados, no horário configurado.
+- O histórico mostrará claramente os envios automáticos de estoque.
+- Se algo falhar, teremos o motivo exato nos logs, sem depender de suposição.

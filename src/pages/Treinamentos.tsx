@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Plus, FileText, FileSpreadsheet, Film, Download, Eye, Trash2, GraduationCap, Calendar, Upload, Presentation, Maximize } from 'lucide-react'
+import { Plus, FileText, FileSpreadsheet, Film, Download, Eye, Trash2, GraduationCap, Calendar, Upload, Presentation, Maximize, Pencil } from 'lucide-react'
 import PdfPresentationMode from '@/components/treinamentos/PdfPresentationMode'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'

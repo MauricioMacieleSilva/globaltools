@@ -497,6 +497,81 @@ export default function Treinamentos() {
           onClose={() => setPresentationMode(false)}
         />
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) { setEditingTreinamento(null); resetForm() } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Treinamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label htmlFor="edit-titulo">Título *</Label>
+              <Input id="edit-titulo" value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Nome do treinamento" maxLength={200} />
+            </div>
+            <div>
+              <Label htmlFor="edit-descricao">Descrição</Label>
+              <Textarea id="edit-descricao" value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição breve do conteúdo" maxLength={500} rows={3} />
+            </div>
+            <div>
+              <Label htmlFor="edit-categoria">Categoria</Label>
+              <Select value={categoria} onValueChange={setCategoria}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIAS.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Trocar Arquivo (opcional)</Label>
+              <div className="mt-1">
+                <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {arquivo ? arquivo.name : `Arquivo atual: ${editingTreinamento?.file_name || ''}`}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.ppt,.pptx,.mp4,.mov,.avi,.doc,.docx,.xls,.xlsx"
+                    onChange={e => setArquivo(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {arquivo && (
+                  <p className="text-xs text-muted-foreground mt-1">Novo: {formatFileSize(arquivo.size)}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <Label>Trocar Capa (opcional)</Label>
+              <div className="mt-1">
+                <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                  <Eye className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {thumbnail ? thumbnail.name : (editingTreinamento?.thumbnail_url ? 'Capa atual mantida' : 'Sem capa - selecionar imagem')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={e => setThumbnail(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {editingTreinamento?.thumbnail_url && !thumbnail && (
+                  <img src={editingTreinamento.thumbnail_url} alt="Capa atual" className="mt-2 h-20 rounded object-cover" />
+                )}
+              </div>
+            </div>
+            <Button onClick={handleEditSave} disabled={uploading || !titulo.trim()} className="w-full">
+              {uploading ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

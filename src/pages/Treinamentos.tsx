@@ -197,6 +197,79 @@ export default function Treinamentos() {
     setThumbnail(null)
   }
 
+  const handleEdit = (treinamento: Treinamento) => {
+    setEditingTreinamento(treinamento)
+    setTitulo(treinamento.titulo)
+    setDescricao(treinamento.descricao || '')
+    setCategoria(treinamento.categoria)
+    setArquivo(null)
+    setThumbnail(null)
+    setEditOpen(true)
+  }
+
+  const handleEditSave = async () => {
+    if (!editingTreinamento || !titulo.trim()) {
+      toast.error('Preencha o título')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const updates: Record<string, any> = {
+        titulo: titulo.trim(),
+        descricao: descricao.trim() || null,
+        categoria,
+      }
+
+      // Upload new file if provided
+      if (arquivo) {
+        const filePath = `${Date.now()}_${arquivo.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: uploadError } = await supabase.storage
+          .from('treinamentos')
+          .upload(filePath, arquivo)
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('treinamentos')
+          .getPublicUrl(filePath)
+
+        updates.file_url = publicUrl
+        updates.file_name = arquivo.name
+        updates.file_type = arquivo.type || arquivo.name.split('.').pop() || 'unknown'
+        updates.file_size = arquivo.size
+      }
+
+      // Upload new thumbnail if provided
+      if (thumbnail) {
+        const thumbPath = `thumbs/${Date.now()}_${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: thumbError } = await supabase.storage
+          .from('treinamentos')
+          .upload(thumbPath, thumbnail)
+        if (!thumbError) {
+          updates.thumbnail_url = supabase.storage.from('treinamentos').getPublicUrl(thumbPath).data.publicUrl
+        }
+      }
+
+      const { error } = await supabase
+        .from('treinamentos')
+        .update(updates)
+        .eq('id', editingTreinamento.id)
+
+      if (error) throw error
+
+      toast.success('Treinamento atualizado com sucesso!')
+      setEditOpen(false)
+      setEditingTreinamento(null)
+      resetForm()
+      fetchTreinamentos()
+    } catch (err: any) {
+      console.error('Erro ao atualizar:', err)
+      toast.error(err.message || 'Erro ao atualizar treinamento')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const filteredTreinamentos = filterCategoria === 'todas'
     ? treinamentos
     : treinamentos.filter(t => t.categoria === filterCategoria)

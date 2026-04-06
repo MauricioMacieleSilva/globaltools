@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Plus, FileText, FileSpreadsheet, Film, Download, Eye, Trash2, GraduationCap, Calendar, Upload, Presentation, Maximize } from 'lucide-react'
+import { Plus, FileText, FileSpreadsheet, Film, Download, Eye, Trash2, GraduationCap, Calendar, Upload, Presentation, Maximize, Pencil } from 'lucide-react'
 import PdfPresentationMode from '@/components/treinamentos/PdfPresentationMode'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -54,6 +54,8 @@ export default function Treinamentos() {
   const [loading, setLoading] = useState(true)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [viewerOpen, setViewerOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editingTreinamento, setEditingTreinamento] = useState<Treinamento | null>(null)
   const [viewerUrl, setViewerUrl] = useState('')
   const [viewerTitle, setViewerTitle] = useState('')
   const [presentationMode, setPresentationMode] = useState(false)
@@ -193,6 +195,79 @@ export default function Treinamentos() {
     setCategoria('Geral')
     setArquivo(null)
     setThumbnail(null)
+  }
+
+  const handleEdit = (treinamento: Treinamento) => {
+    setEditingTreinamento(treinamento)
+    setTitulo(treinamento.titulo)
+    setDescricao(treinamento.descricao || '')
+    setCategoria(treinamento.categoria)
+    setArquivo(null)
+    setThumbnail(null)
+    setEditOpen(true)
+  }
+
+  const handleEditSave = async () => {
+    if (!editingTreinamento || !titulo.trim()) {
+      toast.error('Preencha o título')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const updates: Record<string, any> = {
+        titulo: titulo.trim(),
+        descricao: descricao.trim() || null,
+        categoria,
+      }
+
+      // Upload new file if provided
+      if (arquivo) {
+        const filePath = `${Date.now()}_${arquivo.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: uploadError } = await supabase.storage
+          .from('treinamentos')
+          .upload(filePath, arquivo)
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('treinamentos')
+          .getPublicUrl(filePath)
+
+        updates.file_url = publicUrl
+        updates.file_name = arquivo.name
+        updates.file_type = arquivo.type || arquivo.name.split('.').pop() || 'unknown'
+        updates.file_size = arquivo.size
+      }
+
+      // Upload new thumbnail if provided
+      if (thumbnail) {
+        const thumbPath = `thumbs/${Date.now()}_${thumbnail.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: thumbError } = await supabase.storage
+          .from('treinamentos')
+          .upload(thumbPath, thumbnail)
+        if (!thumbError) {
+          updates.thumbnail_url = supabase.storage.from('treinamentos').getPublicUrl(thumbPath).data.publicUrl
+        }
+      }
+
+      const { error } = await supabase
+        .from('treinamentos')
+        .update(updates)
+        .eq('id', editingTreinamento.id)
+
+      if (error) throw error
+
+      toast.success('Treinamento atualizado com sucesso!')
+      setEditOpen(false)
+      setEditingTreinamento(null)
+      resetForm()
+      fetchTreinamentos()
+    } catch (err: any) {
+      console.error('Erro ao atualizar:', err)
+      toast.error(err.message || 'Erro ao atualizar treinamento')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const filteredTreinamentos = filterCategoria === 'todas'
@@ -354,9 +429,14 @@ export default function Treinamentos() {
                   <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">{treinamento.categoria}</Badge>
                 </div>
                 {isAdmin && (
-                  <Button variant="ghost" size="icon" className="absolute top-2 left-2 h-7 w-7 bg-background/80 backdrop-blur-sm text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); handleDelete(treinamento) }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="absolute top-2 left-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm text-foreground" onClick={e => { e.stopPropagation(); handleEdit(treinamento) }} title="Editar">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur-sm text-destructive" onClick={e => { e.stopPropagation(); handleDelete(treinamento) }} title="Excluir">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 )}
               </div>
               <CardContent className="p-4">
@@ -417,6 +497,81 @@ export default function Treinamentos() {
           onClose={() => setPresentationMode(false)}
         />
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) { setEditingTreinamento(null); resetForm() } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Treinamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label htmlFor="edit-titulo">Título *</Label>
+              <Input id="edit-titulo" value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Nome do treinamento" maxLength={200} />
+            </div>
+            <div>
+              <Label htmlFor="edit-descricao">Descrição</Label>
+              <Textarea id="edit-descricao" value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição breve do conteúdo" maxLength={500} rows={3} />
+            </div>
+            <div>
+              <Label htmlFor="edit-categoria">Categoria</Label>
+              <Select value={categoria} onValueChange={setCategoria}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIAS.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Trocar Arquivo (opcional)</Label>
+              <div className="mt-1">
+                <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {arquivo ? arquivo.name : `Arquivo atual: ${editingTreinamento?.file_name || ''}`}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.ppt,.pptx,.mp4,.mov,.avi,.doc,.docx,.xls,.xlsx"
+                    onChange={e => setArquivo(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {arquivo && (
+                  <p className="text-xs text-muted-foreground mt-1">Novo: {formatFileSize(arquivo.size)}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <Label>Trocar Capa (opcional)</Label>
+              <div className="mt-1">
+                <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                  <Eye className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {thumbnail ? thumbnail.name : (editingTreinamento?.thumbnail_url ? 'Capa atual mantida' : 'Sem capa - selecionar imagem')}
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={e => setThumbnail(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {editingTreinamento?.thumbnail_url && !thumbnail && (
+                  <img src={editingTreinamento.thumbnail_url} alt="Capa atual" className="mt-2 h-20 rounded object-cover" />
+                )}
+              </div>
+            </div>
+            <Button onClick={handleEditSave} disabled={uploading || !titulo.trim()} className="w-full">
+              {uploading ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -201,6 +201,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh]">
         <DialogHeader>

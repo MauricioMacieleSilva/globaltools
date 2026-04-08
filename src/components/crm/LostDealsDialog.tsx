@@ -120,6 +120,22 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await (supabase as any).from('leads').delete().eq('id', deleteTarget.id);
+      if (error) throw error;
+      toast.success('Lead excluído permanentemente');
+      onLeadReactivated?.(); // refresh list
+    } catch {
+      toast.error('Erro ao excluir lead');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   const filteredLostLeads = lostLeads.filter(l => {
     if (!search) return true;
     const q = search.toLowerCase();

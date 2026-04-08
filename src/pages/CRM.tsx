@@ -912,6 +912,7 @@ export default function CRM() {
         onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
         onLeadClick={openLeadDrawer}
         onLeadReactivated={loadLeads}
+        userRole={currentUserRole}
       />
 
       {pendingVisitLead && (

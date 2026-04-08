@@ -1,12 +1,13 @@
 
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, RotateCcw, Eye, Search } from 'lucide-react';
+import { Plus, RotateCcw, Eye, Search, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
@@ -20,9 +21,10 @@ interface LostDealsDialogProps {
   onCancel: () => void;
   onLeadClick?: (lead: CRMLead) => void;
   onLeadReactivated?: () => void;
+  userRole?: string | null;
 }
 
-export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel, onLeadClick, onLeadReactivated }: LostDealsDialogProps) {
+export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel, onLeadClick, onLeadReactivated, userRole }: LostDealsDialogProps) {
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
   const [reasons, setReasons] = useState<{ id: string; name: string }[]>([]);
@@ -31,6 +33,10 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
   const [search, setSearch] = useState('');
   const [reactivating, setReactivating] = useState<string | null>(null);
   const [dispositions, setDispositions] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const canDelete = userRole === 'admin' || userRole === 'comercial';
 
   useEffect(() => {
     if (open) {
@@ -114,6 +120,22 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await (supabase as any).from('leads').delete().eq('id', deleteTarget.id);
+      if (error) throw error;
+      toast.success('Lead excluído permanentemente');
+      onLeadReactivated?.(); // refresh list
+    } catch {
+      toast.error('Erro ao excluir lead');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   const filteredLostLeads = lostLeads.filter(l => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -179,6 +201,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[80vh]">
         <DialogHeader>
@@ -256,13 +279,46 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
                       <RotateCcw className="h-3.5 w-3.5" />
                       {reactivating === lead.id ? 'Reativando...' : 'Reativar'}
                     </Button>
+                      {canDelete && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs gap-1 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteTarget(lead)}
+                          title="Excluir lead permanentemente"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lead permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O lead <strong>{deleteTarget?.empresa || deleteTarget?.client_name || deleteTarget?.cliente_nome}</strong> será removido permanentemente da base. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -24,7 +24,7 @@ interface LostDealsDialogProps {
   userRole?: string | null;
 }
 
-export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel, onLeadClick, onLeadReactivated }: LostDealsDialogProps) {
+export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel, onLeadClick, onLeadReactivated, userRole }: LostDealsDialogProps) {
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
   const [reasons, setReasons] = useState<{ id: string; name: string }[]>([]);
@@ -33,6 +33,10 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
   const [search, setSearch] = useState('');
   const [reactivating, setReactivating] = useState<string | null>(null);
   const [dispositions, setDispositions] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const canDelete = userRole === 'admin' || userRole === 'comercial';
 
   useEffect(() => {
     if (open) {

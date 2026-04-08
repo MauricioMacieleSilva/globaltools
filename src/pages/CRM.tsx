@@ -22,10 +22,11 @@ import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords } from 'lucide-react';
+import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords, ArrowRightLeft } from 'lucide-react';
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 import { MinhaCarteira } from '@/components/crm/MinhaCarteira';
 import { CompetitorProposalsView } from '@/components/crm/CompetitorProposalsView';
+import { HandoffHistory } from '@/components/crm/HandoffHistory';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
 import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
 import DashboardComercial from '@/pages/DashboardComercial';
@@ -789,6 +790,9 @@ export default function CRM() {
             <TabsTrigger value="carteira" className="text-xs gap-1 h-7 px-3">
               <Users className="h-3.5 w-3.5" /> Minha Carteira
             </TabsTrigger>
+            <TabsTrigger value="bastao" className="text-xs gap-1 h-7 px-3">
+              <ArrowRightLeft className="h-3.5 w-3.5" /> Bastão
+            </TabsTrigger>
             <TabsTrigger value="concorrencia" className="text-xs gap-1 h-7 px-3">
               <Swords className="h-3.5 w-3.5" /> Concorrência
             </TabsTrigger>
@@ -878,6 +882,10 @@ export default function CRM() {
 
         <TabsContent value="carteira" className="mt-3 overflow-y-auto flex-1">
           <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} />
+        </TabsContent>
+
+        <TabsContent value="bastao" className="mt-3 overflow-y-auto flex-1">
+          <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} />
         </TabsContent>
 
         <TabsContent value="concorrencia" className="mt-3 overflow-y-auto flex-1">

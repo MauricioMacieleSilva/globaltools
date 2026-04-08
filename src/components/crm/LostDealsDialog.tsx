@@ -21,6 +21,7 @@ interface LostDealsDialogProps {
   onCancel: () => void;
   onLeadClick?: (lead: CRMLead) => void;
   onLeadReactivated?: () => void;
+  userRole?: string | null;
 }
 
 export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel, onLeadClick, onLeadReactivated }: LostDealsDialogProps) {

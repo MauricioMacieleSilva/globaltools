@@ -69,7 +69,7 @@ export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
         .in('id', leadIds);
 
       // Load vendor names for leads that have vendedor_id
-      const vendorIds = [...new Set((leadsData || []).filter((l: any) => l.vendedor_id).map((l: any) => l.vendedor_id))];
+      const vendorIds = [...new Set((leadsData || []).filter((l: any) => l.vendedor_id).map((l: any) => l.vendedor_id))] as string[];
       let vendorMap: Record<string, string> = {};
       if (vendorIds.length > 0) {
         const { data: vendors } = await supabase

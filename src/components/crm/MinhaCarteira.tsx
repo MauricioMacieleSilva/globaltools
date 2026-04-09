@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
@@ -42,6 +42,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [assignVendorLead, setAssignVendorLead] = useState<CRMLead | null>(null);
   const [selectedVendorId, setSelectedVendorId] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const checkRole = async () => {
@@ -143,6 +145,22 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await (supabase as any).from('leads').delete().eq('id', deleteTarget.id);
+      if (error) throw error;
+      toast.success('Lead excluído permanentemente');
+      onLeadReactivated?.();
+    } catch {
+      toast.error('Erro ao excluir lead');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   const renderLeadCard = (lead: CRMLead) => {
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
     const isLost = lead.status === 'perdido';
@@ -194,11 +212,11 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
             </p>
           )}
           {isLost && (
-            <div className="pt-1 border-t border-border/40">
+            <div className="pt-1 border-t border-border/40 flex gap-1.5">
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs gap-1 w-full"
+                className="h-7 text-xs gap-1 flex-1"
                 onClick={(e) => {
                   e.stopPropagation();
                   setReactivateConfirm(lead);
@@ -207,6 +225,20 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
                 <RotateCcw className="h-3 w-3" />
                 Iniciar Novo Atendimento
               </Button>
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget(lead);
+                  }}
+                  title="Excluir lead permanentemente"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
@@ -290,6 +322,27 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
             <AlertDialogCancel disabled={reactivating}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleReactivate} disabled={reactivating || (isAdmin && !selectedVendorId)}>
               {reactivating ? 'Iniciando...' : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lead permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O lead <strong>{deleteTarget?.empresa || deleteTarget?.cliente_nome}</strong> será removido permanentemente da base. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

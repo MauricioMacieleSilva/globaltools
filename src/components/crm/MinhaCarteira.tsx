@@ -212,11 +212,11 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
             </p>
           )}
           {isLost && (
-            <div className="pt-1 border-t border-border/40">
+            <div className="pt-1 border-t border-border/40 flex gap-1.5">
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs gap-1 w-full"
+                className="h-7 text-xs gap-1 flex-1"
                 onClick={(e) => {
                   e.stopPropagation();
                   setReactivateConfirm(lead);
@@ -225,6 +225,20 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
                 <RotateCcw className="h-3 w-3" />
                 Iniciar Novo Atendimento
               </Button>
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget(lead);
+                  }}
+                  title="Excluir lead permanentemente"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

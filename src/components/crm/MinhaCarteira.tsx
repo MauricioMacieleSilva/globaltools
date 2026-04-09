@@ -145,6 +145,22 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await (supabase as any).from('leads').delete().eq('id', deleteTarget.id);
+      if (error) throw error;
+      toast.success('Lead excluído permanentemente');
+      onLeadReactivated?.();
+    } catch {
+      toast.error('Erro ao excluir lead');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   const renderLeadCard = (lead: CRMLead) => {
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
     const isLost = lead.status === 'perdido';

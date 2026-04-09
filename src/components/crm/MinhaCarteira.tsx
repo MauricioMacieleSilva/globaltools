@@ -42,6 +42,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [assignVendorLead, setAssignVendorLead] = useState<CRMLead | null>(null);
   const [selectedVendorId, setSelectedVendorId] = useState('');
   const [assigning, setAssigning] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const checkRole = async () => {

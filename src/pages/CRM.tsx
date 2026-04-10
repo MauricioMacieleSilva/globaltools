@@ -91,6 +91,7 @@ export default function CRM() {
   const [pendingLostLead, setPendingLostLead] = useState<CRMLead | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
+  const [origemFilter, setOrigemFilter] = useState('all');
 
   
 
@@ -105,7 +106,7 @@ export default function CRM() {
         .eq('user_id', authData.user.id)
         .maybeSingle();
       const role = roleData?.role;
-      if (role === 'admin' || role === 'comercial') {
+      if (role === 'admin') {
         setVendorFilter('all');
       } else {
         setVendorFilter(authData.user.id);
@@ -726,8 +727,11 @@ export default function CRM() {
       }
     }
     if (vendorFilter && vendorFilter !== 'all') {
-      // Filter by the official owner (vendedor_id) only
       if (l.vendedor_id !== vendorFilter) return false;
+    }
+    if (origemFilter && origemFilter !== 'all') {
+      const leadOrigem = (l.source || l.origem || '').toLowerCase();
+      if (!leadOrigem.includes(origemFilter.toLowerCase())) return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -780,47 +784,54 @@ export default function CRM() {
     value: filteredLeads.filter(l => l.status === stage.key).reduce((s, l) => s + (l.valor_estimado || 0), 0),
   }));
 
-  return (
+    return (
     <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
-        <div className="flex items-center justify-between gap-2 pb-3 shrink-0">
-          <div className="flex items-center gap-2">
+        {/* Row 1: Tabs */}
+        <div className="flex items-center justify-between gap-2 pb-2 shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto">
             <TabsList data-tour="crm-tabs" className="h-8">
-            <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
-              <LayoutGrid className="h-3.5 w-3.5" /> Kanban
-            </TabsTrigger>
-            <TabsTrigger value="lista" className="text-xs gap-1 h-7 px-3">
-              <List className="h-3.5 w-3.5" /> Lista
-            </TabsTrigger>
-            <TabsTrigger value="agenda" className="text-xs gap-1 h-7 px-3">
-              <CalendarDays className="h-3.5 w-3.5" /> Agenda
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="text-xs gap-1 h-7 px-3">
-              <PieChart className="h-3.5 w-3.5" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="prospeccao" className="text-xs gap-1 h-7 px-3">
-              <Sparkles className="h-3.5 w-3.5" /> Prospecção
-            </TabsTrigger>
-            <TabsTrigger value="carteira" className="text-xs gap-1 h-7 px-3">
-              <Users className="h-3.5 w-3.5" /> Minha Carteira
-            </TabsTrigger>
-            <TabsTrigger value="bastao" className="text-xs gap-1 h-7 px-3">
-              <ArrowRightLeft className="h-3.5 w-3.5" /> Bastão
-            </TabsTrigger>
-            <TabsTrigger value="concorrencia" className="text-xs gap-1 h-7 px-3">
-              <Swords className="h-3.5 w-3.5" /> Concorrência
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="kanban" className="text-xs gap-1 h-7 px-3">
+                <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+              </TabsTrigger>
+              <TabsTrigger value="lista" className="text-xs gap-1 h-7 px-3">
+                <List className="h-3.5 w-3.5" /> Lista
+              </TabsTrigger>
+              <TabsTrigger value="agenda" className="text-xs gap-1 h-7 px-3">
+                <CalendarDays className="h-3.5 w-3.5" /> Agenda
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="text-xs gap-1 h-7 px-3">
+                <PieChart className="h-3.5 w-3.5" /> Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="prospeccao" className="text-xs gap-1 h-7 px-3">
+                <Sparkles className="h-3.5 w-3.5" /> Prospecção
+              </TabsTrigger>
+              <TabsTrigger value="carteira" className="text-xs gap-1 h-7 px-3">
+                <Users className="h-3.5 w-3.5" /> Minha Carteira
+              </TabsTrigger>
+              <TabsTrigger value="bastao" className="text-xs gap-1 h-7 px-3">
+                <ArrowRightLeft className="h-3.5 w-3.5" /> Bastão
+              </TabsTrigger>
+              <TabsTrigger value="concorrencia" className="text-xs gap-1 h-7 px-3">
+                <Swords className="h-3.5 w-3.5" /> Concorrência
+              </TabsTrigger>
+            </TabsList>
             <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Row 2: Filters + Actions */}
+        <div className="flex items-center justify-between gap-2 pb-2 shrink-0">
+          <div data-tour="crm-filters" className="flex items-center gap-2 flex-wrap">
             {(activeTab === 'kanban' || activeTab === 'lista') && (
-              <div data-tour="crm-filters" className="flex items-center gap-2">
+              <>
                 <CRMFilters
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
                   vendorFilter={vendorFilter}
                   onVendorChange={setVendorFilter}
+                  origemFilter={origemFilter}
+                  onOrigemChange={setOrigemFilter}
                 />
                 {activeTab === 'kanban' && (
                   <div className="flex items-center gap-1">
@@ -837,8 +848,10 @@ export default function CRM() {
                     )}
                   </div>
                 )}
-              </div>
+              </>
             )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => setCarouselOpen(true)} className="gap-1.5 h-8 hidden sm:flex" title="Modo TV - Alternar dashboards">
               <Monitor className="h-3.5 w-3.5" />
               {!isMobile && 'Modo TV'}

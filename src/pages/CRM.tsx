@@ -747,6 +747,8 @@ export default function CRM() {
         l.cliente_telefone,
         l.contact_email,
         l.cliente_email,
+        l.source,
+        l.origem,
       ];
       const matches = fields.some(f => f && f.toLowerCase().includes(q));
       if (!matches) return false;

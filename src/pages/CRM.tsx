@@ -189,13 +189,25 @@ export default function CRM() {
 
   const loadLeads = useCallback(async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('leads')
-        .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, avatar_url)')
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
+      const PAGE_SIZE = 1000;
+      let allLeads: any[] = [];
+      let from = 0;
+      let hasMore = true;
 
-      setLeads(data || []);
+      while (hasMore) {
+        const { data, error } = await (supabase as any)
+          .from('leads')
+          .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, avatar_url)')
+          .order('updated_at', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+
+        allLeads = allLeads.concat(data || []);
+        hasMore = (data?.length || 0) === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+
+      setLeads(allLeads);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Erro ao carregar leads:', error);

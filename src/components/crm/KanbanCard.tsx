@@ -177,7 +177,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           <div className="flex items-center gap-1 min-w-0">
             <h4 className="text-xs font-semibold text-foreground leading-tight line-clamp-1">{toTitleCase(lead.empresa || name || '')}</h4>
             {lead.source && lead.source.toLowerCase().includes('tráfego pago') && (
-              <Instagram className="h-3 w-3 shrink-0 text-pink-500" title="Tráfego Pago" />
+              <span title="Tráfego Pago"><Instagram className="h-3 w-3 shrink-0 text-pink-500" /></span>
             )}
           </div>
           {whatsappUrl && (

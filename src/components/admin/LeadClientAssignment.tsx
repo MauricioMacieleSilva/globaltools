@@ -88,7 +88,7 @@ export function LeadClientAssignment() {
       setUsers(usersRes.data || []);
 
           // Deduplicate leads by empresa/cliente_nome - keep only the most recent
-          const leadsRaw = (leadsRes.data || []).map((l: any) => ({
+          const leadsRaw = (allLeads || []).map((l: any) => ({
             ...l,
             vendedor_name: l.vendedor_id ? userMap.get(l.vendedor_id)?.full_name || 'Desconhecido' : null,
           }));

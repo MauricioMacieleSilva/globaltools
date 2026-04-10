@@ -57,9 +57,29 @@ export function LeadClientAssignment() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [usersRes, leadsRes, clientesRes] = await Promise.all([
+      // Fetch all leads in batches to avoid 1000-row limit
+      const fetchAllLeads = async () => {
+        const PAGE_SIZE = 1000;
+        let allLeads: any[] = [];
+        let from = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data, error } = await (supabase as any)
+            .from('leads')
+            .select('id, cliente_nome, empresa, status, vendedor_id, created_at')
+            .order('created_at', { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (error) throw error;
+          allLeads = allLeads.concat(data || []);
+          hasMore = (data?.length || 0) === PAGE_SIZE;
+          from += PAGE_SIZE;
+        }
+        return allLeads;
+      };
+
+      const [usersRes, allLeads, clientesRes] = await Promise.all([
         supabase.from('user_profiles').select('id, full_name, avatar_url'),
-        (supabase as any).from('leads').select('id, cliente_nome, empresa, status, vendedor_id, created_at').order('created_at', { ascending: false }),
+        fetchAllLeads(),
         supabase.from('clientes').select('id, nome, cidade, estado, vendedor_id').order('nome'),
       ]);
 

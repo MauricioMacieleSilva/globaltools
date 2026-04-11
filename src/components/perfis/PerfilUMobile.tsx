@@ -219,13 +219,17 @@ export function PerfilUMobile() {
 
   const totalPeso = linhasU.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + (calculo?.pesoTotal || 0);
+    if (!calculo) return sum;
+    const pPerda = parseFloat(linha.percentualPerda) || 100;
+    return sum + (calculo.pesoTotal * pPerda / 100);
   }, 0);
 
   const totalPerda = linhasU.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
     return sum + (calculo?.pesoPerda || 0);
   }, 0);
+
+  const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
 
   const calculosPerfilU = Object.values(calculos).filter(calc => calc.tipo === 'U');
 
@@ -463,7 +467,7 @@ export function PerfilUMobile() {
           </div>
           <div className="text-center">
             <div className="text-sm text-muted-foreground">Peso de Perda</div>
-            <div className="text-xl font-bold text-destructive">{formatarNumero(totalPerda)} kg</div>
+            <div className="text-xl font-bold text-destructive">{formatarNumero(totalPerda)} kg <span className="text-sm font-normal">({formatarNumero(percPerda)}%)</span></div>
           </div>
         </div>
       </div>

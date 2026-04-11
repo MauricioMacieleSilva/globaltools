@@ -218,7 +218,9 @@ function PerfilUDesktop() {
 
   const totalPeso = linhasU.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + (calculo?.pesoTotal || 0);
+    if (!calculo) return sum;
+    const pPerda = parseFloat(linha.percentualPerda) || 100;
+    return sum + (calculo.pesoTotal * pPerda / 100);
   }, 0);
 
   const totalPerda = linhasU.reduce((sum, linha) => {
@@ -226,7 +228,9 @@ function PerfilUDesktop() {
     return sum + (calculo?.pesoPerda || 0);
   }, 0);
 
-  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Est', 'Ver', 'Ação'];
+  const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
+
+  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'P.T', 'P.P', 'Tipo', 'Est', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">

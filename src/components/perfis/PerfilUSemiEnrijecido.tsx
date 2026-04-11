@@ -65,8 +65,9 @@ export function PerfilUSemiEnrijecido() {
     const tiraPerda = largura - (tirasAproveitadas * tira);
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
-    const pesoPerda = pesoTotal * (percentualPerda / 100);
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
+    const chapas = Math.ceil(quantidade / tirasAproveitadas);
+    const pesoPerda = pesoPerdaPorPeca * chapas;
 
     return {
       id: linha.id,
@@ -133,7 +134,7 @@ export function PerfilUSemiEnrijecido() {
   }, [linhasUSemiEnrijecido]);
 
   const totalPeso = linhasUSemiEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
-  const totalPerda = linhasUSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
+  const totalPerda = linhasUSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + (c?.pesoPerda || 0); }, 0);
 
   const headers = ['U/Z', 'Sim', 'Esp.', 'Enrij', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
 

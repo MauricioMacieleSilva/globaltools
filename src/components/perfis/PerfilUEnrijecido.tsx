@@ -46,8 +46,9 @@ export function PerfilUEnrijecido() {
     const tiraPerda = largura - (tirasAproveitadas * tira);
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
-    const pesoPerda = pesoTotal * (percentualPerda / 100);
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
+    const chapas = Math.ceil(quantidade / tirasAproveitadas);
+    const pesoPerda = pesoPerdaPorPeca * chapas;
     return { id: linha.id, tipo: 'U_ENRIJECIDO', orientacaoUZ: linha.orientacaoUZ, espessura, aba1, base, aba2, enrij1, enrij2, comprimento, largura, quantidade, percentualPerda, tira, tirasAproveitadas, tiraPerda, pesoPorPeca, pesoTotal, pesoPerda, pesoPerdaPorPeca };
   };
 
@@ -95,7 +96,7 @@ export function PerfilUEnrijecido() {
   useEffect(() => { linhasUEnrijecido.forEach(linha => { const calculo = calcularPerfil(linha); if (calculo) atualizarCalculo(linha.id, calculo); }); }, [linhasUEnrijecido]);
 
   const totalPeso = linhasUEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
-  const totalPerda = linhasUEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
+  const totalPerda = linhasUEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + (c?.pesoPerda || 0); }, 0);
 
   const headers = ['U/Z', 'Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Est', 'Ver', 'Ação'];
 

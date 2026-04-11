@@ -47,8 +47,27 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
       return;
     }
 
+    // Fetch lead IDs that have future scheduled follow-ups (they are in the agenda)
+    const activeLeadIds = activeLeads.map(l => l.id);
+    const { data: futureFollowUps } = await supabase
+      .from('follow_ups')
+      .select('lead_id')
+      .in('lead_id', activeLeadIds)
+      .eq('concluido', false)
+      .gte('data_agendada', new Date().toISOString());
+    
+    const leadsInAgenda = new Set((futureFollowUps || []).map(f => f.lead_id).filter(Boolean));
+    
+    // Exclude leads that are in the agenda
+    const filteredLeads = activeLeads.filter(l => !leadsInAgenda.has(l.id));
+
+    if (filteredLeads.length === 0) {
+      setStaleLeads([]);
+      return;
+    }
+
     // Fetch last activity date for each lead
-    const leadIds = activeLeads.map(l => l.id);
+    const leadIds = filteredLeads.map(l => l.id);
     const { data: activities } = await supabase
       .from('lead_activities')
       .select('lead_id, created_at')
@@ -56,7 +75,7 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
       .order('created_at', { ascending: false });
 
     // Fetch vendedor names
-    const vendorIds = [...new Set(activeLeads.map(l => l.vendedor_id).filter(Boolean))] as string[];
+    const vendorIds = [...new Set(filteredLeads.map(l => l.vendedor_id).filter(Boolean))] as string[];
     const vendorMap: Record<string, string> = {};
     if (vendorIds.length > 0) {
       const { data: profiles } = await supabase
@@ -74,7 +93,7 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
       }
     });
 
-    const stale = activeLeads
+    const stale = filteredLeads
       .map(lead => {
         const lastActivity = lastActivityMap[lead.id];
         const referenceDate = lastActivity || new Date(lead.created_at);

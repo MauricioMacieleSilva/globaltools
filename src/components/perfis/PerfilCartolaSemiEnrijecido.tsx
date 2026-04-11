@@ -44,8 +44,9 @@ export function PerfilCartolaSemiEnrijecido() {
     const tiraPerda = largura - (tirasAproveitadas * tira);
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
-    const pesoPerda = pesoTotal * (percentualPerda / 100);
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
+    const chapas = Math.ceil(quantidade / tirasAproveitadas);
+    const pesoPerda = pesoPerdaPorPeca * chapas;
     return { id: linha.id, tipo: 'CARTOLA_SEMI_ENRIJECIDO', espessura, aba1, base, aba2, enrij1, enrij2, enrij3, comprimento, largura, quantidade, percentualPerda, tira, tirasAproveitadas, tiraPerda, pesoPorPeca, pesoTotal, pesoPerda, pesoPerdaPorPeca };
   };
 
@@ -92,7 +93,7 @@ export function PerfilCartolaSemiEnrijecido() {
   useEffect(() => { linhasCartolaSemiEnrijecido.forEach(linha => { const calculo = calcularPerfil(linha); if (calculo) atualizarCalculo(linha.id, calculo); }); }, [linhasCartolaSemiEnrijecido]);
 
   const totalPeso = linhasCartolaSemiEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
-  const totalPerda = linhasCartolaSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
+  const totalPerda = linhasCartolaSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + (c?.pesoPerda || 0); }, 0);
 
   const headers = ['Sim', 'Esp.', 'E1', 'E2', 'Ab1', 'Bas', 'Ab2', 'E3', 'Cmp', 'Lrg', 'Qt', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
 

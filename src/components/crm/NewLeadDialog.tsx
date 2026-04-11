@@ -83,6 +83,11 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     status: 'lead',
     produto_interesse: '',
     notes: '',
+    cliente_cnpj: '',
+    estado: '',
+    cidade: '',
+    regime_tributario: '',
+    ramo_atuacao: '',
   });
   const { toast } = useToast();
   const { data: comercialData } = useComercial();
@@ -208,7 +213,17 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
 
   const handleSelectCliente = (cliente: Cliente) => {
     setSelectedCliente(cliente);
-    setForm(f => ({ ...f, empresa: cliente.nome, cliente_telefone: cliente.telefone || '', cliente_email: cliente.email || '', source: 'Carteira Global' }));
+    setForm(f => ({
+      ...f,
+      empresa: cliente.nome,
+      cliente_telefone: cliente.telefone || '',
+      cliente_email: cliente.email || '',
+      source: 'Carteira Global',
+      cliente_cnpj: cliente.cnpj || '',
+      estado: cliente.estado || '',
+      cidade: cliente.cidade || '',
+      ramo_atuacao: cliente.segmento || '',
+    }));
     setClientePopoverOpen(false);
     setClienteSearch('');
   };
@@ -225,13 +240,18 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       status: 'lead',
       produto_interesse: lead.produto_interesse || '',
       notes: '',
+      cliente_cnpj: lead.cliente_cnpj || '',
+      estado: lead.estado || '',
+      cidade: lead.cidade || '',
+      regime_tributario: lead.regime_tributario || '',
+      ramo_atuacao: lead.ramo_atuacao || '',
     });
     setLeadPopoverOpen(false);
     setLeadSearch('');
   };
 
   const resetForm = () => {
-    setForm({ empresa: '', cliente_nome: '', source: '', cliente_telefone: '', cliente_email: '', website: '', status: 'lead', produto_interesse: '', notes: '' });
+    setForm({ empresa: '', cliente_nome: '', source: '', cliente_telefone: '', cliente_email: '', website: '', status: 'lead', produto_interesse: '', notes: '', cliente_cnpj: '', estado: '', cidade: '', regime_tributario: '', ramo_atuacao: '' });
     setAddingOrigem(false);
     setNovaOrigem('');
     setIsClienteDaBase(false);
@@ -296,15 +316,21 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         website: form.website.trim() || null,
         notes: form.notes || null,
         vendedor_id: user?.id,
+        cliente_cnpj: form.cliente_cnpj.trim() || null,
+        estado: form.estado.trim() || null,
+        cidade: form.cidade.trim() || null,
+        regime_tributario: form.regime_tributario || null,
+        ramo_atuacao: form.ramo_atuacao.trim() || null,
       };
 
       // If creating from an existing lead, carry over enrichment data
       if (selectedLead) {
-        insertPayload.cliente_cnpj = selectedLead.cliente_cnpj || null;
-        insertPayload.ramo_atuacao = selectedLead.ramo_atuacao || null;
-        insertPayload.regime_tributario = selectedLead.regime_tributario || null;
-        insertPayload.estado = selectedLead.estado || null;
-        insertPayload.cidade = selectedLead.cidade || null;
+        // Only override if not already set from form
+        if (!insertPayload.cliente_cnpj) insertPayload.cliente_cnpj = selectedLead.cliente_cnpj || null;
+        if (!insertPayload.ramo_atuacao) insertPayload.ramo_atuacao = selectedLead.ramo_atuacao || null;
+        if (!insertPayload.regime_tributario) insertPayload.regime_tributario = selectedLead.regime_tributario || null;
+        if (!insertPayload.estado) insertPayload.estado = selectedLead.estado || null;
+        if (!insertPayload.cidade) insertPayload.cidade = selectedLead.cidade || null;
         insertPayload.finance_parecer = selectedLead.finance_parecer || null;
       }
 
@@ -559,9 +585,42 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
               <Input id="email" type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
             </div>
 
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="cnpj">CNPJ</Label>
+              <Input id="cnpj" value={form.cliente_cnpj} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="website">Site / URL</Label>
               <Input id="website" value={form.website} onChange={(e) => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.empresa.com.br" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="estado">UF</Label>
+              <Input id="estado" value={form.estado} onChange={(e) => setForm(f => ({ ...f, estado: e.target.value }))} placeholder="Ex: RS, SP, MG..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="cidade">Cidade</Label>
+              <Input id="cidade" value={form.cidade} onChange={(e) => setForm(f => ({ ...f, cidade: e.target.value }))} placeholder="Nome da cidade" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="ramo">Ramo de Atuação</Label>
+              <Input id="ramo" value={form.ramo_atuacao} onChange={(e) => setForm(f => ({ ...f, ramo_atuacao: e.target.value }))} placeholder="Ex: Construção Civil, Indústria..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="regime">Regime Tributário</Label>
+              <Select value={form.regime_tributario} onValueChange={(v) => setForm(f => ({ ...f, regime_tributario: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
+                  <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
+                  <SelectItem value="Lucro Real">Lucro Real</SelectItem>
+                  <SelectItem value="MEI">MEI</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">

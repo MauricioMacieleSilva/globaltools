@@ -47,18 +47,25 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
       return;
     }
 
-    // Fetch lead IDs that have future scheduled follow-ups (they are in the agenda)
-    const activeLeadIds = activeLeads.map(l => l.id);
+    // Fetch ALL future scheduled follow-ups (avoid .in() URL length limits)
     const { data: futureFollowUps } = await supabase
       .from('follow_ups')
       .select('lead_id')
-      .in('lead_id', activeLeadIds)
       .eq('concluido', false)
       .gte('data_agendada', new Date().toISOString());
     
     const leadsInAgenda = new Set((futureFollowUps || []).map(f => f.lead_id).filter(Boolean));
     
+    // Also fetch future CRM visits
+    const { data: futureVisits } = await supabase
+      .from('crm_visits')
+      .select('lead_id')
+      .gte('visit_date', new Date().toISOString());
+    
+    (futureVisits || []).forEach(v => leadsInAgenda.add(v.lead_id));
+    
     // Exclude leads that are in the agenda
+    const activeLeadIds = new Set(activeLeads.map(l => l.id));
     const filteredLeads = activeLeads.filter(l => !leadsInAgenda.has(l.id));
 
     if (filteredLeads.length === 0) {

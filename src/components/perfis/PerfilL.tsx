@@ -187,7 +187,9 @@ export function PerfilL() {
 
   const totalPeso = linhasL.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + (calculo?.pesoTotal || 0);
+    if (!calculo) return sum;
+    const pPerda = parseFloat(linha.percentualPerda) || 100;
+    return sum + (calculo.pesoTotal * pPerda / 100);
   }, 0);
 
   const totalPerda = linhasL.reduce((sum, linha) => {
@@ -195,11 +197,13 @@ export function PerfilL() {
     return sum + (calculo?.pesoPerda || 0);
   }, 0);
 
-  const headers = ['Esp.', 'Aba', 'Base', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
+  const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
+
+  const headers = ['Esp.', 'Aba', 'Base', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'P.T', 'P.P', 'Est', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>
         {headers.map((h, i) => (
           <div key={i} className="text-center">
             {h}
@@ -215,7 +219,7 @@ export function PerfilL() {
           const aba = parseFloat(linha.aba) || 0;
           
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>
               <Input type="number" step="0.01" placeholder="0" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               
               <TooltipProvider>
@@ -264,10 +268,7 @@ export function PerfilL() {
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               
               <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tira) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tiraPerda) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
+              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal * (parseFloat(linha.percentualPerda) || 100) / 100) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               
               <IndicadorEstoqueDisponibilidade
@@ -308,7 +309,7 @@ export function PerfilL() {
           </div>
           <div className="text-center">
             <div className="text-xs text-muted-foreground">Peso de Perda</div>
-            <div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg</div>
+            <div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg <span className="text-sm font-normal">({formatarNumero(percPerda)}%)</span></div>
           </div>
         </div>
       </div>

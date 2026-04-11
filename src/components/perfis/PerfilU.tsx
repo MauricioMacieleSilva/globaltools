@@ -218,7 +218,9 @@ function PerfilUDesktop() {
 
   const totalPeso = linhasU.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + (calculo?.pesoTotal || 0);
+    if (!calculo) return sum;
+    const pPerda = parseFloat(linha.percentualPerda) || 100;
+    return sum + (calculo.pesoTotal * pPerda / 100);
   }, 0);
 
   const totalPerda = linhasU.reduce((sum, linha) => {
@@ -226,11 +228,13 @@ function PerfilUDesktop() {
     return sum + (calculo?.pesoPerda || 0);
   }, 0);
 
-  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Est', 'Ver', 'Ação'];
+  const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
+
+  const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'P.T', 'P.P', 'Tipo', 'Est', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }} data-tour="perfil-headers">
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(17, minmax(0, 1fr))' }} data-tour="perfil-headers">
         {headers.map((h, i) => (
           <div key={i} className="text-center">
             {h}
@@ -249,7 +253,7 @@ function PerfilUDesktop() {
           
           const isFirstLine = linhasU.indexOf(linha) === 0;
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }} data-tour={isFirstLine ? "perfil-linha" : undefined}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(17, minmax(0, 1fr))' }} data-tour={isFirstLine ? "perfil-linha" : undefined}>
               <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                 <SelectTrigger className="h-7 text-[10px] px-1">
                   <SelectValue />
@@ -337,10 +341,7 @@ function PerfilUDesktop() {
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               
               <div className="text-center text-[10px] text-muted-foreground" data-tour={isFirstLine ? "perfil-resultados" : undefined}>{calculo ? Math.ceil(calculo.tira) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tiraPerda) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
+              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal * (parseFloat(linha.percentualPerda) || 100) / 100) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               
               <div data-tour={isFirstLine ? "perfil-tipo-indicador" : undefined}>
@@ -388,7 +389,7 @@ function PerfilUDesktop() {
           </div>
           <div className="text-center">
             <div className="text-xs text-muted-foreground">Peso de Perda</div>
-            <div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg</div>
+            <div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg <span className="text-sm font-normal">({formatarNumero(percPerda)}%)</span></div>
           </div>
         </div>
       </div>

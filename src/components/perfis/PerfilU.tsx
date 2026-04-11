@@ -389,7 +389,7 @@ function PerfilUDesktop() {
           </div>
           <div className="text-center">
             <div className="text-xs text-muted-foreground">Peso de Perda</div>
-            <div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg</div>
+            <div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg <span className="text-sm font-normal">({formatarNumero(percPerda)}%)</span></div>
           </div>
         </div>
       </div>

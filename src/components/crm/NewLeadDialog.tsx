@@ -316,15 +316,21 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         website: form.website.trim() || null,
         notes: form.notes || null,
         vendedor_id: user?.id,
+        cliente_cnpj: form.cliente_cnpj.trim() || null,
+        estado: form.estado.trim() || null,
+        cidade: form.cidade.trim() || null,
+        regime_tributario: form.regime_tributario || null,
+        ramo_atuacao: form.ramo_atuacao.trim() || null,
       };
 
       // If creating from an existing lead, carry over enrichment data
       if (selectedLead) {
-        insertPayload.cliente_cnpj = selectedLead.cliente_cnpj || null;
-        insertPayload.ramo_atuacao = selectedLead.ramo_atuacao || null;
-        insertPayload.regime_tributario = selectedLead.regime_tributario || null;
-        insertPayload.estado = selectedLead.estado || null;
-        insertPayload.cidade = selectedLead.cidade || null;
+        // Only override if not already set from form
+        if (!insertPayload.cliente_cnpj) insertPayload.cliente_cnpj = selectedLead.cliente_cnpj || null;
+        if (!insertPayload.ramo_atuacao) insertPayload.ramo_atuacao = selectedLead.ramo_atuacao || null;
+        if (!insertPayload.regime_tributario) insertPayload.regime_tributario = selectedLead.regime_tributario || null;
+        if (!insertPayload.estado) insertPayload.estado = selectedLead.estado || null;
+        if (!insertPayload.cidade) insertPayload.cidade = selectedLead.cidade || null;
         insertPayload.finance_parecer = selectedLead.finance_parecer || null;
       }
 

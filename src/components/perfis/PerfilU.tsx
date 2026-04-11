@@ -234,7 +234,7 @@ function PerfilUDesktop() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }} data-tour="perfil-headers">
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(17, minmax(0, 1fr))' }} data-tour="perfil-headers">
         {headers.map((h, i) => (
           <div key={i} className="text-center">
             {h}
@@ -253,7 +253,7 @@ function PerfilUDesktop() {
           
           const isFirstLine = linhasU.indexOf(linha) === 0;
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }} data-tour={isFirstLine ? "perfil-linha" : undefined}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(17, minmax(0, 1fr))' }} data-tour={isFirstLine ? "perfil-linha" : undefined}>
               <Select value={linha.orientacaoUZ} onValueChange={(value: 'U' | 'Z') => atualizarLinha(linha.id, 'orientacaoUZ', value)}>
                 <SelectTrigger className="h-7 text-[10px] px-1">
                   <SelectValue />

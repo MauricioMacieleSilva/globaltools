@@ -341,10 +341,7 @@ function PerfilUDesktop() {
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               
               <div className="text-center text-[10px] text-muted-foreground" data-tour={isFirstLine ? "perfil-resultados" : undefined}>{calculo ? Math.ceil(calculo.tira) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tiraPerda) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
+              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal * (parseFloat(linha.percentualPerda) || 100) / 100) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               
               <div data-tour={isFirstLine ? "perfil-tipo-indicador" : undefined}>

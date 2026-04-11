@@ -92,14 +92,15 @@ export function PerfilCartola() {
 
   useEffect(() => { linhasCartola.forEach(linha => { const calculo = calcularPerfil(linha); if (calculo) atualizarCalculo(linha.id, calculo); }); }, [linhasCartola]);
 
-  const totalPeso = linhasCartola.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
+  const totalPeso = linhasCartola.reduce((s, l) => { const c = calcularPerfil(l); if (!c) return s; const p = parseFloat(l.percentualPerda) || 100; return s + (c.pesoTotal * p / 100); }, 0);
   const totalPerda = linhasCartola.reduce((s, l) => { const c = calcularPerfil(l); return s + (c?.pesoPerda || 0); }, 0);
+  const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
 
-  const headers = ['Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
+  const headers = ['Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'P.T', 'P.P', 'Est', 'Ver', 'Ação'];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
+      <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(17, minmax(0, 1fr))' }}>
         {headers.map((h, i) => (<div key={i} className="text-center">{h}</div>))}
       </div>
 
@@ -111,7 +112,7 @@ export function PerfilCartola() {
           const aba1 = parseFloat(linha.aba1) || 0;
           
           return (
-            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}>
+            <div key={linha.id} className="grid gap-1 items-center p-1.5 bg-background rounded border" style={{ gridTemplateColumns: 'repeat(17, minmax(0, 1fr))' }}>
               <div className="flex justify-center"><Checkbox checked={!linha.assimetrico} onCheckedChange={(c) => atualizarLinha(linha.id, 'assimetrico', !c)} className="h-4 w-4" /></div>
               <Input type="number" step="0.01" placeholder="0" value={linha.espessura} onChange={e => atualizarLinha(linha.id, 'espessura', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               <Input type="number" placeholder="0" value={linha.enrij1} onChange={e => atualizarLinha(linha.id, 'enrij1', e.target.value)} onBlur={e => validarCampo(linha.id, 'enrij1', e.target.value)} className={`text-center text-[10px] h-7 px-1 ${errosValidacao[`${linha.id}-enrij1`] ? 'border-destructive' : ''}`} />
@@ -124,10 +125,7 @@ export function PerfilCartola() {
               <Input type="number" placeholder="0" value={linha.quantidade} onChange={e => atualizarLinha(linha.id, 'quantidade', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               <Input type="number" value={linha.percentualPerda} onChange={e => atualizarLinha(linha.id, 'percentualPerda', e.target.value)} className="text-center text-[10px] h-7 px-1" />
               <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tira) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? Math.ceil(calculo.tiraPerda) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] text-muted-foreground">{calculo ? formatarNumero(calculo.pesoPerdaPorPeca) : '-'}</div>
-              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal) : '-'}</div>
+              <div className="text-center text-[10px] font-medium text-primary">{calculo ? formatarNumero(calculo.pesoTotal * (parseFloat(linha.percentualPerda) || 100) / 100) : '-'}</div>
               <div className="text-center text-[10px] font-medium text-destructive">{calculo ? formatarNumero(calculo.pesoPerda) : '-'}</div>
               <IndicadorEstoqueDisponibilidade
                 tipoPerfil="CARTOLA"
@@ -148,7 +146,7 @@ export function PerfilCartola() {
       <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center"><div className="text-xs text-muted-foreground">Peso Total</div><div className="text-lg font-bold text-primary">{formatarNumero(totalPeso)} kg</div></div>
-          <div className="text-center"><div className="text-xs text-muted-foreground">Peso de Perda</div><div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg</div></div>
+          <div className="text-center"><div className="text-xs text-muted-foreground">Peso de Perda</div><div className="text-lg font-bold text-destructive">{formatarNumero(totalPerda)} kg <span className="text-sm font-normal">({formatarNumero(percPerda)}%)</span></div></div>
         </div>
       </div>
     </div>

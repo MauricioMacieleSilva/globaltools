@@ -93,7 +93,7 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
       }
     });
 
-    const stale = activeLeads
+    const stale = filteredLeads
       .map(lead => {
         const lastActivity = lastActivityMap[lead.id];
         const referenceDate = lastActivity || new Date(lead.created_at);

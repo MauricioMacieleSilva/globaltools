@@ -192,7 +192,7 @@ export function PerfilL() {
 
   const totalPerda = linhasL.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
+    return sum + (calculo?.pesoPerda || 0);
   }, 0);
 
   const headers = ['Esp.', 'Aba', 'Base', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];

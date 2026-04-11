@@ -83,6 +83,11 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     status: 'lead',
     produto_interesse: '',
     notes: '',
+    cliente_cnpj: '',
+    estado: '',
+    cidade: '',
+    regime_tributario: '',
+    ramo_atuacao: '',
   });
   const { toast } = useToast();
   const { data: comercialData } = useComercial();
@@ -225,13 +230,18 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       status: 'lead',
       produto_interesse: lead.produto_interesse || '',
       notes: '',
+      cliente_cnpj: lead.cliente_cnpj || '',
+      estado: lead.estado || '',
+      cidade: lead.cidade || '',
+      regime_tributario: lead.regime_tributario || '',
+      ramo_atuacao: lead.ramo_atuacao || '',
     });
     setLeadPopoverOpen(false);
     setLeadSearch('');
   };
 
   const resetForm = () => {
-    setForm({ empresa: '', cliente_nome: '', source: '', cliente_telefone: '', cliente_email: '', website: '', status: 'lead', produto_interesse: '', notes: '' });
+    setForm({ empresa: '', cliente_nome: '', source: '', cliente_telefone: '', cliente_email: '', website: '', status: 'lead', produto_interesse: '', notes: '', cliente_cnpj: '', estado: '', cidade: '', regime_tributario: '', ramo_atuacao: '' });
     setAddingOrigem(false);
     setNovaOrigem('');
     setIsClienteDaBase(false);

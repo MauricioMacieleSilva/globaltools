@@ -213,7 +213,17 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
 
   const handleSelectCliente = (cliente: Cliente) => {
     setSelectedCliente(cliente);
-    setForm(f => ({ ...f, empresa: cliente.nome, cliente_telefone: cliente.telefone || '', cliente_email: cliente.email || '', source: 'Carteira Global' }));
+    setForm(f => ({
+      ...f,
+      empresa: cliente.nome,
+      cliente_telefone: cliente.telefone || '',
+      cliente_email: cliente.email || '',
+      source: 'Carteira Global',
+      cliente_cnpj: cliente.cnpj || '',
+      estado: cliente.estado || '',
+      cidade: cliente.cidade || '',
+      ramo_atuacao: cliente.segmento || '',
+    }));
     setClientePopoverOpen(false);
     setClienteSearch('');
   };

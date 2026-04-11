@@ -93,7 +93,7 @@ export function PerfilCartolaSemiEnrijecido() {
   useEffect(() => { linhasCartolaSemiEnrijecido.forEach(linha => { const calculo = calcularPerfil(linha); if (calculo) atualizarCalculo(linha.id, calculo); }); }, [linhasCartolaSemiEnrijecido]);
 
   const totalPeso = linhasCartolaSemiEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
-  const totalPerda = linhasCartolaSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
+  const totalPerda = linhasCartolaSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + (c?.pesoPerda || 0); }, 0);
 
   const headers = ['Sim', 'Esp.', 'E1', 'E2', 'Ab1', 'Bas', 'Ab2', 'E3', 'Cmp', 'Lrg', 'Qt', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
 

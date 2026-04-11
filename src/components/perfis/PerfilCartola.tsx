@@ -93,7 +93,7 @@ export function PerfilCartola() {
   useEffect(() => { linhasCartola.forEach(linha => { const calculo = calcularPerfil(linha); if (calculo) atualizarCalculo(linha.id, calculo); }); }, [linhasCartola]);
 
   const totalPeso = linhasCartola.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
-  const totalPerda = linhasCartola.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
+  const totalPerda = linhasCartola.reduce((s, l) => { const c = calcularPerfil(l); return s + (c?.pesoPerda || 0); }, 0);
 
   const headers = ['Sim', 'Esp.', 'Enrj1', 'Aba1', 'Base', 'Aba2', 'Enrj2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
 

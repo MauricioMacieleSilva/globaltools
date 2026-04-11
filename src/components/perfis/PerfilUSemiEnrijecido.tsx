@@ -134,7 +134,7 @@ export function PerfilUSemiEnrijecido() {
   }, [linhasUSemiEnrijecido]);
 
   const totalPeso = linhasUSemiEnrijecido.reduce((s, l) => s + (calcularPerfil(l)?.pesoTotal || 0), 0);
-  const totalPerda = linhasUSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + ((c?.pesoPerdaPorPeca || 0) * (c?.quantidade || 0)); }, 0);
+  const totalPerda = linhasUSemiEnrijecido.reduce((s, l) => { const c = calcularPerfil(l); return s + (c?.pesoPerda || 0); }, 0);
 
   const headers = ['U/Z', 'Sim', 'Esp.', 'Enrij', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Est', 'Ver', 'Ação'];
 

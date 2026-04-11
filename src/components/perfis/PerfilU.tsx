@@ -80,8 +80,9 @@ function PerfilUDesktop() {
     const tiraPerda = largura - (tirasAproveitadas * tira);
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
-    const pesoPerda = pesoTotal * (percentualPerda / 100);
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
+    const chapas = Math.ceil(quantidade / tirasAproveitadas);
+    const pesoPerda = pesoPerdaPorPeca * chapas;
 
     return {
       id: linha.id,
@@ -222,7 +223,7 @@ function PerfilUDesktop() {
 
   const totalPerda = linhasU.reduce((sum, linha) => {
     const calculo = calcularPerfil(linha);
-    return sum + ((calculo?.pesoPerdaPorPeca || 0) * (calculo?.quantidade || 0));
+    return sum + (calculo?.pesoPerda || 0);
   }, 0);
 
   const headers = ['U/Z', 'Sim', 'Esp.', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'T.Prd', 'kg/Pç', 'kg/Prd', 'P.T', 'P.+', 'Tipo', 'Est', 'Ver', 'Ação'];

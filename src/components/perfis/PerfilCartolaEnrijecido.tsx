@@ -45,8 +45,9 @@ export function PerfilCartolaEnrijecido() {
     const tiraPerda = largura - (tirasAproveitadas * tira);
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
-    const pesoPerda = pesoTotal * (percentualPerda / 100);
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
+    const chapas = Math.ceil(quantidade / tirasAproveitadas);
+    const pesoPerda = pesoPerdaPorPeca * chapas;
     return { id: linha.id, tipo: 'CARTOLA_ENRIJECIDO', espessura, aba1, base, aba2, enrij1, enrij2, enrij3, enrij4, comprimento, largura, quantidade, percentualPerda, tira, tirasAproveitadas, tiraPerda, pesoPorPeca, pesoTotal, pesoPerda, pesoPerdaPorPeca };
   };
 

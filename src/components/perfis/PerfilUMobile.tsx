@@ -70,8 +70,9 @@ export function PerfilUMobile() {
     const tiraPerda = largura - (tirasAproveitadas * tira);
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
-    const pesoPerda = pesoTotal * (percentualPerda / 100);
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
+    const chapas = Math.ceil(quantidade / tirasAproveitadas);
+    const pesoPerda = pesoPerdaPorPeca * chapas;
 
     return {
       id: linha.id,

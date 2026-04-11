@@ -585,9 +585,42 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
               <Input id="email" type="email" value={form.cliente_email} onChange={(e) => setForm(f => ({ ...f, cliente_email: e.target.value }))} placeholder="email@empresa.com" />
             </div>
 
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="cnpj">CNPJ</Label>
+              <Input id="cnpj" value={form.cliente_cnpj} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="website">Site / URL</Label>
               <Input id="website" value={form.website} onChange={(e) => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.empresa.com.br" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="estado">UF</Label>
+              <Input id="estado" value={form.estado} onChange={(e) => setForm(f => ({ ...f, estado: e.target.value }))} placeholder="Ex: RS, SP, MG..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="cidade">Cidade</Label>
+              <Input id="cidade" value={form.cidade} onChange={(e) => setForm(f => ({ ...f, cidade: e.target.value }))} placeholder="Nome da cidade" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="ramo">Ramo de Atuação</Label>
+              <Input id="ramo" value={form.ramo_atuacao} onChange={(e) => setForm(f => ({ ...f, ramo_atuacao: e.target.value }))} placeholder="Ex: Construção Civil, Indústria..." />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="regime">Regime Tributário</Label>
+              <Select value={form.regime_tributario} onValueChange={(v) => setForm(f => ({ ...f, regime_tributario: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
+                  <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
+                  <SelectItem value="Lucro Real">Lucro Real</SelectItem>
+                  <SelectItem value="MEI">MEI</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">

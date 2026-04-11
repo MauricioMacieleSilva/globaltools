@@ -338,6 +338,16 @@ export default function CRM() {
       return;
     }
 
+    // Block non-admin/comercial from moving leads BACKWARD after Oportunidade
+    const stageOrder = ['lead', 'contato_feito', 'passagem_bastao', 'visita_reuniao', 'proposta', 'pedido_fechado'];
+    const currentStageIdx = stageOrder.indexOf(lead.status);
+    const newStageIdx = stageOrder.indexOf(newStatus);
+    const oportunidadeIdx = stageOrder.indexOf('visita_reuniao'); // Oportunidade stage
+    if (currentStageIdx >= oportunidadeIdx && newStageIdx < oportunidadeIdx && newStatus !== 'perdido' && currentUserRole !== 'admin' && currentUserRole !== 'comercial') {
+      toast.error('Apenas gestores podem mover leads para etapas anteriores após Oportunidade');
+      return;
+    }
+
     // When admin/gestor moves a lead FROM passagem_bastao, open vendor assignment dialog
     if (lead.status === 'passagem_bastao' && (currentUserRole === 'admin' || currentUserRole === 'comercial') && newStatus !== 'perdido') {
       setPendingPassagemLead(lead);

@@ -116,24 +116,28 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           });
         });
 
-      // Fetch the handoff activity: the user who moved the card TO passagem_bastao
+      // Fetch the handoff activity: the user who moved the card TO passagem_bastao or Oportunidade
+      // Look for any handoff-related activity
       (supabase as any)
         .from('lead_activities')
-        .select('sdr_name, sdr_id, user_id')
+        .select('sdr_name, sdr_id, user_id, description')
         .eq('lead_id', lead.id)
         .eq('activity_type', 'mudanca_status')
-        .ilike('description', '%para "Passagem de Bastão"%')
         .order('created_at', { ascending: false })
-        .limit(1)
         .then(async ({ data: moveData }: any) => {
           if (cancelled) return;
-          const record = moveData?.[0];
-          if (!record) return;
-          if (record.sdr_name) {
-            setHandoffBy(record.sdr_name);
+          // Find the handoff activity (to Passagem de Bastão or to Oportunidade via passagem)
+          const handoffRecord = (moveData || []).find((r: any) => 
+            r.description?.includes('para "Passagem de Bastão"') || 
+            r.description?.includes('Passagem de Bastão') ||
+            r.description?.includes('lead atribuído')
+          );
+          if (!handoffRecord) return;
+          if (handoffRecord.sdr_name) {
+            setHandoffBy(handoffRecord.sdr_name);
           } else {
             // Fallback: fetch user name from user_profiles
-            const userId = record.sdr_id || record.user_id;
+            const userId = handoffRecord.sdr_id || handoffRecord.user_id;
             if (userId) {
               const { data: profile } = await (supabase as any)
                 .from('user_profiles')

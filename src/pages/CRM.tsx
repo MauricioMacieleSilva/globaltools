@@ -830,56 +830,31 @@ export default function CRM() {
           </div>
         </div>
 
-        {/* Row 2: Filters + Actions */}
+        {/* Row 2: Filters + Actions (unified across all tabs) */}
         <div className="flex items-center justify-between gap-2 pb-2 shrink-0 flex-wrap">
           <div data-tour="crm-filters" className="flex items-center gap-2 flex-wrap">
-            {(activeTab === 'kanban' || activeTab === 'lista') && (
-              <>
-                <CRMFilters
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  vendorFilter={vendorFilter}
-                  onVendorChange={setVendorFilter}
-                  origemFilter={origemFilter}
-                  onOrigemChange={setOrigemFilter}
+            <CRMFilters
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              vendorFilter={vendorFilter}
+              onVendorChange={setVendorFilter}
+              origemFilter={origemFilter}
+              onOrigemChange={setOrigemFilter}
+            />
+            {activeTab === 'kanban' && (
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  value={kanbanDateFilter}
+                  onChange={(e) => setKanbanDateFilter(e.target.value)}
+                  className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
                 />
-                {activeTab === 'kanban' && (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="date"
-                      value={kanbanDateFilter}
-                      onChange={(e) => setKanbanDateFilter(e.target.value)}
-                      className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
-                    />
-                    {kanbanDateFilter && (
-                      <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => setKanbanDateFilter('')}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
+                {kanbanDateFilter && (
+                  <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => setKanbanDateFilter('')}>
+                    <X className="h-3 w-3" />
+                  </Button>
                 )}
-              </>
-            )}
-            {activeTab === 'agenda' && (
-              <CRMFilters
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                vendorFilter={vendorFilter}
-                onVendorChange={setVendorFilter}
-                origemFilter={origemFilter}
-                onOrigemChange={setOrigemFilter}
-              />
-            )}
-            {activeTab === 'dashboard' && (
-              <CRMFilters
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                vendorFilter={vendorFilter}
-                onVendorChange={setVendorFilter}
-                origemFilter={origemFilter}
-                onOrigemChange={setOrigemFilter}
-                hideSearch
-              />
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -931,7 +906,7 @@ export default function CRM() {
 
 
         <TabsContent value="dashboard" className="mt-0 overflow-y-auto flex-1 min-h-0">
-          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} />
+          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} vendorFilter={vendorFilter} />
         </TabsContent>
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
@@ -1064,7 +1039,7 @@ export default function CRM() {
         onClose={() => setCarouselOpen(false)}
         labels={['Dashboard CRM', 'Dashboard Comercial']}
       >
-        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode />
+        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode vendorFilter={vendorFilter} origemFilter={origemFilter} />
         <DashboardComercial tvMode />
       </DashboardCarousel>
     </div>

@@ -23,18 +23,18 @@ interface CRMDashboardProps {
   isRefreshing?: boolean;
   tvMode?: boolean;
   origemFilter?: string;
-  onOrigemChange?: (value: string) => void;
+  vendorFilter?: string;
 }
 
 const CHART_COLOR = 'hsl(200, 98%, 39%)';
 
-export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false, origemFilter, onOrigemChange }: CRMDashboardProps) {
+export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false, origemFilter, vendorFilter: externalVendorFilter }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [allActivities, setAllActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
   const [lossReasons, setLossReasons] = useState<any[]>([]);
-  const [vendorFilter, setVendorFilter] = useState('all');
+  const vendorFilter = externalVendorFilter || 'all';
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
   const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -107,23 +107,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     setLoading(false);
   }, [periodFilter, vendorFilter]);
 
-  // Auto-filter by logged-in user (non-admin/comercial)
-  useEffect(() => {
-    const initVendorFilter = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      const role = (roleData as any)?.role;
-      if (role !== 'admin' && role !== 'comercial') {
-        setVendorFilter(user.id);
-      }
-    };
-    initVendorFilter();
-  }, []);
+  // vendorFilter is now controlled externally via props
 
   useEffect(() => { loadVendors(); }, [loadVendors]);
   useEffect(() => { loadActivities(); loadVendorGoals(); }, [loadActivities, loadVendorGoals]);
@@ -515,11 +499,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   }, [allActivities, vendors, vendorFilter, dateFilter]);
 
   const clearFilters = () => {
-    setVendorFilter('all');
     setPeriodFilter(format(new Date(), 'yyyy-MM'));
     setDateFilter('');
   };
-  const hasFilters = vendorFilter !== 'all' || periodFilter !== format(new Date(), 'yyyy-MM') || dateFilter !== '';
+  const hasFilters = periodFilter !== format(new Date(), 'yyyy-MM') || dateFilter !== '';
 
   const formatCurrency = (value: number) => {
     if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(2).replace('.', ',')}mi`;
@@ -557,18 +540,6 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               </SelectContent>
             </Select>
 
-            <Select value={vendorFilter} onValueChange={setVendorFilter}>
-              <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
-                <Users className="h-3 w-3 mr-1.5 shrink-0" />
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Vendedores</SelectItem>
-                {vendors.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             <div className="flex items-center gap-1.5">
               <CalendarDays className="h-3 w-3 text-muted-foreground shrink-0" />

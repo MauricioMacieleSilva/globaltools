@@ -35,7 +35,7 @@ export function ResumoGeral() {
       </div>;
   }
 
-  const totalPesoGeral = calculosValidos.reduce((sum, calc) => sum + calc.pesoTotal, 0);
+  const totalPesoGeral = calculosValidos.reduce((sum, calc) => sum + calc.pesoTotal * (calc.percentualPerda || 100) / 100, 0);
   const totalPerdaGeral = calculosValidos.reduce((sum, calc) => sum + (calc.pesoPerda || 0), 0);
   const totalQuantidade = calculosValidos.reduce((sum, calc) => sum + calc.quantidade, 0);
 
@@ -57,7 +57,8 @@ export function ResumoGeral() {
     const precoKgBase = getPreco(calc.espessura, isPadrao);
     const descontoItem = parseFloat(descontosIndividuais[calc.id] || '0') || 0;
     const precoKg = precoKgBase ? precoKgBase * (1 - descontoItem / 100) : null;
-    const valorTotal = precoKg ? calc.pesoTotal * precoKg : null;
+    const pesoComPerda = calc.pesoTotal * (calc.percentualPerda || 100) / 100;
+    const valorTotal = precoKg ? pesoComPerda * precoKg : null;
     return { ...calc, precoKgBase, precoKg, valorTotal, isPadrao, descontoItem };
   });
 
@@ -248,7 +249,7 @@ export function ResumoGeral() {
                             </div>
                           </td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">{Math.ceil(calc.tira)}</td>
-                          <td className="text-center p-1 sm:p-3 font-medium text-primary text-xs sm:text-sm">{formatarNumero(calc.pesoTotal)}</td>
+                          <td className="text-center p-1 sm:p-3 font-medium text-primary text-xs sm:text-sm">{formatarNumero(calc.pesoTotal * (calc.percentualPerda || 100) / 100)}</td>
                           <td className="text-center p-1 sm:p-3 font-medium text-destructive text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(calc.pesoPerda || 0)}</td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">
                             <TooltipProvider>

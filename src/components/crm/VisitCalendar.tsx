@@ -126,9 +126,15 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCal
     if (selectedDayVisits) setSelectedDayVisits(null);
   };
 
-  // Group by date
+  // Group by date, filter by searchQuery
+  const filteredVisits = useMemo(() => {
+    if (!searchQuery) return visits;
+    const q = searchQuery.toLowerCase();
+    return visits.filter(v => v.lead_name?.toLowerCase().includes(q));
+  }, [visits, searchQuery]);
+
   const grouped: Record<string, Visit[]> = {};
-  visits.forEach(v => {
+  filteredVisits.forEach(v => {
     const key = format(new Date(v.visit_date), 'yyyy-MM-dd');
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(v);

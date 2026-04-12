@@ -831,7 +831,7 @@ export default function CRM() {
         </div>
 
         {/* Row 2: Filters + Actions */}
-        <div className="flex items-center justify-between gap-2 pb-2 shrink-0">
+        <div className="flex items-center justify-between gap-2 pb-2 shrink-0 flex-wrap">
           <div data-tour="crm-filters" className="flex items-center gap-2 flex-wrap">
             {(activeTab === 'kanban' || activeTab === 'lista') && (
               <>
@@ -859,6 +859,16 @@ export default function CRM() {
                   </div>
                 )}
               </>
+            )}
+            {activeTab === 'agenda' && (
+              <CRMFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                vendorFilter={vendorFilter}
+                onVendorChange={setVendorFilter}
+                origemFilter={origemFilter}
+                onOrigemChange={setOrigemFilter}
+              />
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">

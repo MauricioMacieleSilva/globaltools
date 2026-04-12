@@ -930,8 +930,8 @@ export default function CRM() {
         </TabsContent>
 
 
-        <TabsContent value="dashboard" className="mt-3 overflow-y-auto flex-1">
-          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
+        <TabsContent value="dashboard" className="mt-0 overflow-y-auto flex-1 min-h-0">
+          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} />
         </TabsContent>
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">

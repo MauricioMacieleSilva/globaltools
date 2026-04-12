@@ -906,7 +906,7 @@ export default function CRM() {
 
 
         <TabsContent value="dashboard" className="mt-0 overflow-y-auto flex-1 min-h-0">
-          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} />
+          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} vendorFilter={vendorFilter} />
         </TabsContent>
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
@@ -1039,7 +1039,7 @@ export default function CRM() {
         onClose={() => setCarouselOpen(false)}
         labels={['Dashboard CRM', 'Dashboard Comercial']}
       >
-        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode />
+        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode vendorFilter={vendorFilter} origemFilter={origemFilter} />
         <DashboardComercial tvMode />
       </DashboardCarousel>
     </div>

@@ -646,12 +646,15 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-muted-foreground">{dateFilter ? 'Visitas' : 'Visitas Hoje'}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{dateFilter ? 'Pedidos Fechados' : 'Pedido Fechado'}</span>
+                    </div>
                     <span className="text-lg font-bold text-foreground">
-                      {todayVisitsCount}{currentGoals.dailyVisits > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyVisits}</span>}
+                      {todayClosedDeals}{currentGoals.dailyOrders > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyOrders}</span>}
                     </span>
                   </div>
-                  {currentGoals.dailyVisits > 0 && <Progress value={Math.min((todayVisitsCount / currentGoals.dailyVisits) * 100, 100)} className="h-2" />}
+                  {currentGoals.dailyOrders > 0 && <Progress value={Math.min((todayClosedDeals / currentGoals.dailyOrders) * 100, 100)} className="h-2" />}
                 </div>
 
                 <div className="flex items-center justify-between">

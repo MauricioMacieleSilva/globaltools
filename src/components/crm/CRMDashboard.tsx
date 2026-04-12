@@ -107,23 +107,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     setLoading(false);
   }, [periodFilter, vendorFilter]);
 
-  // Auto-filter by logged-in user (non-admin/comercial)
-  useEffect(() => {
-    const initVendorFilter = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      const role = (roleData as any)?.role;
-      if (role !== 'admin' && role !== 'comercial') {
-        setVendorFilter(user.id);
-      }
-    };
-    initVendorFilter();
-  }, []);
+  // vendorFilter is now controlled externally via props
 
   useEffect(() => { loadVendors(); }, [loadVendors]);
   useEffect(() => { loadActivities(); loadVendorGoals(); }, [loadActivities, loadVendorGoals]);

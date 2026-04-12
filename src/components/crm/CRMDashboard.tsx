@@ -499,11 +499,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   }, [allActivities, vendors, vendorFilter, dateFilter]);
 
   const clearFilters = () => {
-    setVendorFilter('all');
     setPeriodFilter(format(new Date(), 'yyyy-MM'));
     setDateFilter('');
   };
-  const hasFilters = vendorFilter !== 'all' || periodFilter !== format(new Date(), 'yyyy-MM') || dateFilter !== '';
+  const hasFilters = periodFilter !== format(new Date(), 'yyyy-MM') || dateFilter !== '';
 
   const formatCurrency = (value: number) => {
     if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(2).replace('.', ',')}mi`;
@@ -541,18 +540,6 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
               </SelectContent>
             </Select>
 
-            <Select value={vendorFilter} onValueChange={setVendorFilter}>
-              <SelectTrigger className="w-[130px] sm:w-[160px] h-8 text-xs">
-                <Users className="h-3 w-3 mr-1.5 shrink-0" />
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Vendedores</SelectItem>
-                {vendors.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             <div className="flex items-center gap-1.5">
               <CalendarDays className="h-3 w-3 text-muted-foreground shrink-0" />

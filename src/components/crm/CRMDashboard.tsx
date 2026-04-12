@@ -23,18 +23,18 @@ interface CRMDashboardProps {
   isRefreshing?: boolean;
   tvMode?: boolean;
   origemFilter?: string;
-  onOrigemChange?: (value: string) => void;
+  vendorFilter?: string;
 }
 
 const CHART_COLOR = 'hsl(200, 98%, 39%)';
 
-export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false, origemFilter, onOrigemChange }: CRMDashboardProps) {
+export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false, origemFilter, vendorFilter: externalVendorFilter }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [allActivities, setAllActivities] = useState<any[]>([]);
   const [vendors, setVendors] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
   const [lossReasons, setLossReasons] = useState<any[]>([]);
-  const [vendorFilter, setVendorFilter] = useState('all');
+  const vendorFilter = externalVendorFilter || 'all';
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
   const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);

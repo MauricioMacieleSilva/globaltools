@@ -830,56 +830,31 @@ export default function CRM() {
           </div>
         </div>
 
-        {/* Row 2: Filters + Actions */}
+        {/* Row 2: Filters + Actions (unified across all tabs) */}
         <div className="flex items-center justify-between gap-2 pb-2 shrink-0 flex-wrap">
           <div data-tour="crm-filters" className="flex items-center gap-2 flex-wrap">
-            {(activeTab === 'kanban' || activeTab === 'lista') && (
-              <>
-                <CRMFilters
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                  vendorFilter={vendorFilter}
-                  onVendorChange={setVendorFilter}
-                  origemFilter={origemFilter}
-                  onOrigemChange={setOrigemFilter}
+            <CRMFilters
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              vendorFilter={vendorFilter}
+              onVendorChange={setVendorFilter}
+              origemFilter={origemFilter}
+              onOrigemChange={setOrigemFilter}
+            />
+            {activeTab === 'kanban' && (
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  value={kanbanDateFilter}
+                  onChange={(e) => setKanbanDateFilter(e.target.value)}
+                  className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
                 />
-                {activeTab === 'kanban' && (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="date"
-                      value={kanbanDateFilter}
-                      onChange={(e) => setKanbanDateFilter(e.target.value)}
-                      className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
-                    />
-                    {kanbanDateFilter && (
-                      <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => setKanbanDateFilter('')}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
+                {kanbanDateFilter && (
+                  <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => setKanbanDateFilter('')}>
+                    <X className="h-3 w-3" />
+                  </Button>
                 )}
-              </>
-            )}
-            {activeTab === 'agenda' && (
-              <CRMFilters
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                vendorFilter={vendorFilter}
-                onVendorChange={setVendorFilter}
-                origemFilter={origemFilter}
-                onOrigemChange={setOrigemFilter}
-              />
-            )}
-            {activeTab === 'dashboard' && (
-              <CRMFilters
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                vendorFilter={vendorFilter}
-                onVendorChange={setVendorFilter}
-                origemFilter={origemFilter}
-                onOrigemChange={setOrigemFilter}
-                hideSearch
-              />
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">

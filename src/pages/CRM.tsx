@@ -831,7 +831,7 @@ export default function CRM() {
         </div>
 
         {/* Row 2: Filters + Actions */}
-        <div className="flex items-center justify-between gap-2 pb-2 shrink-0">
+        <div className="flex items-center justify-between gap-2 pb-2 shrink-0 flex-wrap">
           <div data-tour="crm-filters" className="flex items-center gap-2 flex-wrap">
             {(activeTab === 'kanban' || activeTab === 'lista') && (
               <>
@@ -859,6 +859,27 @@ export default function CRM() {
                   </div>
                 )}
               </>
+            )}
+            {activeTab === 'agenda' && (
+              <CRMFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                vendorFilter={vendorFilter}
+                onVendorChange={setVendorFilter}
+                origemFilter={origemFilter}
+                onOrigemChange={setOrigemFilter}
+              />
+            )}
+            {activeTab === 'dashboard' && (
+              <CRMFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                vendorFilter={vendorFilter}
+                onVendorChange={setVendorFilter}
+                origemFilter={origemFilter}
+                onOrigemChange={setOrigemFilter}
+                hideSearch
+              />
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -904,13 +925,13 @@ export default function CRM() {
           />
         </TabsContent>
 
-        <TabsContent value="agenda" className="mt-3">
-          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} />
+        <TabsContent value="agenda" className="mt-0 overflow-y-auto flex-1 min-h-0">
+          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} />
         </TabsContent>
 
 
-        <TabsContent value="dashboard" className="mt-3 overflow-y-auto flex-1">
-          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} />
+        <TabsContent value="dashboard" className="mt-0 overflow-y-auto flex-1 min-h-0">
+          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} />
         </TabsContent>
 
         <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">

@@ -22,11 +22,13 @@ interface CRMDashboardProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   tvMode?: boolean;
+  origemFilter?: string;
+  onOrigemChange?: (value: string) => void;
 }
 
 const CHART_COLOR = 'hsl(200, 98%, 39%)';
 
-export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false }: CRMDashboardProps) {
+export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false, origemFilter, onOrigemChange }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [allActivities, setAllActivities] = useState<any[]>([]);
@@ -151,8 +153,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     if (vendorFilter !== 'all') {
       filtered = filtered.filter(l => l.vendedor_id === vendorFilter);
     }
+    if (origemFilter && origemFilter !== 'all') {
+      filtered = filtered.filter(l => {
+        const leadOrigem = (l.source || l.origem || '').toLowerCase();
+        return leadOrigem.includes(origemFilter.toLowerCase());
+      });
+    }
     return filtered;
-  }, [leads, vendorFilter]);
+  }, [leads, vendorFilter, origemFilter]);
 
   // Load historical stage counts from lead_activities (mudanca_status)
   const [historicalStageCounts, setHistoricalStageCounts] = useState<Record<string, { count: number; value: number }>>({});
@@ -286,10 +294,12 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     }).length;
   }, [allContactActivities, contactActivities, vendorFilter, selectedDateStr]);
 
-  const todayVisitsCount = useMemo(() => {
+  const todayClosedDeals = useMemo(() => {
     const source = vendorFilter === 'all' ? allActivities : activities;
     return source.filter(a => {
-      if (a.activity_type !== 'visita') return false;
+      if (a.activity_type !== 'mudanca_status') return false;
+      const desc = (a.description || '').toLowerCase();
+      if (!desc.includes('pedido fechado')) return false;
       const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
       return localDate === selectedDateStr;
     }).length;
@@ -636,12 +646,15 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-muted-foreground">{dateFilter ? 'Visitas' : 'Visitas Hoje'}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{dateFilter ? 'Pedidos Fechados' : 'Pedido Fechado'}</span>
+                    </div>
                     <span className="text-lg font-bold text-foreground">
-                      {todayVisitsCount}{currentGoals.dailyVisits > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyVisits}</span>}
+                      {todayClosedDeals}{currentGoals.dailyOrders > 0 && <span className="text-xs font-normal text-muted-foreground">/{currentGoals.dailyOrders}</span>}
                     </span>
                   </div>
-                  {currentGoals.dailyVisits > 0 && <Progress value={Math.min((todayVisitsCount / currentGoals.dailyVisits) * 100, 100)} className="h-2" />}
+                  {currentGoals.dailyOrders > 0 && <Progress value={Math.min((todayClosedDeals / currentGoals.dailyOrders) * 100, 100)} className="h-2" />}
                 </div>
 
                 <div className="flex items-center justify-between">

@@ -198,21 +198,18 @@ export function ResumoGeral() {
                 <table className="min-w-full border-collapse">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left p-1 sm:p-3 font-medium text-xs sm:text-sm">Tipo</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Padrão</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Esp.</th>
-                      <th className="text-left p-1 sm:p-3 font-medium text-xs sm:text-sm">Descrição</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Tira</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">T.Perda</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">kg/Pç</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden md:table-cell">% Perda</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Peso Tira</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">Peso Perda</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-amber-600">Desc%</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600">R$/kg</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600 hidden sm:table-cell">Valor</th>
-                      <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Ver</th>
-                    </tr>
+                       <th className="text-left p-1 sm:p-3 font-medium text-xs sm:text-sm">Tipo</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Padrão</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Esp.</th>
+                       <th className="text-left p-1 sm:p-3 font-medium text-xs sm:text-sm">Descrição</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Tira</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Peso Total</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm hidden sm:table-cell">Peso Perda</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-amber-600">Desc%</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600">R$/kg</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm text-green-600 hidden sm:table-cell">Valor</th>
+                       <th className="text-center p-1 sm:p-3 font-medium text-xs sm:text-sm">Ver</th>
+                     </tr>
                   </thead>
                   <tbody>
                     {calculosComPreco.map(calc => {
@@ -251,11 +248,8 @@ export function ResumoGeral() {
                             </div>
                           </td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">{Math.ceil(calc.tira)}</td>
-                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden sm:table-cell">{Math.ceil(calc.tiraPerda)}</td>
-                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden sm:table-cell">{pesoPorPeca.toFixed(2)}</td>
-                          <td className="text-center p-1 sm:p-3 text-xs sm:text-sm hidden md:table-cell">{Math.round(calc.percentualPerda)}%</td>
                           <td className="text-center p-1 sm:p-3 font-medium text-primary text-xs sm:text-sm">{formatarNumero(calc.pesoTotal)}</td>
-                          <td className="text-center p-1 sm:p-3 font-medium text-destructive text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(pesoPerdaItem)}</td>
+                          <td className="text-center p-1 sm:p-3 font-medium text-destructive text-xs sm:text-sm hidden sm:table-cell">{formatarNumero(calc.pesoPerda || 0)}</td>
                           <td className="text-center p-1 sm:p-3 text-xs sm:text-sm">
                             <TooltipProvider>
                               <Tooltip>
@@ -311,12 +305,12 @@ export function ResumoGeral() {
                   {temPrecosCadastrados && (
                     <tfoot>
                       <tr className="border-t-2 bg-muted/30">
-                        <td colSpan={11} className="p-2 sm:p-3 text-right font-bold text-sm hidden sm:table-cell">
-                          Valor Total:
-                        </td>
-                        <td colSpan={9} className="p-2 sm:p-3 text-right font-bold text-sm sm:hidden">
-                          Valor Total:
-                        </td>
+                        <td colSpan={8} className="p-2 sm:p-3 text-right font-bold text-sm hidden sm:table-cell">
+                           Valor Total:
+                         </td>
+                         <td colSpan={6} className="p-2 sm:p-3 text-right font-bold text-sm sm:hidden">
+                           Valor Total:
+                         </td>
                         <td className="text-center p-2 sm:p-3 font-bold text-green-600 text-sm sm:hidden" colSpan={2}>
                           {formatarMoeda(valorTotalGeral)}
                         </td>

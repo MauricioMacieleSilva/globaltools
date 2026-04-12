@@ -870,6 +870,17 @@ export default function CRM() {
                 onOrigemChange={setOrigemFilter}
               />
             )}
+            {activeTab === 'dashboard' && (
+              <CRMFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                vendorFilter={vendorFilter}
+                onVendorChange={setVendorFilter}
+                origemFilter={origemFilter}
+                onOrigemChange={setOrigemFilter}
+                hideSearch
+              />
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => setCarouselOpen(true)} className="gap-1.5 h-8 hidden sm:flex" title="Modo TV - Alternar dashboards">

@@ -36,7 +36,7 @@ export function ResumoGeral() {
   }
 
   const totalPesoGeral = calculosValidos.reduce((sum, calc) => sum + calc.pesoTotal, 0);
-  const totalPerdaGeral = calculosValidos.reduce((sum, calc) => sum + ((calc.pesoPerdaPorPeca || 0) * calc.quantidade), 0);
+  const totalPerdaGeral = calculosValidos.reduce((sum, calc) => sum + (calc.pesoPerda || 0), 0);
   const totalQuantidade = calculosValidos.reduce((sum, calc) => sum + calc.quantidade, 0);
 
   // Função para verificar se é perfil padrão

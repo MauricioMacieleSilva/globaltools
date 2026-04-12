@@ -33,11 +33,12 @@ interface Visit {
 interface VisitCalendarProps {
   onLeadClick: (lead: CRMLead) => void;
   leads: CRMLead[];
+  searchQuery?: string;
 }
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-export function VisitCalendar({ onLeadClick, leads }: VisitCalendarProps) {
+export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCalendarProps) {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');

@@ -22,11 +22,13 @@ interface CRMDashboardProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   tvMode?: boolean;
+  origemFilter?: string;
+  onOrigemChange?: (value: string) => void;
 }
 
 const CHART_COLOR = 'hsl(200, 98%, 39%)';
 
-export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false }: CRMDashboardProps) {
+export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false, origemFilter, onOrigemChange }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [allActivities, setAllActivities] = useState<any[]>([]);

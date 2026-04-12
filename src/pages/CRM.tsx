@@ -914,8 +914,8 @@ export default function CRM() {
           />
         </TabsContent>
 
-        <TabsContent value="agenda" className="mt-3">
-          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} />
+        <TabsContent value="agenda" className="mt-0 overflow-y-auto flex-1 min-h-0">
+          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} />
         </TabsContent>
 
 

@@ -153,8 +153,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     if (vendorFilter !== 'all') {
       filtered = filtered.filter(l => l.vendedor_id === vendorFilter);
     }
+    if (origemFilter && origemFilter !== 'all') {
+      filtered = filtered.filter(l => {
+        const leadOrigem = (l.source || l.origem || '').toLowerCase();
+        return leadOrigem.includes(origemFilter.toLowerCase());
+      });
+    }
     return filtered;
-  }, [leads, vendorFilter]);
+  }, [leads, vendorFilter, origemFilter]);
 
   // Load historical stage counts from lead_activities (mudanca_status)
   const [historicalStageCounts, setHistoricalStageCounts] = useState<Record<string, { count: number; value: number }>>({});

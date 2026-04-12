@@ -12,9 +12,10 @@ interface CRMFiltersProps {
   onVendorChange: (value: string) => void;
   origemFilter?: string;
   onOrigemChange?: (value: string) => void;
+  hideSearch?: boolean;
 }
 
-export function CRMFilters({ searchQuery, onSearchChange, vendorFilter, onVendorChange, origemFilter, onOrigemChange }: CRMFiltersProps) {
+export function CRMFilters({ searchQuery, onSearchChange, vendorFilter, onVendorChange, origemFilter, onOrigemChange, hideSearch = false }: CRMFiltersProps) {
   const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
   const [origens, setOrigens] = useState<string[]>([]);
 

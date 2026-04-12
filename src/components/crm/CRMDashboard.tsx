@@ -294,10 +294,12 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     }).length;
   }, [allContactActivities, contactActivities, vendorFilter, selectedDateStr]);
 
-  const todayVisitsCount = useMemo(() => {
+  const todayClosedDeals = useMemo(() => {
     const source = vendorFilter === 'all' ? allActivities : activities;
     return source.filter(a => {
-      if (a.activity_type !== 'visita') return false;
+      if (a.activity_type !== 'mudanca_status') return false;
+      const desc = (a.description || '').toLowerCase();
+      if (!desc.includes('pedido fechado')) return false;
       const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
       return localDate === selectedDateStr;
     }).length;

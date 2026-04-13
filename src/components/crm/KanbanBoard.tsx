@@ -101,7 +101,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
               <div className="p-3 flex items-center justify-between border-b shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-                  <span className="text-sm font-semibold text-foreground">{stage.label}</span>
+                  <span className="text-sm font-semibold text-foreground whitespace-nowrap">{stage.label}</span>
                 </div>
                 <Badge variant="secondary" className="text-xs">{stageLeads.length}</Badge>
               </div>

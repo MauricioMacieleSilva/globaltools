@@ -3,10 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays, ChevronLeft, ChevronRight, Pencil, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import {
   format, isToday, isBefore, startOfDay, isSameMonth,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths

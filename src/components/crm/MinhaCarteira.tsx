@@ -74,9 +74,34 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
 
   // Admin sees ALL leads, regular user sees only their own
   const myLeads = useMemo(() => {
-    if (isAdmin) return leads;
-    return leads.filter(l => l.vendedor_id === currentUserId);
-  }, [leads, currentUserId, isAdmin]);
+    let result = isAdmin ? leads : leads.filter(l => l.vendedor_id === currentUserId);
+    // Apply external filters from CRM header
+    if (origemFilter && origemFilter !== 'all') {
+      result = result.filter(l => {
+        const leadOrigem = (l.source || l.origem || '').toLowerCase();
+        return leadOrigem.includes(origemFilter.toLowerCase());
+      });
+    }
+    if (vendorFilter && vendorFilter !== 'all') {
+      result = result.filter(l => l.vendedor_id === vendorFilter);
+    }
+    if (kanbanDateFilter) {
+      result = result.filter(l => {
+        const d = l.created_at || l.data_abertura;
+        return d && d.startsWith(kanbanDateFilter);
+      });
+    }
+    if (externalSearch) {
+      const term = externalSearch.toLowerCase();
+      result = result.filter(l =>
+        (l.empresa || l.cliente_nome || '').toLowerCase().includes(term) ||
+        (l.cliente_cnpj || '').includes(term) ||
+        (l.contact_name || '').toLowerCase().includes(term) ||
+        (l.cliente_telefone || '').includes(term)
+      );
+    }
+    return result;
+  }, [leads, currentUserId, isAdmin, origemFilter, vendorFilter, kanbanDateFilter, externalSearch]);
 
   const filtered = useMemo(() => {
     let result = myLeads;

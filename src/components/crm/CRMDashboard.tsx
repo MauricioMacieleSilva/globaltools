@@ -755,7 +755,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
                 const maxCount = Math.max(...funnelData.map(s => s.value), 1);
                 const pct = (stage.value / maxCount) * 100;
                 // Conversion % is always calculated from "Contato Feito" stage
-                const contatoFeitoValue = funnelData.find(s => s.name === 'Contato Feito')?.value || 0;
+                const contatoFeitoValue = funnelData.find(s => s.name === 'Contato' || s.name === 'Contato Feito')?.value || 0;
                 const conversionPct = idx === 0
                   ? '100.0'
                   : idx === 1

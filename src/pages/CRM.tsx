@@ -62,6 +62,9 @@ export interface CRMLead {
   estado: string | null;
   cidade: string | null;
   website: string | null;
+  first_contact_user_id?: string | null;
+  first_contact_name?: string | null;
+  handoff_sdr_name?: string | null;
   vendedor?: { full_name: string; avatar_url: string | null } | null;
 }
 

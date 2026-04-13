@@ -332,9 +332,9 @@ export default function CRM() {
       return;
     }
 
-    // Block non-admin/comercial from moving leads OUT of passagem_bastao
-    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin' && currentUserRole !== 'comercial') {
-      toast.error('Apenas gestores podem mover leads da etapa Passagem de Bastão');
+    // Block non-admin from moving leads OUT of passagem_bastao — ONLY admin can assign
+    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin') {
+      toast.error('Apenas o administrador pode mover leads da etapa Passagem de Bastão');
       return;
     }
 
@@ -348,8 +348,8 @@ export default function CRM() {
       return;
     }
 
-    // When admin/gestor moves a lead FROM passagem_bastao, open vendor assignment dialog
-    if (lead.status === 'passagem_bastao' && (currentUserRole === 'admin' || currentUserRole === 'comercial') && newStatus !== 'perdido') {
+    // When admin moves a lead FROM passagem_bastao, open vendor assignment dialog
+    if (lead.status === 'passagem_bastao' && currentUserRole === 'admin' && newStatus !== 'perdido') {
       setPendingPassagemLead(lead);
       setPassagemBastaoOpen(true);
       return;
@@ -841,21 +841,19 @@ export default function CRM() {
               origemFilter={origemFilter}
               onOrigemChange={setOrigemFilter}
             />
-            {activeTab === 'kanban' && (
-              <div className="flex items-center gap-1">
-                <input
-                  type="date"
-                  value={kanbanDateFilter}
-                  onChange={(e) => setKanbanDateFilter(e.target.value)}
-                  className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
-                />
-                {kanbanDateFilter && (
-                  <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => setKanbanDateFilter('')}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={kanbanDateFilter}
+                onChange={(e) => setKanbanDateFilter(e.target.value)}
+                className="h-8 text-xs border rounded-md px-2 bg-background text-foreground"
+              />
+              {kanbanDateFilter && (
+                <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => setKanbanDateFilter('')}>
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => setCarouselOpen(true)} className="gap-1.5 h-8 hidden sm:flex" title="Modo TV - Alternar dashboards">
@@ -901,7 +899,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="agenda" className="mt-0 overflow-y-auto flex-1 min-h-0">
-          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} />
+          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} />
         </TabsContent>
 
 

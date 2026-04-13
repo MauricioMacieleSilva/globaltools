@@ -4,9 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar as CalendarIcon, MapPin, Clock, List, CalendarDays, ChevronLeft, ChevronRight, Pencil, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Clock, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import {
   format, isToday, isBefore, startOfDay, isSameMonth,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths
@@ -34,20 +33,17 @@ interface VisitCalendarProps {
   onLeadClick: (lead: CRMLead) => void;
   leads: CRMLead[];
   searchQuery?: string;
+  vendorFilter?: string;
 }
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCalendarProps) {
+export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilter = 'all' }: VisitCalendarProps) {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
-  const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
-  const [userFilter, setUserFilter] = useState('all');
-  const [isManager, setIsManager] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -56,28 +52,13 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCal
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setCurrentUserId(user.id);
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      const role = (roleData as any)?.role;
-      const mgr = role === 'admin' || role === 'comercial';
-      setIsManager(mgr);
-      if (!mgr) setUserFilter(user.id);
-
-      // Load vendors for filter
-      if (mgr) {
-        const { data: profiles } = await supabase.from('user_profiles').select('id, full_name');
-        setVendors((profiles || []).map(p => ({ id: p.id, name: p.full_name })));
-      }
     };
     init();
   }, []);
 
   useEffect(() => {
     if (currentUserId) loadVisits();
-  }, [leads, userFilter, currentUserId]);
+  }, [leads, vendorFilter, currentUserId]);
 
   const loadVisits = async () => {
     const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
@@ -85,8 +66,8 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCal
     let visitsQuery = (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true });
     let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', cutoff).order('data_agendada', { ascending: true });
 
-    // Filter by selected user
-    const filterUserId = userFilter !== 'all' ? userFilter : null;
+    // Filter by vendor from global filter
+    const filterUserId = vendorFilter !== 'all' ? vendorFilter : null;
     if (filterUserId) {
       visitsQuery = visitsQuery.eq('user_id', filterUserId);
       followupsQuery = followupsQuery.eq('user_id', filterUserId);
@@ -208,58 +189,8 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCal
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button variant={viewMode === 'list' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('list')}>
-          <List className="h-3.5 w-3.5" /> Lista
-        </Button>
-        <Button variant={viewMode === 'calendar' ? 'default' : 'outline'} size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setViewMode('calendar')}>
-          <CalendarDays className="h-3.5 w-3.5" /> Calendário
-        </Button>
-        {isManager && vendors.length > 0 && (
-          <Select value={userFilter} onValueChange={setUserFilter}>
-            <SelectTrigger className="w-[180px] h-8 text-xs">
-              <Users className="h-3 w-3 mr-1.5 shrink-0" />
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Usuários</SelectItem>
-              {vendors.map(v => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-
-      {viewMode === 'list' ? (
-        sortedDates.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-12">Nenhuma visita ou follow-up agendado</p>
-        ) : (
-          sortedDates.map(dateKey => {
-            const date = new Date(dateKey + 'T12:00:00');
-            const today = isToday(date);
-            const past = isBefore(date, startOfDay(new Date())) && !today;
-            return (
-              <div key={dateKey} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                  <span className={`text-sm font-semibold ${today ? 'text-primary' : past ? 'text-muted-foreground' : 'text-foreground'}`}>
-                    {format(date, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                  </span>
-                  {today && <Badge className="text-[10px] h-5">Hoje</Badge>}
-                  <Badge variant="outline" className="text-[10px] h-5 ml-auto">
-                    {grouped[dateKey].length} compromisso{grouped[dateKey].length > 1 ? 's' : ''}
-                  </Badge>
-                </div>
-                <div className="grid gap-2 pl-6">
-                  {grouped[dateKey].map(visit => <VisitCard key={visit.id} visit={visit} />)}
-                </div>
-              </div>
-            );
-          })
-        )
-      ) : (
+    <div className="space-y-3">
+      {/* Always show calendar */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
@@ -356,7 +287,6 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCal
             <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-500/15 border-l-2 border-amber-500" /><span>Follow-up</span></div>
           </div>
         </div>
-      )}
 
       <Dialog open={!!selectedDayVisits} onOpenChange={(v) => { if (!v) setSelectedDayVisits(null); }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">

@@ -116,62 +116,30 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           });
         });
 
-      // Fetch the SDR who moved the card TO "Passagem de Bastão" (not the admin who moved to Oportunidade)
+      // Fetch the SDR = user who made the FIRST contact (contato_inicial) on this lead
       (supabase as any)
         .from('lead_activities')
-        .select('sdr_name, sdr_id, user_id, description')
+        .select('sdr_name, sdr_id, user_id')
         .eq('lead_id', lead.id)
-        .eq('activity_type', 'mudanca_status')
-        .order('created_at', { ascending: false })
-        .then(async ({ data: moveData }: any) => {
+        .eq('activity_type', 'contato_inicial')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .then(async ({ data: firstContactData }: any) => {
           if (cancelled) return;
-          // Priority 1: find who moved TO "Passagem de Bastão" — this is the SDR
-          const bastaoRecord = (moveData || []).find((r: any) => 
-            r.description?.includes('para "Passagem de Bastão"')
-          );
-          if (bastaoRecord) {
-            if (bastaoRecord.sdr_name) {
-              setHandoffBy(bastaoRecord.sdr_name);
-            } else {
-              const userId = bastaoRecord.sdr_id || bastaoRecord.user_id;
-              if (userId) {
-                const { data: profile } = await (supabase as any)
-                  .from('user_profiles')
-                  .select('full_name')
-                  .eq('id', userId)
-                  .maybeSingle();
-                if (!cancelled && profile?.full_name) {
-                  setHandoffBy(profile.full_name);
-                }
-              }
-            }
-            return;
-          }
-          // Fallback: if no "para Passagem de Bastão" found, check sdr_id on the assignment record
-          const assignRecord = (moveData || []).find((r: any) => 
-            r.description?.includes('lead atribuído')
-          );
-          if (assignRecord) {
-            // The sdr_name here is the admin, we need the sdr_id from the previous move
-            // Try to find the original SDR from earlier activities
-            const sdrActivity = (moveData || []).find((r: any) =>
-              r.description?.includes('para "Contato Feito"') || 
-              r.description?.includes('para "Lead"') ||
-              (r.activity_type === 'mudanca_status' && !r.description?.includes('lead atribuído') && !r.description?.includes('Oportunidade'))
-            );
-            if (sdrActivity?.sdr_name) {
-              setHandoffBy(sdrActivity.sdr_name);
-            } else if (sdrActivity) {
-              const userId = sdrActivity.sdr_id || sdrActivity.user_id;
-              if (userId) {
-                const { data: profile } = await (supabase as any)
-                  .from('user_profiles')
-                  .select('full_name')
-                  .eq('id', userId)
-                  .maybeSingle();
-                if (!cancelled && profile?.full_name) {
-                  setHandoffBy(profile.full_name);
-                }
+          const record = firstContactData?.[0];
+          if (!record) return;
+          if (record.sdr_name) {
+            setHandoffBy(record.sdr_name);
+          } else {
+            const userId = record.sdr_id || record.user_id;
+            if (userId) {
+              const { data: profile } = await (supabase as any)
+                .from('user_profiles')
+                .select('full_name')
+                .eq('id', userId)
+                .maybeSingle();
+              if (!cancelled && profile?.full_name) {
+                setHandoffBy(profile.full_name);
               }
             }
           }

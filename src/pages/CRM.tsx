@@ -478,8 +478,8 @@ export default function CRM() {
         .maybeSingle();
 
       // Log stage move in activity history
-      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
-      const newLabel = CRM_STAGES.find(s => s.key === newStatus)?.label || newStatus;
+      const oldLabel = STAGE_FULL_LABELS[oldStatus] || oldStatus;
+      const newLabel = STAGE_FULL_LABELS[newStatus] || newStatus;
       await supabase.from('lead_activities').insert({
         lead_id: leadId,
         activity_type: 'mudanca_status',
@@ -509,7 +509,7 @@ export default function CRM() {
 
       setLeads(prev => prev.map(l => l.id === pendingAnaliseLead.id ? { ...l, status: 'analise_financeira' as any, updated_at: new Date().toISOString() } : l));
 
-      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      const oldLabel = STAGE_FULL_LABELS[oldStatus] || oldStatus;
       await supabase.from('lead_activities').insert({
         lead_id: pendingAnaliseLead.id,
         activity_type: 'mudanca_status',
@@ -641,7 +641,7 @@ export default function CRM() {
 
       setLeads(prev => prev.map(l => l.id === pendingEnrichLead.id ? { ...l, status: 'contato_feito', updated_at: new Date().toISOString() } : l));
 
-      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
+      const oldLabel = STAGE_FULL_LABELS[oldStatus] || oldStatus;
       await supabase.from('lead_activities').insert({
         lead_id: pendingEnrichLead.id,
         activity_type: 'mudanca_status',
@@ -693,8 +693,8 @@ export default function CRM() {
         : l
       ));
 
-      const oldLabel = CRM_STAGES.find(s => s.key === oldStatus)?.label || oldStatus;
-      const newLabel = CRM_STAGES.find(s => s.key === pendingOrderStage)?.label || pendingOrderStage;
+      const oldLabel = STAGE_FULL_LABELS[oldStatus] || oldStatus;
+      const newLabel = STAGE_FULL_LABELS[pendingOrderStage] || pendingOrderStage;
       await supabase.from('lead_activities').insert({
         lead_id: pendingOrderLead.id,
         activity_type: 'mudanca_status',

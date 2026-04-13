@@ -520,22 +520,9 @@ export default function CRM() {
     }
   };
 
+  // Legacy visit confirmed handler — no longer used but kept for safety
   const handleVisitConfirmed = async () => {
     if (!pendingVisitLead) return;
-    try {
-      const user = (await supabase.auth.getUser()).data.user;
-      await (supabase as any)
-        .from('leads')
-        .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
-        .eq('id', pendingVisitLead.id);
-      setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
-      await supabase.from('lead_activities').insert({
-        lead_id: pendingVisitLead.id,
-        activity_type: 'contato_inicial',
-        description: 'Contato registrado via movimentação CRM',
-        user_id: user?.id || '',
-      } as any);
-    } catch {}
     setPendingVisitLead(null);
   };
 

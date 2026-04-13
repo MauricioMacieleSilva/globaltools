@@ -797,6 +797,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 {lead.source && (
                   <div className="flex items-center gap-2 text-xs">
                     <span className="font-medium text-muted-foreground">Origem:</span>
+                    {(lead.source.toLowerCase().includes('tráfego pago') || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
+                      <img src={instagramLogo} alt="Tráfego Pago" className="h-4 w-4 shrink-0" />
+                    )}
                     <Badge variant="outline" className="text-[10px]">
                       {lead.source.replace('prospeccao_', 'Prospecção ').replace('google', 'Google').replace('pncp', 'PNCP').replace('brasilapi', 'BrasilAPI').replace('ia', 'IA')}
                     </Badge>

@@ -1,4 +1,5 @@
 
+import instagramLogo from '@/assets/instagram-logo.png';
 import { useEffect, useState, useCallback } from 'react';
 import { OrderDetailDialog } from './OrderDetailDialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -413,7 +414,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
   const currentStage = CRM_STAGES.find(s => s.key === lead.status);
 
-import instagramLogo from '@/assets/instagram-logo.png';
+
   // Find first contact and last contact activities
   const contactActivities = activities.filter(a => a.activity_type === 'contato_inicial');
   const firstContact = contactActivities.length > 0 ? contactActivities[contactActivities.length - 1] : null;

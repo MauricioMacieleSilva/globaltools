@@ -372,12 +372,8 @@ export default function CRM() {
       if (!confirmed) return;
     }
 
-    // Intercept visita_reuniao -> open schedule dialog
-    if (newStatus === 'visita_reuniao') {
-      setPendingVisitLead(lead);
-      setVisitDialogOpen(true);
-      return;
-    }
+    // visita_reuniao (Oportunidade) — move directly, no dialog needed
+    // (passagem_bastao -> oportunidade is handled above via PassagemBastaoDialog)
 
     // Intercept proposta/pedido -> require order link only if not already linked
     if (newStatus === 'proposta' || newStatus === 'pedido_fechado') {
@@ -435,15 +431,7 @@ export default function CRM() {
         sdr_name: currentProfile?.full_name || null,
       } as any);
 
-      // Register contact on every stage move (except analise_financeira — handled separately)
-      if (newStatus !== 'analise_financeira') {
-        await supabase.from('lead_activities').insert({
-          lead_id: leadId,
-          activity_type: 'contato_inicial',
-          description: 'Contato registrado via movimentação CRM',
-          user_id: user?.id || '',
-        } as any);
-      }
+      // Do NOT create fake contato_inicial on every stage move — only real contacts count
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
     } catch (error) {

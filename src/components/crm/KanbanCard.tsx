@@ -117,34 +117,38 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           });
         });
 
-      // Fetch the SDR = user who made the FIRST contact (contato_inicial) on this lead
-      (supabase as any)
-        .from('lead_activities')
-        .select('sdr_name, sdr_id, user_id')
-        .eq('lead_id', lead.id)
-        .eq('activity_type', 'contato_inicial')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .then(async ({ data: firstContactData }: any) => {
-          if (cancelled) return;
-          const record = firstContactData?.[0];
-          if (!record) return;
-          if (record.sdr_name) {
-            setHandoffBy(record.sdr_name);
-          } else {
-            const userId = record.sdr_id || record.user_id;
-            if (userId) {
-              const { data: profile } = await (supabase as any)
-                .from('user_profiles')
-                .select('full_name')
-                .eq('id', userId)
-                .maybeSingle();
-              if (!cancelled && profile?.full_name) {
-                setHandoffBy(profile.full_name);
+      // Only fetch SDR for leads that have been through passagem de bastão or beyond
+      const bastaoAndBeyond = ['passagem_bastao', 'oportunidade', 'proposta', 'pedido_fechado'];
+      if (bastaoAndBeyond.includes(lead.status)) {
+        // Fetch the SDR = user who made the FIRST contact (contato_inicial) on this lead
+        (supabase as any)
+          .from('lead_activities')
+          .select('sdr_name, sdr_id, user_id')
+          .eq('lead_id', lead.id)
+          .eq('activity_type', 'contato_inicial')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .then(async ({ data: firstContactData }: any) => {
+            if (cancelled) return;
+            const record = firstContactData?.[0];
+            if (!record) return;
+            if (record.sdr_name) {
+              setHandoffBy(record.sdr_name);
+            } else {
+              const userId = record.sdr_id || record.user_id;
+              if (userId) {
+                const { data: profile } = await (supabase as any)
+                  .from('user_profiles')
+                  .select('full_name')
+                  .eq('id', userId)
+                  .maybeSingle();
+                if (!cancelled && profile?.full_name) {
+                  setHandoffBy(profile.full_name);
+                }
               }
             }
-          }
-        });
+          });
+      }
 
       // Check if lead is currently in financial analysis (status = analise_financeira)
       if (lead.status === 'analise_financeira') {

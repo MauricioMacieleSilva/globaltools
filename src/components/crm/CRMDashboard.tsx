@@ -240,7 +240,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
 
     setHistoricalStageCounts(counts);
-  }, [periodFilter, vendorFilter, leads]);
+  }, [periodFilter, vendorFilter, leads, origemLeadIds]);
 
   useEffect(() => { loadHistoricalFunnel(); }, [loadHistoricalFunnel]);
 

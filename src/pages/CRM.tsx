@@ -84,6 +84,18 @@ export const KANBAN_STAGES = CRM_STAGES.filter(s => s.key !== 'analise_financeir
 
 export type CRMStageKey = typeof CRM_STAGES[number]['key'];
 
+// Full descriptive labels for activity logging (human-readable, not abbreviated)
+const STAGE_FULL_LABELS: Record<string, string> = {
+  lead: 'Lead',
+  contato_feito: 'Contato Feito',
+  passagem_bastao: 'Passagem de Bastão',
+  visita_reuniao: 'Oportunidade',
+  analise_financeira: 'Análise Financeira',
+  proposta: 'Proposta',
+  pedido_fechado: 'Pedido Fechado',
+  perdido: 'Perdido',
+};
+
 export default function CRM() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState<CRMLead[]>([]);

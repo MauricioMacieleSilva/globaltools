@@ -45,16 +45,30 @@ export function HandoffHistory({ onLeadClick, leads, searchQuery = '', vendorFil
   const loadHandoffs = async () => {
     setLoading(true);
     try {
-      // Get all activities where lead was moved TO "Passagem de Bastão"
-      const { data: activities, error } = await supabase
+      // Get all activities where lead was moved TO "Passagem de Bastão" (old or new label)
+      const { data: activitiesOld } = await supabase
         .from('lead_activities')
         .select('id, lead_id, sdr_name, created_at')
         .eq('activity_type', 'mudanca_status')
         .ilike('description', '%para "Passagem de Bastão"%')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      if (!activities?.length) {
+      const { data: activitiesNew } = await supabase
+        .from('lead_activities')
+        .select('id, lead_id, sdr_name, created_at')
+        .eq('activity_type', 'mudanca_status')
+        .ilike('description', '%para "Bastão"%')
+        .order('created_at', { ascending: false });
+
+      // Merge and deduplicate by id
+      const allActivitiesMap = new Map<string, any>();
+      for (const a of [...(activitiesOld || []), ...(activitiesNew || [])]) {
+        if (!allActivitiesMap.has(a.id)) allActivitiesMap.set(a.id, a);
+      }
+      const activities = Array.from(allActivitiesMap.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      if (!activities.length) {
         setRecords([]);
         setLoading(false);
         return;

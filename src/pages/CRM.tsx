@@ -919,7 +919,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="bastao" className="mt-3 overflow-y-auto flex-1">
-          <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} />
+          <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} origemFilter={origemFilter} kanbanDateFilter={kanbanDateFilter} />
         </TabsContent>
 
         <TabsContent value="concorrencia" className="mt-3 overflow-y-auto flex-1">

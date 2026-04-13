@@ -35,7 +35,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos';
 
-export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated }: MinhaCarteiraProps) {
+export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated, origemFilter, vendorFilter, searchQuery: externalSearch, kanbanDateFilter }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [reactivateConfirm, setReactivateConfirm] = useState<CRMLead | null>(null);

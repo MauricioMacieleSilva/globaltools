@@ -192,7 +192,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           <div className="flex items-center gap-1 min-w-0">
             <h4 className="text-xs font-semibold text-foreground leading-tight line-clamp-1">{toTitleCase(lead.empresa || name || '')}</h4>
             {((lead.source && lead.source.toLowerCase().includes('tráfego pago')) || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
-              <span title="Tráfego Pago"><Instagram className="h-3 w-3 shrink-0 text-pink-500" /></span>
+              <img src={instagramLogo} alt="Tráfego Pago" className="h-3.5 w-3.5 shrink-0" title="Tráfego Pago" />
             )}
           </div>
           {whatsappUrl && (

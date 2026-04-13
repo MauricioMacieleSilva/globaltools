@@ -1,11 +1,12 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck, Instagram } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 import { OrderDetailDialog } from './OrderDetailDialog';
+import instagramLogo from '@/assets/instagram-logo.png';
 
 /** Converte texto para Title Case, independente do formato original */
 function toTitleCase(str: string): string {

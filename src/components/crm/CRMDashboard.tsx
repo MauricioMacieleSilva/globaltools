@@ -132,19 +132,29 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   }, [vendorGoals, vendorFilter]);
 
   // Filter leads by vendor
+  // Origin-matching helper
+  const leadMatchesOrigem = useCallback((l: CRMLead) => {
+    if (!origemFilter || origemFilter === 'all') return true;
+    const leadOrigem = (l.source || l.origem || '').toLowerCase();
+    return leadOrigem.includes(origemFilter.toLowerCase());
+  }, [origemFilter]);
+
   const filteredLeads = useMemo(() => {
     let filtered = leads.filter(l => l.status !== 'perdido');
     if (vendorFilter !== 'all') {
       filtered = filtered.filter(l => l.vendedor_id === vendorFilter);
     }
-    if (origemFilter && origemFilter !== 'all') {
-      filtered = filtered.filter(l => {
-        const leadOrigem = (l.source || l.origem || '').toLowerCase();
-        return leadOrigem.includes(origemFilter.toLowerCase());
-      });
-    }
+    filtered = filtered.filter(leadMatchesOrigem);
     return filtered;
-  }, [leads, vendorFilter, origemFilter]);
+  }, [leads, vendorFilter, leadMatchesOrigem]);
+
+  // Set of lead IDs matching origin filter (for filtering activities)
+  const origemLeadIds = useMemo(() => {
+    if (!origemFilter || origemFilter === 'all') return null; // null = no filter
+    const ids = new Set<string>();
+    leads.forEach(l => { if (leadMatchesOrigem(l)) ids.add(l.id); });
+    return ids;
+  }, [leads, origemFilter, leadMatchesOrigem]);
 
   // Load historical stage counts from lead_activities (mudanca_status)
   const [historicalStageCounts, setHistoricalStageCounts] = useState<Record<string, { count: number; value: number }>>({});
@@ -231,11 +241,18 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   // All active leads (unfiltered) for funnel "Lead" stage
   const allActiveLeads = useMemo(() => leads.filter(l => l.status !== 'perdido'), [leads]);
 
-  const lostLeads = useMemo(() => leads.filter(l => l.status !== 'perdido' ? false : true), [leads]);
+  const lostLeads = useMemo(() => {
+    let lost = leads.filter(l => l.status === 'perdido');
+    if (vendorFilter !== 'all') lost = lost.filter(l => l.vendedor_id === vendorFilter);
+    lost = lost.filter(leadMatchesOrigem);
+    return lost;
+  }, [leads, vendorFilter, leadMatchesOrigem]);
 
   // For performance metrics: only count the FIRST contact per lead per day
   const contactActivities = useMemo(() => {
-    const allContacts = activities.filter(a => a.activity_type === 'contato_inicial');
+    let src = activities;
+    if (origemLeadIds) src = src.filter(a => origemLeadIds.has(a.lead_id));
+    const allContacts = src.filter(a => a.activity_type === 'contato_inicial');
     const seen = new Set<string>();
     return allContacts.filter(a => {
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
@@ -244,11 +261,13 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       seen.add(key);
       return true;
     });
-  }, [activities]);
+  }, [activities, origemLeadIds]);
 
   // ALL contact activities (unfiltered by vendor), deduplicated per lead per day
   const allContactActivities = useMemo(() => {
-    const allContacts = allActivities.filter(a => a.activity_type === 'contato_inicial');
+    let src = allActivities;
+    if (origemLeadIds) src = src.filter(a => origemLeadIds.has(a.lead_id));
+    const allContacts = src.filter(a => a.activity_type === 'contato_inicial');
     const seen = new Set<string>();
     return allContacts.filter(a => {
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
@@ -257,11 +276,21 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       seen.add(key);
       return true;
     });
-  }, [allActivities]);
+  }, [allActivities, origemLeadIds]);
 
   // KPIs
   const totalContacts = contactActivities.length;
-  const totalVisits = activities.filter(a => a.activity_type === 'visita').length;
+  const filteredActivitiesForMetrics = useMemo(() => {
+    let src = activities;
+    if (origemLeadIds) src = src.filter(a => origemLeadIds.has(a.lead_id));
+    return src;
+  }, [activities, origemLeadIds]);
+  const filteredAllActivitiesForMetrics = useMemo(() => {
+    let src = allActivities;
+    if (origemLeadIds) src = src.filter(a => origemLeadIds.has(a.lead_id));
+    return src;
+  }, [allActivities, origemLeadIds]);
+  const totalVisits = filteredActivitiesForMetrics.filter(a => a.activity_type === 'visita').length;
   const totalActivities = activities.length;
   const activeLeads = filteredLeads.length;
   const pipelineValue = filteredLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
@@ -279,7 +308,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   }, [allContactActivities, contactActivities, vendorFilter, selectedDateStr]);
 
   const todayClosedDeals = useMemo(() => {
-    const source = vendorFilter === 'all' ? allActivities : activities;
+    const source = vendorFilter === 'all' ? filteredAllActivitiesForMetrics : filteredActivitiesForMetrics;
     return source.filter(a => {
       if (a.activity_type !== 'mudanca_status') return false;
       const desc = (a.description || '').toLowerCase();
@@ -287,7 +316,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       const localDate = format(new Date(a.created_at), 'yyyy-MM-dd');
       return localDate === selectedDateStr;
     }).length;
-  }, [allActivities, activities, vendorFilter, selectedDateStr]);
+  }, [filteredAllActivitiesForMetrics, filteredActivitiesForMetrics, vendorFilter, selectedDateStr]);
 
   // Daily contacts chart — use filtered activities, count ALL (no dedup)
   const dailyContactsData = useMemo(() => {
@@ -297,14 +326,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const days = eachDayOfInterval({ start, end });
     return days.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
-      const dayActivities = activities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr);
+      const dayActivities = filteredActivitiesForMetrics.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr);
       return {
         dia: format(day, 'dd', { locale: ptBR }),
         contatos: contactActivities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dayStr).length,
         visitas: dayActivities.filter(a => a.activity_type === 'visita').length,
       };
     });
-  }, [activities, contactActivities, periodFilter]);
+  }, [filteredActivitiesForMetrics, contactActivities, periodFilter]);
 
   // Funnel data - historical totals per stage, exclude Análise Financeira
   const FUNNEL_STAGES = CRM_STAGES.filter(s => s.key !== 'analise_financeira');
@@ -331,7 +360,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     'reuniao': 'Reunião',
   };
   const channelData = useMemo(() => {
-    const source = vendorFilter === 'all' ? allActivities : activities;
+    const source = vendorFilter === 'all' ? filteredAllActivitiesForMetrics : filteredActivitiesForMetrics;
     const filtered = dateFilter
       ? source.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dateFilter)
       : source;
@@ -344,7 +373,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return Object.entries(map)
       .map(([key, value]) => ({ name: CHANNEL_LABELS[key] || key, value, fill: CHANNEL_COLORS[key] || 'hsl(200, 98%, 39%)' }))
       .sort((a, b) => b.value - a.value);
-  }, [allActivities, activities, vendorFilter, dateFilter]);
+  }, [filteredAllActivitiesForMetrics, filteredActivitiesForMetrics, vendorFilter, dateFilter]);
 
   // Pending financial analyses count
   const pendingAnalyses = useMemo(() => {
@@ -362,7 +391,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const map: Record<string, { todayContacts: number; monthContacts: number; avatar_url: string | null; vendorId: string }> = {};
     const seen = new Set<string>();
 
-    allActivities.forEach(a => {
+    filteredAllActivitiesForMetrics.forEach(a => {
       if (a.activity_type !== 'contato_inicial') return;
       const day = format(new Date(a.created_at), 'yyyy-MM-dd');
       const dedupKey = `${a.lead_id}_${day}`;
@@ -381,13 +410,18 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     });
 
     return Object.entries(map)
+      .filter(([_, data]) => {
+        const vendorInfo = vendors.find(v => v.id === data.vendorId);
+        const fullName = vendorInfo?.name || '';
+        return fullName.toLowerCase() !== 'cadastro';
+      })
       .sort((a, b) => b[1].todayContacts - a[1].todayContacts || b[1].monthContacts - a[1].monthContacts)
       .map(([id, data], idx) => {
         const vendorInfo = vendors.find(v => v.id === id);
         const fullName = vendorInfo?.name || 'Sem vendedor';
         return { name: formatFirstName(fullName), fullName, ...data, rank: idx + 1 };
       });
-  }, [allActivities, vendors, selectedDateStr]);
+  }, [filteredAllActivitiesForMetrics, vendors, selectedDateStr]);
 
   // Cities/States chart
   const locationData = useMemo(() => {
@@ -472,11 +506,12 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     
     // Filter by date if dateFilter is set
     const filteredAll = dateFilter
-      ? allActivities.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dateFilter)
-      : allActivities;
+      ? filteredAllActivitiesForMetrics.filter(a => format(new Date(a.created_at), 'yyyy-MM-dd') === dateFilter)
+      : filteredAllActivitiesForMetrics;
 
     filteredAll.forEach(a => {
       const fullName = a.sdr_name || vendors.find(v => v.id === a.user_id)?.name || 'Desconhecido';
+      if (fullName.toLowerCase() === 'cadastro') return;
       const firstName = fullName.split(' ')[0];
 
       if (a.activity_type === 'contato_inicial') {
@@ -496,7 +531,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return Object.entries(map)
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => (b.contatos + b.visitas) - (a.contatos + a.visitas));
-  }, [allActivities, vendors, vendorFilter, dateFilter]);
+  }, [filteredAllActivitiesForMetrics, vendors, vendorFilter, dateFilter]);
 
   const clearFilters = () => {
     setPeriodFilter(format(new Date(), 'yyyy-MM'));

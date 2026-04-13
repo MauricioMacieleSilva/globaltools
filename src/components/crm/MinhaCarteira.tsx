@@ -16,6 +16,10 @@ interface MinhaCarteiraProps {
   currentUserId: string;
   onLeadClick: (lead: CRMLead) => void;
   onLeadReactivated?: () => void;
+  origemFilter?: string;
+  vendorFilter?: string;
+  searchQuery?: string;
+  kanbanDateFilter?: string;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {

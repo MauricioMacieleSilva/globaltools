@@ -530,13 +530,38 @@ export default function CRM() {
     if (!pendingContactLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;
+      const userId = user?.id || '';
+
+      // Get user profile and role
+      const [{ data: profile }, { data: roleData }] = await Promise.all([
+        supabase.from('user_profiles').select('full_name').eq('id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      ]);
+      const userName = profile?.full_name || '';
+      const userRole = roleData?.role || '';
+
       // Register the contact activity with the user's description
       await supabase.from('lead_activities').insert({
         lead_id: pendingContactLead.id,
         activity_type: 'contato_inicial',
         description: description,
-        user_id: user?.id || '',
+        user_id: userId,
+        sdr_name: userName,
       } as any);
+
+      // Persist first contact info on the lead (only if not yet set)
+      const updateFields: Record<string, any> = {};
+      if (!pendingContactLead.first_contact_user_id) {
+        updateFields.first_contact_user_id = userId;
+        updateFields.first_contact_name = userName;
+        // Only set handoff_sdr_name if user is SDR
+        if (userRole === 'sdr') {
+          updateFields.handoff_sdr_name = userName;
+        }
+      }
+      if (Object.keys(updateFields).length > 0) {
+        await (supabase as any).from('leads').update(updateFields).eq('id', pendingContactLead.id);
+      }
     } catch (e) {
       console.error('Erro ao registrar contato:', e);
     }

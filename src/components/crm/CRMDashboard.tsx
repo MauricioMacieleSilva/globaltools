@@ -199,10 +199,15 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
     const counts: Record<string, { count: number; value: number }> = {};
     
+    // Filter by origin if needed
+    const origemIds = origemLeadIds;
+    const filterByOrigem = (leadId: string) => !origemIds || origemIds.has(leadId);
+
     // Count leads entering "Lead" stage (created)
-    const filteredCreated = vendorFilter !== 'all' 
+    let filteredCreated = vendorFilter !== 'all' 
       ? leadsCreated.filter((l: any) => l.vendedor_id === vendorFilter)
       : leadsCreated;
+    if (origemIds) filteredCreated = filteredCreated.filter((l: any) => origemIds.has(l.id));
     counts['lead'] = { 
       count: filteredCreated.length, 
       value: filteredCreated.reduce((s: number, l: any) => s + (l.valor_estimado || 0), 0) 
@@ -212,9 +217,10 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const stageLabels: Record<string, string> = {};
     CRM_STAGES.forEach(s => { stageLabels[s.label.toLowerCase()] = s.key; });
 
-    const filteredMoves = vendorFilter !== 'all'
+    let filteredMoves = vendorFilter !== 'all'
       ? allMoves.filter(a => a.user_id === vendorFilter)
       : allMoves;
+    if (origemIds) filteredMoves = filteredMoves.filter(a => origemIds.has(a.lead_id));
 
     filteredMoves.forEach((a: any) => {
       const desc = (a.description || '').toLowerCase();

@@ -972,7 +972,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="carteira" className="mt-3 overflow-y-auto flex-1">
-          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} />
+          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={searchQuery} kanbanDateFilter={kanbanDateFilter} />
         </TabsContent>
 
         <TabsContent value="bastao" className="mt-3 overflow-y-auto flex-1">

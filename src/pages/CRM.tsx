@@ -62,6 +62,9 @@ export interface CRMLead {
   estado: string | null;
   cidade: string | null;
   website: string | null;
+  first_contact_user_id?: string | null;
+  first_contact_name?: string | null;
+  handoff_sdr_name?: string | null;
   vendedor?: { full_name: string; avatar_url: string | null } | null;
 }
 
@@ -369,12 +372,8 @@ export default function CRM() {
       if (!confirmed) return;
     }
 
-    // Intercept visita_reuniao -> open schedule dialog
-    if (newStatus === 'visita_reuniao') {
-      setPendingVisitLead(lead);
-      setVisitDialogOpen(true);
-      return;
-    }
+    // visita_reuniao (Oportunidade) — move directly, no dialog needed
+    // (passagem_bastao -> oportunidade is handled above via PassagemBastaoDialog)
 
     // Intercept proposta/pedido -> require order link only if not already linked
     if (newStatus === 'proposta' || newStatus === 'pedido_fechado') {
@@ -432,15 +431,7 @@ export default function CRM() {
         sdr_name: currentProfile?.full_name || null,
       } as any);
 
-      // Register contact on every stage move (except analise_financeira — handled separately)
-      if (newStatus !== 'analise_financeira') {
-        await supabase.from('lead_activities').insert({
-          lead_id: leadId,
-          activity_type: 'contato_inicial',
-          description: 'Contato registrado via movimentação CRM',
-          user_id: user?.id || '',
-        } as any);
-      }
+      // Do NOT create fake contato_inicial on every stage move — only real contacts count
 
       toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
     } catch (error) {
@@ -529,22 +520,9 @@ export default function CRM() {
     }
   };
 
+  // Legacy visit confirmed handler — no longer used but kept for safety
   const handleVisitConfirmed = async () => {
     if (!pendingVisitLead) return;
-    try {
-      const user = (await supabase.auth.getUser()).data.user;
-      await (supabase as any)
-        .from('leads')
-        .update({ status: 'visita_reuniao', updated_at: new Date().toISOString() })
-        .eq('id', pendingVisitLead.id);
-      setLeads(prev => prev.map(l => l.id === pendingVisitLead.id ? { ...l, status: 'visita_reuniao', updated_at: new Date().toISOString() } : l));
-      await supabase.from('lead_activities').insert({
-        lead_id: pendingVisitLead.id,
-        activity_type: 'contato_inicial',
-        description: 'Contato registrado via movimentação CRM',
-        user_id: user?.id || '',
-      } as any);
-    } catch {}
     setPendingVisitLead(null);
   };
 
@@ -552,13 +530,38 @@ export default function CRM() {
     if (!pendingContactLead) return;
     try {
       const user = (await supabase.auth.getUser()).data.user;
+      const userId = user?.id || '';
+
+      // Get user profile and role
+      const [{ data: profile }, { data: roleData }] = await Promise.all([
+        supabase.from('user_profiles').select('full_name').eq('id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      ]);
+      const userName = profile?.full_name || '';
+      const userRole = roleData?.role || '';
+
       // Register the contact activity with the user's description
       await supabase.from('lead_activities').insert({
         lead_id: pendingContactLead.id,
         activity_type: 'contato_inicial',
         description: description,
-        user_id: user?.id || '',
+        user_id: userId,
+        sdr_name: userName,
       } as any);
+
+      // Persist first contact info on the lead (only if not yet set)
+      const updateFields: Record<string, any> = {};
+      if (!pendingContactLead.first_contact_user_id) {
+        updateFields.first_contact_user_id = userId;
+        updateFields.first_contact_name = userName;
+        // Only set handoff_sdr_name if user is SDR
+        if (userRole === 'sdr') {
+          updateFields.handoff_sdr_name = userName;
+        }
+      }
+      if (Object.keys(updateFields).length > 0) {
+        await (supabase as any).from('leads').update(updateFields).eq('id', pendingContactLead.id);
+      }
     } catch (e) {
       console.error('Erro ao registrar contato:', e);
     }
@@ -916,7 +919,7 @@ export default function CRM() {
         </TabsContent>
 
         <TabsContent value="bastao" className="mt-3 overflow-y-auto flex-1">
-          <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} />
+          <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} origemFilter={origemFilter} kanbanDateFilter={kanbanDateFilter} />
         </TabsContent>
 
         <TabsContent value="concorrencia" className="mt-3 overflow-y-auto flex-1">

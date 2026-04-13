@@ -1688,6 +1688,9 @@ export type Database = {
           finance_consideracoes: string | null
           finance_parecer: string | null
           finance_parecer_at: string | null
+          first_contact_name: string | null
+          first_contact_user_id: string | null
+          handoff_sdr_name: string | null
           id: string
           linked_orders_meta: Json | null
           notes: string | null
@@ -1728,6 +1731,9 @@ export type Database = {
           finance_consideracoes?: string | null
           finance_parecer?: string | null
           finance_parecer_at?: string | null
+          first_contact_name?: string | null
+          first_contact_user_id?: string | null
+          handoff_sdr_name?: string | null
           id?: string
           linked_orders_meta?: Json | null
           notes?: string | null
@@ -1768,6 +1774,9 @@ export type Database = {
           finance_consideracoes?: string | null
           finance_parecer?: string | null
           finance_parecer_at?: string | null
+          first_contact_name?: string | null
+          first_contact_user_id?: string | null
+          handoff_sdr_name?: string | null
           id?: string
           linked_orders_meta?: Json | null
           notes?: string | null

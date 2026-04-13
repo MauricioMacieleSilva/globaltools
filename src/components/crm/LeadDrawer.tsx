@@ -412,8 +412,8 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const email = lead.contact_email || lead.cliente_email;
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
   const currentStage = CRM_STAGES.find(s => s.key === lead.status);
-  
 
+import instagramLogo from '@/assets/instagram-logo.png';
   // Find first contact and last contact activities
   const contactActivities = activities.filter(a => a.activity_type === 'contato_inicial');
   const firstContact = contactActivities.length > 0 ? contactActivities[contactActivities.length - 1] : null;
@@ -445,6 +445,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <SheetHeader>
             <SheetTitle className="text-left flex items-center gap-2">
               {name}
+              {((lead.source && lead.source.toLowerCase().includes('tráfego pago')) || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
+                <img src={instagramLogo} alt="Tráfego Pago" className="h-5 w-5 shrink-0" title="Tráfego Pago" />
+              )}
               {currentStage && (
                 <Badge style={{ backgroundColor: currentStage.color, color: '#fff' }} className="text-[10px]">
                   {currentStage.label}

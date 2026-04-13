@@ -34,20 +34,17 @@ interface VisitCalendarProps {
   onLeadClick: (lead: CRMLead) => void;
   leads: CRMLead[];
   searchQuery?: string;
+  vendorFilter?: string;
 }
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCalendarProps) {
+export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilter = 'all' }: VisitCalendarProps) {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
-  const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
-  const [userFilter, setUserFilter] = useState('all');
-  const [isManager, setIsManager] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -56,28 +53,13 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCal
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setCurrentUserId(user.id);
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      const role = (roleData as any)?.role;
-      const mgr = role === 'admin' || role === 'comercial';
-      setIsManager(mgr);
-      if (!mgr) setUserFilter(user.id);
-
-      // Load vendors for filter
-      if (mgr) {
-        const { data: profiles } = await supabase.from('user_profiles').select('id, full_name');
-        setVendors((profiles || []).map(p => ({ id: p.id, name: p.full_name })));
-      }
     };
     init();
   }, []);
 
   useEffect(() => {
     if (currentUserId) loadVisits();
-  }, [leads, userFilter, currentUserId]);
+  }, [leads, vendorFilter, currentUserId]);
 
   const loadVisits = async () => {
     const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
@@ -85,8 +67,8 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '' }: VisitCal
     let visitsQuery = (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true });
     let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', cutoff).order('data_agendada', { ascending: true });
 
-    // Filter by selected user
-    const filterUserId = userFilter !== 'all' ? userFilter : null;
+    // Filter by vendor from global filter
+    const filterUserId = vendorFilter !== 'all' ? vendorFilter : null;
     if (filterUserId) {
       visitsQuery = visitsQuery.eq('user_id', filterUserId);
       followupsQuery = followupsQuery.eq('user_id', filterUserId);

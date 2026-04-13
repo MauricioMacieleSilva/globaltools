@@ -211,8 +211,53 @@ export default function CRM() {
         from += PAGE_SIZE;
       }
 
-      setLeads(allLeads);
+      setLeads(allLeads as CRMLead[]);
       setLastUpdated(new Date());
+
+      // Background sync: fix leads with budget_number but no valor_estimado
+      const leadsToFix = (allLeads as any[]).filter(
+        (l: any) => l.budget_number && (!l.valor_estimado || l.valor_estimado === 0)
+      );
+      if (leadsToFix.length > 0) {
+        import('@/services/googleSheetsService').then(({ fetchComercialData }) => {
+          import('@/lib/utils-comercial').then(({ parseDate }) => {
+            fetchComercialData().then((comercialData) => {
+              for (const lead of leadsToFix) {
+                const orderNums = lead.budget_number.split(',').map((s: string) => s.trim()).filter(Boolean);
+                const meta = lead.linked_orders_meta || {};
+                let total = 0;
+                for (const num of orderNums) {
+                  let matches = comercialData.filter((d: any) => String(d.numeropedido).trim() === num);
+                  if (matches.length === 0) continue;
+                  const nameToMatch = meta[num] || lead.empresa || lead.cliente_nome || lead.client_name;
+                  if (nameToMatch) {
+                    const norm = nameToMatch.trim().toLowerCase();
+                    const clientMatches = matches.filter((d: any) => {
+                      const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
+                      return nome.includes(norm) || norm.includes(nome);
+                    });
+                    if (clientMatches.length > 0) matches = clientMatches;
+                  }
+                  const sorted = [...matches].sort((a: any, b: any) => {
+                    const da = parseDate(a.data_emissao)?.getTime() || 0;
+                    const db = parseDate(b.data_emissao)?.getTime() || 0;
+                    return db - da;
+                  });
+                  const mostRecentDate = sorted[0]?.data_emissao;
+                  const finalItems = mostRecentDate
+                    ? matches.filter((d: any) => d.data_emissao === mostRecentDate)
+                    : matches;
+                  total += finalItems.reduce((sum: number, item: any) => sum + (item.valor || 0), 0);
+                }
+                if (total > 0) {
+                  (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
+                  setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, valor_estimado: total } : l));
+                }
+              }
+            }).catch(() => {});
+          });
+        });
+      }
     } catch (error) {
       console.error('Erro ao carregar leads:', error);
     } finally {

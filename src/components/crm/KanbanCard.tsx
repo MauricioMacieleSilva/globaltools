@@ -40,12 +40,18 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [financeParecer, setFinanceParecer] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
-  const [handoffBy, setHandoffBy] = useState<string | null>(null);
   const [isInAnalysis, setIsInAnalysis] = useState(false);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
+
+  // SDR badge: read directly from persisted lead data — instant, no async
+  const handoffBy = lead.handoff_sdr_name || null;
+  const bastaoAndBeyond = ['passagem_bastao', 'oportunidade', 'visita_reuniao', 'proposta', 'pedido_fechado'];
+  const showHandoff = !!handoffBy && bastaoAndBeyond.includes(lead.status);
+
+  const isTrafegoPage = ((lead.source && lead.source.toLowerCase().includes('tráfego pago')) || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago')));
 
   const produtos = lead.produto_interesse
     ? lead.produto_interesse.split(',').map(p => p.trim()).filter(Boolean)
@@ -64,7 +70,6 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setNextVisit(null);
     setFinanceParecer(null);
     setFailedAttempts(0);
-    setHandoffBy(null);
     setIsInAnalysis(false);
     import('@/integrations/supabase/client').then(({ supabase }) => {
       // Fetch next visit
@@ -117,39 +122,6 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           });
         });
 
-      // Only fetch SDR for leads that have been through passagem de bastão or beyond
-      const bastaoAndBeyond = ['passagem_bastao', 'oportunidade', 'proposta', 'pedido_fechado'];
-      if (bastaoAndBeyond.includes(lead.status)) {
-        // Fetch the SDR = user who made the FIRST contact (contato_inicial) on this lead
-        (supabase as any)
-          .from('lead_activities')
-          .select('sdr_name, sdr_id, user_id')
-          .eq('lead_id', lead.id)
-          .eq('activity_type', 'contato_inicial')
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .then(async ({ data: firstContactData }: any) => {
-            if (cancelled) return;
-            const record = firstContactData?.[0];
-            if (!record) return;
-            if (record.sdr_name) {
-              setHandoffBy(record.sdr_name);
-            } else {
-              const userId = record.sdr_id || record.user_id;
-              if (userId) {
-                const { data: profile } = await (supabase as any)
-                  .from('user_profiles')
-                  .select('full_name')
-                  .eq('id', userId)
-                  .maybeSingle();
-                if (!cancelled && profile?.full_name) {
-                  setHandoffBy(profile.full_name);
-                }
-              }
-            }
-          });
-      }
-
       // Check if lead is currently in financial analysis (status = analise_financeira)
       if (lead.status === 'analise_financeira') {
         setIsInAnalysis(true);
@@ -165,7 +137,6 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           .limit(1)
           .then(({ data: sentData }: any) => {
             if (!cancelled && sentData?.length > 0) {
-              // Check if there's a parecer after the send
               (supabase as any)
                 .from('leads')
                 .select('finance_parecer')
@@ -195,7 +166,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1 min-w-0">
             <h4 className="text-xs font-semibold text-foreground leading-tight line-clamp-1">{toTitleCase(lead.empresa || name || '')}</h4>
-            {((lead.source && lead.source.toLowerCase().includes('tráfego pago')) || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
+            {isTrafegoPage && (
               <img src={instagramLogo} alt="Tráfego Pago" className="h-3.5 w-3.5 shrink-0" title="Tráfego Pago" />
             )}
           </div>
@@ -247,12 +218,12 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {/* Handoff badge - who moved the card to passagem de bastão (blue, discrete) */}
-        {handoffBy && (
+        {/* Handoff badge - SDR who made first contact (instant from persisted data) */}
+        {showHandoff && (
           <div className="flex">
             <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
               <ArrowRightLeft className="h-2.5 w-2.5" />
-              Bastão: {handoffBy.split(' ')[0]}
+              Bastão: {handoffBy!.split(' ')[0]}
             </Badge>
           </div>
         )}
@@ -266,7 +237,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           </div>
         )}
 
-        {/* Ramo + Localidade inline */}
+        {/* Ramo + Localidade + Origem inline */}
         {(lead.ramo_atuacao || localidade) && (
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground truncate">
             {lead.ramo_atuacao && (

@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CRM_STAGES, type CRMLead } from '@/pages/CRM';
@@ -21,6 +20,7 @@ interface HandoffRecord {
     status: string;
     valor_estimado: number | null;
     vendedor_id: string | null;
+    handoff_sdr_name: string | null;
   } | null;
   vendedor_name: string | null;
 }
@@ -28,14 +28,15 @@ interface HandoffRecord {
 interface HandoffHistoryProps {
   onLeadClick: (lead: CRMLead) => void;
   leads: CRMLead[];
+  searchQuery?: string;
+  vendorFilter?: string;
+  origemFilter?: string;
+  kanbanDateFilter?: string;
 }
 
-export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
+export function HandoffHistory({ onLeadClick, leads, searchQuery = '', vendorFilter = 'all', origemFilter = 'all', kanbanDateFilter = '' }: HandoffHistoryProps) {
   const [records, setRecords] = useState<HandoffRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     loadHandoffs();
@@ -62,44 +63,20 @@ export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
       // Get unique lead IDs
       const leadIds = [...new Set(activities.map(a => a.lead_id))];
 
-      // Load lead data
+      // Load lead data including persisted handoff_sdr_name
       const { data: leadsData } = await (supabase as any)
         .from('leads')
-        .select('id, cliente_nome, empresa, client_name, status, valor_estimado, vendedor_id')
+        .select('id, cliente_nome, empresa, client_name, status, valor_estimado, vendedor_id, handoff_sdr_name')
         .in('id', leadIds);
 
-      // Load the FIRST contato_inicial for each lead to get the true SDR
-      const { data: firstContacts } = await supabase
-        .from('lead_activities')
-        .select('lead_id, sdr_name, user_id')
-        .eq('activity_type', 'contato_inicial')
-        .in('lead_id', leadIds)
-        .order('created_at', { ascending: true });
-      
-      // Build map: lead_id -> first contact SDR name
-      const firstContactMap: Record<string, { sdr_name: string | null; user_id: string }> = {};
-      (firstContacts || []).forEach(fc => {
-        if (!firstContactMap[fc.lead_id]) {
-          firstContactMap[fc.lead_id] = { sdr_name: (fc as any).sdr_name, user_id: fc.user_id };
-        }
-      });
-
-      // Load vendor names for leads that have vendedor_id
+      // Load vendor names
       const vendorIds = [...new Set((leadsData || []).filter((l: any) => l.vendedor_id).map((l: any) => l.vendedor_id))] as string[];
-      
-      // Also collect user_ids from first contacts that lack sdr_name
-      const profileIdsToLoad = new Set<string>();
-      vendorIds.forEach(id => profileIdsToLoad.add(id));
-      Object.values(firstContactMap).forEach(fc => {
-        if (!fc.sdr_name && fc.user_id) profileIdsToLoad.add(fc.user_id);
-      });
-
       let profileMap: Record<string, string> = {};
-      if (profileIdsToLoad.size > 0) {
+      if (vendorIds.length > 0) {
         const { data: profiles } = await supabase
           .from('user_profiles')
           .select('id, full_name')
-          .in('id', [...profileIdsToLoad]);
+          .in('id', vendorIds);
         profileMap = (profiles || []).reduce((acc, v) => ({ ...acc, [v.id]: v.full_name }), {} as Record<string, string>);
       }
 
@@ -107,9 +84,8 @@ export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
 
       const mapped: HandoffRecord[] = activities.map(a => {
         const lead = leadMap[a.lead_id] || null;
-        // SDR = first contact user, not the one who moved to bastão
-        const fc = firstContactMap[a.lead_id];
-        const sdrName = fc?.sdr_name || (fc?.user_id ? profileMap[fc.user_id] : null) || a.sdr_name;
+        // Use persisted handoff_sdr_name from the lead (instant, reliable)
+        const sdrName = lead?.handoff_sdr_name || a.sdr_name || null;
         return {
           id: a.id,
           lead_id: a.lead_id,
@@ -130,8 +106,8 @@ export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
 
   const filtered = useMemo(() => {
     let result = records;
-    if (search) {
-      const q = search.toLowerCase();
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
       result = result.filter(r =>
         (r.lead?.empresa || '').toLowerCase().includes(q) ||
         (r.lead?.cliente_nome || '').toLowerCase().includes(q) ||
@@ -140,15 +116,11 @@ export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
         (r.vendedor_name || '').toLowerCase().includes(q)
       );
     }
-    if (dateFrom) {
-      result = result.filter(r => r.handoff_date >= dateFrom);
-    }
-    if (dateTo) {
-      const end = dateTo + 'T23:59:59';
-      result = result.filter(r => r.handoff_date <= end);
+    if (kanbanDateFilter) {
+      result = result.filter(r => r.handoff_date >= kanbanDateFilter);
     }
     return result;
-  }, [records, search, dateFrom, dateTo]);
+  }, [records, searchQuery, kanbanDateFilter]);
 
   const getStatusBadge = (status: string) => {
     const stage = CRM_STAGES.find(s => s.key === status);
@@ -177,35 +149,6 @@ export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por empresa, SDR ou vendedor..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-            className="h-9 text-xs border rounded-md px-2 bg-background text-foreground"
-            placeholder="De"
-          />
-          <span className="text-xs text-muted-foreground">até</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={e => setDateTo(e.target.value)}
-            className="h-9 text-xs border rounded-md px-2 bg-background text-foreground"
-            placeholder="Até"
-          />
-        </div>
-      </div>
-
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <ArrowRightLeft className="h-10 w-10 mb-3 opacity-40" />

@@ -1,11 +1,12 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck, Instagram } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 import { OrderDetailDialog } from './OrderDetailDialog';
+import instagramLogo from '@/assets/instagram-logo.png';
 
 /** Converte texto para Title Case, independente do formato original */
 function toTitleCase(str: string): string {
@@ -116,24 +117,25 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           });
         });
 
-      // Fetch the SDR who moved the card TO "Passagem de Bastão" (not the admin who moved to Oportunidade)
-      (supabase as any)
-        .from('lead_activities')
-        .select('sdr_name, sdr_id, user_id, description')
-        .eq('lead_id', lead.id)
-        .eq('activity_type', 'mudanca_status')
-        .order('created_at', { ascending: false })
-        .then(async ({ data: moveData }: any) => {
-          if (cancelled) return;
-          // Priority 1: find who moved TO "Passagem de Bastão" — this is the SDR
-          const bastaoRecord = (moveData || []).find((r: any) => 
-            r.description?.includes('para "Passagem de Bastão"')
-          );
-          if (bastaoRecord) {
-            if (bastaoRecord.sdr_name) {
-              setHandoffBy(bastaoRecord.sdr_name);
+      // Only fetch SDR for leads that have been through passagem de bastão or beyond
+      const bastaoAndBeyond = ['passagem_bastao', 'oportunidade', 'proposta', 'pedido_fechado'];
+      if (bastaoAndBeyond.includes(lead.status)) {
+        // Fetch the SDR = user who made the FIRST contact (contato_inicial) on this lead
+        (supabase as any)
+          .from('lead_activities')
+          .select('sdr_name, sdr_id, user_id')
+          .eq('lead_id', lead.id)
+          .eq('activity_type', 'contato_inicial')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .then(async ({ data: firstContactData }: any) => {
+            if (cancelled) return;
+            const record = firstContactData?.[0];
+            if (!record) return;
+            if (record.sdr_name) {
+              setHandoffBy(record.sdr_name);
             } else {
-              const userId = bastaoRecord.sdr_id || bastaoRecord.user_id;
+              const userId = record.sdr_id || record.user_id;
               if (userId) {
                 const { data: profile } = await (supabase as any)
                   .from('user_profiles')
@@ -145,37 +147,8 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
                 }
               }
             }
-            return;
-          }
-          // Fallback: if no "para Passagem de Bastão" found, check sdr_id on the assignment record
-          const assignRecord = (moveData || []).find((r: any) => 
-            r.description?.includes('lead atribuído')
-          );
-          if (assignRecord) {
-            // The sdr_name here is the admin, we need the sdr_id from the previous move
-            // Try to find the original SDR from earlier activities
-            const sdrActivity = (moveData || []).find((r: any) =>
-              r.description?.includes('para "Contato Feito"') || 
-              r.description?.includes('para "Lead"') ||
-              (r.activity_type === 'mudanca_status' && !r.description?.includes('lead atribuído') && !r.description?.includes('Oportunidade'))
-            );
-            if (sdrActivity?.sdr_name) {
-              setHandoffBy(sdrActivity.sdr_name);
-            } else if (sdrActivity) {
-              const userId = sdrActivity.sdr_id || sdrActivity.user_id;
-              if (userId) {
-                const { data: profile } = await (supabase as any)
-                  .from('user_profiles')
-                  .select('full_name')
-                  .eq('id', userId)
-                  .maybeSingle();
-                if (!cancelled && profile?.full_name) {
-                  setHandoffBy(profile.full_name);
-                }
-              }
-            }
-          }
-        });
+          });
+      }
 
       // Check if lead is currently in financial analysis (status = analise_financeira)
       if (lead.status === 'analise_financeira') {
@@ -223,7 +196,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
           <div className="flex items-center gap-1 min-w-0">
             <h4 className="text-xs font-semibold text-foreground leading-tight line-clamp-1">{toTitleCase(lead.empresa || name || '')}</h4>
             {((lead.source && lead.source.toLowerCase().includes('tráfego pago')) || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
-              <span title="Tráfego Pago"><Instagram className="h-3 w-3 shrink-0 text-pink-500" /></span>
+              <img src={instagramLogo} alt="Tráfego Pago" className="h-3.5 w-3.5 shrink-0" title="Tráfego Pago" />
             )}
           </div>
           {whatsappUrl && (

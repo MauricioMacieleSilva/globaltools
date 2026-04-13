@@ -68,28 +68,55 @@ export function HandoffHistory({ onLeadClick, leads }: HandoffHistoryProps) {
         .select('id, cliente_nome, empresa, client_name, status, valor_estimado, vendedor_id')
         .in('id', leadIds);
 
+      // Load the FIRST contato_inicial for each lead to get the true SDR
+      const { data: firstContacts } = await supabase
+        .from('lead_activities')
+        .select('lead_id, sdr_name, user_id')
+        .eq('activity_type', 'contato_inicial')
+        .in('lead_id', leadIds)
+        .order('created_at', { ascending: true });
+      
+      // Build map: lead_id -> first contact SDR name
+      const firstContactMap: Record<string, { sdr_name: string | null; user_id: string }> = {};
+      (firstContacts || []).forEach(fc => {
+        if (!firstContactMap[fc.lead_id]) {
+          firstContactMap[fc.lead_id] = { sdr_name: (fc as any).sdr_name, user_id: fc.user_id };
+        }
+      });
+
       // Load vendor names for leads that have vendedor_id
       const vendorIds = [...new Set((leadsData || []).filter((l: any) => l.vendedor_id).map((l: any) => l.vendedor_id))] as string[];
-      let vendorMap: Record<string, string> = {};
-      if (vendorIds.length > 0) {
-        const { data: vendors } = await supabase
+      
+      // Also collect user_ids from first contacts that lack sdr_name
+      const profileIdsToLoad = new Set<string>();
+      vendorIds.forEach(id => profileIdsToLoad.add(id));
+      Object.values(firstContactMap).forEach(fc => {
+        if (!fc.sdr_name && fc.user_id) profileIdsToLoad.add(fc.user_id);
+      });
+
+      let profileMap: Record<string, string> = {};
+      if (profileIdsToLoad.size > 0) {
+        const { data: profiles } = await supabase
           .from('user_profiles')
           .select('id, full_name')
-          .in('id', vendorIds);
-        vendorMap = (vendors || []).reduce((acc, v) => ({ ...acc, [v.id]: v.full_name }), {} as Record<string, string>);
+          .in('id', [...profileIdsToLoad]);
+        profileMap = (profiles || []).reduce((acc, v) => ({ ...acc, [v.id]: v.full_name }), {} as Record<string, string>);
       }
 
       const leadMap = (leadsData || []).reduce((acc: any, l: any) => ({ ...acc, [l.id]: l }), {});
 
       const mapped: HandoffRecord[] = activities.map(a => {
         const lead = leadMap[a.lead_id] || null;
+        // SDR = first contact user, not the one who moved to bastão
+        const fc = firstContactMap[a.lead_id];
+        const sdrName = fc?.sdr_name || (fc?.user_id ? profileMap[fc.user_id] : null) || a.sdr_name;
         return {
           id: a.id,
           lead_id: a.lead_id,
-          sdr_name: a.sdr_name,
+          sdr_name: sdrName,
           handoff_date: a.created_at,
           lead,
-          vendedor_name: lead?.vendedor_id ? vendorMap[lead.vendedor_id] || null : null,
+          vendedor_name: lead?.vendedor_id ? profileMap[lead.vendedor_id] || null : null,
         };
       });
 

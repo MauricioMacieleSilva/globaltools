@@ -1,4 +1,5 @@
 
+import instagramLogo from '@/assets/instagram-logo.png';
 import { useEffect, useState, useCallback } from 'react';
 import { OrderDetailDialog } from './OrderDetailDialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -412,7 +413,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const email = lead.contact_email || lead.cliente_email;
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
   const currentStage = CRM_STAGES.find(s => s.key === lead.status);
-  
+
 
   // Find first contact and last contact activities
   const contactActivities = activities.filter(a => a.activity_type === 'contato_inicial');
@@ -445,6 +446,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <SheetHeader>
             <SheetTitle className="text-left flex items-center gap-2">
               {name}
+              {((lead.source && lead.source.toLowerCase().includes('tráfego pago')) || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
+                <img src={instagramLogo} alt="Tráfego Pago" className="h-5 w-5 shrink-0" title="Tráfego Pago" />
+              )}
               {currentStage && (
                 <Badge style={{ backgroundColor: currentStage.color, color: '#fff' }} className="text-[10px]">
                   {currentStage.label}
@@ -793,6 +797,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 {lead.source && (
                   <div className="flex items-center gap-2 text-xs">
                     <span className="font-medium text-muted-foreground">Origem:</span>
+                    {(lead.source.toLowerCase().includes('tráfego pago') || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
+                      <img src={instagramLogo} alt="Tráfego Pago" className="h-4 w-4 shrink-0" />
+                    )}
                     <Badge variant="outline" className="text-[10px]">
                       {lead.source.replace('prospeccao_', 'Prospecção ').replace('google', 'Google').replace('pncp', 'PNCP').replace('brasilapi', 'BrasilAPI').replace('ia', 'IA')}
                     </Badge>

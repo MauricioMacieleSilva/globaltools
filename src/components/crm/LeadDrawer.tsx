@@ -188,7 +188,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     const newMeta = { ...existingMeta, [orderNumber]: orderClientName };
     await (supabase as any).from('leads').update({
       budget_number: newBudgetNumber,
-      valor_estimado: null,
+      valor_estimado: (lead.valor_estimado || 0) + orderValue,
       linked_orders_meta: newMeta,
       updated_at: new Date().toISOString(),
     }).eq('id', lead.id);

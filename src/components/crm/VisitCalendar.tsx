@@ -288,7 +288,6 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
             <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-500/15 border-l-2 border-amber-500" /><span>Follow-up</span></div>
           </div>
         </div>
-      )}
 
       <Dialog open={!!selectedDayVisits} onOpenChange={(v) => { if (!v) setSelectedDayVisits(null); }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">

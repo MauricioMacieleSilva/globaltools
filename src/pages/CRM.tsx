@@ -408,8 +408,8 @@ export default function CRM() {
       return;
     }
 
-    // When admin moves a lead FROM passagem_bastao, open vendor assignment dialog
-    if (lead.status === 'passagem_bastao' && currentUserRole === 'admin' && newStatus !== 'perdido') {
+    // When admin/comercial moves a lead FROM passagem_bastao, open vendor assignment dialog
+    if (lead.status === 'passagem_bastao' && (currentUserRole === 'admin' || currentUserRole === 'comercial') && newStatus !== 'perdido') {
       setPendingPassagemLead(lead);
       setPassagemBastaoOpen(true);
       return;

@@ -28,7 +28,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
   );
   const [cnpj, setCnpj] = useState(lead.cliente_cnpj || '');
   const [regime, setRegime] = useState(lead.regime_tributario || '');
-  const [estado, setEstado] = useState(lead.estado || 'RS');
+  const [estado, setEstado] = useState(lead.estado || '');
   const [cidade, setCidade] = useState(lead.cidade || '');
   const [cidadeSearch, setCidadeSearch] = useState(lead.cidade || '');
   const [showCidadeDropdown, setShowCidadeDropdown] = useState(false);
@@ -51,7 +51,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setSelectedProducts(lead.produto_interesse ? lead.produto_interesse.split(',').map(p => p.trim()).filter(Boolean) : []);
     setCnpj(lead.cliente_cnpj || '');
     setRegime(lead.regime_tributario || '');
-    setEstado(lead.estado || 'RS');
+    setEstado(lead.estado || '');
     setCidade(lead.cidade || '');
     setCidadeSearch(lead.cidade || '');
   }, [lead.id]);

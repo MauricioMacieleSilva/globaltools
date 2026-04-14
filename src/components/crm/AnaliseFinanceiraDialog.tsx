@@ -104,7 +104,7 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
     if (!leadEmpresa) missing.push('Empresa');
     if (!leadCnpj) missing.push('CNPJ');
     if (!leadRamoAtuacao) missing.push('Ramo de Atuação');
-    if (!leadCidade) missing.push('Cidade');
+    
     if (!leadProdutoInteresse) missing.push('Produto de Interesse');
     if (!description.trim()) missing.push('Descrição sobre o cliente ou negociação');
 

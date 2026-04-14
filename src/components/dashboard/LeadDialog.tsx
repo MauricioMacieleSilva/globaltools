@@ -248,9 +248,6 @@ export const LeadDialog: React.FC<LeadDialogProps> = ({ open, onClose, lead, onS
       errors.push("UF é obrigatório");
     }
     
-    if (!formData.cidade.trim()) {
-      errors.push("Cidade é obrigatória");
-    }
     
     if (!formData.source.trim()) {
       errors.push("Fonte do lead é obrigatória");

@@ -392,8 +392,8 @@ export default function CRM() {
       return;
     }
 
-    // Block non-admin from moving leads OUT of passagem_bastao — ONLY admin can assign
-    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin') {
+    // Block non-admin/comercial from moving leads OUT of passagem_bastao — ONLY admin/comercial can assign
+    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin' && currentUserRole !== 'comercial') {
       toast.error('Apenas o administrador pode mover leads da etapa Passagem de Bastão');
       return;
     }
@@ -408,8 +408,8 @@ export default function CRM() {
       return;
     }
 
-    // When admin moves a lead FROM passagem_bastao, open vendor assignment dialog
-    if (lead.status === 'passagem_bastao' && currentUserRole === 'admin' && newStatus !== 'perdido') {
+    // When admin/comercial moves a lead FROM passagem_bastao, open vendor assignment dialog
+    if (lead.status === 'passagem_bastao' && (currentUserRole === 'admin' || currentUserRole === 'comercial') && newStatus !== 'perdido') {
       setPendingPassagemLead(lead);
       setPassagemBastaoOpen(true);
       return;

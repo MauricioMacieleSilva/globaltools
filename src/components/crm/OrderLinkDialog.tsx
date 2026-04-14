@@ -131,8 +131,8 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
           )}
         </ScrollArea>
 
-        <DialogFooter className="flex gap-2 sm:justify-between">
-          <Button variant="ghost" onClick={() => { if (onSkip) onSkip(); else onCancel(); }} className="mr-auto">
+        <DialogFooter className="flex flex-row items-center justify-between gap-2 sm:justify-between">
+          <Button variant="ghost" onClick={() => { if (onSkip) onSkip(); else onCancel(); }}>
             Pular
           </Button>
           <div className="flex gap-2">

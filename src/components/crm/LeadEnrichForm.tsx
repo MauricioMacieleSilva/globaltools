@@ -51,7 +51,7 @@ export function LeadEnrichForm({ lead, onUpdated }: LeadEnrichFormProps) {
     setSelectedProducts(lead.produto_interesse ? lead.produto_interesse.split(',').map(p => p.trim()).filter(Boolean) : []);
     setCnpj(lead.cliente_cnpj || '');
     setRegime(lead.regime_tributario || '');
-    setEstado(lead.estado || 'RS');
+    setEstado(lead.estado || '');
     setCidade(lead.cidade || '');
     setCidadeSearch(lead.cidade || '');
   }, [lead.id]);

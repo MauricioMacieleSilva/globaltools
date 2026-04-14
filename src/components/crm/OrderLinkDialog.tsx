@@ -12,6 +12,7 @@ interface OrderLinkDialogProps {
   targetStage: string;
   onConfirm: (orderNumber: string, orderValue: number, clientName: string) => void;
   onCancel: () => void;
+  onSkip?: () => void;
 }
 
 interface OrderOption {

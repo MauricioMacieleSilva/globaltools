@@ -33,7 +33,7 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
       if (sessionStorage.getItem(sessionKey)) return;
     }
 
-    const isManager = userRole === 'admin' || userRole === 'comercial';
+    const isManager = userRole === 'admin';
 
     // Filter active leads, and by user if not manager
     const activeLeads = leads.filter(l => {
@@ -149,7 +149,7 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
     return 'bg-warning text-warning-foreground';
   };
 
-  const isManager = userRole === 'admin' || userRole === 'comercial';
+  const isManager = userRole === 'admin';
 
   return (
     <>

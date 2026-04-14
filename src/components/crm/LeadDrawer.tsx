@@ -446,7 +446,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           <SheetHeader>
             <SheetTitle className="text-left flex items-center gap-2">
               {name}
-              {((lead.source && lead.source.toLowerCase().includes('tráfego pago')) || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
+              {((lead.source && lead.source.toLowerCase().replace(/[áàã]/g, 'a').includes('trafego pago')) || (lead.origem && lead.origem.toLowerCase().replace(/[áàã]/g, 'a').includes('trafego pago'))) && (
                 <img src={instagramLogo} alt="Tráfego Pago" className="h-5 w-5 shrink-0" title="Tráfego Pago" />
               )}
               {currentStage && (
@@ -797,7 +797,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 {lead.source && (
                   <div className="flex items-center gap-2 text-xs">
                     <span className="font-medium text-muted-foreground">Origem:</span>
-                    {(lead.source.toLowerCase().includes('tráfego pago') || (lead.origem && lead.origem.toLowerCase().includes('tráfego pago'))) && (
+                    {(lead.source.toLowerCase().replace(/[áàã]/g, 'a').includes('trafego pago') || (lead.origem && lead.origem.toLowerCase().replace(/[áàã]/g, 'a').includes('trafego pago'))) && (
                       <img src={instagramLogo} alt="Tráfego Pago" className="h-4 w-4 shrink-0" />
                     )}
                     <Badge variant="outline" className="text-[10px]">

@@ -392,8 +392,8 @@ export default function CRM() {
       return;
     }
 
-    // Block non-admin from moving leads OUT of passagem_bastao — ONLY admin can assign
-    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin') {
+    // Block non-admin/comercial from moving leads OUT of passagem_bastao — ONLY admin/comercial can assign
+    if (lead.status === 'passagem_bastao' && currentUserRole !== 'admin' && currentUserRole !== 'comercial') {
       toast.error('Apenas o administrador pode mover leads da etapa Passagem de Bastão');
       return;
     }

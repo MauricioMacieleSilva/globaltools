@@ -1040,6 +1040,35 @@ export default function CRM() {
         targetStage={pendingOrderStage}
         onConfirm={handleOrderLinked}
         onCancel={() => { setPendingOrderLead(null); setOrderLinkOpen(false); }}
+        onSkip={async () => {
+          if (!pendingOrderLead) return;
+          try {
+            const user = (await supabase.auth.getUser()).data.user;
+            const oldStatus = pendingOrderLead.status;
+            await (supabase as any)
+              .from('leads')
+              .update({ status: pendingOrderStage, updated_at: new Date().toISOString() })
+              .eq('id', pendingOrderLead.id);
+            setLeads(prev => prev.map(l => l.id === pendingOrderLead.id
+              ? { ...l, status: pendingOrderStage, updated_at: new Date().toISOString() }
+              : l
+            ));
+            const oldLabel = STAGE_FULL_LABELS[oldStatus] || oldStatus;
+            const newLabel = STAGE_FULL_LABELS[pendingOrderStage] || pendingOrderStage;
+            await supabase.from('lead_activities').insert({
+              lead_id: pendingOrderLead.id,
+              activity_type: 'mudanca_status',
+              description: `Movido de "${oldLabel}" para "${newLabel}"`,
+              user_id: user?.id || '',
+            } as any);
+            toast.success('Status atualizado', { description: `Lead movido para ${newLabel}` });
+            loadLeads();
+          } catch {
+            toast.error('Erro ao atualizar status');
+          }
+          setPendingOrderLead(null);
+          setOrderLinkOpen(false);
+        }}
       />
 
       {pendingAnaliseLead && (

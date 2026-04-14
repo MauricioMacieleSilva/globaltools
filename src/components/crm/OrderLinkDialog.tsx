@@ -12,6 +12,7 @@ interface OrderLinkDialogProps {
   targetStage: string;
   onConfirm: (orderNumber: string, orderValue: number, clientName: string) => void;
   onCancel: () => void;
+  onSkip?: () => void;
 }
 
 interface OrderOption {
@@ -21,7 +22,7 @@ interface OrderOption {
   situacao: string;
 }
 
-export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, onCancel }: OrderLinkDialogProps) {
+export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, onCancel, onSkip }: OrderLinkDialogProps) {
   const [search, setSearch] = useState('');
   const [orders, setOrders] = useState<OrderOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -130,15 +131,20 @@ export function OrderLinkDialog({ open, onOpenChange, targetStage, onConfirm, on
           )}
         </ScrollArea>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-          <Button disabled={!selected} onClick={() => {
-            if (!selected) return;
-            const order = orders.find(o => o.numeropedido === selected);
-            onConfirm(selected, order?.valor || 0, order?.cliente || '');
-          }}>
-            Confirmar
+        <DialogFooter className="flex gap-2 sm:justify-between">
+          <Button variant="ghost" onClick={() => { if (onSkip) onSkip(); else onCancel(); }} className="mr-auto">
+            Pular
           </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+            <Button disabled={!selected} onClick={() => {
+              if (!selected) return;
+              const order = orders.find(o => o.numeropedido === selected);
+              onConfirm(selected, order?.valor || 0, order?.cliente || '');
+            }}>
+              Confirmar
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

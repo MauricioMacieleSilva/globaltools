@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2 } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
@@ -48,6 +49,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [assigning, setAssigning] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const checkRole = async () => {
@@ -190,6 +192,62 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
   };
 
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const statusMap: Record<string, string> = {
+        lead: 'Lead',
+        contato_feito: 'Contato Feito',
+        passagem_bastao: 'Passagem de Bastão',
+        visita_reuniao: 'Visita/Reunião',
+        analise_financeira: 'Análise Financeira',
+        proposta: 'Proposta',
+        pedido_fechado: 'Pedido Fechado',
+        perdido: 'Perdido',
+      };
+
+      const rows = filtered.map(l => ({
+        'Empresa': l.empresa || l.cliente_nome || '',
+        'Contato': l.contact_name || '',
+        'CNPJ': l.cliente_cnpj || '',
+        'Telefone': l.cliente_telefone || l.contact_phone || '',
+        'E-mail': l.cliente_email || l.contact_email || '',
+        'Cidade': l.cidade || '',
+        'Estado': l.estado || '',
+        'Origem': l.source || l.origem || '',
+        'Ramo de Atuação': l.ramo_atuacao || '',
+        'Produto de Interesse': l.produto_interesse || '',
+        'Status': statusMap[l.status] || l.status,
+        'Valor Estimado': l.valor_estimado || 0,
+        'Temperatura': l.temperatura ?? '',
+        'Nº Lead': l.numero_lead || '',
+        'Nº Orçamento': l.budget_number || '',
+        'Vendedor': l.vendedor?.full_name || '',
+        'Data Abertura': l.data_abertura ? new Date(l.data_abertura).toLocaleDateString('pt-BR') : '',
+        'Última Atualização': l.updated_at ? new Date(l.updated_at).toLocaleDateString('pt-BR') : '',
+        'Observações': l.observacoes || l.notes || '',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      
+      // Auto-size columns
+      const colWidths = Object.keys(rows[0] || {}).map(key => ({
+        wch: Math.max(key.length, ...rows.map(r => String((r as any)[key] || '').length).slice(0, 50)) + 2
+      }));
+      ws['!cols'] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Carteira');
+      XLSX.writeFile(wb, `carteira-leads-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      toast.success('Relatório exportado com sucesso!');
+    } catch {
+      toast.error('Erro ao exportar relatório');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const renderLeadCard = (lead: CRMLead) => {
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
     const isLost = lead.status === 'perdido';
@@ -299,14 +357,27 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
         ))}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={isAdmin ? "Buscar em todos os leads..." : "Buscar na minha carteira..."}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-8"
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={isAdmin ? "Buscar em todos os leads..." : "Buscar na minha carteira..."}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportExcel}
+          disabled={exporting || filtered.length === 0}
+          className="gap-1.5 whitespace-nowrap"
+          title="Exportar carteira em Excel"
+        >
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+          <span className="hidden sm:inline">Exportar</span>
+        </Button>
       </div>
 
       <ScrollArea className="h-[calc(100vh-320px)]">

@@ -49,6 +49,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [assigning, setAssigning] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const checkRole = async () => {

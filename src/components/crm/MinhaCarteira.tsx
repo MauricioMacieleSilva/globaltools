@@ -357,14 +357,27 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
         ))}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={isAdmin ? "Buscar em todos os leads..." : "Buscar na minha carteira..."}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-8"
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={isAdmin ? "Buscar em todos os leads..." : "Buscar na minha carteira..."}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportExcel}
+          disabled={exporting || filtered.length === 0}
+          className="gap-1.5 whitespace-nowrap"
+          title="Exportar carteira em Excel"
+        >
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+          <span className="hidden sm:inline">Exportar</span>
+        </Button>
       </div>
 
       <ScrollArea className="h-[calc(100vh-320px)]">

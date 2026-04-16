@@ -1,83 +1,80 @@
 
-Objetivo: corrigir definitivamente o fluxo de Oportunidade, tornar o SDR do bastão instantâneo e persistente no card, e estabilizar o valor exibido dos pedidos vinculados.
 
-1. Corrigir a movimentação para Oportunidade
-- Remover o bloqueio legado que ainda abre `VisitScheduleDialog` sempre que o status destino é `visita_reuniao`.
-- Manter o comportamento especial apenas quando o lead estiver saindo de `passagem_bastao`, porque aí o admin ainda precisa atribuir vendedor.
-- Para qualquer outro movimento direto para `visita_reuniao`/Oportunidade, atualizar o lead sem abrir formulário.
+# Plano: Enriquecimento de Leads via CNAE e Portais Públicos
 
-2. Persistir no banco os dados do bastão no próprio lead
-- Hoje o front do card consulta `lead_activities` após renderizar, por isso o selo demora, falha e às vezes mostra usuário errado.
-- Vou propor persistir no registro do lead os campos derivados do bastão:
-  - `first_contact_user_id`
-  - `first_contact_name`
-  - `handoff_sdr_user_id`
-  - `handoff_sdr_name`
-- Regra:
-  - `first_contact_*` = sempre o primeiro usuário que fez `contato_inicial`
-  - `handoff_sdr_*` = igual ao primeiro contato apenas se esse usuário tiver role `sdr`
-  - se o primeiro contato foi feito por admin/comercial/operacional, não exibir selo Bastão no card
-- Assim o card, a aba Bastão e demais telas passam a ler do lead diretamente, sem depender de consulta tardia.
+## Objetivo
 
-3. Ajustar gravação automática do primeiro contato
-- Revisar pontos em `CRM.tsx` que hoje inserem `contato_inicial` em movimentações genéricas.
-- Evitar criar “primeiro contato” artificial em transições que não representam atendimento real.
-- Garantir que, no momento em que um `contato_inicial` válido for criado, o lead seja atualizado com os campos persistidos acima.
-- Também incluir rotina de backfill/migração para preencher esses campos nos leads já existentes a partir do histórico de `lead_activities` + `user_roles`.
+Adicionar uma nova fonte de dados ao sistema de prospecção que busca empresas por **CNAE** (código de atividade econômica) e enriquece os leads com dados detalhados extraídos de portais públicos como **CNPJ.biz** (via Firecrawl scraping) e **BrasilAPI**.
 
-4. Corrigir quem aparece no selo Bastão
-- Em `KanbanCard.tsx`, parar de usar consulta ao primeiro `contato_inicial` em tempo de render.
-- Renderizar o selo a partir dos campos persistidos no lead.
-- Exibir somente quando houver SDR real.
-- Isso resolve casos como Nargeli aparecendo indevidamente e casos em que o SDR some após o lead avançar para Oportunidade, Proposta ou Pedido Fechado.
+Os dados extraídos incluirão: razão social, nome fantasia, CNPJ, endereço completo, telefones, email, porte, situação cadastral, situação especial, capital social, natureza jurídica, regime tributário, CNAEs principal e secundários.
 
-5. Corrigir a aba Bastão para nunca “perder” registros
-- `HandoffHistory.tsx` hoje reconstrói tudo por consulta e fallback.
-- Ajustar para usar os dados persistidos no lead para o SDR oficial, mantendo o histórico do evento de passagem apenas para data e auditoria.
-- Garantir que todos os leads enviados por SDR para bastão continuem aparecendo, mesmo após mudança de etapa.
+---
 
-6. Estabilizar o valor do pedido no card
-- Hoje `KanbanCard` usa `lead.valor_estimado`, mas o valor real só é recalculado no drawer, então alguns cards ficam sem valor.
-- Vou unificar a lógica:
-  - ao vincular pedido em `OrderLinkDialog`/`LeadDrawer`, salvar o total correto imediatamente em `valor_estimado`
-  - ao abrir drawer, se houver divergência, atualizar o banco e o estado local
-  - opcionalmente, ao carregar leads, recalcular apenas os que têm `budget_number` sem valor
-- Isso elimina casos como o pedido 1329 da Promosul sem valor no card.
+## O que será feito
 
-7. Banco de dados
-- Será necessária uma migration para adicionar os campos persistidos do bastão/primeiro contato na tabela `leads`.
-- A migration também deve incluir um backfill seguro baseado no histórico existente.
-- Não há necessidade de alterar autenticação nem políticas RLS para esse ajuste, apenas respeitar as policies atuais do CRM.
+### 1. Nova fonte de busca por CNAE
 
-8. Arquivos que devem ser atualizados
-- `src/pages/CRM.tsx`
-- `src/components/crm/KanbanCard.tsx`
-- `src/components/crm/HandoffHistory.tsx`
-- `src/components/crm/LeadDrawer.tsx`
-- possivelmente `src/components/crm/OrderLinkDialog.tsx`
-- migration em `supabase/migrations/*`
+- Adicionar um campo de seleção de **CNAEs relevantes** no painel de prospecção (ex: 46.85-1-00, 24.39-3-00, 25.92-6-02, etc.)
+- Incluir CNAEs pré-configurados para o setor siderúrgico e construção
+- Usar o Firecrawl para buscar no Google por empresas com esses CNAEs na região selecionada (ex: `site:cnpj.biz CNAE "46.85" "RS"`)
 
-Detalhes técnicos
+### 2. Scraping de portais públicos via Firecrawl
+
+- Quando um CNPJ for identificado (via busca CNAE ou qualquer outra fonte), usar o Firecrawl para fazer scrape da página do **cnpj.biz** (`https://cnpj.biz/{cnpj}`)
+- Extrair com IA (Gemini) todos os campos estruturados da página: razão social, situação especial, capital social, CNAEs, endereço, telefones, email
+- Isso complementa o BrasilAPI, que nem sempre retorna todos os dados (ex: situação especial como "Recuperação Judicial")
+
+### 3. Enriquecimento profundo dos leads
+
+- Após a extração via Firecrawl + BrasilAPI, montar um perfil completo do lead com:
+  - Dados cadastrais (razão social, CNPJ, porte, natureza jurídica)
+  - Situação (ativa, inapta, recuperação judicial)
+  - Dados fiscais (MEI, Simples, capital social)
+  - Localização completa (logradouro, bairro, CEP, município, UF)
+  - Contatos (telefones, email)
+  - Atividades (CNAE principal + secundários com descrição)
+- Gravar esses detalhes no campo `notes` do lead de forma estruturada
+
+### 4. UI: Seletor de CNAEs no painel
+
+- Adicionar checkboxes ou multi-select com os CNAEs mais relevantes para o setor
+- Pré-popular com códigos do setor siderúrgico/metalúrgico/construção
+- Checkbox "Buscar por CNAE" como fonte adicional ao lado de Google, PNCP e ObrasGov
+
+---
+
+## Detalhes Técnicos
+
+### Edge Function `prospect-leads/index.ts`
+
+- Nova função `searchByCNAE()` que usa Firecrawl search para encontrar empresas por código CNAE + UF
+- Nova função `scrapeCompanyDetails()` que faz scrape de cnpj.biz via Firecrawl e extrai dados estruturados com IA
+- Aumentar o enriquecimento de CNPJs de 3 para 10 (paralelo)
+- Integrar os dados do scrape no prompt de extração de leads da IA
+
+### Frontend `ProspeccaoPanel.tsx`
+
+- Adicionar checkbox "CNAE" na lista de fontes
+- Adicionar multi-select com CNAEs pré-definidos do setor
+- Os CNAEs selecionados são enviados no body da Edge Function
+
+### CNAEs pré-configurados
+
 ```text
-Fluxo desejado de Oportunidade:
-qualquer etapa -> oportunidade = move direto
-passagem_bastao -> oportunidade = somente admin + atribuição de vendedor
-
-Fonte única do selo Bastão:
-lead.handoff_sdr_name
-
-Regra de exibição:
-se first_contact_user.role === 'sdr' => mostra selo
-senão => não mostra selo
-
-Fonte única do valor do card:
-lead.valor_estimado persistido no banco
+46.85-1-00 - Comércio atacadista de produtos siderúrgicos e metalúrgicos
+24.39-3-00 - Produção de outros tubos de ferro e aço
+25.92-6-02 - Fabricação de produtos de trefilados de metal
+46.89-3-99 - Comércio atacadista especializado em outros produtos
+46.92-3-00 - Comércio atacadista de mercadorias em geral
+24.49-1-99 - Metalurgia de outros metais não-ferrosos
+41.20-4-00 - Construção de edifícios
+42.99-5-99 - Outras obras de engenharia civil
+25.11-0-00 - Fabricação de estruturas metálicas
 ```
 
-Validação após implementação
-- Admin mover lead direto para Oportunidade sem abrir agenda.
-- Lead vindo de Bastão continuar exigindo atribuição de vendedor pelo admin.
-- Cards de bastão mostrarem instantaneamente o SDR correto ao carregar a tela.
-- Nenhum usuário que não seja SDR aparecer como “Bastão”.
-- Leads antigos com histórico já aparecerem corrigidos após backfill.
-- Cards com pedido vinculado exibirem valor sem depender de abrir drawer.
+---
+
+## Resultado esperado
+
+Ao executar a prospecção com CNAE habilitado, o sistema buscará empresas com atividades relevantes na região, fará scrape dos portais públicos e gerará leads com dados muito mais ricos -- incluindo situação especial, capital social, todos os CNAEs, endereço completo e contatos -- tudo automaticamente.
+

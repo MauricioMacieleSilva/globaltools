@@ -469,7 +469,7 @@ Cada lead DEVE ter source_url (copie de "URL_FONTE:") e fonte_dados correto.`;
                         ramo_atuacao: { type: "string" },
                         produto_interesse: { type: "string" },
                         notes: { type: "string" },
-                        fonte_dados: { type: "string", enum: ["Google", "PNCP", "ObrasGov", "BrasilAPI"] },
+                        fonte_dados: { type: "string", enum: ["Google", "PNCP", "ObrasGov", "BrasilAPI", "CNAE"] },
                         valor_estimado: { type: "number" },
                         cliente_telefone: { type: "string" },
                         cliente_email: { type: "string" },

@@ -141,6 +141,7 @@ export default function Chamados() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [comments, setComments] = useState<TicketComment[]>([]);
+  const [ticketAttachments, setTicketAttachments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 

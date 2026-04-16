@@ -151,7 +151,194 @@ async function searchObrasGov(uf: string, maxResults: number): Promise<any[]> {
   }
 }
 
-// ====== SOURCE 4: BrasilAPI - CNPJ enrichment ======
+// ====== SOURCE 4: CNAE Search via Firecrawl ======
+async function searchByCNAE(cnaes: string[], uf: string, maxResults: number): Promise<any[]> {
+  const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!FIRECRAWL_API_KEY) {
+    console.warn("FIRECRAWL_API_KEY not configured, skipping CNAE search");
+    return [];
+  }
+
+  const allResults: any[] = [];
+
+  // Build search queries for each CNAE code
+  for (const cnae of cnaes.slice(0, 5)) {
+    const cnaeShort = cnae.replace(/[.\-]/g, '').slice(0, 4);
+    const query = `site:cnpj.biz CNAE "${cnaeShort}" "${uf}" ativa`;
+    
+    console.log(`🏭 [CNAE] Searching: "${query}"`);
+    try {
+      const response = await fetchWithTimeout("https://api.firecrawl.dev/v2/search", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          limit: Math.min(maxResults, 5),
+          lang: "pt-br",
+          country: "br",
+        }),
+      }, 20000);
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`Firecrawl CNAE error ${response.status}: ${errText}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const results = data?.data ?? [];
+      
+      // Extract CNPJs from cnpj.biz URLs
+      for (const r of results) {
+        const url = r.url || '';
+        const cnpjMatch = url.match(/cnpj\.biz\/(\d{14})/);
+        if (cnpjMatch) {
+          allResults.push({
+            cnpj: cnpjMatch[1],
+            url,
+            title: r.title || '',
+            description: r.description || '',
+            cnae_searched: cnae,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`CNAE search failed for ${cnae}:`, e);
+    }
+  }
+
+  console.log(`🏭 [CNAE] Found ${allResults.length} companies total`);
+  return allResults;
+}
+
+// ====== SOURCE 5: Deep scraping via cnpj.biz + AI extraction ======
+async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
+  const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!FIRECRAWL_API_KEY) return null;
+
+  try {
+    const cleanCnpj = cnpj.replace(/\D/g, "");
+    console.log(`🔬 [Scrape] Scraping cnpj.biz for: ${cleanCnpj}`);
+    
+    const response = await fetchWithTimeout("https://api.firecrawl.dev/v2/scrape", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: `https://cnpj.biz/${cleanCnpj}`,
+        formats: ["markdown"],
+        onlyMainContent: true,
+        waitFor: 2000,
+      }),
+    }, 20000);
+
+    if (!response.ok) {
+      await response.text();
+      return null;
+    }
+
+    const data = await response.json();
+    const markdown = data?.data?.markdown || data?.markdown || '';
+    if (!markdown || markdown.length < 100) return null;
+
+    // Use AI to extract structured data from the markdown
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) return null;
+
+    const aiResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: "Extraia dados empresariais estruturados do conteúdo da página cnpj.biz. Retorne APENAS dados presentes na página." },
+          { role: "user", content: `Extraia os dados da empresa:\n\n${markdown.slice(0, 4000)}` },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "extract_company",
+            description: "Extract structured company data from cnpj.biz page",
+            parameters: {
+              type: "object",
+              properties: {
+                razao_social: { type: "string" },
+                nome_fantasia: { type: "string" },
+                cnpj: { type: "string" },
+                situacao_cadastral: { type: "string" },
+                situacao_especial: { type: "string" },
+                capital_social: { type: "string" },
+                porte: { type: "string" },
+                natureza_juridica: { type: "string" },
+                mei: { type: "boolean" },
+                simples_nacional: { type: "boolean" },
+                cnae_principal_codigo: { type: "string" },
+                cnae_principal_descricao: { type: "string" },
+                cnaes_secundarios: { type: "string" },
+                logradouro: { type: "string" },
+                bairro: { type: "string" },
+                municipio: { type: "string" },
+                uf: { type: "string" },
+                cep: { type: "string" },
+                telefone1: { type: "string" },
+                telefone2: { type: "string" },
+                email: { type: "string" },
+              },
+              required: ["razao_social"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "extract_company" } },
+      }),
+    }, 30000);
+
+    if (!aiResponse.ok) {
+      await aiResponse.text();
+      return null;
+    }
+
+    const aiResult = await aiResponse.json();
+    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      console.log(`✅ [Scrape] Extracted: ${parsed.razao_social} (${parsed.situacao_cadastral || 'N/A'})`);
+      return parsed;
+    }
+  } catch (e) {
+    console.warn(`Scrape failed for ${cnpj}:`, e);
+  }
+  return null;
+}
+
+function buildDeepEnrichmentNotes(scraped: any): string {
+  const parts: string[] = [];
+  if (scraped.situacao_cadastral) parts.push(`Situação: ${scraped.situacao_cadastral}`);
+  if (scraped.situacao_especial) parts.push(`⚠️ Situação Especial: ${scraped.situacao_especial}`);
+  if (scraped.capital_social) parts.push(`Capital Social: ${scraped.capital_social}`);
+  if (scraped.porte) parts.push(`Porte: ${scraped.porte}`);
+  if (scraped.natureza_juridica) parts.push(`Natureza Jurídica: ${scraped.natureza_juridica}`);
+  if (scraped.mei !== undefined) parts.push(`MEI: ${scraped.mei ? 'Sim' : 'Não'}`);
+  if (scraped.simples_nacional !== undefined) parts.push(`Simples: ${scraped.simples_nacional ? 'Sim' : 'Não'}`);
+  if (scraped.cnae_principal_codigo) parts.push(`CNAE Principal: ${scraped.cnae_principal_codigo} - ${scraped.cnae_principal_descricao || ''}`);
+  if (scraped.cnaes_secundarios) parts.push(`CNAEs Sec.: ${scraped.cnaes_secundarios}`);
+  if (scraped.logradouro) {
+    const addr = [scraped.logradouro, scraped.bairro, scraped.municipio, scraped.uf, scraped.cep].filter(Boolean).join(', ');
+    parts.push(`Endereço: ${addr}`);
+  }
+  parts.push('Enriquecido via CNPJ.biz (Firecrawl)');
+  return parts.join(' | ');
+}
+
+// ====== SOURCE 6: BrasilAPI - CNPJ enrichment ======
 async function enrichCNPJ(cnpj: string): Promise<any | null> {
   try {
     const cleanCnpj = cnpj.replace(/\D/g, "");
@@ -232,6 +419,7 @@ REGRAS:
   - Se o bloco começa com [GOOGLE], use fonte_dados = "Google"
   - Se o bloco começa com [PNCP - LICITAÇÃO], use fonte_dados = "PNCP"
   - Se o bloco começa com [OBRASGOV - OBRA PÚBLICA], use fonte_dados = "ObrasGov"
+  - Se o bloco começa com [CNAE - CNPJ.BIZ], use fonte_dados = "CNAE"
   - NÃO misture as fontes. Cada lead deve ter a fonte correta de onde foi extraído.`;
 
   const userPrompt = `Extraia até ${maxLeads} leads reais dos dados abaixo.
@@ -282,7 +470,7 @@ Cada lead DEVE ter source_url (copie de "URL_FONTE:") e fonte_dados correto.`;
                         ramo_atuacao: { type: "string" },
                         produto_interesse: { type: "string" },
                         notes: { type: "string" },
-                        fonte_dados: { type: "string", enum: ["Google", "PNCP", "ObrasGov", "BrasilAPI"] },
+                        fonte_dados: { type: "string", enum: ["Google", "PNCP", "ObrasGov", "BrasilAPI", "CNAE"] },
                         valor_estimado: { type: "number" },
                         cliente_telefone: { type: "string" },
                         cliente_email: { type: "string" },
@@ -353,12 +541,16 @@ serve(async (req) => {
     let bodyConfigId: string | null = null;
     let enabledSources: string[] = ['google', 'pncp', 'obrasgov'];
     let companySearch: string | null = null;
+    let selectedCnaes: string[] = [];
     try {
       const body = await req.json();
       bodyConfigId = body?.config_id ?? null;
       companySearch = body?.company_search?.trim() || null;
       if (Array.isArray(body?.sources) && body.sources.length > 0) {
         enabledSources = body.sources;
+      }
+      if (Array.isArray(body?.cnaes) && body.cnaes.length > 0) {
+        selectedCnaes = body.cnaes;
       }
     } catch { /* no body */ }
 
@@ -637,6 +829,48 @@ serve(async (req) => {
       }
     }
 
+    // ====== SOURCE: CNAE Search via Firecrawl ======
+    let cnaeResults: any[] = [];
+    if (enabledSources.includes('cnae') && selectedCnaes.length > 0 && !companySearch) {
+      for (const uf of estados.slice(0, 2)) {
+        const results = await searchByCNAE(selectedCnaes, uf, 5);
+        cnaeResults.push(...results);
+      }
+
+      // Deep scrape up to 10 companies from CNAE results
+      const uniqueCnpjs = [...new Set(cnaeResults.map(r => r.cnpj))].slice(0, 10);
+      console.log(`🔬 [CNAE] Deep scraping ${uniqueCnpjs.length} companies...`);
+      
+      const scrapePromises = uniqueCnpjs.map(async (cnpj) => {
+        const scraped = await scrapeCompanyDetails(cnpj);
+        if (!scraped) return;
+
+        const notes = buildDeepEnrichmentNotes(scraped);
+        const phone = scraped.telefone1 || scraped.telefone2 || '';
+        const text = [
+          scraped.razao_social && `Razão Social: ${scraped.razao_social}`,
+          scraped.nome_fantasia && `Nome Fantasia: ${scraped.nome_fantasia}`,
+          `CNPJ: ${cnpj}`,
+          scraped.municipio && `Município: ${scraped.municipio}`,
+          scraped.uf && `UF: ${scraped.uf}`,
+          phone && `Telefone: ${phone}`,
+          scraped.email && `Email: ${scraped.email}`,
+          scraped.cnae_principal_descricao && `CNAE Principal: ${scraped.cnae_principal_codigo} - ${scraped.cnae_principal_descricao}`,
+          scraped.porte && `Porte: ${scraped.porte}`,
+          scraped.capital_social && `Capital Social: ${scraped.capital_social}`,
+          scraped.situacao_cadastral && `Situação: ${scraped.situacao_cadastral}`,
+          scraped.situacao_especial && `⚠️ Situação Especial: ${scraped.situacao_especial}`,
+          scraped.simples_nacional !== undefined && `Simples Nacional: ${scraped.simples_nacional ? 'Sim' : 'Não'}`,
+          scraped.cnaes_secundarios && `CNAEs Secundários: ${scraped.cnaes_secundarios}`,
+          notes && `Detalhes: ${notes}`,
+          `URL_FONTE: https://cnpj.biz/${cnpj}`,
+        ].filter(Boolean).join("\n");
+        allSearchResults.push(`[CNAE - CNPJ.BIZ]\n${text}`);
+      });
+
+      await Promise.all(scrapePromises);
+    }
+
     console.log(`📊 Total de resultados coletados: ${allSearchResults.length}`);
 
     if (allSearchResults.length === 0) {
@@ -675,6 +909,9 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
             lead.source_url = `https://www.google.com/search?q=pncp+${encodeURIComponent(cnpjSearch)}+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`;
           } else if (lead.fonte_dados === 'ObrasGov') {
             lead.source_url = `https://obrasgov.sistema.gov.br/obrasgov/painel/projeto-investimento?search=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
+          } else if (lead.fonte_dados === 'CNAE') {
+            const cnpjVal = lead.cliente_cnpj?.replace(/\D/g, '') || '';
+            lead.source_url = cnpjVal ? `https://cnpj.biz/${cnpjVal}` : `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || ''))}`;
           } else {
             lead.source_url = `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '') + ' ' + (lead.cidade || '') + ' ' + (lead.estado || ''))}`;
           }
@@ -682,10 +919,10 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       }
     }
 
-    // Enrich with BrasilAPI (limit to 3)
+    // Enrich with BrasilAPI (limit to 10)
     const leadsToEnrich = generatedLeads.filter(
       (l: any) => l.cliente_cnpj && l.cliente_cnpj.replace(/\D/g, "").length === 14
-    ).slice(0, 3);
+    ).slice(0, 10);
 
     const enrichPromises = leadsToEnrich.map(async (lead: any) => {
       const enriched = await enrichCNPJ(lead.cliente_cnpj);
@@ -788,6 +1025,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         google_results: googleResults.flat().length,
         pncp_results: pncpResults.flat().length,
         obrasgov_results: obrasgovResults.flat().length,
+        cnae_results: cnaeResults.length,
         enriched_cnpjs: leadsToEnrich.length,
       },
     };

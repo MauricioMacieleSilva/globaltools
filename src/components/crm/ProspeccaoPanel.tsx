@@ -80,6 +80,20 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [ramoSearch, setRamoSearch] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp', 'obrasgov']);
   const [companySearch, setCompanySearch] = useState('');
+  const [selectedCnaes, setSelectedCnaes] = useState<string[]>([]);
+  const [cnaePopoverOpen, setCnaePopoverOpen] = useState(false);
+
+  const CNAE_OPTIONS = [
+    { code: '46.85-1-00', label: 'Comércio atacadista de produtos siderúrgicos' },
+    { code: '24.39-3-00', label: 'Produção de tubos de ferro e aço' },
+    { code: '25.92-6-02', label: 'Fabricação de trefilados de metal' },
+    { code: '25.11-0-00', label: 'Fabricação de estruturas metálicas' },
+    { code: '46.89-3-99', label: 'Comércio atacadista especializado' },
+    { code: '46.92-3-00', label: 'Comércio atacadista de mercadorias em geral' },
+    { code: '24.49-1-99', label: 'Metalurgia de outros metais não-ferrosos' },
+    { code: '41.20-4-00', label: 'Construção de edifícios' },
+    { code: '42.99-5-99', label: 'Outras obras de engenharia civil' },
+  ];
 
   // Detect role
   useEffect(() => {
@@ -251,7 +265,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
       }
 
       const { data, error } = await supabase.functions.invoke('prospect-leads', {
-        body: { config_id: configId, sources: getSelectedSourcesForRun(), company_search: companySearch.trim() || undefined },
+        body: { config_id: configId, sources: getSelectedSourcesForRun(), company_search: companySearch.trim() || undefined, cnaes: selectedCnaes.length > 0 ? selectedCnaes : undefined },
       });
 
       if (error) throw error;
@@ -578,8 +592,80 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
                   />
                   ObrasGov (Obras Federais)
                 </label>
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={selectedSources.includes('cnae')}
+                    onCheckedChange={(checked) => {
+                      setSelectedSources(prev => checked ? [...prev, 'cnae'] : prev.filter(s => s !== 'cnae'));
+                      if (!checked) setSelectedCnaes([]);
+                    }}
+                    className="h-3.5 w-3.5"
+                  />
+                  CNAE (CNPJ.biz)
+                </label>
               </div>
             </div>
+
+            {/* CNAEs Selection - shown when CNAE source is enabled */}
+            {selectedSources.includes('cnae') && (
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">CNAEs de Interesse</Label>
+                <Popover open={cnaePopoverOpen} onOpenChange={setCnaePopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between h-8 text-xs font-normal"
+                    >
+                      <span className="truncate">
+                        {selectedCnaes.length > 0
+                          ? `${selectedCnaes.length} CNAE${selectedCnaes.length > 1 ? 's' : ''} selecionado${selectedCnaes.length > 1 ? 's' : ''}`
+                          : 'Selecionar CNAEs...'}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1.5" align="start">
+                    <div className="max-h-52 overflow-y-auto space-y-0.5">
+                      {CNAE_OPTIONS.map(cnae => (
+                        <label key={cnae.code} className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-accent/50 rounded px-1.5 py-1">
+                          <Checkbox
+                            checked={selectedCnaes.includes(cnae.code)}
+                            onCheckedChange={() => {
+                              setSelectedCnaes(prev =>
+                                prev.includes(cnae.code)
+                                  ? prev.filter(c => c !== cnae.code)
+                                  : [...prev, cnae.code]
+                              );
+                            }}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span><strong>{cnae.code}</strong> – {cnae.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {selectedCnaes.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedCnaes.map(code => {
+                      const cnae = CNAE_OPTIONS.find(c => c.code === code);
+                      return (
+                        <Badge key={code} variant="secondary" className="text-[10px] h-5 gap-0.5 px-1.5">
+                          {code}
+                          <button onClick={() => setSelectedCnaes(prev => prev.filter(c => c !== code))}>
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  Busca empresas por código de atividade econômica e enriquece com dados do CNPJ.biz
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">

@@ -702,7 +702,7 @@ export default function Chamados() {
                                 <span className="text-xs font-medium">{c.user_name}</span>
                                 <span className="text-[10px] text-muted-foreground">{format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
                               </div>
-                              <p className="text-sm mt-0.5">{c.content}</p>
+                              <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{c.content}</p>
                             </div>
                           </div>
                         ))}
@@ -710,15 +710,16 @@ export default function Chamados() {
 
                       {/* Add comment */}
                       {selectedTicket.status !== 'cancelado' && (
-                        <div className="flex gap-2 mt-3">
-                          <Input
+                        <div className="flex gap-2 mt-3 items-end">
+                          <Textarea
                             placeholder="Escreva um comentário..."
                             value={newComment}
                             onChange={e => setNewComment(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
-                            className="text-sm"
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
+                            className="text-sm min-h-[80px] resize-none"
+                            rows={3}
                           />
-                          <Button size="sm" onClick={handleAddComment} disabled={sendingComment || !newComment.trim()}>
+                          <Button size="sm" className="shrink-0 h-10" onClick={handleAddComment} disabled={sendingComment || !newComment.trim()}>
                             {sendingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           </Button>
                         </div>

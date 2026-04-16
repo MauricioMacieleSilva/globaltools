@@ -688,10 +688,7 @@ export default function Chamados() {
                       <h4 className="text-sm font-medium flex items-center gap-1.5 mb-3">
                         <MessageSquare className="h-4 w-4" /> Comentários
                       </h4>
-                      <div className="space-y-3">
-                        {comments.length === 0 && (
-                          <p className="text-xs text-muted-foreground text-center py-3">Nenhum comentário ainda</p>
-                        )}
+                      <div className="space-y-3 max-h-[200px] overflow-y-auto">
                         {comments.map(c => (
                           <div key={c.id} className="flex gap-2">
                             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">

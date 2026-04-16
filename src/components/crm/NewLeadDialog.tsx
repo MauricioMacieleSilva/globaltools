@@ -94,6 +94,120 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   const { toast } = useToast();
   const { data: comercialData } = useComercial();
 
+  // Duplicate detection state
+  interface DuplicateMatch {
+    type: 'lead' | 'cliente';
+    name: string;
+    matchField: string;
+    matchValue: string;
+    status?: string;
+  }
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const debouncedPhone = useDebounce(form.cliente_telefone, 500);
+  const debouncedCnpj = useDebounce(form.cliente_cnpj, 500);
+
+  const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
+  const normalizeCnpj = (cnpj: string) => cnpj.replace(/\D/g, '');
+
+  const checkDuplicates = useCallback(async () => {
+    const phone = normalizePhone(debouncedPhone);
+    const cnpj = normalizeCnpj(debouncedCnpj);
+    if (phone.length < 8 && cnpj.length < 11) {
+      setDuplicateMatches([]);
+      return;
+    }
+
+    const matches: DuplicateMatch[] = [];
+
+    try {
+      // Check leads
+      if (phone.length >= 8) {
+        const { data: phoneLeads } = await (supabase as any)
+          .from('leads')
+          .select('id, cliente_nome, empresa, cliente_telefone, contact_phone, status')
+          .or(`cliente_telefone.ilike.%${phone.slice(-8)}%,contact_phone.ilike.%${phone.slice(-8)}%`)
+          .limit(5);
+        (phoneLeads || []).forEach((l: any) => {
+          if (!selectedLead || l.id !== selectedLead.id) {
+            matches.push({
+              type: 'lead',
+              name: l.empresa || l.cliente_nome,
+              matchField: 'Telefone',
+              matchValue: l.cliente_telefone || l.contact_phone || '',
+              status: l.status,
+            });
+          }
+        });
+      }
+
+      if (cnpj.length >= 11) {
+        const { data: cnpjLeads } = await (supabase as any)
+          .from('leads')
+          .select('id, cliente_nome, empresa, cliente_cnpj, status')
+          .ilike('cliente_cnpj', `%${cnpj}%`)
+          .limit(5);
+        (cnpjLeads || []).forEach((l: any) => {
+          if ((!selectedLead || l.id !== selectedLead.id) && !matches.some(m => m.type === 'lead' && m.name === (l.empresa || l.cliente_nome))) {
+            matches.push({
+              type: 'lead',
+              name: l.empresa || l.cliente_nome,
+              matchField: 'CNPJ',
+              matchValue: l.cliente_cnpj || '',
+              status: l.status,
+            });
+          }
+        });
+      }
+
+      // Check clients table
+      if (phone.length >= 8) {
+        const { data: phoneClients } = await (supabase as any)
+          .from('clientes')
+          .select('id, nome, telefone')
+          .ilike('telefone', `%${phone.slice(-8)}%`)
+          .limit(5);
+        (phoneClients || []).forEach((c: any) => {
+          if (!matches.some(m => m.name === c.nome)) {
+            matches.push({
+              type: 'cliente',
+              name: c.nome,
+              matchField: 'Telefone',
+              matchValue: c.telefone || '',
+            });
+          }
+        });
+      }
+
+      if (cnpj.length >= 11) {
+        const { data: cnpjClients } = await (supabase as any)
+          .from('clientes')
+          .select('id, nome, cnpj')
+          .ilike('cnpj', `%${cnpj}%`)
+          .limit(5);
+        (cnpjClients || []).forEach((c: any) => {
+          if (!matches.some(m => m.name === c.nome)) {
+            matches.push({
+              type: 'cliente',
+              name: c.nome,
+              matchField: 'CNPJ',
+              matchValue: c.cnpj || '',
+            });
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao verificar duplicatas:', err);
+    }
+
+    setDuplicateMatches(matches);
+  }, [debouncedPhone, debouncedCnpj, selectedLead]);
+
+  useEffect(() => {
+    if (open) {
+      checkDuplicates();
+    }
+  }, [debouncedPhone, debouncedCnpj, open, checkDuplicates]);
+
   const clientesDaBaseComercial = useMemo(() => {
     if (!comercialData?.length) return [] as Cliente[];
     const map = new Map<string, Cliente>();

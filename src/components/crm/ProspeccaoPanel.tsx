@@ -80,6 +80,20 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
   const [ramoSearch, setRamoSearch] = useState('');
   const [selectedSources, setSelectedSources] = useState<string[]>(['google', 'pncp', 'obrasgov']);
   const [companySearch, setCompanySearch] = useState('');
+  const [selectedCnaes, setSelectedCnaes] = useState<string[]>([]);
+  const [cnaePopoverOpen, setCnaePopoverOpen] = useState(false);
+
+  const CNAE_OPTIONS = [
+    { code: '46.85-1-00', label: 'Comércio atacadista de produtos siderúrgicos' },
+    { code: '24.39-3-00', label: 'Produção de tubos de ferro e aço' },
+    { code: '25.92-6-02', label: 'Fabricação de trefilados de metal' },
+    { code: '25.11-0-00', label: 'Fabricação de estruturas metálicas' },
+    { code: '46.89-3-99', label: 'Comércio atacadista especializado' },
+    { code: '46.92-3-00', label: 'Comércio atacadista de mercadorias em geral' },
+    { code: '24.49-1-99', label: 'Metalurgia de outros metais não-ferrosos' },
+    { code: '41.20-4-00', label: 'Construção de edifícios' },
+    { code: '42.99-5-99', label: 'Outras obras de engenharia civil' },
+  ];
 
   // Detect role
   useEffect(() => {

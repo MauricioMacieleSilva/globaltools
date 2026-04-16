@@ -601,7 +601,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
                     }}
                     className="h-3.5 w-3.5"
                   />
-                  CNAE (CNPJ.biz)
+                  CNAE (CNPJá)
                 </label>
               </div>
             </div>
@@ -662,7 +662,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
                   </div>
                 )}
                 <p className="text-[10px] text-muted-foreground">
-                  Busca empresas por código de atividade econômica e enriquece com dados do CNPJ.biz
+                  Busca empresas por código de atividade econômica e enriquece com dados completos do CNPJá (Razão Social, situação, regime tributário, sócios, CNAEs, endereço, contatos)
                 </p>
               </div>
             )}

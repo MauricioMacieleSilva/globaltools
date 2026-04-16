@@ -164,7 +164,7 @@ async function searchByCNAE(cnaes: string[], uf: string, maxResults: number): Pr
   // Build search queries for each CNAE code
   for (const cnae of cnaes.slice(0, 5)) {
     const cnaeShort = cnae.replace(/[.\-]/g, '').slice(0, 4);
-    const query = `site:cnpj.biz CNAE "${cnaeShort}" "${uf}" ativa`;
+    const query = `site:cnpja.com CNAE "${cnaeShort}" "${uf}" ativa`;
     
     console.log(`🏭 [CNAE] Searching: "${query}"`);
     try {
@@ -191,10 +191,11 @@ async function searchByCNAE(cnaes: string[], uf: string, maxResults: number): Pr
       const data = await response.json();
       const results = data?.data ?? [];
       
-      // Extract CNPJs from cnpj.biz URLs
+      // Extract CNPJs from cnpja.com URLs (supports plain or formatted CNPJ in path)
       for (const r of results) {
         const url = r.url || '';
-        const cnpjMatch = url.match(/cnpj\.biz\/(\d{14})/);
+        const cnpjMatch = url.match(/cnpja\.com\/(?:office\/)?([\d.\-\/]{14,18})/);
+        if (cnpjMatch) cnpjMatch[1] = cnpjMatch[1].replace(/\D/g, '');
         if (cnpjMatch) {
           allResults.push({
             cnpj: cnpjMatch[1],
@@ -214,14 +215,20 @@ async function searchByCNAE(cnaes: string[], uf: string, maxResults: number): Pr
   return allResults;
 }
 
-// ====== SOURCE 5: Deep scraping via cnpj.biz + AI extraction ======
+// ====== SOURCE 5: Deep scraping via cnpja.com + AI extraction ======
+function formatCnpjMask(cnpj: string): string {
+  const c = cnpj.replace(/\D/g, '').padStart(14, '0');
+  return `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12,14)}`;
+}
+
 async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
   const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
   if (!FIRECRAWL_API_KEY) return null;
 
   try {
     const cleanCnpj = cnpj.replace(/\D/g, "");
-    console.log(`🔬 [Scrape] Scraping cnpj.biz for: ${cleanCnpj}`);
+    const maskedCnpj = formatCnpjMask(cleanCnpj);
+    console.log(`🔬 [Scrape] Scraping cnpja.com for: ${maskedCnpj}`);
     
     const response = await fetchWithTimeout("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
@@ -230,12 +237,12 @@ async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        url: `https://cnpj.biz/${cleanCnpj}`,
+        url: `https://cnpja.com/office/${maskedCnpj}`,
         formats: ["markdown"],
         onlyMainContent: true,
-        waitFor: 2000,
+        waitFor: 2500,
       }),
-    }, 20000);
+    }, 25000);
 
     if (!response.ok) {
       await response.text();
@@ -259,31 +266,33 @@ async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Extraia dados empresariais estruturados do conteúdo da página cnpj.biz. Retorne APENAS dados presentes na página." },
-          { role: "user", content: `Extraia os dados da empresa:\n\n${markdown.slice(0, 4000)}` },
+          { role: "system", content: "Extraia dados empresariais estruturados do conteúdo da página cnpja.com (CNPJá). A página mostra no topo: Razão Social, situação cadastral (Ativa/Baixada/Suspensa), data de abertura, natureza jurídica, endereço completo, e à direita o Regime Tributário (Lucro Real/Presumido/Simples Nacional/MEI) e Sócios e Administradores. Mais abaixo aparecem as Atividades Econômicas (CNAE Principal e Secundárias). Retorne APENAS dados presentes na página." },
+          { role: "user", content: `Extraia os dados da empresa:\n\n${markdown.slice(0, 5000)}` },
         ],
         tools: [{
           type: "function",
           function: {
             name: "extract_company",
-            description: "Extract structured company data from cnpj.biz page",
+            description: "Extract structured company data from cnpja.com page",
             parameters: {
               type: "object",
               properties: {
                 razao_social: { type: "string" },
                 nome_fantasia: { type: "string" },
                 cnpj: { type: "string" },
-                situacao_cadastral: { type: "string" },
+                situacao_cadastral: { type: "string", description: "Ex: Ativa, Baixada, Suspensa, Inapta" },
                 situacao_especial: { type: "string" },
+                data_abertura: { type: "string", description: "Data de início da atividade no formato DD/MM/AAAA" },
                 capital_social: { type: "string" },
                 porte: { type: "string" },
                 natureza_juridica: { type: "string" },
+                regime_tributario: { type: "string", description: "Regime tributário exibido no painel direito: 'Lucro Real ou Presumido', 'Simples Nacional', 'MEI', etc." },
                 mei: { type: "boolean" },
                 simples_nacional: { type: "boolean" },
                 cnae_principal_codigo: { type: "string" },
                 cnae_principal_descricao: { type: "string" },
-                cnaes_secundarios: { type: "string" },
-                logradouro: { type: "string" },
+                cnaes_secundarios: { type: "string", description: "Lista separada por vírgula dos CNAEs secundários (código + descrição)" },
+                logradouro: { type: "string", description: "Rua, avenida, número e complemento" },
                 bairro: { type: "string" },
                 municipio: { type: "string" },
                 uf: { type: "string" },
@@ -291,6 +300,7 @@ async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
                 telefone1: { type: "string" },
                 telefone2: { type: "string" },
                 email: { type: "string" },
+                socios: { type: "string", description: "Nomes dos sócios e administradores listados, separados por vírgula" },
               },
               required: ["razao_social"],
               additionalProperties: false,
@@ -323,18 +333,21 @@ function buildDeepEnrichmentNotes(scraped: any): string {
   const parts: string[] = [];
   if (scraped.situacao_cadastral) parts.push(`Situação: ${scraped.situacao_cadastral}`);
   if (scraped.situacao_especial) parts.push(`⚠️ Situação Especial: ${scraped.situacao_especial}`);
+  if (scraped.data_abertura) parts.push(`Abertura: ${scraped.data_abertura}`);
   if (scraped.capital_social) parts.push(`Capital Social: ${scraped.capital_social}`);
   if (scraped.porte) parts.push(`Porte: ${scraped.porte}`);
   if (scraped.natureza_juridica) parts.push(`Natureza Jurídica: ${scraped.natureza_juridica}`);
+  if (scraped.regime_tributario) parts.push(`Regime: ${scraped.regime_tributario}`);
   if (scraped.mei !== undefined) parts.push(`MEI: ${scraped.mei ? 'Sim' : 'Não'}`);
   if (scraped.simples_nacional !== undefined) parts.push(`Simples: ${scraped.simples_nacional ? 'Sim' : 'Não'}`);
   if (scraped.cnae_principal_codigo) parts.push(`CNAE Principal: ${scraped.cnae_principal_codigo} - ${scraped.cnae_principal_descricao || ''}`);
   if (scraped.cnaes_secundarios) parts.push(`CNAEs Sec.: ${scraped.cnaes_secundarios}`);
+  if (scraped.socios) parts.push(`Sócios: ${scraped.socios}`);
   if (scraped.logradouro) {
     const addr = [scraped.logradouro, scraped.bairro, scraped.municipio, scraped.uf, scraped.cep].filter(Boolean).join(', ');
     parts.push(`Endereço: ${addr}`);
   }
-  parts.push('Enriquecido via CNPJ.biz (Firecrawl)');
+  parts.push('Enriquecido via CNPJá (Firecrawl)');
   return parts.join(' | ');
 }
 
@@ -419,7 +432,7 @@ REGRAS:
   - Se o bloco começa com [GOOGLE], use fonte_dados = "Google"
   - Se o bloco começa com [PNCP - LICITAÇÃO], use fonte_dados = "PNCP"
   - Se o bloco começa com [OBRASGOV - OBRA PÚBLICA], use fonte_dados = "ObrasGov"
-  - Se o bloco começa com [CNAE - CNPJ.BIZ], use fonte_dados = "CNAE"
+  - Se o bloco começa com [CNAE - CNPJÁ], use fonte_dados = "CNAE"
   - NÃO misture as fontes. Cada lead deve ter a fonte correta de onde foi extraído.`;
 
   const userPrompt = `Extraia até ${maxLeads} leads reais dos dados abaixo.
@@ -863,9 +876,9 @@ serve(async (req) => {
           scraped.simples_nacional !== undefined && `Simples Nacional: ${scraped.simples_nacional ? 'Sim' : 'Não'}`,
           scraped.cnaes_secundarios && `CNAEs Secundários: ${scraped.cnaes_secundarios}`,
           notes && `Detalhes: ${notes}`,
-          `URL_FONTE: https://cnpj.biz/${cnpj}`,
+          `URL_FONTE: https://cnpja.com/office/${formatCnpjMask(cnpj)}`,
         ].filter(Boolean).join("\n");
-        allSearchResults.push(`[CNAE - CNPJ.BIZ]\n${text}`);
+        allSearchResults.push(`[CNAE - CNPJÁ]\n${text}`);
       });
 
       await Promise.all(scrapePromises);
@@ -911,7 +924,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
             lead.source_url = `https://obrasgov.sistema.gov.br/obrasgov/painel/projeto-investimento?search=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
           } else if (lead.fonte_dados === 'CNAE') {
             const cnpjVal = lead.cliente_cnpj?.replace(/\D/g, '') || '';
-            lead.source_url = cnpjVal ? `https://cnpj.biz/${cnpjVal}` : `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || ''))}`;
+            lead.source_url = cnpjVal ? `https://cnpja.com/office/${formatCnpjMask(cnpjVal)}` : `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || ''))}`;
           } else {
             lead.source_url = `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '') + ' ' + (lead.cidade || '') + ' ' + (lead.estado || ''))}`;
           }
@@ -919,7 +932,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       }
     }
 
-    // Enrich with BrasilAPI + Deep scrape via cnpj.biz (ALL leads with valid CNPJ, limit 10)
+    // Enrich with BrasilAPI + Deep scrape via CNPJá (ALL leads with valid CNPJ, limit 10)
     const leadsToEnrich = generatedLeads.filter(
       (l: any) => l.cliente_cnpj && l.cliente_cnpj.replace(/\D/g, "").length === 14
     ).slice(0, 10);
@@ -964,7 +977,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         lead.notes = (lead.notes || "") + " | " + enrichNotes.join(' | ');
       }
 
-      // 2. Deep scrape via cnpj.biz for ALL leads (not just CNAE source)
+      // 2. Deep scrape via CNPJá for ALL leads (rich top-of-page data)
       const cleanCnpj = lead.cliente_cnpj.replace(/\D/g, "");
       const scraped = await scrapeCompanyDetails(cleanCnpj);
       if (scraped) {
@@ -978,15 +991,25 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         if (!lead.empresa && scraped.nome_fantasia) {
           lead.empresa = scraped.nome_fantasia;
         }
+        if (!lead.cliente_nome && scraped.razao_social) {
+          lead.cliente_nome = scraped.razao_social;
+        }
         if (!lead.cidade && scraped.municipio) {
           lead.cidade = scraped.municipio;
         }
         if (!lead.estado && scraped.uf) {
           lead.estado = scraped.uf;
         }
-        if (!lead.regime_tributario) {
+        // Prefer explicit regime from CNPJá panel
+        if (scraped.regime_tributario) {
+          lead.regime_tributario = scraped.regime_tributario;
+        } else if (!lead.regime_tributario) {
           if (scraped.mei) lead.regime_tributario = 'MEI';
           else if (scraped.simples_nacional) lead.regime_tributario = 'Simples Nacional';
+        }
+        // Map CNAE principal description as ramo if missing
+        if (!lead.ramo_atuacao && scraped.cnae_principal_descricao) {
+          lead.ramo_atuacao = scraped.cnae_principal_descricao;
         }
 
         // Append deep enrichment notes
@@ -995,8 +1018,8 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
           lead.notes = (lead.notes || "") + " | " + deepNotes;
         }
 
-        // Always set cnpj.biz link as source_url for easy access
-        lead.source_url = `https://cnpj.biz/${cleanCnpj}`;
+        // Always set CNPJá link as source_url for easy access
+        lead.source_url = `https://cnpja.com/office/${formatCnpjMask(cleanCnpj)}`;
       }
     });
 

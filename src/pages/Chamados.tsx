@@ -134,6 +134,7 @@ export default function Chamados() {
   const [newValor, setNewValor] = useState('');
   const [newClientName, setNewClientName] = useState('');
   const [newClientCnpj, setNewClientCnpj] = useState('');
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
 
   // Detail dialog

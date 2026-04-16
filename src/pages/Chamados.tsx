@@ -99,7 +99,7 @@ function SLAIndicator({ deadline, status }: { deadline: string | null; status: s
     return (
       <Badge variant="outline" className="text-destructive border-destructive text-[10px] gap-1">
         <AlertTriangle className="h-3 w-3" />
-        {overHours > 0 ? `${overHours}h atrasado` : `${overMinutes}min atrasado`}
+        {overHours > 0 ? `${overHours}h ${overMinutes % 60}min atrasado` : `${overMinutes}min atrasado`}
       </Badge>
     );
   }
@@ -110,7 +110,7 @@ function SLAIndicator({ deadline, status }: { deadline: string | null; status: s
       minutesLeft < 60 ? "text-orange-500 border-orange-300" : "text-emerald-600 border-emerald-300"
     )}>
       <Clock className="h-3 w-3" />
-      {hoursLeft > 0 ? `${hoursLeft}h restantes` : `${minutesLeft}min restantes`}
+      {hoursLeft > 0 ? `${hoursLeft}h ${minutesLeft % 60}min restantes` : `${minutesLeft}min restantes`}
     </Badge>
   );
 }

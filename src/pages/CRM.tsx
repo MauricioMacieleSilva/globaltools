@@ -986,6 +986,10 @@ export default function CRM() {
         <TabsContent value="concorrencia" className="mt-3 overflow-y-auto flex-1">
           <CompetitorProposalsView />
         </TabsContent>
+
+        <TabsContent value="relatorio" className="mt-3 overflow-y-auto flex-1">
+          <CRMReport leads={leads} onLeadClick={openLeadDrawer} followUps={pendingFollowUps} />
+        </TabsContent>
       </Tabs>
 
       <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />

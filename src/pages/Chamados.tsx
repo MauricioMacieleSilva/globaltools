@@ -630,6 +630,33 @@ export default function Chamados() {
                       )}
                     </div>
 
+                    {/* Attachments */}
+                    {ticketAttachments.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium flex items-center gap-1.5">
+                          <Paperclip className="h-4 w-4" /> Anexos ({ticketAttachments.length})
+                        </h4>
+                        <div className="space-y-1">
+                          {ticketAttachments.map((att: any) => (
+                            <a
+                              key={att.id}
+                              href={att.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1.5 hover:bg-accent transition-colors group"
+                            >
+                              <FileText className="h-3 w-3 shrink-0 text-primary" />
+                              <span className="truncate flex-1">{att.file_name}</span>
+                              {att.file_size && (
+                                <span className="text-[10px] text-muted-foreground shrink-0">{(att.file_size / 1024).toFixed(0)} KB</span>
+                              )}
+                              <Download className="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Status actions (financeiro only) */}
                     {isFinanceiro && selectedTicket.status !== 'concluido' && selectedTicket.status !== 'cancelado' && (
                       <div className="flex gap-2 flex-wrap">

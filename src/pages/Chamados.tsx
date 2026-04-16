@@ -189,7 +189,7 @@ export default function Chamados() {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { error } = await (supabase as any).from('tickets').insert({
+      const { data: ticketData, error } = await (supabase as any).from('tickets').insert({
         title: newTitle.trim(),
         description: newDescription.trim() || null,
         category_id: newCategoryId,
@@ -199,13 +199,36 @@ export default function Chamados() {
         requester_name: userProfile?.full_name || user.email || '',
         client_name: newClientName.trim() || null,
         client_cnpj: newClientCnpj.trim() || null,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Upload attachments
+      if (newFiles.length > 0 && ticketData?.id) {
+        for (const file of newFiles) {
+          const ext = file.name.split('.').pop();
+          const filePath = `${ticketData.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('ticket-attachments')
+            .upload(filePath, file);
+          if (uploadErr) { console.error('Upload error:', uploadErr); continue; }
+          const { data: urlData } = supabase.storage.from('ticket-attachments').getPublicUrl(filePath);
+          await (supabase as any).from('ticket_attachments').insert({
+            ticket_id: ticketData.id,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: user.id,
+            uploaded_by_name: userProfile?.full_name || '',
+          });
+        }
+      }
+
       toast.success('Chamado criado com sucesso!');
       setNewTicketOpen(false);
       setNewTitle(''); setNewDescription(''); setNewCategoryId(''); setNewPriority('media');
-      setNewValor(''); setNewClientName(''); setNewClientCnpj('');
+      setNewValor(''); setNewClientName(''); setNewClientCnpj(''); setNewFiles([]);
       loadTickets();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar chamado');

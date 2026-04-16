@@ -189,7 +189,13 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     const origin = lead.source === 'upload' ? (lead.fonte_dados || 'Upload Excel') : (lead.fonte_dados || 'Auto Prospecção');
 
     // Build origem with detail
-    const origemDetail = lead.fonte_dados === 'CNAE' ? 'Prospecção CNAE (CNPJ.biz)' : origin;
+    const origemDetail = lead.fonte_dados === 'CNAE' ? 'Prospecção CNAE (CNPJá)' : origin;
+
+    const cnpjClean = lead.cliente_cnpj?.replace(/\D/g, '') || '';
+    const cnpjMasked = cnpjClean.length === 14
+      ? `${cnpjClean.slice(0,2)}.${cnpjClean.slice(2,5)}.${cnpjClean.slice(5,8)}/${cnpjClean.slice(8,12)}-${cnpjClean.slice(12,14)}`
+      : '';
+    const cnpjaUrl = cnpjMasked ? `https://cnpja.com/office/${cnpjMasked}` : null;
 
     const { error } = await (supabase as any).from('leads').insert({
       cliente_nome: contactName || empresaNome,
@@ -209,7 +215,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       notes: lead.notes || null,
       source: origin,
       origem: origemDetail,
-      website: lead.source_url || (lead.cliente_cnpj ? `https://cnpj.biz/${lead.cliente_cnpj.replace(/\D/g, '')}` : null),
+      website: lead.source_url || cnpjaUrl,
       regime_tributario: (lead as any).regime_tributario || null,
       status: 'lead',
       vendedor_id: vendorId || user?.id,
@@ -388,18 +394,22 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
               Ver fonte
             </a>
           )}
-          {lead.cliente_cnpj && !lead.source_url?.includes('cnpj.biz') && (
-            <a
-              href={`https://cnpj.biz/${lead.cliente_cnpj.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="h-2.5 w-2.5" />
-              CNPJ.biz
-            </a>
-          )}
+          {lead.cliente_cnpj && !lead.source_url?.includes('cnpja.com') && (() => {
+            const c = lead.cliente_cnpj.replace(/\D/g, '');
+            const masked = c.length === 14 ? `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12,14)}` : c;
+            return (
+              <a
+                href={`https://cnpja.com/office/${masked}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-2.5 w-2.5" />
+                CNPJá
+              </a>
+            );
+          })()}
         </div>
 
         {lead.contact_name && (

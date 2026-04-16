@@ -919,49 +919,85 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       }
     }
 
-    // Enrich with BrasilAPI (limit to 10)
+    // Enrich with BrasilAPI + Deep scrape via cnpj.biz (ALL leads with valid CNPJ, limit 10)
     const leadsToEnrich = generatedLeads.filter(
       (l: any) => l.cliente_cnpj && l.cliente_cnpj.replace(/\D/g, "").length === 14
     ).slice(0, 10);
 
     const enrichPromises = leadsToEnrich.map(async (lead: any) => {
+      // 1. BrasilAPI enrichment
       const enriched = await enrichCNPJ(lead.cliente_cnpj);
-      if (!enriched) return;
+      if (enriched) {
+        lead.cliente_nome = enriched.razao_social || lead.cliente_nome;
+        lead.empresa = enriched.nome_fantasia || lead.empresa;
 
-      lead.cliente_nome = enriched.razao_social || lead.cliente_nome;
-      lead.empresa = enriched.nome_fantasia || lead.empresa;
+        const phone = formatBrasilAPIPhone(enriched.ddd_telefone_1);
+        if (phone) lead.cliente_telefone = phone;
+        if (!phone) {
+          const phone2 = formatBrasilAPIPhone(enriched.ddd_telefone_2);
+          if (phone2) lead.cliente_telefone = phone2;
+        }
 
-      const phone = formatBrasilAPIPhone(enriched.ddd_telefone_1);
-      if (phone) lead.cliente_telefone = phone;
-      if (!phone) {
-        const phone2 = formatBrasilAPIPhone(enriched.ddd_telefone_2);
-        if (phone2) lead.cliente_telefone = phone2;
+        if (enriched.email && enriched.email !== 'null') {
+          lead.cliente_email = enriched.email;
+        }
+
+        lead.cidade = enriched.municipio || lead.cidade;
+        lead.estado = enriched.uf || lead.estado;
+
+        const regime = inferRegimeTributario(enriched);
+        if (regime) lead.regime_tributario = regime;
+
+        const cnaeInfo = buildCNAEDescription(enriched);
+        if (cnaeInfo) {
+          lead.ramo_atuacao = enriched.cnae_fiscal_descricao || lead.ramo_atuacao;
+        }
+
+        const porte = enriched.porte || '';
+        const situacao = enriched.descricao_situacao_cadastral || '';
+        const enrichNotes: string[] = [];
+        if (porte) enrichNotes.push(`Porte: ${porte}`);
+        if (situacao) enrichNotes.push(`Situação: ${situacao}`);
+        if (regime) enrichNotes.push(`Regime: ${regime}`);
+        enrichNotes.push('Enriquecido via BrasilAPI');
+
+        lead.notes = (lead.notes || "") + " | " + enrichNotes.join(' | ');
       }
 
-      if (enriched.email && enriched.email !== 'null') {
-        lead.cliente_email = enriched.email;
+      // 2. Deep scrape via cnpj.biz for ALL leads (not just CNAE source)
+      const cleanCnpj = lead.cliente_cnpj.replace(/\D/g, "");
+      const scraped = await scrapeCompanyDetails(cleanCnpj);
+      if (scraped) {
+        // Fill missing fields from deep scrape
+        if (!lead.cliente_telefone && (scraped.telefone1 || scraped.telefone2)) {
+          lead.cliente_telefone = scraped.telefone1 || scraped.telefone2;
+        }
+        if (!lead.cliente_email && scraped.email) {
+          lead.cliente_email = scraped.email;
+        }
+        if (!lead.empresa && scraped.nome_fantasia) {
+          lead.empresa = scraped.nome_fantasia;
+        }
+        if (!lead.cidade && scraped.municipio) {
+          lead.cidade = scraped.municipio;
+        }
+        if (!lead.estado && scraped.uf) {
+          lead.estado = scraped.uf;
+        }
+        if (!lead.regime_tributario) {
+          if (scraped.mei) lead.regime_tributario = 'MEI';
+          else if (scraped.simples_nacional) lead.regime_tributario = 'Simples Nacional';
+        }
+
+        // Append deep enrichment notes
+        const deepNotes = buildDeepEnrichmentNotes(scraped);
+        if (deepNotes) {
+          lead.notes = (lead.notes || "") + " | " + deepNotes;
+        }
+
+        // Always set cnpj.biz link as source_url for easy access
+        lead.source_url = `https://cnpj.biz/${cleanCnpj}`;
       }
-
-      lead.cidade = enriched.municipio || lead.cidade;
-      lead.estado = enriched.uf || lead.estado;
-
-      const regime = inferRegimeTributario(enriched);
-      if (regime) lead.regime_tributario = regime;
-
-      const cnaeInfo = buildCNAEDescription(enriched);
-      if (cnaeInfo) {
-        lead.ramo_atuacao = enriched.cnae_fiscal_descricao || lead.ramo_atuacao;
-      }
-
-      const porte = enriched.porte || '';
-      const situacao = enriched.descricao_situacao_cadastral || '';
-      const enrichNotes: string[] = [];
-      if (porte) enrichNotes.push(`Porte: ${porte}`);
-      if (situacao) enrichNotes.push(`Situação: ${situacao}`);
-      if (regime) enrichNotes.push(`Regime: ${regime}`);
-      enrichNotes.push('Enriquecido via BrasilAPI');
-
-      lead.notes = (lead.notes || "") + " | " + enrichNotes.join(' | ');
     });
 
     await Promise.all(enrichPromises);

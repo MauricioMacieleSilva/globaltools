@@ -188,6 +188,9 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     // Use fonte_dados as origin for Excel uploads, otherwise 'Auto Prospecção'
     const origin = lead.source === 'upload' ? (lead.fonte_dados || 'Upload Excel') : (lead.fonte_dados || 'Auto Prospecção');
 
+    // Build origem with detail
+    const origemDetail = lead.fonte_dados === 'CNAE' ? 'Prospecção CNAE (CNPJ.biz)' : origin;
+
     const { error } = await (supabase as any).from('leads').insert({
       cliente_nome: contactName || empresaNome,
       client_name: contactName || empresaNome,
@@ -205,7 +208,8 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       valor_estimado: lead.valor_estimado || null,
       notes: lead.notes || null,
       source: origin,
-      website: lead.source_url || null,
+      origem: origemDetail,
+      website: lead.source_url || (lead.cliente_cnpj ? `https://cnpj.biz/${lead.cliente_cnpj.replace(/\D/g, '')}` : null),
       regime_tributario: (lead as any).regime_tributario || null,
       status: 'lead',
       vendedor_id: vendorId || user?.id,
@@ -316,6 +320,7 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       'Google': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       'PNCP': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
       'ObrasGov': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+      'CNAE': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
       'IA': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     };
     return (
@@ -381,6 +386,18 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
             >
               <ExternalLink className="h-2.5 w-2.5" />
               Ver fonte
+            </a>
+          )}
+          {lead.cliente_cnpj && !lead.source_url?.includes('cnpj.biz') && (
+            <a
+              href={`https://cnpj.biz/${lead.cliente_cnpj.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-2.5 w-2.5" />
+              CNPJ.biz
             </a>
           )}
         </div>

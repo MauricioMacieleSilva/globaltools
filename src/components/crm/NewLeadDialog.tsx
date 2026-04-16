@@ -772,6 +772,29 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
               <Textarea id="obs" value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notas iniciais..." rows={2} />
             </div>
           </div>
+
+          {/* Duplicate detection warning */}
+          {duplicateMatches.length > 0 && (
+            <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-xs text-orange-800 dark:text-orange-300">
+                <span className="font-semibold block mb-1">⚠️ Possível duplicata encontrada:</span>
+                {duplicateMatches.map((m, i) => (
+                  <div key={i} className="flex items-center gap-1 py-0.5">
+                    <Badge variant="outline" className="text-[9px] h-4 shrink-0">
+                      {m.type === 'lead' ? 'Lead' : 'Cliente'}
+                    </Badge>
+                    <span className="font-medium">{m.name}</span>
+                    <span className="text-muted-foreground">— {m.matchField}: {m.matchValue}</span>
+                    {m.status && (
+                      <Badge variant="secondary" className="text-[9px] h-4 ml-1">{m.status}</Badge>
+                    )}
+                  </div>
+                ))}
+                <span className="block mt-1 text-muted-foreground">Verifique se não é o mesmo contato antes de criar.</span>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>Cancelar</Button>

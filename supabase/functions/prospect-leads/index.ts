@@ -909,6 +909,9 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
             lead.source_url = `https://www.google.com/search?q=pncp+${encodeURIComponent(cnpjSearch)}+${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 60))}`;
           } else if (lead.fonte_dados === 'ObrasGov') {
             lead.source_url = `https://obrasgov.sistema.gov.br/obrasgov/painel/projeto-investimento?search=${encodeURIComponent((lead.empresa || lead.cliente_nome || '').slice(0, 80))}`;
+          } else if (lead.fonte_dados === 'CNAE') {
+            const cnpjVal = lead.cliente_cnpj?.replace(/\D/g, '') || '';
+            lead.source_url = cnpjVal ? `https://cnpj.biz/${cnpjVal}` : `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || ''))}`;
           } else {
             lead.source_url = `https://www.google.com/search?q=${encodeURIComponent((lead.empresa || lead.cliente_nome || '') + ' ' + (lead.cidade || '') + ' ' + (lead.estado || ''))}`;
           }

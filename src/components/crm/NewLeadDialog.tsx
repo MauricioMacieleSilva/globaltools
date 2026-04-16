@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useComercial } from '@/context/ComercialContext';
-import { Plus, ChevronsUpDown, Check, RotateCcw, History } from 'lucide-react';
+import { Plus, ChevronsUpDown, Check, RotateCcw, History, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface NewLeadDialogProps {
   open: boolean;
@@ -91,6 +93,120 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
   });
   const { toast } = useToast();
   const { data: comercialData } = useComercial();
+
+  // Duplicate detection state
+  interface DuplicateMatch {
+    type: 'lead' | 'cliente';
+    name: string;
+    matchField: string;
+    matchValue: string;
+    status?: string;
+  }
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const debouncedPhone = useDebounce(form.cliente_telefone, 500);
+  const debouncedCnpj = useDebounce(form.cliente_cnpj, 500);
+
+  const normalizePhone = (phone: string) => phone.replace(/\D/g, '');
+  const normalizeCnpj = (cnpj: string) => cnpj.replace(/\D/g, '');
+
+  const checkDuplicates = useCallback(async () => {
+    const phone = normalizePhone(debouncedPhone);
+    const cnpj = normalizeCnpj(debouncedCnpj);
+    if (phone.length < 8 && cnpj.length < 11) {
+      setDuplicateMatches([]);
+      return;
+    }
+
+    const matches: DuplicateMatch[] = [];
+
+    try {
+      // Check leads
+      if (phone.length >= 8) {
+        const { data: phoneLeads } = await (supabase as any)
+          .from('leads')
+          .select('id, cliente_nome, empresa, cliente_telefone, contact_phone, status')
+          .or(`cliente_telefone.ilike.%${phone.slice(-8)}%,contact_phone.ilike.%${phone.slice(-8)}%`)
+          .limit(5);
+        (phoneLeads || []).forEach((l: any) => {
+          if (!selectedLead || l.id !== selectedLead.id) {
+            matches.push({
+              type: 'lead',
+              name: l.empresa || l.cliente_nome,
+              matchField: 'Telefone',
+              matchValue: l.cliente_telefone || l.contact_phone || '',
+              status: l.status,
+            });
+          }
+        });
+      }
+
+      if (cnpj.length >= 11) {
+        const { data: cnpjLeads } = await (supabase as any)
+          .from('leads')
+          .select('id, cliente_nome, empresa, cliente_cnpj, status')
+          .ilike('cliente_cnpj', `%${cnpj}%`)
+          .limit(5);
+        (cnpjLeads || []).forEach((l: any) => {
+          if ((!selectedLead || l.id !== selectedLead.id) && !matches.some(m => m.type === 'lead' && m.name === (l.empresa || l.cliente_nome))) {
+            matches.push({
+              type: 'lead',
+              name: l.empresa || l.cliente_nome,
+              matchField: 'CNPJ',
+              matchValue: l.cliente_cnpj || '',
+              status: l.status,
+            });
+          }
+        });
+      }
+
+      // Check clients table
+      if (phone.length >= 8) {
+        const { data: phoneClients } = await (supabase as any)
+          .from('clientes')
+          .select('id, nome, telefone')
+          .ilike('telefone', `%${phone.slice(-8)}%`)
+          .limit(5);
+        (phoneClients || []).forEach((c: any) => {
+          if (!matches.some(m => m.name === c.nome)) {
+            matches.push({
+              type: 'cliente',
+              name: c.nome,
+              matchField: 'Telefone',
+              matchValue: c.telefone || '',
+            });
+          }
+        });
+      }
+
+      if (cnpj.length >= 11) {
+        const { data: cnpjClients } = await (supabase as any)
+          .from('clientes')
+          .select('id, nome, cnpj')
+          .ilike('cnpj', `%${cnpj}%`)
+          .limit(5);
+        (cnpjClients || []).forEach((c: any) => {
+          if (!matches.some(m => m.name === c.nome)) {
+            matches.push({
+              type: 'cliente',
+              name: c.nome,
+              matchField: 'CNPJ',
+              matchValue: c.cnpj || '',
+            });
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao verificar duplicatas:', err);
+    }
+
+    setDuplicateMatches(matches);
+  }, [debouncedPhone, debouncedCnpj, selectedLead]);
+
+  useEffect(() => {
+    if (open) {
+      checkDuplicates();
+    }
+  }, [debouncedPhone, debouncedCnpj, open, checkDuplicates]);
 
   const clientesDaBaseComercial = useMemo(() => {
     if (!comercialData?.length) return [] as Cliente[];
@@ -260,6 +376,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     setSelectedLead(null);
     setClienteSearch('');
     setLeadSearch('');
+    setDuplicateMatches([]);
   };
 
   const handleAddOrigem = async () => {
@@ -656,6 +773,29 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
               <Textarea id="obs" value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notas iniciais..." rows={2} />
             </div>
           </div>
+
+          {/* Duplicate detection warning */}
+          {duplicateMatches.length > 0 && (
+            <Alert className="border-amber-500/50 bg-accent/50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-xs">
+                <span className="font-semibold block mb-1">⚠️ Possível duplicata encontrada:</span>
+                {duplicateMatches.map((m, i) => (
+                  <div key={i} className="flex items-center gap-1 py-0.5">
+                    <Badge variant="outline" className="text-[9px] h-4 shrink-0">
+                      {m.type === 'lead' ? 'Lead' : 'Cliente'}
+                    </Badge>
+                    <span className="font-medium">{m.name}</span>
+                    <span className="text-muted-foreground">— {m.matchField}: {m.matchValue}</span>
+                    {m.status && (
+                      <Badge variant="secondary" className="text-[9px] h-4 ml-1">{m.status}</Badge>
+                    )}
+                  </div>
+                ))}
+                <span className="block mt-1 text-muted-foreground">Verifique se não é o mesmo contato antes de criar.</span>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>Cancelar</Button>

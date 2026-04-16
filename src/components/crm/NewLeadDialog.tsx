@@ -776,9 +776,9 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
 
           {/* Duplicate detection warning */}
           {duplicateMatches.length > 0 && (
-            <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-xs text-orange-800 dark:text-orange-300">
+            <Alert className="border-amber-500/50 bg-accent/50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-xs">
                 <span className="font-semibold block mb-1">⚠️ Possível duplicata encontrada:</span>
                 {duplicateMatches.map((m, i) => (
                   <div key={i} className="flex items-center gap-1 py-0.5">

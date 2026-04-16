@@ -110,7 +110,7 @@ function SLAIndicator({ deadline, status }: { deadline: string | null; status: s
       minutesLeft < 60 ? "text-orange-500 border-orange-300" : "text-emerald-600 border-emerald-300"
     )}>
       <Clock className="h-3 w-3" />
-      {hoursLeft > 0 ? `${hoursLeft}h restantes` : `${minutesLeft}min restantes`}
+      {hoursLeft > 0 ? `${hoursLeft}h ${minutesLeft % 60}min restantes` : `${minutesLeft}min restantes`}
     </Badge>
   );
 }

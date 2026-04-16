@@ -503,6 +503,40 @@ export default function Chamados() {
                 <Input placeholder="00.000.000/0000-00" value={newClientCnpj} onChange={e => setNewClientCnpj(e.target.value)} />
               </div>
             </div>
+            {/* File attachments */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Anexos</label>
+              <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3">
+                <input
+                  type="file"
+                  multiple
+                  id="ticket-files"
+                  className="hidden"
+                  onChange={e => {
+                    if (e.target.files) setNewFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                    e.target.value = '';
+                  }}
+                />
+                <label htmlFor="ticket-files" className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                  <Paperclip className="h-4 w-4" />
+                  Clique para anexar documentos
+                </label>
+                {newFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {newFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1">
+                        <FileText className="h-3 w-3 shrink-0 text-primary" />
+                        <span className="truncate flex-1">{f.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                        <button onClick={() => setNewFiles(prev => prev.filter((_, j) => j !== i))} className="shrink-0 hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewTicketOpen(false)}>Cancelar</Button>

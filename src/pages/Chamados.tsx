@@ -17,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   Plus, Search, Clock, CheckCircle, AlertTriangle, XCircle,
   Send, User, Calendar, DollarSign, FileText, Loader2,
-  BarChart3, Timer, ArrowRight, MessageSquare
+  BarChart3, Timer, ArrowRight, MessageSquare, Paperclip, X, Download
 } from 'lucide-react';
 import { format, differenceInMinutes, differenceInHours, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -134,12 +134,14 @@ export default function Chamados() {
   const [newValor, setNewValor] = useState('');
   const [newClientName, setNewClientName] = useState('');
   const [newClientCnpj, setNewClientCnpj] = useState('');
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
 
   // Detail dialog
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [comments, setComments] = useState<TicketComment[]>([]);
+  const [ticketAttachments, setTicketAttachments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
@@ -176,6 +178,15 @@ export default function Chamados() {
     setComments(data || []);
   }, []);
 
+  const loadTicketAttachments = useCallback(async (ticketId: string) => {
+    const { data } = await (supabase as any)
+      .from('ticket_attachments')
+      .select('*')
+      .eq('ticket_id', ticketId)
+      .order('created_at', { ascending: false });
+    setTicketAttachments(data || []);
+  }, []);
+
   useEffect(() => { loadUserRole(); loadCategories(); loadTickets(); }, [loadUserRole, loadCategories, loadTickets]);
 
   const handleCreateTicket = async () => {
@@ -188,7 +199,7 @@ export default function Chamados() {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('Usuário não autenticado');
 
-      const { error } = await (supabase as any).from('tickets').insert({
+      const { data: ticketData, error } = await (supabase as any).from('tickets').insert({
         title: newTitle.trim(),
         description: newDescription.trim() || null,
         category_id: newCategoryId,
@@ -198,13 +209,36 @@ export default function Chamados() {
         requester_name: userProfile?.full_name || user.email || '',
         client_name: newClientName.trim() || null,
         client_cnpj: newClientCnpj.trim() || null,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Upload attachments
+      if (newFiles.length > 0 && ticketData?.id) {
+        for (const file of newFiles) {
+          const ext = file.name.split('.').pop();
+          const filePath = `${ticketData.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('ticket-attachments')
+            .upload(filePath, file);
+          if (uploadErr) { console.error('Upload error:', uploadErr); continue; }
+          const { data: urlData } = supabase.storage.from('ticket-attachments').getPublicUrl(filePath);
+          await (supabase as any).from('ticket_attachments').insert({
+            ticket_id: ticketData.id,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: user.id,
+            uploaded_by_name: userProfile?.full_name || '',
+          });
+        }
+      }
+
       toast.success('Chamado criado com sucesso!');
       setNewTicketOpen(false);
       setNewTitle(''); setNewDescription(''); setNewCategoryId(''); setNewPriority('media');
-      setNewValor(''); setNewClientName(''); setNewClientCnpj('');
+      setNewValor(''); setNewClientName(''); setNewClientCnpj(''); setNewFiles([]);
       loadTickets();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar chamado');
@@ -257,6 +291,7 @@ export default function Chamados() {
     setSelectedTicket(ticket);
     setDetailOpen(true);
     loadComments(ticket.id);
+    loadTicketAttachments(ticket.id);
   };
 
   // KPIs
@@ -479,6 +514,40 @@ export default function Chamados() {
                 <Input placeholder="00.000.000/0000-00" value={newClientCnpj} onChange={e => setNewClientCnpj(e.target.value)} />
               </div>
             </div>
+            {/* File attachments */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Anexos</label>
+              <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3">
+                <input
+                  type="file"
+                  multiple
+                  id="ticket-files"
+                  className="hidden"
+                  onChange={e => {
+                    if (e.target.files) setNewFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                    e.target.value = '';
+                  }}
+                />
+                <label htmlFor="ticket-files" className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                  <Paperclip className="h-4 w-4" />
+                  Clique para anexar documentos
+                </label>
+                {newFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {newFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1">
+                        <FileText className="h-3 w-3 shrink-0 text-primary" />
+                        <span className="truncate flex-1">{f.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                        <button onClick={() => setNewFiles(prev => prev.filter((_, j) => j !== i))} className="shrink-0 hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewTicketOpen(false)}>Cancelar</Button>
@@ -560,6 +629,33 @@ export default function Chamados() {
                         </div>
                       )}
                     </div>
+
+                    {/* Attachments */}
+                    {ticketAttachments.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium flex items-center gap-1.5">
+                          <Paperclip className="h-4 w-4" /> Anexos ({ticketAttachments.length})
+                        </h4>
+                        <div className="space-y-1">
+                          {ticketAttachments.map((att: any) => (
+                            <a
+                              key={att.id}
+                              href={att.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1.5 hover:bg-accent transition-colors group"
+                            >
+                              <FileText className="h-3 w-3 shrink-0 text-primary" />
+                              <span className="truncate flex-1">{att.file_name}</span>
+                              {att.file_size && (
+                                <span className="text-[10px] text-muted-foreground shrink-0">{(att.file_size / 1024).toFixed(0)} KB</span>
+                              )}
+                              <Download className="h-3 w-3 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Status actions (financeiro only) */}
                     {isFinanceiro && selectedTicket.status !== 'concluido' && selectedTicket.status !== 'cancelado' && (

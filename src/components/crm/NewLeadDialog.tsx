@@ -376,6 +376,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
     setSelectedLead(null);
     setClienteSearch('');
     setLeadSearch('');
+    setDuplicateMatches([]);
   };
 
   const handleAddOrigem = async () => {

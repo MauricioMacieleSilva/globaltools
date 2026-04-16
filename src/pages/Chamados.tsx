@@ -457,7 +457,7 @@ export default function Chamados() {
 
       {/* New Ticket Dialog */}
       <Dialog open={newTicketOpen} onOpenChange={setNewTicketOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Plus className="h-5 w-5" /> Novo Chamado</DialogTitle>
           </DialogHeader>
@@ -484,7 +484,7 @@ export default function Chamados() {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição</label>
-              <Textarea placeholder="Detalhes adicionais..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
+              <Textarea placeholder="Detalhes adicionais..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={5} className="min-h-[120px]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

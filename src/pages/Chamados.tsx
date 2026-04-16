@@ -484,7 +484,7 @@ export default function Chamados() {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição</label>
-              <Textarea placeholder="Detalhes adicionais..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
+              <Textarea placeholder="Detalhes adicionais..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={5} className="min-h-[120px]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

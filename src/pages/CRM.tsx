@@ -886,6 +886,9 @@ export default function CRM() {
               <TabsTrigger value="concorrencia" className="text-xs gap-1 h-7 px-3">
                 <Swords className="h-3.5 w-3.5" /> Concorrência
               </TabsTrigger>
+              <TabsTrigger value="relatorio" className="text-xs gap-1 h-7 px-3">
+                <ClipboardList className="h-3.5 w-3.5" /> Relatório
+              </TabsTrigger>
             </TabsList>
             <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
           </div>

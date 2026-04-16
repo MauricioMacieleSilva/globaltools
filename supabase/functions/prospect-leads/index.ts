@@ -915,10 +915,10 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
       }
     }
 
-    // Enrich with BrasilAPI (limit to 3)
+    // Enrich with BrasilAPI (limit to 10)
     const leadsToEnrich = generatedLeads.filter(
       (l: any) => l.cliente_cnpj && l.cliente_cnpj.replace(/\D/g, "").length === 14
-    ).slice(0, 3);
+    ).slice(0, 10);
 
     const enrichPromises = leadsToEnrich.map(async (lead: any) => {
       const enriched = await enrichCNPJ(lead.cliente_cnpj);

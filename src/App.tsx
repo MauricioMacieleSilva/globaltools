@@ -75,6 +75,8 @@ function AppContent() {
         return 'Treinamentos';
       case '/fretes':
         return 'Controle de Fretes';
+      case '/chamados':
+        return 'Chamados Financeiro';
       case '/admin/usuarios':
       case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
@@ -111,6 +113,8 @@ function AppContent() {
         return 'Materiais de capacitação e treinamento';
       case '/fretes':
         return 'Gestão de fretes e entregas por pedido';
+      case '/chamados':
+        return 'Solicitações e chamados para o financeiro';
       case '/admin/usuarios':
         return 'Controle de usuários e permissões do sistema';
       default:

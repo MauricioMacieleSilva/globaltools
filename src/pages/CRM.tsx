@@ -22,7 +22,8 @@ import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords, ArrowRightLeft } from 'lucide-react';
+import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords, ArrowRightLeft, ClipboardList } from 'lucide-react';
+import { CRMReport } from '@/components/crm/CRMReport';
 import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
 import { MinhaCarteira } from '@/components/crm/MinhaCarteira';
 import { CompetitorProposalsView } from '@/components/crm/CompetitorProposalsView';
@@ -885,6 +886,9 @@ export default function CRM() {
               <TabsTrigger value="concorrencia" className="text-xs gap-1 h-7 px-3">
                 <Swords className="h-3.5 w-3.5" /> Concorrência
               </TabsTrigger>
+              <TabsTrigger value="relatorio" className="text-xs gap-1 h-7 px-3">
+                <ClipboardList className="h-3.5 w-3.5" /> Relatório
+              </TabsTrigger>
             </TabsList>
             <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
           </div>
@@ -981,6 +985,10 @@ export default function CRM() {
 
         <TabsContent value="concorrencia" className="mt-3 overflow-y-auto flex-1">
           <CompetitorProposalsView />
+        </TabsContent>
+
+        <TabsContent value="relatorio" className="mt-3 overflow-y-auto flex-1">
+          <CRMReport leads={leads} onLeadClick={openLeadDrawer} followUps={pendingFollowUps} />
         </TabsContent>
       </Tabs>
 

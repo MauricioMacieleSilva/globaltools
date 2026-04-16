@@ -666,6 +666,11 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
                 </p>
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Máx. leads por execução</Label>
+                <Input
                   type="number"
                   min="1"
                   max="30"

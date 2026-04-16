@@ -2631,6 +2631,151 @@ export type Database = {
           },
         ]
       }
+      ticket_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+          sla_minutes: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sla_minutes?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sla_minutes?: number
+        }
+        Relationships: []
+      }
+      ticket_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          ticket_id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          ticket_id: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          ticket_id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          assignee_id: string | null
+          assignee_name: string | null
+          budget_number: string | null
+          category_id: string
+          client_cnpj: string | null
+          client_name: string | null
+          created_at: string
+          description: string | null
+          id: string
+          lead_id: string | null
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          requester_id: string
+          requester_name: string
+          resolved_at: string | null
+          sla_deadline: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_number: string
+          title: string
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          budget_number?: string | null
+          category_id: string
+          client_cnpj?: string | null
+          client_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          requester_id: string
+          requester_name: string
+          resolved_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number: string
+          title: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          budget_number?: string | null
+          category_id?: string
+          client_cnpj?: string | null
+          client_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          requester_id?: string
+          requester_name?: string
+          resolved_at?: string | null
+          sla_deadline?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number?: string
+          title?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transportadoras: {
         Row: {
           ativo: boolean
@@ -2998,6 +3143,8 @@ export type Database = {
         | "entregue"
         | "cancelado"
       producao_status: "aguardando" | "em_producao" | "finalizado" | "pausado"
+      ticket_priority: "baixa" | "media" | "alta" | "urgente"
+      ticket_status: "aberto" | "em_andamento" | "concluido" | "cancelado"
       user_role:
         | "admin"
         | "comercial"
@@ -3164,6 +3311,8 @@ export const Constants = {
         "cancelado",
       ],
       producao_status: ["aguardando", "em_producao", "finalizado", "pausado"],
+      ticket_priority: ["baixa", "media", "alta", "urgente"],
+      ticket_status: ["aberto", "em_andamento", "concluido", "cancelado"],
       user_role: [
         "admin",
         "comercial",

@@ -35,6 +35,7 @@ import { Navigate } from "react-router-dom";
 import Fretes from "./pages/Fretes";
 import Auth from "./pages/Auth";
 import Treinamentos from "./pages/Treinamentos";
+import Chamados from "./pages/Chamados";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { LeadAssignmentNotification } from "@/components/crm/LeadAssignmentNotification";
 
@@ -74,6 +75,8 @@ function AppContent() {
         return 'Treinamentos';
       case '/fretes':
         return 'Controle de Fretes';
+      case '/chamados':
+        return 'Chamados Financeiro';
       case '/admin/usuarios':
       case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
@@ -110,6 +113,8 @@ function AppContent() {
         return 'Materiais de capacitação e treinamento';
       case '/fretes':
         return 'Gestão de fretes e entregas por pedido';
+      case '/chamados':
+        return 'Solicitações e chamados para o financeiro';
       case '/admin/usuarios':
         return 'Controle de usuários e permissões do sistema';
       default:
@@ -249,6 +254,14 @@ function AppContent() {
                                   element={
                                     <ProtectedRoute requirePageAccess="/treinamentos">
                                       <Treinamentos />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/chamados"
+                                  element={
+                                    <ProtectedRoute>
+                                      <Chamados />
                                     </ProtectedRoute>
                                   }
                                 />

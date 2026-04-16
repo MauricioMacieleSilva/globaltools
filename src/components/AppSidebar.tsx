@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap, Ticket } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -92,6 +92,13 @@ const menuItems = [
     icon: GraduationCap,
     pageKey: 'treinamentos',
     tourId: 'sidebar-treinamentos',
+  },
+  {
+    title: 'Chamados',
+    url: '/chamados',
+    icon: Ticket,
+    pageKey: 'chamados',
+    tourId: 'sidebar-chamados',
   },
   {
     title: 'Reuniões',

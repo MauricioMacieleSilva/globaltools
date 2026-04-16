@@ -417,7 +417,10 @@ export default function Chamados() {
             </div>
           ) : (
             filteredTickets.map(ticket => {
-              const statusCfg = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.aberto;
+              const isOverdue = ticket.sla_deadline && ticket.status !== 'concluido' && ticket.status !== 'cancelado' && isPast(new Date(ticket.sla_deadline));
+              const statusCfg = isOverdue
+                ? { label: 'Em Atraso', color: 'bg-destructive', icon: AlertTriangle }
+                : (STATUS_CONFIG[ticket.status] || STATUS_CONFIG.aberto);
               const priorityCfg = PRIORITY_CONFIG[ticket.priority] || PRIORITY_CONFIG.media;
               const StatusIcon = statusCfg.icon;
               const categoryName = ticket.category?.name || categories.find(c => c.id === ticket.category_id)?.name || '';

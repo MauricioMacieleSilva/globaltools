@@ -1022,6 +1022,7 @@ Tipos: construtoras, metalúrgicas, fábricas de estruturas, serralharias indust
         google_results: googleResults.flat().length,
         pncp_results: pncpResults.flat().length,
         obrasgov_results: obrasgovResults.flat().length,
+        cnae_results: cnaeResults.length,
         enriched_cnpjs: leadsToEnrich.length,
       },
     };

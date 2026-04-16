@@ -291,6 +291,7 @@ export default function Chamados() {
     setSelectedTicket(ticket);
     setDetailOpen(true);
     loadComments(ticket.id);
+    loadTicketAttachments(ticket.id);
   };
 
   // KPIs

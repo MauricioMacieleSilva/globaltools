@@ -17,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   Plus, Search, Clock, CheckCircle, AlertTriangle, XCircle,
   Send, User, Calendar, DollarSign, FileText, Loader2,
-  BarChart3, Timer, ArrowRight, MessageSquare
+  BarChart3, Timer, ArrowRight, MessageSquare, Paperclip, X, Download
 } from 'lucide-react';
 import { format, differenceInMinutes, differenceInHours, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

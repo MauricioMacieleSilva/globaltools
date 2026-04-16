@@ -164,7 +164,7 @@ async function searchByCNAE(cnaes: string[], uf: string, maxResults: number): Pr
   // Build search queries for each CNAE code
   for (const cnae of cnaes.slice(0, 5)) {
     const cnaeShort = cnae.replace(/[.\-]/g, '').slice(0, 4);
-    const query = `site:cnpj.biz CNAE "${cnaeShort}" "${uf}" ativa`;
+    const query = `site:cnpja.com CNAE "${cnaeShort}" "${uf}" ativa`;
     
     console.log(`🏭 [CNAE] Searching: "${query}"`);
     try {
@@ -191,10 +191,11 @@ async function searchByCNAE(cnaes: string[], uf: string, maxResults: number): Pr
       const data = await response.json();
       const results = data?.data ?? [];
       
-      // Extract CNPJs from cnpj.biz URLs
+      // Extract CNPJs from cnpja.com URLs (supports plain or formatted CNPJ in path)
       for (const r of results) {
         const url = r.url || '';
-        const cnpjMatch = url.match(/cnpj\.biz\/(\d{14})/);
+        const cnpjMatch = url.match(/cnpja\.com\/(?:office\/)?([\d.\-\/]{14,18})/);
+        if (cnpjMatch) cnpjMatch[1] = cnpjMatch[1].replace(/\D/g, '');
         if (cnpjMatch) {
           allResults.push({
             cnpj: cnpjMatch[1],
@@ -214,14 +215,20 @@ async function searchByCNAE(cnaes: string[], uf: string, maxResults: number): Pr
   return allResults;
 }
 
-// ====== SOURCE 5: Deep scraping via cnpj.biz + AI extraction ======
+// ====== SOURCE 5: Deep scraping via cnpja.com + AI extraction ======
+function formatCnpjMask(cnpj: string): string {
+  const c = cnpj.replace(/\D/g, '').padStart(14, '0');
+  return `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12,14)}`;
+}
+
 async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
   const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
   if (!FIRECRAWL_API_KEY) return null;
 
   try {
     const cleanCnpj = cnpj.replace(/\D/g, "");
-    console.log(`🔬 [Scrape] Scraping cnpj.biz for: ${cleanCnpj}`);
+    const maskedCnpj = formatCnpjMask(cleanCnpj);
+    console.log(`🔬 [Scrape] Scraping cnpja.com for: ${maskedCnpj}`);
     
     const response = await fetchWithTimeout("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
@@ -230,12 +237,12 @@ async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        url: `https://cnpj.biz/${cleanCnpj}`,
+        url: `https://cnpja.com/office/${maskedCnpj}`,
         formats: ["markdown"],
         onlyMainContent: true,
-        waitFor: 2000,
+        waitFor: 2500,
       }),
-    }, 20000);
+    }, 25000);
 
     if (!response.ok) {
       await response.text();
@@ -259,31 +266,33 @@ async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Extraia dados empresariais estruturados do conteúdo da página cnpj.biz. Retorne APENAS dados presentes na página." },
-          { role: "user", content: `Extraia os dados da empresa:\n\n${markdown.slice(0, 4000)}` },
+          { role: "system", content: "Extraia dados empresariais estruturados do conteúdo da página cnpja.com (CNPJá). A página mostra no topo: Razão Social, situação cadastral (Ativa/Baixada/Suspensa), data de abertura, natureza jurídica, endereço completo, e à direita o Regime Tributário (Lucro Real/Presumido/Simples Nacional/MEI) e Sócios e Administradores. Mais abaixo aparecem as Atividades Econômicas (CNAE Principal e Secundárias). Retorne APENAS dados presentes na página." },
+          { role: "user", content: `Extraia os dados da empresa:\n\n${markdown.slice(0, 5000)}` },
         ],
         tools: [{
           type: "function",
           function: {
             name: "extract_company",
-            description: "Extract structured company data from cnpj.biz page",
+            description: "Extract structured company data from cnpja.com page",
             parameters: {
               type: "object",
               properties: {
                 razao_social: { type: "string" },
                 nome_fantasia: { type: "string" },
                 cnpj: { type: "string" },
-                situacao_cadastral: { type: "string" },
+                situacao_cadastral: { type: "string", description: "Ex: Ativa, Baixada, Suspensa, Inapta" },
                 situacao_especial: { type: "string" },
+                data_abertura: { type: "string", description: "Data de início da atividade no formato DD/MM/AAAA" },
                 capital_social: { type: "string" },
                 porte: { type: "string" },
                 natureza_juridica: { type: "string" },
+                regime_tributario: { type: "string", description: "Regime tributário exibido no painel direito: 'Lucro Real ou Presumido', 'Simples Nacional', 'MEI', etc." },
                 mei: { type: "boolean" },
                 simples_nacional: { type: "boolean" },
                 cnae_principal_codigo: { type: "string" },
                 cnae_principal_descricao: { type: "string" },
-                cnaes_secundarios: { type: "string" },
-                logradouro: { type: "string" },
+                cnaes_secundarios: { type: "string", description: "Lista separada por vírgula dos CNAEs secundários (código + descrição)" },
+                logradouro: { type: "string", description: "Rua, avenida, número e complemento" },
                 bairro: { type: "string" },
                 municipio: { type: "string" },
                 uf: { type: "string" },
@@ -291,6 +300,7 @@ async function scrapeCompanyDetails(cnpj: string): Promise<any | null> {
                 telefone1: { type: "string" },
                 telefone2: { type: "string" },
                 email: { type: "string" },
+                socios: { type: "string", description: "Nomes dos sócios e administradores listados, separados por vírgula" },
               },
               required: ["razao_social"],
               additionalProperties: false,

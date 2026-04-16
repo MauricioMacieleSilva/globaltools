@@ -383,6 +383,18 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
               Ver fonte
             </a>
           )}
+          {lead.cliente_cnpj && !lead.source_url?.includes('cnpj.biz') && (
+            <a
+              href={`https://cnpj.biz/${lead.cliente_cnpj.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-2.5 w-2.5" />
+              CNPJ.biz
+            </a>
+          )}
         </div>
 
         {lead.contact_name && (

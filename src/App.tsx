@@ -257,6 +257,14 @@ function AppContent() {
                                     </ProtectedRoute>
                                   }
                                 />
+                                <Route
+                                  path="/chamados"
+                                  element={
+                                    <ProtectedRoute>
+                                      <Chamados />
+                                    </ProtectedRoute>
+                                  }
+                                />
 
 
                                 <Route

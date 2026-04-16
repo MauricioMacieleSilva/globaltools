@@ -110,7 +110,7 @@ const menuItems = [
   },
   {
     title: 'Central de Preços',
-    url: 'https://central-de-pre-os-437535537334.us-west1.run.app/',
+    url: 'https://centraldeprecos.vercel.app/',
     icon: DollarSign,
     pageKey: 'centralprecos',
     external: true,

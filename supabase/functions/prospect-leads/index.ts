@@ -828,6 +828,48 @@ serve(async (req) => {
       }
     }
 
+    // ====== SOURCE: CNAE Search via Firecrawl ======
+    let cnaeResults: any[] = [];
+    if (enabledSources.includes('cnae') && selectedCnaes.length > 0 && !companySearch) {
+      for (const uf of estados.slice(0, 2)) {
+        const results = await searchByCNAE(selectedCnaes, uf, 5);
+        cnaeResults.push(...results);
+      }
+
+      // Deep scrape up to 10 companies from CNAE results
+      const uniqueCnpjs = [...new Set(cnaeResults.map(r => r.cnpj))].slice(0, 10);
+      console.log(`🔬 [CNAE] Deep scraping ${uniqueCnpjs.length} companies...`);
+      
+      const scrapePromises = uniqueCnpjs.map(async (cnpj) => {
+        const scraped = await scrapeCompanyDetails(cnpj);
+        if (!scraped) return;
+
+        const notes = buildDeepEnrichmentNotes(scraped);
+        const phone = scraped.telefone1 || scraped.telefone2 || '';
+        const text = [
+          scraped.razao_social && `Razão Social: ${scraped.razao_social}`,
+          scraped.nome_fantasia && `Nome Fantasia: ${scraped.nome_fantasia}`,
+          `CNPJ: ${cnpj}`,
+          scraped.municipio && `Município: ${scraped.municipio}`,
+          scraped.uf && `UF: ${scraped.uf}`,
+          phone && `Telefone: ${phone}`,
+          scraped.email && `Email: ${scraped.email}`,
+          scraped.cnae_principal_descricao && `CNAE Principal: ${scraped.cnae_principal_codigo} - ${scraped.cnae_principal_descricao}`,
+          scraped.porte && `Porte: ${scraped.porte}`,
+          scraped.capital_social && `Capital Social: ${scraped.capital_social}`,
+          scraped.situacao_cadastral && `Situação: ${scraped.situacao_cadastral}`,
+          scraped.situacao_especial && `⚠️ Situação Especial: ${scraped.situacao_especial}`,
+          scraped.simples_nacional !== undefined && `Simples Nacional: ${scraped.simples_nacional ? 'Sim' : 'Não'}`,
+          scraped.cnaes_secundarios && `CNAEs Secundários: ${scraped.cnaes_secundarios}`,
+          notes && `Detalhes: ${notes}`,
+          `URL_FONTE: https://cnpj.biz/${cnpj}`,
+        ].filter(Boolean).join("\n");
+        allSearchResults.push(`[CNAE - CNPJ.BIZ]\n${text}`);
+      });
+
+      await Promise.all(scrapePromises);
+    }
+
     console.log(`📊 Total de resultados coletados: ${allSearchResults.length}`);
 
     if (allSearchResults.length === 0) {

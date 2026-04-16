@@ -188,6 +188,9 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
     // Use fonte_dados as origin for Excel uploads, otherwise 'Auto Prospecção'
     const origin = lead.source === 'upload' ? (lead.fonte_dados || 'Upload Excel') : (lead.fonte_dados || 'Auto Prospecção');
 
+    // Build origem with detail
+    const origemDetail = lead.fonte_dados === 'CNAE' ? 'Prospecção CNAE (CNPJ.biz)' : origin;
+
     const { error } = await (supabase as any).from('leads').insert({
       cliente_nome: contactName || empresaNome,
       client_name: contactName || empresaNome,
@@ -205,7 +208,8 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       valor_estimado: lead.valor_estimado || null,
       notes: lead.notes || null,
       source: origin,
-      website: lead.source_url || null,
+      origem: origemDetail,
+      website: lead.source_url || (lead.cliente_cnpj ? `https://cnpj.biz/${lead.cliente_cnpj.replace(/\D/g, '')}` : null),
       regime_tributario: (lead as any).regime_tributario || null,
       status: 'lead',
       vendedor_id: vendorId || user?.id,

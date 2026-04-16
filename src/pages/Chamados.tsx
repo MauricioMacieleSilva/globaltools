@@ -178,6 +178,15 @@ export default function Chamados() {
     setComments(data || []);
   }, []);
 
+  const loadTicketAttachments = useCallback(async (ticketId: string) => {
+    const { data } = await (supabase as any)
+      .from('ticket_attachments')
+      .select('*')
+      .eq('ticket_id', ticketId)
+      .order('created_at', { ascending: false });
+    setTicketAttachments(data || []);
+  }, []);
+
   useEffect(() => { loadUserRole(); loadCategories(); loadTickets(); }, [loadUserRole, loadCategories, loadTickets]);
 
   const handleCreateTicket = async () => {

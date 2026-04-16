@@ -138,17 +138,29 @@ export function LeadClientAssignment() {
     });
   }, [clientes, searchCliente, filterOwner]);
 
+  // Process IDs in batches to avoid PostgREST URL length limit (HTTP 400)
+  const BATCH_SIZE = 100;
+  const updateInBatches = async (table: 'leads' | 'clientes', ids: string[], vendedorId: string) => {
+    let updated = 0;
+    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+      const batch = ids.slice(i, i + BATCH_SIZE);
+      const { error } = await (supabase as any)
+        .from(table)
+        .update({ vendedor_id: vendedorId, updated_at: new Date().toISOString() })
+        .in('id', batch);
+      if (error) throw error;
+      updated += batch.length;
+    }
+    return updated;
+  };
+
   const handleAssignLeads = async () => {
     if (!targetUser || selectedLeads.size === 0) return;
     setSaving(true);
     try {
       const ids = Array.from(selectedLeads);
-      const { error } = await (supabase as any)
-        .from('leads')
-        .update({ vendedor_id: targetUser, updated_at: new Date().toISOString() })
-        .in('id', ids);
-      if (error) throw error;
-      toast.success(`${ids.length} lead(s) atribuído(s) com sucesso`);
+      const total = await updateInBatches('leads', ids, targetUser);
+      toast.success(`${total} lead(s) atribuído(s) com sucesso`);
       setSelectedLeads(new Set());
       setTargetUser('');
       loadData();
@@ -164,12 +176,8 @@ export function LeadClientAssignment() {
     setSaving(true);
     try {
       const ids = Array.from(selectedClientes);
-      const { error } = await supabase
-        .from('clientes')
-        .update({ vendedor_id: targetUser, updated_at: new Date().toISOString() })
-        .in('id', ids);
-      if (error) throw error;
-      toast.success(`${ids.length} cliente(s) atribuído(s) com sucesso`);
+      const total = await updateInBatches('clientes', ids, targetUser);
+      toast.success(`${total} cliente(s) atribuído(s) com sucesso`);
       setSelectedClientes(new Set());
       setTargetUser('');
       loadData();

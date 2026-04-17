@@ -35,7 +35,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   perdido: { label: 'Perdido', color: 'bg-red-100 text-red-800' },
 };
 
-type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos' | 'bloqueados';
+type StatusFilter = 'todos' | 'andamento' | 'kanban' | 'agendados' | 'fechados' | 'perdidos' | 'bloqueados';
 
 export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated, origemFilter, vendorFilter, searchQuery: externalSearch, kanbanDateFilter }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');

@@ -77,6 +77,33 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
   }, [isAdmin]);
 
+  // Carrega motivos bloqueantes de lead_dispositions para todos os leads visíveis
+  useEffect(() => {
+    const loadBlocked = async () => {
+      const ids = leads.map(l => l.id);
+      if (ids.length === 0) { setBlockedMap({}); return; }
+      const { data } = await (supabase as any)
+        .from('lead_dispositions')
+        .select('lead_id, reason, custom_reason')
+        .eq('disposition_type', 'lost')
+        .in('lead_id', ids);
+      const map: Record<string, string> = {};
+      (data || []).forEach((d: any) => {
+        const r = d.reason || d.custom_reason || '';
+        if (isBlockedLossReason(r)) map[d.lead_id] = r;
+      });
+      setBlockedMap(map);
+    };
+    loadBlocked();
+  }, [leads]);
+
+  // Helper: lead é bloqueado se status=perdido com motivo bloqueante OU tem disposição bloqueante registrada
+  const isLeadBlocked = (lead: CRMLead): string | null => {
+    if (blockedMap[lead.id]) return blockedMap[lead.id];
+    if (lead.status === 'perdido' && isBlockedLossReason(lead.notes)) return lead.notes!;
+    return null;
+  };
+
   // Admin sees ALL leads, regular user sees only their own
   const myLeads = useMemo(() => {
     let result = isAdmin ? leads : leads.filter(l => l.vendedor_id === currentUserId);

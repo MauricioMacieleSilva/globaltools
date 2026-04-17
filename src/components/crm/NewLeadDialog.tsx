@@ -16,6 +16,7 @@ import { useComercial } from '@/context/ComercialContext';
 import { Plus, ChevronsUpDown, Check, RotateCcw, History, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
+import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
 
 interface NewLeadDialogProps {
   open: boolean;

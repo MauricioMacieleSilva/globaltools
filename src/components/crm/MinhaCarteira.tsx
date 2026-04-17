@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2, Ban } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
+import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
 
 interface MinhaCarteiraProps {
   leads: CRMLead[];
@@ -34,7 +35,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   perdido: { label: 'Perdido', color: 'bg-red-100 text-red-800' },
 };
 
-type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos';
+type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos' | 'bloqueados';
 
 export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated, origemFilter, vendorFilter, searchQuery: externalSearch, kanbanDateFilter }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');

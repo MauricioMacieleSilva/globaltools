@@ -35,7 +35,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   perdido: { label: 'Perdido', color: 'bg-red-100 text-red-800' },
 };
 
-type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos' | 'bloqueados';
+type StatusFilter = 'todos' | 'andamento' | 'kanban' | 'agendados' | 'fechados' | 'perdidos' | 'bloqueados';
 
 export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated, origemFilter, vendorFilter, searchQuery: externalSearch, kanbanDateFilter }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');
@@ -53,6 +53,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [exporting, setExporting] = useState(false);
   // Map leadId -> motivo bloqueante (de lead_dispositions, para leads bloqueados mesmo que reativados)
   const [blockedMap, setBlockedMap] = useState<Record<string, string>>({});
+  // Set de leadIds que possuem visita ou follow-up futuro agendado
+  const [scheduledLeadIds, setScheduledLeadIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const checkRole = async () => {
@@ -97,6 +99,24 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     loadBlocked();
   }, [leads]);
 
+  // Carrega leads com visitas ou follow-ups futuros agendados
+  useEffect(() => {
+    const loadScheduled = async () => {
+      const ids = leads.map(l => l.id);
+      if (ids.length === 0) { setScheduledLeadIds(new Set()); return; }
+      const nowIso = new Date().toISOString();
+      const [visitsRes, followsRes] = await Promise.all([
+        (supabase as any).from('crm_visits').select('lead_id').in('lead_id', ids).gte('visit_date', nowIso),
+        supabase.from('follow_ups').select('lead_id').in('lead_id', ids).eq('concluido', false).gte('data_agendada', nowIso),
+      ]);
+      const set = new Set<string>();
+      (visitsRes.data || []).forEach((v: any) => v.lead_id && set.add(v.lead_id));
+      (followsRes.data || []).forEach((f: any) => f.lead_id && set.add(f.lead_id));
+      setScheduledLeadIds(set);
+    };
+    loadScheduled();
+  }, [leads]);
+
   // Helper: lead é bloqueado se status=perdido com motivo bloqueante OU tem disposição bloqueante registrada
   const isLeadBlocked = (lead: CRMLead): string | null => {
     if (blockedMap[lead.id]) return blockedMap[lead.id];
@@ -135,10 +155,16 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     return result;
   }, [leads, currentUserId, isAdmin, origemFilter, vendorFilter, kanbanDateFilter, externalSearch]);
 
+  const isAndamento = (l: CRMLead) => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !isLeadBlocked(l);
+
   const filtered = useMemo(() => {
     let result = myLeads;
     if (statusFilter === 'andamento') {
-      result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !isLeadBlocked(l));
+      result = result.filter(isAndamento);
+    } else if (statusFilter === 'kanban') {
+      result = result.filter(l => isAndamento(l) && !scheduledLeadIds.has(l.id));
+    } else if (statusFilter === 'agendados') {
+      result = result.filter(l => isAndamento(l) && scheduledLeadIds.has(l.id));
     } else if (statusFilter === 'fechados') {
       result = result.filter(l => l.status === 'pedido_fechado');
     } else if (statusFilter === 'perdidos') {
@@ -157,19 +183,23 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       );
     }
     return result;
-  }, [myLeads, search, statusFilter, blockedMap]);
+  }, [myLeads, search, statusFilter, blockedMap, scheduledLeadIds]);
 
   const counts = useMemo(() => {
     const blocked = myLeads.filter(l => !!isLeadBlocked(l));
     const blockedIds = new Set(blocked.map(l => l.id));
+    const andamentoLeads = myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id));
+    const agendados = andamentoLeads.filter(l => scheduledLeadIds.has(l.id)).length;
     return {
       total: myLeads.length,
-      andamento: myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id)).length,
+      andamento: andamentoLeads.length,
+      kanban: andamentoLeads.length - agendados,
+      agendados,
       fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
       perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id)).length,
       bloqueados: blocked.length,
     };
-  }, [myLeads, blockedMap]);
+  }, [myLeads, blockedMap, scheduledLeadIds]);
 
   const handleReactivate = async () => {
     if (!reactivateConfirm) return;
@@ -389,6 +419,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const kpiCards: { key: StatusFilter; label: string; value: number; colorClass: string }[] = [
     { key: 'todos', label: 'Total na Carteira', value: counts.total, colorClass: '' },
     { key: 'andamento', label: 'Em Andamento', value: counts.andamento, colorClass: 'text-primary' },
+    { key: 'kanban', label: 'No Kanban', value: counts.kanban, colorClass: 'text-blue-600' },
+    { key: 'agendados', label: 'Agendados', value: counts.agendados, colorClass: 'text-purple-600' },
     { key: 'fechados', label: 'Fechados', value: counts.fechados, colorClass: 'text-green-600' },
     { key: 'perdidos', label: 'Perdidos', value: counts.perdidos, colorClass: 'text-red-600' },
     { key: 'bloqueados', label: '🚫 Não Recontatar', value: counts.bloqueados, colorClass: 'text-destructive' },
@@ -396,7 +428,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         {kpiCards.map(kpi => (
           <Card
             key={kpi.key}

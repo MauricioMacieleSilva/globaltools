@@ -99,15 +99,14 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     loadBlocked();
   }, [leads]);
 
-  // Carrega leads com visitas ou follow-ups futuros agendados
+  // Carrega leads com visitas ou follow-ups futuros agendados (sem filtro .in para evitar limite de URL)
   useEffect(() => {
     const loadScheduled = async () => {
-      const ids = leads.map(l => l.id);
-      if (ids.length === 0) { setScheduledLeadIds(new Set()); return; }
+      if (leads.length === 0) { setScheduledLeadIds(new Set()); return; }
       const nowIso = new Date().toISOString();
       const [visitsRes, followsRes] = await Promise.all([
-        (supabase as any).from('crm_visits').select('lead_id').in('lead_id', ids).gte('visit_date', nowIso),
-        supabase.from('follow_ups').select('lead_id').in('lead_id', ids).eq('concluido', false).gte('data_agendada', nowIso),
+        (supabase as any).from('crm_visits').select('lead_id').gte('visit_date', nowIso),
+        supabase.from('follow_ups').select('lead_id').eq('concluido', false).gte('data_agendada', nowIso).not('lead_id', 'is', null),
       ]);
       const set = new Set<string>();
       (visitsRes.data || []).forEach((v: any) => v.lead_id && set.add(v.lead_id));

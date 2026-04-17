@@ -63,8 +63,9 @@ export function PerfilL() {
     const pesoPorPeca = (espessura * comprimento / 1000) * (tira / 1000) * 8;
     const pesoTotal = quantidade * pesoPorPeca;
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
-    const chapas = Math.ceil(quantidade / tirasAproveitadas);
-    const pesoPerda = pesoPerdaPorPeca * chapas;
+    const chapas = tirasAproveitadas > 0 ? Math.ceil(quantidade / tirasAproveitadas) : 0;
+    const tirasVaziasUltimaChapa = Math.max(0, (chapas * tirasAproveitadas) - quantidade);
+    const pesoPerda = (pesoPerdaPorPeca * chapas) + (pesoPorPeca * tirasVaziasUltimaChapa);
 
     return {
       id: linha.id,

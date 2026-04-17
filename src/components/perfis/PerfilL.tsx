@@ -204,6 +204,25 @@ export function PerfilL() {
 
   const headers = ['Esp.', 'Aba', 'Base', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'P.T', 'P.P', 'Est', 'Ver', 'Ação'];
 
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return (
+      <PerfilMobileGeneric
+        titulo="Perfil L"
+        campos={[
+          { key: 'aba', label: 'Aba' },
+          { key: 'base', label: 'Base' },
+        ]}
+        linhas={linhasL}
+        setLinhas={atualizarLinhaL}
+        novaLinhaFactory={() => ({ id: gerarId(), espessura: '', aba: '', base: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103' })}
+        resetLinha={(l) => ({ ...l, espessura: '', aba: '', base: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103' })}
+        calcular={calcularPerfil}
+        removerCalculo={removerCalculo}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid gap-1 text-[10px] font-medium text-muted-foreground border-b pb-2" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>

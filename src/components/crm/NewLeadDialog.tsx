@@ -132,6 +132,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         (phoneLeads || []).forEach((l: any) => {
           if (!selectedLead || l.id !== selectedLead.id) {
             matches.push({
+              id: l.id,
               type: 'lead',
               name: l.empresa || l.cliente_nome,
               matchField: 'Telefone',
@@ -151,6 +152,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         (cnpjLeads || []).forEach((l: any) => {
           if ((!selectedLead || l.id !== selectedLead.id) && !matches.some(m => m.type === 'lead' && m.name === (l.empresa || l.cliente_nome))) {
             matches.push({
+              id: l.id,
               type: 'lead',
               name: l.empresa || l.cliente_nome,
               matchField: 'CNPJ',

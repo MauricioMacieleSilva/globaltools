@@ -179,9 +179,17 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       draggable
       onDragStart={(e) => onDragStart(e, lead.id)}
       onClick={onClick}
-      className={`p-2 cursor-pointer hover:shadow-md transition-all select-none border-l-[3px] ${getAgingColor(days)} ${isDragging ? 'opacity-40 scale-95' : ''}`}
+      className={`p-2 cursor-pointer hover:shadow-md transition-all select-none border-l-[3px] ${getAgingColor(days)} ${isDragging ? 'opacity-40 scale-95' : ''} ${blockedReason ? 'ring-2 ring-destructive/60 bg-destructive/5' : ''}`}
     >
       <div className="space-y-1">
+        {/* Blocked lead alert — must NOT be recontacted */}
+        {blockedReason && (
+          <div className="flex items-center gap-1 -mx-2 -mt-2 mb-1 px-2 py-1 bg-destructive text-destructive-foreground rounded-t">
+            <Ban className="h-2.5 w-2.5 shrink-0" />
+            <span className="text-[9px] font-bold uppercase tracking-wide">Não Recontatar</span>
+            <span className="text-[9px] opacity-90 truncate">· {getBlockedReasonLabel(blockedReason)}</span>
+          </div>
+        )}
         {/* Header: empresa + whatsapp */}
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1 min-w-0">

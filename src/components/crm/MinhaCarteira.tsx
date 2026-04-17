@@ -51,6 +51,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  // Map leadId -> motivo bloqueante (de lead_dispositions, para leads bloqueados mesmo que reativados)
+  const [blockedMap, setBlockedMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const checkRole = async () => {

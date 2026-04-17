@@ -64,6 +64,9 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
   const totalPecas = calculo.quantidade || 0;
   const pecasPorChapa = tirasAproveitadas || 1;
   const quantidadeChapas = Math.ceil(totalPecas / pecasPorChapa);
+  // Tiras vazias na última chapa (peças não utilizadas) também contam como perda
+  const tirasVaziasUltimaChapa = Math.max(0, (quantidadeChapas * pecasPorChapa) - totalPecas);
+  const larguraPerdaTotal = (larguraPerda * quantidadeChapas) + (larguraTira * tirasVaziasUltimaChapa);
 
   // Dimensões do SVG
   const svgWidth = 400;

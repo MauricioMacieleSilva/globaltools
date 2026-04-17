@@ -16,6 +16,7 @@ export const perfilPadraoU = [
 export const perfilPadraoUE = [
   { h: 50, B: 25, d: 10, espessuras: [2.00, 2.25, 2.65, 3.00] },
   { h: 75, B: 40, d: 15, espessuras: [2.00, 2.25, 2.65, 3.00] },
+  { h: 100, B: 40, d: 17, espessuras: [2.00, 2.25, 2.65, 3.00] },
   { h: 100, B: 50, d: 17, espessuras: [2.00, 2.25, 2.65, 3.00] },
   { h: 127, B: 50, d: 17, espessuras: [2.00, 2.25, 2.65, 3.00] },
   { h: 150, B: 60, d: 20, espessuras: [2.00, 2.25, 2.65, 3.00] },

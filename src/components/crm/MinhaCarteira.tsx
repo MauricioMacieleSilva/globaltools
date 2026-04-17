@@ -427,7 +427,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {kpiCards.map(kpi => (
           <Card
             key={kpi.key}

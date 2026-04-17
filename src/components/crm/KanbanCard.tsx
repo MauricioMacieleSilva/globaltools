@@ -73,7 +73,25 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setFinanceParecer(null);
     setFailedAttempts(0);
     setIsInAnalysis(false);
+    setBlockedReason(null);
     import('@/integrations/supabase/client').then(({ supabase }) => {
+      // Verifica se há disposição bloqueante registrada (mesmo que reativado)
+      (supabase as any)
+        .from('lead_dispositions')
+        .select('reason, custom_reason')
+        .eq('lead_id', lead.id)
+        .eq('disposition_type', 'lost')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }: any) => {
+          if (cancelled) return;
+          const r = data?.[0]?.reason || data?.[0]?.custom_reason || '';
+          if (isBlockedLossReason(r)) setBlockedReason(r);
+          else if (lead.status === 'perdido' && isBlockedLossReason(lead.notes)) {
+            setBlockedReason(lead.notes!);
+          }
+        });
+
       // Fetch next visit
       (supabase as any)
         .from('crm_visits')

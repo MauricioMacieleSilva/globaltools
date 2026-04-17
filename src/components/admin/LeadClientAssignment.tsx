@@ -149,6 +149,21 @@ export function LeadClientAssignment() {
         .update({ vendedor_id: vendedorId, updated_at: new Date().toISOString() })
         .in('id', batch);
       if (error) throw error;
+
+      // Quando reatribuímos leads, transferimos também os follow-ups futuros
+      // (não concluídos) para o novo dono — assim o compromisso aparece na
+      // agenda do novo vendedor e o lead fica oculto do Kanban até a data.
+      if (table === 'leads') {
+        const nowIso = new Date().toISOString();
+        const { error: fuError } = await (supabase as any)
+          .from('follow_ups')
+          .update({ user_id: vendedorId, updated_at: nowIso })
+          .in('lead_id', batch)
+          .eq('concluido', false)
+          .gte('data_agendada', nowIso);
+        if (fuError) console.error('Falha ao reatribuir follow-ups:', fuError);
+      }
+
       updated += batch.length;
     }
     return updated;

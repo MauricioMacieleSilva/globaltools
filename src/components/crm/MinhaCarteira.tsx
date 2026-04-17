@@ -99,6 +99,24 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     loadBlocked();
   }, [leads]);
 
+  // Carrega leads com visitas ou follow-ups futuros agendados
+  useEffect(() => {
+    const loadScheduled = async () => {
+      const ids = leads.map(l => l.id);
+      if (ids.length === 0) { setScheduledLeadIds(new Set()); return; }
+      const nowIso = new Date().toISOString();
+      const [visitsRes, followsRes] = await Promise.all([
+        (supabase as any).from('crm_visits').select('lead_id').in('lead_id', ids).gte('visit_date', nowIso),
+        supabase.from('follow_ups').select('lead_id').in('lead_id', ids).eq('concluido', false).gte('data_agendada', nowIso),
+      ]);
+      const set = new Set<string>();
+      (visitsRes.data || []).forEach((v: any) => v.lead_id && set.add(v.lead_id));
+      (followsRes.data || []).forEach((f: any) => f.lead_id && set.add(f.lead_id));
+      setScheduledLeadIds(set);
+    };
+    loadScheduled();
+  }, [leads]);
+
   // Helper: lead é bloqueado se status=perdido com motivo bloqueante OU tem disposição bloqueante registrada
   const isLeadBlocked = (lead: CRMLead): string | null => {
     if (blockedMap[lead.id]) return blockedMap[lead.id];

@@ -1,5 +1,6 @@
 import React from 'react';
 import { DistribuicaoChapa, getCorPerfil, formatarTipoPerfil } from '@/lib/otimizacao-perfis';
+import { formatarNumero } from '@/lib/utils-perfil';
 
 interface VisualizacaoChapaCombidadaProps {
   distribuicao: DistribuicaoChapa;
@@ -56,7 +57,7 @@ export function VisualizacaoChapaCombinada({
       <div className="flex items-center justify-between mb-2 text-xs text-muted-foreground">
         <span>Chapa {distribuicao.chapaIndex + 1}</span>
         <span>
-          {distribuicao.larguraUtilizada}mm utilizado | {distribuicao.larguraPerda}mm perda | {aproveitamento}%
+          {formatarNumero(distribuicao.larguraUtilizada)}mm utilizado | {formatarNumero(distribuicao.larguraPerda)}mm perda | {aproveitamento}%
         </span>
       </div>
       

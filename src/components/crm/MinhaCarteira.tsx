@@ -53,6 +53,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [exporting, setExporting] = useState(false);
   // Map leadId -> motivo bloqueante (de lead_dispositions, para leads bloqueados mesmo que reativados)
   const [blockedMap, setBlockedMap] = useState<Record<string, string>>({});
+  // Set de leadIds que possuem visita ou follow-up futuro agendado
+  const [scheduledLeadIds, setScheduledLeadIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const checkRole = async () => {

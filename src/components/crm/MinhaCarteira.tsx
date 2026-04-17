@@ -289,13 +289,21 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const renderLeadCard = (lead: CRMLead) => {
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
     const isLost = lead.status === 'perdido';
+    const blockedReason = isLeadBlocked(lead);
     return (
       <Card
         key={lead.id}
-        className="cursor-pointer hover:shadow-md transition-shadow"
+        className={`cursor-pointer hover:shadow-md transition-shadow ${blockedReason ? 'border-destructive/60 bg-destructive/5 ring-1 ring-destructive/30' : ''}`}
         onClick={() => onLeadClick(lead)}
       >
         <CardContent className="p-3 space-y-1.5">
+          {blockedReason && (
+            <div className="flex items-center gap-1.5 -mx-3 -mt-3 mb-1 px-3 py-1.5 bg-destructive text-destructive-foreground rounded-t-lg">
+              <Ban className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wide">Não Recontatar</span>
+              <span className="text-[10px] opacity-90 truncate">· {getBlockedReasonLabel(blockedReason)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm truncate">{lead.empresa || lead.cliente_nome}</h4>
             <Badge className={`text-[10px] ${status.color}`}>{status.label}</Badge>
@@ -338,18 +346,25 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
           )}
           {isLost && (
             <div className="pt-1 border-t border-border/40 flex gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1 flex-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReactivateConfirm(lead);
-                }}
-              >
-                <RotateCcw className="h-3 w-3" />
-                Iniciar Novo Atendimento
-              </Button>
+              {!blockedReason && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReactivateConfirm(lead);
+                  }}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Iniciar Novo Atendimento
+                </Button>
+              )}
+              {blockedReason && (
+                <p className="flex-1 text-[10px] text-destructive font-medium italic">
+                  Este lead não deve ser recontatado.
+                </p>
+              )}
               {isAdmin && (
                 <Button
                   size="sm"
@@ -376,6 +391,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     { key: 'andamento', label: 'Em Andamento', value: counts.andamento, colorClass: 'text-primary' },
     { key: 'fechados', label: 'Fechados', value: counts.fechados, colorClass: 'text-green-600' },
     { key: 'perdidos', label: 'Perdidos', value: counts.perdidos, colorClass: 'text-red-600' },
+    { key: 'bloqueados', label: '🚫 Não Recontatar', value: counts.bloqueados, colorClass: 'text-destructive' },
   ];
 
   return (

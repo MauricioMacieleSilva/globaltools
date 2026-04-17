@@ -40,10 +40,10 @@ export function UserAvatarMenu() {
     setIsUploading(true);
 
     try {
-      // Create unique file name
+      // Create unique file name (must be inside user's folder for RLS)
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userProfile.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${userProfile.id}/${fileName}`;
 
       // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage

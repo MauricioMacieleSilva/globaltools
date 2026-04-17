@@ -96,11 +96,13 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
 
   // Duplicate detection state
   interface DuplicateMatch {
+    id?: string;
     type: 'lead' | 'cliente';
     name: string;
     matchField: string;
     matchValue: string;
     status?: string;
+    blockedReason?: string | null;
   }
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const debouncedPhone = useDebounce(form.cliente_telefone, 500);

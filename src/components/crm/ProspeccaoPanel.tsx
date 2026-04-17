@@ -106,7 +106,9 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
         .eq('user_id', user.id)
         .maybeSingle();
       const role = roleData?.role;
-      setIsManagerOrAdmin(role === 'admin' || role === 'comercial');
+      // Apenas administradores acessam o painel completo de configuração da prospecção.
+      // Comerciais (vendedores e gestores) veem somente o painel de revisão de leads.
+      setIsManagerOrAdmin(role === 'admin');
     };
     checkRole();
   }, []);

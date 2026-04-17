@@ -8,6 +8,8 @@ import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { IndicadorEstoqueDisponibilidade } from '@/components/estoque';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { PerfilMobileGeneric } from './PerfilMobileGeneric';
 
 export function PerfilL() {
   const {

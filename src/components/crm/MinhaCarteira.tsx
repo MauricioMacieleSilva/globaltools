@@ -138,11 +138,14 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const filtered = useMemo(() => {
     let result = myLeads;
     if (statusFilter === 'andamento') {
-      result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado');
+      result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !isLeadBlocked(l));
     } else if (statusFilter === 'fechados') {
       result = result.filter(l => l.status === 'pedido_fechado');
     } else if (statusFilter === 'perdidos') {
-      result = result.filter(l => l.status === 'perdido');
+      // Perdidos comuns (excluindo bloqueados — eles têm aba própria)
+      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l));
+    } else if (statusFilter === 'bloqueados') {
+      result = result.filter(l => !!isLeadBlocked(l));
     }
     if (search) {
       const term = search.toLowerCase();
@@ -154,14 +157,19 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       );
     }
     return result;
-  }, [myLeads, search, statusFilter]);
+  }, [myLeads, search, statusFilter, blockedMap]);
 
-  const counts = useMemo(() => ({
-    total: myLeads.length,
-    andamento: myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado').length,
-    fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
-    perdidos: myLeads.filter(l => l.status === 'perdido').length,
-  }), [myLeads]);
+  const counts = useMemo(() => {
+    const blocked = myLeads.filter(l => !!isLeadBlocked(l));
+    const blockedIds = new Set(blocked.map(l => l.id));
+    return {
+      total: myLeads.length,
+      andamento: myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id)).length,
+      fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
+      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id)).length,
+      bloqueados: blocked.length,
+    };
+  }, [myLeads, blockedMap]);
 
   const handleReactivate = async () => {
     if (!reactivateConfirm) return;

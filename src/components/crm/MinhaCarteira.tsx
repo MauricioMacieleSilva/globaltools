@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2, Ban } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
+import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
 
 interface MinhaCarteiraProps {
   leads: CRMLead[];
@@ -34,7 +35,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   perdido: { label: 'Perdido', color: 'bg-red-100 text-red-800' },
 };
 
-type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos';
+type StatusFilter = 'todos' | 'andamento' | 'fechados' | 'perdidos' | 'bloqueados';
 
 export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated, origemFilter, vendorFilter, searchQuery: externalSearch, kanbanDateFilter }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');
@@ -50,6 +51,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  // Map leadId -> motivo bloqueante (de lead_dispositions, para leads bloqueados mesmo que reativados)
+  const [blockedMap, setBlockedMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const checkRole = async () => {
@@ -73,6 +76,33 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       });
     }
   }, [isAdmin]);
+
+  // Carrega motivos bloqueantes de lead_dispositions para todos os leads visíveis
+  useEffect(() => {
+    const loadBlocked = async () => {
+      const ids = leads.map(l => l.id);
+      if (ids.length === 0) { setBlockedMap({}); return; }
+      const { data } = await (supabase as any)
+        .from('lead_dispositions')
+        .select('lead_id, reason, custom_reason')
+        .eq('disposition_type', 'lost')
+        .in('lead_id', ids);
+      const map: Record<string, string> = {};
+      (data || []).forEach((d: any) => {
+        const r = d.reason || d.custom_reason || '';
+        if (isBlockedLossReason(r)) map[d.lead_id] = r;
+      });
+      setBlockedMap(map);
+    };
+    loadBlocked();
+  }, [leads]);
+
+  // Helper: lead é bloqueado se status=perdido com motivo bloqueante OU tem disposição bloqueante registrada
+  const isLeadBlocked = (lead: CRMLead): string | null => {
+    if (blockedMap[lead.id]) return blockedMap[lead.id];
+    if (lead.status === 'perdido' && isBlockedLossReason(lead.notes)) return lead.notes!;
+    return null;
+  };
 
   // Admin sees ALL leads, regular user sees only their own
   const myLeads = useMemo(() => {
@@ -108,11 +138,14 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const filtered = useMemo(() => {
     let result = myLeads;
     if (statusFilter === 'andamento') {
-      result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado');
+      result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !isLeadBlocked(l));
     } else if (statusFilter === 'fechados') {
       result = result.filter(l => l.status === 'pedido_fechado');
     } else if (statusFilter === 'perdidos') {
-      result = result.filter(l => l.status === 'perdido');
+      // Perdidos comuns (excluindo bloqueados — eles têm aba própria)
+      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l));
+    } else if (statusFilter === 'bloqueados') {
+      result = result.filter(l => !!isLeadBlocked(l));
     }
     if (search) {
       const term = search.toLowerCase();
@@ -124,14 +157,19 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       );
     }
     return result;
-  }, [myLeads, search, statusFilter]);
+  }, [myLeads, search, statusFilter, blockedMap]);
 
-  const counts = useMemo(() => ({
-    total: myLeads.length,
-    andamento: myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado').length,
-    fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
-    perdidos: myLeads.filter(l => l.status === 'perdido').length,
-  }), [myLeads]);
+  const counts = useMemo(() => {
+    const blocked = myLeads.filter(l => !!isLeadBlocked(l));
+    const blockedIds = new Set(blocked.map(l => l.id));
+    return {
+      total: myLeads.length,
+      andamento: myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id)).length,
+      fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
+      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id)).length,
+      bloqueados: blocked.length,
+    };
+  }, [myLeads, blockedMap]);
 
   const handleReactivate = async () => {
     if (!reactivateConfirm) return;
@@ -251,13 +289,21 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const renderLeadCard = (lead: CRMLead) => {
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
     const isLost = lead.status === 'perdido';
+    const blockedReason = isLeadBlocked(lead);
     return (
       <Card
         key={lead.id}
-        className="cursor-pointer hover:shadow-md transition-shadow"
+        className={`cursor-pointer hover:shadow-md transition-shadow ${blockedReason ? 'border-destructive/60 bg-destructive/5 ring-1 ring-destructive/30' : ''}`}
         onClick={() => onLeadClick(lead)}
       >
         <CardContent className="p-3 space-y-1.5">
+          {blockedReason && (
+            <div className="flex items-center gap-1.5 -mx-3 -mt-3 mb-1 px-3 py-1.5 bg-destructive text-destructive-foreground rounded-t-lg">
+              <Ban className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-[10px] font-bold uppercase tracking-wide">Não Recontatar</span>
+              <span className="text-[10px] opacity-90 truncate">· {getBlockedReasonLabel(blockedReason)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm truncate">{lead.empresa || lead.cliente_nome}</h4>
             <Badge className={`text-[10px] ${status.color}`}>{status.label}</Badge>
@@ -300,18 +346,25 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
           )}
           {isLost && (
             <div className="pt-1 border-t border-border/40 flex gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1 flex-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReactivateConfirm(lead);
-                }}
-              >
-                <RotateCcw className="h-3 w-3" />
-                Iniciar Novo Atendimento
-              </Button>
+              {!blockedReason && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReactivateConfirm(lead);
+                  }}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Iniciar Novo Atendimento
+                </Button>
+              )}
+              {blockedReason && (
+                <p className="flex-1 text-[10px] text-destructive font-medium italic">
+                  Este lead não deve ser recontatado.
+                </p>
+              )}
               {isAdmin && (
                 <Button
                   size="sm"
@@ -338,11 +391,12 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     { key: 'andamento', label: 'Em Andamento', value: counts.andamento, colorClass: 'text-primary' },
     { key: 'fechados', label: 'Fechados', value: counts.fechados, colorClass: 'text-green-600' },
     { key: 'perdidos', label: 'Perdidos', value: counts.perdidos, colorClass: 'text-red-600' },
+    { key: 'bloqueados', label: '🚫 Não Recontatar', value: counts.bloqueados, colorClass: 'text-destructive' },
   ];
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {kpiCards.map(kpi => (
           <Card
             key={kpi.key}

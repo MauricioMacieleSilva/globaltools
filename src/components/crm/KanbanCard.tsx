@@ -1,11 +1,12 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck, Ban } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 import { OrderDetailDialog } from './OrderDetailDialog';
+import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
 import instagramLogo from '@/assets/instagram-logo.png';
 
 /** Converte texto para Title Case, independente do formato original */
@@ -41,6 +42,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [financeParecer, setFinanceParecer] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isInAnalysis, setIsInAnalysis] = useState(false);
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
   const days = getDaysInStage(lead.updated_at);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -71,7 +73,25 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setFinanceParecer(null);
     setFailedAttempts(0);
     setIsInAnalysis(false);
+    setBlockedReason(null);
     import('@/integrations/supabase/client').then(({ supabase }) => {
+      // Verifica se há disposição bloqueante registrada (mesmo que reativado)
+      (supabase as any)
+        .from('lead_dispositions')
+        .select('reason, custom_reason')
+        .eq('lead_id', lead.id)
+        .eq('disposition_type', 'lost')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }: any) => {
+          if (cancelled) return;
+          const r = data?.[0]?.reason || data?.[0]?.custom_reason || '';
+          if (isBlockedLossReason(r)) setBlockedReason(r);
+          else if (lead.status === 'perdido' && isBlockedLossReason(lead.notes)) {
+            setBlockedReason(lead.notes!);
+          }
+        });
+
       // Fetch next visit
       (supabase as any)
         .from('crm_visits')
@@ -159,9 +179,17 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       draggable
       onDragStart={(e) => onDragStart(e, lead.id)}
       onClick={onClick}
-      className={`p-2 cursor-pointer hover:shadow-md transition-all select-none border-l-[3px] ${getAgingColor(days)} ${isDragging ? 'opacity-40 scale-95' : ''}`}
+      className={`p-2 cursor-pointer hover:shadow-md transition-all select-none border-l-[3px] ${getAgingColor(days)} ${isDragging ? 'opacity-40 scale-95' : ''} ${blockedReason ? 'ring-2 ring-destructive/60 bg-destructive/5' : ''}`}
     >
       <div className="space-y-1">
+        {/* Blocked lead alert — must NOT be recontacted */}
+        {blockedReason && (
+          <div className="flex items-center gap-1 -mx-2 -mt-2 mb-1 px-2 py-1 bg-destructive text-destructive-foreground rounded-t">
+            <Ban className="h-2.5 w-2.5 shrink-0" />
+            <span className="text-[9px] font-bold uppercase tracking-wide">Não Recontatar</span>
+            <span className="text-[9px] opacity-90 truncate">· {getBlockedReasonLabel(blockedReason)}</span>
+          </div>
+        )}
         {/* Header: empresa + whatsapp */}
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1 min-w-0">

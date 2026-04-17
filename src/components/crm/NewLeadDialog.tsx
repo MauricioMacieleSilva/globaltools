@@ -16,6 +16,7 @@ import { useComercial } from '@/context/ComercialContext';
 import { Plus, ChevronsUpDown, Check, RotateCcw, History, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
+import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
 
 interface NewLeadDialogProps {
   open: boolean;
@@ -96,11 +97,13 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
 
   // Duplicate detection state
   interface DuplicateMatch {
+    id?: string;
     type: 'lead' | 'cliente';
     name: string;
     matchField: string;
     matchValue: string;
     status?: string;
+    blockedReason?: string | null;
   }
   const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
   const debouncedPhone = useDebounce(form.cliente_telefone, 500);
@@ -130,6 +133,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         (phoneLeads || []).forEach((l: any) => {
           if (!selectedLead || l.id !== selectedLead.id) {
             matches.push({
+              id: l.id,
               type: 'lead',
               name: l.empresa || l.cliente_nome,
               matchField: 'Telefone',
@@ -149,6 +153,7 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
         (cnpjLeads || []).forEach((l: any) => {
           if ((!selectedLead || l.id !== selectedLead.id) && !matches.some(m => m.type === 'lead' && m.name === (l.empresa || l.cliente_nome))) {
             matches.push({
+              id: l.id,
               type: 'lead',
               name: l.empresa || l.cliente_nome,
               matchField: 'CNPJ',
@@ -197,6 +202,26 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       }
     } catch (err) {
       console.error('Erro ao verificar duplicatas:', err);
+    }
+
+    // Enriquece com motivo bloqueante (lead_dispositions) para destacar leads que NÃO devem ser recontatados
+    const leadIds = matches.filter(m => m.type === 'lead' && m.id).map(m => m.id!) as string[];
+    if (leadIds.length > 0) {
+      try {
+        const { data: disps } = await (supabase as any)
+          .from('lead_dispositions')
+          .select('lead_id, reason, custom_reason')
+          .eq('disposition_type', 'lost')
+          .in('lead_id', leadIds);
+        const blockedById: Record<string, string> = {};
+        (disps || []).forEach((d: any) => {
+          const r = d.reason || d.custom_reason || '';
+          if (isBlockedLossReason(r)) blockedById[d.lead_id] = r;
+        });
+        matches.forEach(m => {
+          if (m.id && blockedById[m.id]) m.blockedReason = blockedById[m.id];
+        });
+      } catch {}
     }
 
     setDuplicateMatches(matches);
@@ -775,27 +800,39 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
           </div>
 
           {/* Duplicate detection warning */}
-          {duplicateMatches.length > 0 && (
-            <Alert className="border-amber-500/50 bg-accent/50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-xs">
-                <span className="font-semibold block mb-1">⚠️ Possível duplicata encontrada:</span>
-                {duplicateMatches.map((m, i) => (
-                  <div key={i} className="flex items-center gap-1 py-0.5">
-                    <Badge variant="outline" className="text-[9px] h-4 shrink-0">
-                      {m.type === 'lead' ? 'Lead' : 'Cliente'}
-                    </Badge>
-                    <span className="font-medium">{m.name}</span>
-                    <span className="text-muted-foreground">— {m.matchField}: {m.matchValue}</span>
-                    {m.status && (
-                      <Badge variant="secondary" className="text-[9px] h-4 ml-1">{m.status}</Badge>
-                    )}
-                  </div>
-                ))}
-                <span className="block mt-1 text-muted-foreground">Verifique se não é o mesmo contato antes de criar.</span>
-              </AlertDescription>
-            </Alert>
-          )}
+          {duplicateMatches.length > 0 && (() => {
+            const hasBlocked = duplicateMatches.some(m => m.blockedReason);
+            return (
+              <Alert className={hasBlocked ? 'border-destructive bg-destructive/10' : 'border-amber-500/50 bg-accent/50'}>
+                <AlertTriangle className={`h-4 w-4 ${hasBlocked ? 'text-destructive' : 'text-amber-600'}`} />
+                <AlertDescription className="text-xs">
+                  <span className={`font-semibold block mb-1 ${hasBlocked ? 'text-destructive' : ''}`}>
+                    {hasBlocked ? '🚫 ATENÇÃO — Lead marcado como NÃO RECONTATAR:' : '⚠️ Possível duplicata encontrada:'}
+                  </span>
+                  {duplicateMatches.map((m, i) => (
+                    <div key={i} className={`flex items-center gap-1 py-0.5 flex-wrap ${m.blockedReason ? 'font-semibold text-destructive' : ''}`}>
+                      <Badge variant={m.blockedReason ? 'destructive' : 'outline'} className="text-[9px] h-4 shrink-0">
+                        {m.blockedReason ? '🚫 Bloqueado' : (m.type === 'lead' ? 'Lead' : 'Cliente')}
+                      </Badge>
+                      <span className="font-medium">{m.name}</span>
+                      <span className={m.blockedReason ? 'text-destructive' : 'text-muted-foreground'}>— {m.matchField}: {m.matchValue}</span>
+                      {m.blockedReason && (
+                        <Badge variant="destructive" className="text-[9px] h-4 ml-1">{getBlockedReasonLabel(m.blockedReason)}</Badge>
+                      )}
+                      {!m.blockedReason && m.status && (
+                        <Badge variant="secondary" className="text-[9px] h-4 ml-1">{m.status}</Badge>
+                      )}
+                    </div>
+                  ))}
+                  <span className={`block mt-1 ${hasBlocked ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {hasBlocked
+                      ? 'Este contato já foi sinalizado anteriormente como Empresa Fechada/Inativa, Cliente da base ou Concorrente. Não criar novo lead.'
+                      : 'Verifique se não é o mesmo contato antes de criar.'}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            );
+          })()}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>Cancelar</Button>

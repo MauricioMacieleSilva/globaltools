@@ -203,6 +203,26 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
       console.error('Erro ao verificar duplicatas:', err);
     }
 
+    // Enriquece com motivo bloqueante (lead_dispositions) para destacar leads que NÃO devem ser recontatados
+    const leadIds = matches.filter(m => m.type === 'lead' && m.id).map(m => m.id!) as string[];
+    if (leadIds.length > 0) {
+      try {
+        const { data: disps } = await (supabase as any)
+          .from('lead_dispositions')
+          .select('lead_id, reason, custom_reason')
+          .eq('disposition_type', 'lost')
+          .in('lead_id', leadIds);
+        const blockedById: Record<string, string> = {};
+        (disps || []).forEach((d: any) => {
+          const r = d.reason || d.custom_reason || '';
+          if (isBlockedLossReason(r)) blockedById[d.lead_id] = r;
+        });
+        matches.forEach(m => {
+          if (m.id && blockedById[m.id]) m.blockedReason = blockedById[m.id];
+        });
+      } catch {}
+    }
+
     setDuplicateMatches(matches);
   }, [debouncedPhone, debouncedCnpj, selectedLead]);
 

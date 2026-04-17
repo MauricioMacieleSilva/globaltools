@@ -800,27 +800,39 @@ export function NewLeadDialog({ open, onOpenChange, onLeadCreated }: NewLeadDial
           </div>
 
           {/* Duplicate detection warning */}
-          {duplicateMatches.length > 0 && (
-            <Alert className="border-amber-500/50 bg-accent/50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-xs">
-                <span className="font-semibold block mb-1">⚠️ Possível duplicata encontrada:</span>
-                {duplicateMatches.map((m, i) => (
-                  <div key={i} className="flex items-center gap-1 py-0.5">
-                    <Badge variant="outline" className="text-[9px] h-4 shrink-0">
-                      {m.type === 'lead' ? 'Lead' : 'Cliente'}
-                    </Badge>
-                    <span className="font-medium">{m.name}</span>
-                    <span className="text-muted-foreground">— {m.matchField}: {m.matchValue}</span>
-                    {m.status && (
-                      <Badge variant="secondary" className="text-[9px] h-4 ml-1">{m.status}</Badge>
-                    )}
-                  </div>
-                ))}
-                <span className="block mt-1 text-muted-foreground">Verifique se não é o mesmo contato antes de criar.</span>
-              </AlertDescription>
-            </Alert>
-          )}
+          {duplicateMatches.length > 0 && (() => {
+            const hasBlocked = duplicateMatches.some(m => m.blockedReason);
+            return (
+              <Alert className={hasBlocked ? 'border-destructive bg-destructive/10' : 'border-amber-500/50 bg-accent/50'}>
+                <AlertTriangle className={`h-4 w-4 ${hasBlocked ? 'text-destructive' : 'text-amber-600'}`} />
+                <AlertDescription className="text-xs">
+                  <span className={`font-semibold block mb-1 ${hasBlocked ? 'text-destructive' : ''}`}>
+                    {hasBlocked ? '🚫 ATENÇÃO — Lead marcado como NÃO RECONTATAR:' : '⚠️ Possível duplicata encontrada:'}
+                  </span>
+                  {duplicateMatches.map((m, i) => (
+                    <div key={i} className={`flex items-center gap-1 py-0.5 flex-wrap ${m.blockedReason ? 'font-semibold text-destructive' : ''}`}>
+                      <Badge variant={m.blockedReason ? 'destructive' : 'outline'} className="text-[9px] h-4 shrink-0">
+                        {m.blockedReason ? '🚫 Bloqueado' : (m.type === 'lead' ? 'Lead' : 'Cliente')}
+                      </Badge>
+                      <span className="font-medium">{m.name}</span>
+                      <span className={m.blockedReason ? 'text-destructive' : 'text-muted-foreground'}>— {m.matchField}: {m.matchValue}</span>
+                      {m.blockedReason && (
+                        <Badge variant="destructive" className="text-[9px] h-4 ml-1">{getBlockedReasonLabel(m.blockedReason)}</Badge>
+                      )}
+                      {!m.blockedReason && m.status && (
+                        <Badge variant="secondary" className="text-[9px] h-4 ml-1">{m.status}</Badge>
+                      )}
+                    </div>
+                  ))}
+                  <span className={`block mt-1 ${hasBlocked ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                    {hasBlocked
+                      ? 'Este contato já foi sinalizado anteriormente como Empresa Fechada/Inativa, Cliente da base ou Concorrente. Não criar novo lead.'
+                      : 'Verifique se não é o mesmo contato antes de criar.'}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            );
+          })()}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>Cancelar</Button>

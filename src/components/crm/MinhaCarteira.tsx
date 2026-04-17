@@ -155,10 +155,16 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     return result;
   }, [leads, currentUserId, isAdmin, origemFilter, vendorFilter, kanbanDateFilter, externalSearch]);
 
+  const isAndamento = (l: CRMLead) => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !isLeadBlocked(l);
+
   const filtered = useMemo(() => {
     let result = myLeads;
     if (statusFilter === 'andamento') {
-      result = result.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !isLeadBlocked(l));
+      result = result.filter(isAndamento);
+    } else if (statusFilter === 'kanban') {
+      result = result.filter(l => isAndamento(l) && !scheduledLeadIds.has(l.id));
+    } else if (statusFilter === 'agendados') {
+      result = result.filter(l => isAndamento(l) && scheduledLeadIds.has(l.id));
     } else if (statusFilter === 'fechados') {
       result = result.filter(l => l.status === 'pedido_fechado');
     } else if (statusFilter === 'perdidos') {
@@ -177,19 +183,23 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       );
     }
     return result;
-  }, [myLeads, search, statusFilter, blockedMap]);
+  }, [myLeads, search, statusFilter, blockedMap, scheduledLeadIds]);
 
   const counts = useMemo(() => {
     const blocked = myLeads.filter(l => !!isLeadBlocked(l));
     const blockedIds = new Set(blocked.map(l => l.id));
+    const andamentoLeads = myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id));
+    const agendados = andamentoLeads.filter(l => scheduledLeadIds.has(l.id)).length;
     return {
       total: myLeads.length,
-      andamento: myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id)).length,
+      andamento: andamentoLeads.length,
+      kanban: andamentoLeads.length - agendados,
+      agendados,
       fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
       perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id)).length,
       bloqueados: blocked.length,
     };
-  }, [myLeads, blockedMap]);
+  }, [myLeads, blockedMap, scheduledLeadIds]);
 
   const handleReactivate = async () => {
     if (!reactivateConfirm) return;

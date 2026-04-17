@@ -213,8 +213,8 @@ export function ProspeccaoReviewPanel({ onLeadsApproved, isManagerOrAdmin = fals
       produto_interesse: lead.produto_interesse || null,
       valor_estimado: lead.valor_estimado || null,
       notes: lead.notes || null,
-      source: origin,
-      origem: origemDetail,
+      // 'origem' é coluna gerada automaticamente a partir de 'source' — NÃO incluir no insert.
+      source: origemDetail || origin,
       website: lead.source_url || cnpjaUrl,
       regime_tributario: (lead as any).regime_tributario || null,
       status: 'lead',

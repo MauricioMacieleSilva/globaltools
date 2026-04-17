@@ -418,7 +418,6 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
 
   const kpiCards: { key: StatusFilter; label: string; value: number; colorClass: string }[] = [
     { key: 'todos', label: 'Total na Carteira', value: counts.total, colorClass: '' },
-    { key: 'andamento', label: 'Em Andamento', value: counts.andamento, colorClass: 'text-primary' },
     { key: 'kanban', label: 'No Kanban', value: counts.kanban, colorClass: 'text-blue-600' },
     { key: 'agendados', label: 'Agendados', value: counts.agendados, colorClass: 'text-purple-600' },
     { key: 'fechados', label: 'Fechados', value: counts.fechados, colorClass: 'text-green-600' },
@@ -428,7 +427,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {kpiCards.map(kpi => (
           <Card
             key={kpi.key}

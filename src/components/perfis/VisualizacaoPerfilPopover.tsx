@@ -204,7 +204,7 @@ export function VisualizacaoPerfilPopover({ calculo, tipoPerfil, children }: Vis
               <div>
                 <div className="text-muted-foreground">Total Perda</div>
                 <div className="font-bold text-destructive">
-                  {Math.ceil(larguraPerda * quantidadeChapas)} mm
+                  {Math.ceil(larguraPerdaTotal)} mm
                 </div>
               </div>
             </div>

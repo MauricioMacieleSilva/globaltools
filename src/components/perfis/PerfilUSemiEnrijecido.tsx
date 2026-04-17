@@ -9,6 +9,8 @@ import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { IndicadorEstoqueDisponibilidade } from '@/components/estoque';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { PerfilMobileGeneric } from './PerfilMobileGeneric';
 
 export function PerfilUSemiEnrijecido() {
   const {
@@ -139,6 +141,29 @@ export function PerfilUSemiEnrijecido() {
   const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
 
   const headers = ['U/Z', 'Sim', 'Esp.', 'Enrij', 'Aba1', 'Base', 'Aba2', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'P.T', 'P.P', 'Est', 'Ver', 'Ação'];
+
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return (
+      <PerfilMobileGeneric
+        titulo="U/Z Semi-Enrijecido"
+        comOrientacaoUZ
+        comSimetrico
+        campos={[
+          { key: 'enrij1', label: 'Enrij' },
+          { key: 'aba1', label: 'Aba1' },
+          { key: 'base', label: 'Base' },
+          { key: 'aba2', label: 'Aba2', mirrorOf: 'aba1' },
+        ]}
+        linhas={linhasUSemiEnrijecido}
+        setLinhas={atualizarLinhaUSemiEnrijecido}
+        novaLinhaFactory={() => ({ id: gerarId(), orientacaoUZ: 'U', espessura: '', enrij1: '', aba1: '', base: '', aba2: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false })}
+        resetLinha={(l) => ({ ...l, espessura: '', enrij1: '', aba1: '', base: '', aba2: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false, orientacaoUZ: 'U' as const })}
+        calcular={calcularPerfil}
+        removerCalculo={removerCalculo}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">

@@ -8,6 +8,8 @@ import { formatarNumero, gerarId, validarAbaMinima } from '@/lib/utils-perfil';
 import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { IndicadorEstoqueDisponibilidade } from '@/components/estoque';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { PerfilMobileGeneric } from './PerfilMobileGeneric';
 
 export function PerfilCartolaSemiEnrijecido() {
   const { atualizarCalculo, removerCalculo, linhasCartolaSemiEnrijecido, atualizarLinhaCartolaSemiEnrijecido, calculos } = usePerfilContext();
@@ -98,6 +100,30 @@ export function PerfilCartolaSemiEnrijecido() {
   const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
 
   const headers = ['Sim', 'Esp.', 'E1', 'E2', 'Ab1', 'Bas', 'Ab2', 'E3', 'Cmp', 'Lrg', 'Qt', '%P', 'Tira', 'P.T', 'P.P', 'Est', 'Ver', 'Ação'];
+
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return (
+      <PerfilMobileGeneric
+        titulo="Cartola Semi-Enrijecido"
+        comSimetrico
+        campos={[
+          { key: 'enrij1', label: 'Enrij1' },
+          { key: 'enrij2', label: 'Enrij2' },
+          { key: 'aba1', label: 'Aba1' },
+          { key: 'base', label: 'Base' },
+          { key: 'aba2', label: 'Aba2', mirrorOf: 'aba1' },
+          { key: 'enrij3', label: 'Enrij3', mirrorOf: 'enrij1' },
+        ]}
+        linhas={linhasCartolaSemiEnrijecido}
+        setLinhas={atualizarLinhaCartolaSemiEnrijecido}
+        novaLinhaFactory={() => ({ id: gerarId(), espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false })}
+        resetLinha={(l) => ({ ...l, espessura: '', enrij1: '', enrij2: '', aba1: '', base: '', aba2: '', enrij3: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103', assimetrico: false })}
+        calcular={calcularPerfil}
+        removerCalculo={removerCalculo}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">

@@ -8,6 +8,8 @@ import { VisualizacaoPerfilPopover } from './VisualizacaoPerfilPopover';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { IndicadorEstoqueDisponibilidade } from '@/components/estoque';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { PerfilMobileGeneric } from './PerfilMobileGeneric';
 
 export function PerfilL() {
   const {
@@ -201,6 +203,25 @@ export function PerfilL() {
   const percPerda = totalPeso > 0 ? (totalPerda / totalPeso * 100) : 0;
 
   const headers = ['Esp.', 'Aba', 'Base', 'Comp.', 'Larg.', 'Qt.', '%P', 'Tira', 'P.T', 'P.P', 'Est', 'Ver', 'Ação'];
+
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return (
+      <PerfilMobileGeneric
+        titulo="Perfil L"
+        campos={[
+          { key: 'aba', label: 'Aba' },
+          { key: 'base', label: 'Base' },
+        ]}
+        linhas={linhasL}
+        setLinhas={atualizarLinhaL}
+        novaLinhaFactory={() => ({ id: gerarId(), espessura: '', aba: '', base: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103' })}
+        resetLinha={(l) => ({ ...l, espessura: '', aba: '', base: '', comprimento: '6000', largura: '1200', quantidade: '', percentualPerda: '103' })}
+        calcular={calcularPerfil}
+        removerCalculo={removerCalculo}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">

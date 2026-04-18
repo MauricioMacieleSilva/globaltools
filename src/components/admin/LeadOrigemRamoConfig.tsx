@@ -29,6 +29,7 @@ type LossReason = {
   name: string;
   is_active: boolean;
   display_order: number | null;
+  is_definitive: boolean;
 };
 
 type EditKind = "lead_source" | "business_sector" | "loss_reason";
@@ -53,6 +54,7 @@ export function LeadOrigemRamoConfig() {
     name: "",
     is_active: true,
     display_order: 0,
+    is_definitive: false,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,7 +79,7 @@ export function LeadOrigemRamoConfig() {
           .order("name", { ascending: true }),
         (supabase as any)
           .from("crm_loss_reasons")
-          .select("id, name, is_active, display_order")
+          .select("id, name, is_active, display_order, is_definitive")
           .order("display_order", { ascending: true })
           .order("name", { ascending: true }),
       ]);
@@ -110,6 +112,7 @@ export function LeadOrigemRamoConfig() {
         name: item?.name ?? "",
         is_active: item?.is_active ?? true,
         display_order: item?.display_order ?? 0,
+        is_definitive: edit.kind === "loss_reason" ? ((item as LossReason | null)?.is_definitive ?? false) : false,
       });
     } else {
       const item = edit.item as BusinessSector | null;
@@ -117,6 +120,7 @@ export function LeadOrigemRamoConfig() {
         name: item?.name ?? "",
         is_active: item?.is_active ?? true,
         display_order: 0,
+        is_definitive: false,
       });
     }
   }, [edit.open, edit.kind, edit.item]);
@@ -160,11 +164,14 @@ export function LeadOrigemRamoConfig() {
       if (edit.kind === "lead_source" || edit.kind === "loss_reason") {
         const table = edit.kind === "lead_source" ? "crm_lead_sources" : "crm_loss_reasons";
         const label = edit.kind === "lead_source" ? "Origem" : "Motivo de perda";
-        const payload = {
+        const payload: Record<string, any> = {
           name,
           is_active: form.is_active,
           display_order: Number.isFinite(form.display_order) ? form.display_order : 0,
         };
+        if (edit.kind === "loss_reason") {
+          payload.is_definitive = form.is_definitive;
+        }
 
         if (edit.item) {
           const { error } = await (supabase as any).from(table).update(payload).eq("id", edit.item.id);

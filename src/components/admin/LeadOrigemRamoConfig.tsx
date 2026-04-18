@@ -363,6 +363,7 @@ export function LeadOrigemRamoConfig() {
                   <TableHead>Ordem</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Perda Definitiva</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -375,6 +376,13 @@ export function LeadOrigemRamoConfig() {
                       <Badge variant={r.is_active ? "default" : "secondary"}>
                         {r.is_active ? "Ativo" : "Inativo"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {r.is_definitive ? (
+                        <Badge variant="destructive">Definitivo</Badge>
+                      ) : (
+                        <Badge variant="outline">Exige follow-up</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-2">

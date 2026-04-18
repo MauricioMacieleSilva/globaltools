@@ -17,7 +17,7 @@ interface LostDealsDialogProps {
   onOpenChange: (open: boolean) => void;
   pendingLead: CRMLead | null;
   lostLeads: CRMLead[];
-  onConfirmLost: (reason: string) => void;
+  onConfirmLost: (reason: string, isDefinitive: boolean) => void;
   onCancel: () => void;
   onLeadClick?: (lead: CRMLead) => void;
   onLeadReactivated?: () => void;
@@ -27,7 +27,7 @@ interface LostDealsDialogProps {
 export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, onConfirmLost, onCancel, onLeadClick, onLeadReactivated, userRole }: LostDealsDialogProps) {
   const [selectedReason, setSelectedReason] = useState('');
   const [customReason, setCustomReason] = useState('');
-  const [reasons, setReasons] = useState<{ id: string; name: string }[]>([]);
+  const [reasons, setReasons] = useState<{ id: string; name: string; is_definitive: boolean }[]>([]);
   const [addingReason, setAddingReason] = useState(false);
   const [newReason, setNewReason] = useState('');
   const [search, setSearch] = useState('');
@@ -37,6 +37,10 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
   const [deleting, setDeleting] = useState(false);
 
   const canDelete = userRole === 'admin' || userRole === 'comercial';
+
+  const selectedReasonMeta = reasons.find(r => r.name === selectedReason);
+  const isDefinitiveSelected = selectedReason === 'Outro' ? false : !!selectedReasonMeta?.is_definitive;
+  const requiresFollowUp = !!selectedReason && !isDefinitiveSelected;
 
   useEffect(() => {
     if (open) {
@@ -48,7 +52,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
   const loadReasons = async () => {
     const { data } = await (supabase as any)
       .from('crm_loss_reasons')
-      .select('id, name')
+      .select('id, name, is_definitive')
       .eq('is_active', true)
       .order('name', { ascending: true });
     setReasons(data || []);
@@ -82,7 +86,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
   const handleConfirm = () => {
     const reason = selectedReason === 'Outro' ? customReason : selectedReason;
     if (!reason.trim()) return;
-    onConfirmLost(reason);
+    onConfirmLost(reason, isDefinitiveSelected);
     setSelectedReason('');
     setCustomReason('');
   };
@@ -184,6 +188,12 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
                 placeholder="Descreva o motivo..."
                 rows={2}
               />
+            )}
+
+            {requiresFollowUp && (
+              <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
+                ⚠️ Após confirmar, você precisará agendar um follow-up para concluir o descarte deste lead.
+              </div>
             )}
           </div>
           <DialogFooter>

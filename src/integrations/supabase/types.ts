@@ -352,6 +352,7 @@ export type Database = {
           display_order: number | null
           id: string
           is_active: boolean
+          is_definitive: boolean
           name: string
         }
         Insert: {
@@ -359,6 +360,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
+          is_definitive?: boolean
           name: string
         }
         Update: {
@@ -366,6 +368,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
+          is_definitive?: boolean
           name?: string
         }
         Relationships: []

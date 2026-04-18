@@ -7,8 +7,8 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar as CalendarIcon, MapPin, Clock, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import {
-  format, isToday, isBefore, startOfDay, isSameMonth,
-  startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths
+  format, isToday, isBefore, startOfDay, isSameMonth, isSameDay,
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, addWeeks, subWeeks
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -42,6 +42,7 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -124,6 +125,14 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   const sortedDates = Object.keys(grouped).sort();
 
   const calendarDays = useMemo(() => {
+    if (viewMode === 'week') {
+      const wStart = startOfWeek(currentMonth, { locale: ptBR });
+      const wEnd = endOfWeek(currentMonth, { locale: ptBR });
+      const days: Date[] = [];
+      let d = wStart;
+      while (d <= wEnd) { days.push(d); d = addDays(d, 1); }
+      return days;
+    }
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const calStart = startOfWeek(monthStart, { locale: ptBR });
@@ -132,7 +141,7 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
     let day = calStart;
     while (day <= calEnd) { days.push(day); day = addDays(day, 1); }
     return days;
-  }, [currentMonth]);
+  }, [currentMonth, viewMode]);
 
   const getVisitsForDay = (date: Date): Visit[] => grouped[format(date, 'yyyy-MM-dd')] || [];
 
@@ -140,6 +149,22 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
     const dayVisits = getVisitsForDay(date);
     if (dayVisits.length > 0) setSelectedDayVisits({ date, visits: dayVisits });
   };
+
+  const goPrev = () => setCurrentMonth(viewMode === 'week' ? subWeeks(currentMonth, 1) : subMonths(currentMonth, 1));
+  const goNext = () => setCurrentMonth(viewMode === 'week' ? addWeeks(currentMonth, 1) : addMonths(currentMonth, 1));
+
+  const headerLabel = useMemo(() => {
+    if (viewMode === 'week') {
+      const wStart = startOfWeek(currentMonth, { locale: ptBR });
+      const wEnd = endOfWeek(currentMonth, { locale: ptBR });
+      const sameMonth = isSameMonth(wStart, wEnd);
+      if (sameMonth) {
+        return `${format(wStart, 'd', { locale: ptBR })} – ${format(wEnd, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}`;
+      }
+      return `${format(wStart, "d 'de' MMM", { locale: ptBR })} – ${format(wEnd, "d 'de' MMM 'de' yyyy", { locale: ptBR })}`;
+    }
+    return format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR });
+  }, [currentMonth, viewMode]);
 
   if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando agenda...</p>;
 
@@ -192,12 +217,30 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
     <div className="space-y-3">
       {/* Always show calendar */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-            <h3 className="text-base font-bold text-foreground capitalize">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</h3>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <Button variant="ghost" size="sm" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
+            <h3 className="text-base font-bold text-foreground capitalize flex-1 text-center">{headerLabel}</h3>
             <div className="flex items-center gap-1">
+              <div className="flex rounded-md border border-border overflow-hidden mr-1">
+                <Button
+                  variant={viewMode === 'month' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="text-xs h-7 rounded-none px-2"
+                  onClick={() => setViewMode('month')}
+                >
+                  Mês
+                </Button>
+                <Button
+                  variant={viewMode === 'week' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="text-xs h-7 rounded-none px-2"
+                  onClick={() => setViewMode('week')}
+                >
+                  Semana
+                </Button>
+              </div>
               <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setCurrentMonth(new Date())}>Hoje</Button>
-              <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
 
@@ -211,15 +254,16 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
             {calendarDays.map((day, idx) => {
               const dayVisits = getVisitsForDay(day);
               const today = isToday(day);
-              const inMonth = isSameMonth(day, currentMonth);
+              const inMonth = viewMode === 'week' ? true : isSameMonth(day, currentMonth);
               const past = isBefore(day, startOfDay(new Date())) && !today;
-              const maxShow = isMobile ? 1 : 3;
+              const maxShow = isMobile ? 1 : (viewMode === 'week' ? 6 : 3);
 
               return (
                 <div
                   key={idx}
                   className={cn(
-                    'border-r border-b border-border min-h-[80px] sm:min-h-[100px] p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative',
+                    'border-r border-b border-border p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative',
+                    viewMode === 'week' ? 'min-h-[200px] sm:min-h-[260px]' : 'min-h-[80px] sm:min-h-[100px]',
                     !inMonth && 'bg-muted/20', today && 'bg-primary/5',
                   )}
                   onClick={() => handleDayClick(day)}

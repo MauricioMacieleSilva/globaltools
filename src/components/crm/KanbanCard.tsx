@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { CRMLead } from '@/pages/CRM';
 import { OrderDetailDialog } from './OrderDetailDialog';
 import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
+import { useStaleLeadsBlinkSettings } from '@/hooks/useCrmSettings';
 import instagramLogo from '@/assets/instagram-logo.png';
 
 /** Converte texto para Title Case, independente do formato original */
@@ -43,7 +44,11 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isInAnalysis, setIsInAnalysis] = useState(false);
   const [blockedReason, setBlockedReason] = useState<string | null>(null);
+  const { settings: staleSettings } = useStaleLeadsBlinkSettings();
   const days = getDaysInStage(lead.updated_at);
+  const isStale = staleSettings.enabled
+    && days >= staleSettings.days_threshold
+    && !['perdido', 'pedido_fechado'].includes(lead.status);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
   const whatsappUrl = phone ? `https://wa.me/55${phone.replace(/\D/g, '')}` : null;
@@ -179,7 +184,7 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
       draggable
       onDragStart={(e) => onDragStart(e, lead.id)}
       onClick={onClick}
-      className={`p-2 cursor-pointer hover:shadow-md transition-all select-none border-l-[3px] ${getAgingColor(days)} ${isDragging ? 'opacity-40 scale-95' : ''} ${blockedReason ? 'ring-2 ring-destructive/60 bg-destructive/5' : ''}`}
+      className={`p-2 cursor-pointer hover:shadow-md transition-all select-none border-l-[3px] ${getAgingColor(days)} ${isDragging ? 'opacity-40 scale-95' : ''} ${blockedReason ? 'ring-2 ring-destructive/60 bg-destructive/5' : ''} ${isStale ? 'stale-lead-blink' : ''}`}
     >
       <div className="space-y-1">
         {/* Blocked lead alert — must NOT be recontacted */}

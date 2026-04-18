@@ -16,6 +16,7 @@ import { UserStats } from '@/components/admin/UserStats'
 import { SessionResetDialog } from '@/components/admin/SessionResetDialog'
 import { LeadQualificationConfig } from '@/components/admin/LeadQualificationConfig'
 import { LeadOrigemRamoConfig } from '@/components/admin/LeadOrigemRamoConfig'
+import { StaleLeadsBlinkConfig } from '@/components/admin/StaleLeadsBlinkConfig'
 import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog'
 import { DefaultPermissionsConfig } from '@/components/admin/DefaultPermissionsConfig'
 import { GoalsManagement } from '@/components/admin/GoalsManagement'
@@ -305,6 +306,7 @@ export const UserManagement: React.FC = () => {
 
           <TabsContent value="lead-config" className="mt-4">
             <div className="space-y-6">
+              <StaleLeadsBlinkConfig />
               <LeadQualificationConfig />
               <LeadOrigemRamoConfig />
             </div>

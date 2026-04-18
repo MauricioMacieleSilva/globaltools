@@ -13,6 +13,7 @@ import { CRMFilters } from '@/components/crm/CRMFilters';
 import { NewLeadDialog } from '@/components/crm/NewLeadDialog';
 import { LeadListView } from '@/components/crm/LeadListView';
 import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
+import { FollowUpScheduleDialog } from '@/components/crm/FollowUpScheduleDialog';
 import { VisitCalendar } from '@/components/crm/VisitCalendar';
 import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
 import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
@@ -105,6 +106,8 @@ export default function CRM() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
   const [pendingLostLead, setPendingLostLead] = useState<CRMLead | null>(null);
+  const [pendingLostReason, setPendingLostReason] = useState<string | null>(null);
+  const [lostFollowUpOpen, setLostFollowUpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
   const [origemFilter, setOrigemFilter] = useState('all');

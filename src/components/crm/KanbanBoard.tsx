@@ -82,7 +82,14 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
         style={{ scrollbarWidth: 'thin' }}
       >
         {stages.map(stage => {
-          const stageLeads = leads.filter(l => l.status === stage.key);
+          const stageLeads = leads
+            .filter(l => l.status === stage.key)
+            .sort((a, b) => {
+              // Leads com mais tempo sem interação (updated_at mais antigo) ficam no topo
+              const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+              const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+              return aTime - bTime;
+            });
           const isOver = dragOverColumn === stage.key;
 
           return (

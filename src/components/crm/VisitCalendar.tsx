@@ -214,9 +214,9 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   };
 
   return (
-    <div className="space-y-3">
+    <div className={cn('space-y-3', viewMode === 'week' && 'flex flex-col h-[calc(100vh-220px)] min-h-[500px]')}>
       {/* Always show calendar */}
-        <div className="space-y-3">
+        <div className={cn('space-y-3', viewMode === 'week' && 'flex flex-col flex-1 min-h-0')}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <Button variant="ghost" size="sm" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
             <h3 className="text-base font-bold text-foreground capitalize flex-1 text-center">{headerLabel}</h3>
@@ -250,20 +250,23 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
             ))}
           </div>
 
-          <div className="grid grid-cols-7 border-l border-border">
+          <div className={cn(
+            'grid grid-cols-7 border-l border-border',
+            viewMode === 'week' && 'flex-1 min-h-0 auto-rows-fr overflow-auto'
+          )}>
             {calendarDays.map((day, idx) => {
               const dayVisits = getVisitsForDay(day);
               const today = isToday(day);
               const inMonth = viewMode === 'week' ? true : isSameMonth(day, currentMonth);
               const past = isBefore(day, startOfDay(new Date())) && !today;
-              const maxShow = isMobile ? 1 : (viewMode === 'week' ? 6 : 3);
+              const maxShow = isMobile ? 1 : (viewMode === 'week' ? 20 : 3);
 
               return (
                 <div
                   key={idx}
                   className={cn(
-                    'border-r border-b border-border p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative',
-                    viewMode === 'week' ? 'min-h-[200px] sm:min-h-[260px]' : 'min-h-[80px] sm:min-h-[100px]',
+                    'border-r border-b border-border p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative flex flex-col',
+                    viewMode === 'week' ? 'h-full min-h-[200px]' : 'min-h-[80px] sm:min-h-[100px]',
                     !inMonth && 'bg-muted/20', today && 'bg-primary/5',
                   )}
                   onClick={() => handleDayClick(day)}
@@ -277,7 +280,7 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
                     {format(day, 'd')}
                   </div>
 
-                  <div className="space-y-0.5">
+                  <div className={cn('space-y-0.5', viewMode === 'week' && 'flex-1 overflow-y-auto')}>
                     {dayVisits.slice(0, maxShow).map(visit => (
                       <TooltipProvider key={visit.id} delayDuration={200}>
                         <Tooltip>

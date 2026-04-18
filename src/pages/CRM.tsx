@@ -724,31 +724,70 @@ export default function CRM() {
   };
 
 
-  const confirmLostDeal = async (reason: string) => {
+  const finalizeLostDeal = async (lead: CRMLead, reason: string) => {
+    const user = (await supabase.auth.getUser()).data.user;
+    const { error } = await (supabase as any)
+      .from('leads')
+      .update({ status: 'perdido', updated_at: new Date().toISOString(), notes: reason })
+      .eq('id', lead.id);
+    if (error) throw error;
+
+    await supabase.from('lead_dispositions').insert({
+      lead_id: lead.id,
+      user_id: user?.id || '',
+      disposition_type: 'lost',
+      reason: reason,
+      lead_client_name: lead.cliente_nome,
+    } as any);
+
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'perdido' } : l));
+  };
+
+  const confirmLostDeal = async (reason: string, isDefinitive: boolean) => {
     if (!pendingLostLead) return;
+
+    // Motivo NÃO definitivo → exige agendamento de follow-up antes de descartar
+    if (!isDefinitive) {
+      setPendingLostReason(reason);
+      setLostDialogOpen(false);
+      setLostFollowUpOpen(true);
+      return;
+    }
+
+    // Motivo definitivo → descarta direto
     try {
-      const user = (await supabase.auth.getUser()).data.user;
-      const { error } = await (supabase as any)
-        .from('leads')
-        .update({ status: 'perdido', updated_at: new Date().toISOString(), notes: reason })
-        .eq('id', pendingLostLead.id);
-      if (error) throw error;
-
-      await supabase.from('lead_dispositions').insert({
-        lead_id: pendingLostLead.id,
-        user_id: user?.id || '',
-        disposition_type: 'lost',
-        reason: reason,
-        lead_client_name: pendingLostLead.cliente_nome,
-      } as any);
-
-      setLeads(prev => prev.map(l => l.id === pendingLostLead.id ? { ...l, status: 'perdido' } : l));
+      await finalizeLostDeal(pendingLostLead, reason);
       setPendingLostLead(null);
       setLostDialogOpen(false);
       toast.success('Lead marcado como perdido');
     } catch {
       toast.error('Erro ao marcar lead como perdido');
     }
+  };
+
+  const handleLostFollowUpConfirmed = async () => {
+    if (!pendingLostLead || !pendingLostReason) return;
+    try {
+      await finalizeLostDeal(pendingLostLead, pendingLostReason);
+      toast.success('Lead marcado como perdido', {
+        description: 'Follow-up agendado com sucesso.',
+      });
+    } catch {
+      toast.error('Erro ao marcar lead como perdido');
+    } finally {
+      setPendingLostLead(null);
+      setPendingLostReason(null);
+      setLostFollowUpOpen(false);
+    }
+  };
+
+  const handleLostFollowUpCancelled = () => {
+    setLostFollowUpOpen(false);
+    setPendingLostReason(null);
+    setPendingLostLead(null);
+    toast.info('Descarte cancelado', {
+      description: 'O agendamento de follow-up é obrigatório para este motivo.',
+    });
   };
 
   const isOwnerOrManager = (lead: CRMLead) => {

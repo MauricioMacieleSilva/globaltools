@@ -7,8 +7,8 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar as CalendarIcon, MapPin, Clock, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import {
-  format, isToday, isBefore, startOfDay, isSameMonth,
-  startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths
+  format, isToday, isBefore, startOfDay, isSameMonth, isSameDay,
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, addWeeks, subWeeks
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -42,6 +42,7 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);

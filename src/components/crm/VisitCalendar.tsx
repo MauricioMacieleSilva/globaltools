@@ -125,6 +125,14 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   const sortedDates = Object.keys(grouped).sort();
 
   const calendarDays = useMemo(() => {
+    if (viewMode === 'week') {
+      const wStart = startOfWeek(currentMonth, { locale: ptBR });
+      const wEnd = endOfWeek(currentMonth, { locale: ptBR });
+      const days: Date[] = [];
+      let d = wStart;
+      while (d <= wEnd) { days.push(d); d = addDays(d, 1); }
+      return days;
+    }
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const calStart = startOfWeek(monthStart, { locale: ptBR });
@@ -133,7 +141,7 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
     let day = calStart;
     while (day <= calEnd) { days.push(day); day = addDays(day, 1); }
     return days;
-  }, [currentMonth]);
+  }, [currentMonth, viewMode]);
 
   const getVisitsForDay = (date: Date): Visit[] => grouped[format(date, 'yyyy-MM-dd')] || [];
 
@@ -141,6 +149,22 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
     const dayVisits = getVisitsForDay(date);
     if (dayVisits.length > 0) setSelectedDayVisits({ date, visits: dayVisits });
   };
+
+  const goPrev = () => setCurrentMonth(viewMode === 'week' ? subWeeks(currentMonth, 1) : subMonths(currentMonth, 1));
+  const goNext = () => setCurrentMonth(viewMode === 'week' ? addWeeks(currentMonth, 1) : addMonths(currentMonth, 1));
+
+  const headerLabel = useMemo(() => {
+    if (viewMode === 'week') {
+      const wStart = startOfWeek(currentMonth, { locale: ptBR });
+      const wEnd = endOfWeek(currentMonth, { locale: ptBR });
+      const sameMonth = isSameMonth(wStart, wEnd);
+      if (sameMonth) {
+        return `${format(wStart, 'd', { locale: ptBR })} – ${format(wEnd, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}`;
+      }
+      return `${format(wStart, "d 'de' MMM", { locale: ptBR })} – ${format(wEnd, "d 'de' MMM 'de' yyyy", { locale: ptBR })}`;
+    }
+    return format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR });
+  }, [currentMonth, viewMode]);
 
   if (loading) return <p className="text-sm text-muted-foreground text-center py-8">Carregando agenda...</p>;
 

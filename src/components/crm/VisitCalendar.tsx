@@ -217,12 +217,30 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
     <div className="space-y-3">
       {/* Always show calendar */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-            <h3 className="text-base font-bold text-foreground capitalize">{format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}</h3>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <Button variant="ghost" size="sm" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
+            <h3 className="text-base font-bold text-foreground capitalize flex-1 text-center">{headerLabel}</h3>
             <div className="flex items-center gap-1">
+              <div className="flex rounded-md border border-border overflow-hidden mr-1">
+                <Button
+                  variant={viewMode === 'month' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="text-xs h-7 rounded-none px-2"
+                  onClick={() => setViewMode('month')}
+                >
+                  Mês
+                </Button>
+                <Button
+                  variant={viewMode === 'week' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="text-xs h-7 rounded-none px-2"
+                  onClick={() => setViewMode('week')}
+                >
+                  Semana
+                </Button>
+              </div>
               <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setCurrentMonth(new Date())}>Hoje</Button>
-              <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
 
@@ -236,15 +254,16 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
             {calendarDays.map((day, idx) => {
               const dayVisits = getVisitsForDay(day);
               const today = isToday(day);
-              const inMonth = isSameMonth(day, currentMonth);
+              const inMonth = viewMode === 'week' ? true : isSameMonth(day, currentMonth);
               const past = isBefore(day, startOfDay(new Date())) && !today;
-              const maxShow = isMobile ? 1 : 3;
+              const maxShow = isMobile ? 1 : (viewMode === 'week' ? 6 : 3);
 
               return (
                 <div
                   key={idx}
                   className={cn(
-                    'border-r border-b border-border min-h-[80px] sm:min-h-[100px] p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative',
+                    'border-r border-b border-border p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-muted/50 relative',
+                    viewMode === 'week' ? 'min-h-[200px] sm:min-h-[260px]' : 'min-h-[80px] sm:min-h-[100px]',
                     !inMonth && 'bg-muted/20', today && 'bg-primary/5',
                   )}
                   onClick={() => handleDayClick(day)}

@@ -191,7 +191,7 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
             )}
 
             {requiresFollowUp && (
-              <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+              <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
                 ⚠️ Após confirmar, você precisará agendar um follow-up para concluir o descarte deste lead.
               </div>
             )}

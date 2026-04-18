@@ -5,6 +5,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Stale lead attention-grabbing animation */
+@keyframes stale-lead-blink {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(var(--destructive) / 0);
+    border-left-color: hsl(var(--destructive));
+  }
+  50% {
+    box-shadow: 0 0 0 4px hsl(var(--destructive) / 0.35);
+    border-left-color: hsl(var(--warning));
+  }
+}
+.stale-lead-blink {
+  animation: stale-lead-blink 1.4s ease-in-out infinite;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

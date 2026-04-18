@@ -446,6 +446,21 @@ export function LeadOrigemRamoConfig() {
               <Switch checked={form.is_active} onCheckedChange={(v) => setForm(f => ({ ...f, is_active: v }))} />
             </div>
 
+            {edit.kind === "loss_reason" && (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium">Perda Definitiva</div>
+                  <div className="text-xs text-muted-foreground">
+                    Quando ativo, leads marcados com este motivo são descartados imediatamente, sem exigir agendamento de follow-up.
+                  </div>
+                </div>
+                <Switch
+                  checked={form.is_definitive}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, is_definitive: v }))}
+                />
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setEdit(e => ({ ...e, open: false }))}>
                 Cancelar

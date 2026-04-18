@@ -189,6 +189,12 @@ export function LostDealsDialog({ open, onOpenChange, pendingLead, lostLeads, on
                 rows={2}
               />
             )}
+
+            {requiresFollowUp && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                ⚠️ Após confirmar, você precisará agendar um follow-up para concluir o descarte deste lead.
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleCancel}>Cancelar</Button>

@@ -1056,6 +1056,16 @@ export default function CRM() {
         userRole={currentUserRole}
       />
 
+      {pendingLostLead && (
+        <FollowUpScheduleDialog
+          open={lostFollowUpOpen}
+          onOpenChange={(v) => { if (!v) handleLostFollowUpCancelled(); }}
+          leadId={pendingLostLead.id}
+          leadName={pendingLostLead.client_name || pendingLostLead.cliente_nome}
+          onConfirm={handleLostFollowUpConfirmed}
+        />
+      )}
+
       {pendingVisitLead && (
         <VisitScheduleDialog
           open={visitDialogOpen}

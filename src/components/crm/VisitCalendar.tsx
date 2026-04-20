@@ -93,15 +93,21 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
 
     const enrichedVisits: Visit[] = (visitsRes.data || []).map((v: any) => {
       const lead = leads.find(l => l.id === v.lead_id);
-      return { ...v, lead_name: lead?.client_name || lead?.cliente_nome || 'Lead', lead_status: lead?.status, type: 'visit' as const };
+      const displayName = lead?.empresa || lead?.client_name || lead?.cliente_nome || 'Lead';
+      const search = [lead?.empresa, lead?.client_name, lead?.cliente_nome, lead?.contact_name, lead?.cliente_telefone, lead?.contact_phone]
+        .filter(Boolean).join(' ').toLowerCase();
+      return { ...v, lead_name: displayName, lead_search: search, lead_status: lead?.status, type: 'visit' as const };
     });
 
     const enrichedFollowups: Visit[] = (followupsRes.data || []).map((f: any) => {
       const lead = leads.find(l => l.id === f.lead_id);
+      const displayName = lead?.empresa || lead?.client_name || lead?.cliente_nome || 'Lead';
+      const search = [lead?.empresa, lead?.client_name, lead?.cliente_nome, lead?.contact_name, lead?.cliente_telefone, lead?.contact_phone]
+        .filter(Boolean).join(' ').toLowerCase();
       return {
         id: f.id, lead_id: f.lead_id, visit_date: f.data_agendada,
         location: null, notes: f.descricao,
-        lead_name: lead?.client_name || lead?.cliente_nome || 'Lead', lead_status: lead?.status,
+        lead_name: displayName, lead_search: search, lead_status: lead?.status,
         type: 'followup' as const, followup_tipo: f.tipo, followup_titulo: f.titulo,
       };
     });

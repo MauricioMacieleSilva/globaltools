@@ -23,6 +23,7 @@ interface Visit {
   location: string | null;
   notes: string | null;
   lead_name?: string;
+  lead_search?: string;
   lead_status?: string;
   type: 'visit' | 'followup';
   followup_tipo?: string;

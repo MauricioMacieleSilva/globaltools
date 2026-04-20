@@ -52,14 +52,19 @@ export function ResumoGeral() {
   };
 
   // Calcular valores com preços e descontos individuais
+  // R$/kg efetivo embute o custo da perda: (peso_util + peso_perda) * preco_tabela / peso_util
   const calculosComPreco = calculosValidos.map(calc => {
     const { isPadrao } = verificarPadrao(calc);
     const precoKgBase = getPreco(calc.espessura, isPadrao);
     const descontoItem = parseFloat(descontosIndividuais[calc.id] || '0') || 0;
-    const precoKg = precoKgBase ? precoKgBase * (1 - descontoItem / 100) : null;
-    const pesoComPerda = calc.pesoTotal * (calc.percentualPerda || 100) / 100;
-    const valorTotal = precoKg ? pesoComPerda * precoKg : null;
-    return { ...calc, precoKgBase, precoKg, valorTotal, isPadrao, descontoItem };
+    const precoTabelaComDesc = precoKgBase ? precoKgBase * (1 - descontoItem / 100) : null;
+    const pesoUtil = calc.pesoTotal * (calc.percentualPerda || 100) / 100;
+    const pesoPerda = calc.pesoPerda || 0;
+    const pesoBruto = pesoUtil + pesoPerda;
+    const valorTotal = precoTabelaComDesc ? pesoBruto * precoTabelaComDesc : null;
+    const precoKg = precoTabelaComDesc && pesoUtil > 0 ? (valorTotal as number) / pesoUtil : null;
+    const perdaEmbutidaPercent = pesoUtil > 0 ? (pesoPerda / pesoUtil) * 100 : 0;
+    return { ...calc, precoKgBase, precoTabelaComDesc, precoKg, valorTotal, isPadrao, descontoItem, perdaEmbutidaPercent };
   });
 
   const valorTotalGeral = calculosComPreco.reduce((sum, calc) => {
@@ -282,7 +287,7 @@ export function ResumoGeral() {
                                     <span className="font-medium">{formatarNumero(calc.precoKg)}</span>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Base: {formatarNumero(calc.precoKgBase || 0)} | Desc: {calc.descontoItem}%</p>
+                                    <p>Base: {formatarNumero(calc.precoKgBase || 0)} | Desc: {calc.descontoItem}% | Perda embutida: +{formatarNumero(calc.perdaEmbutidaPercent)}%</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

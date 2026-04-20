@@ -245,6 +245,75 @@ export type Database = {
         }
         Relationships: []
       }
+      client_projections: {
+        Row: {
+          ano: number
+          cliente_nome: string
+          created_at: string
+          created_by: string | null
+          id: string
+          mes: number
+          updated_at: string
+          updated_by: string | null
+          valor_orcado: number
+        }
+        Insert: {
+          ano: number
+          cliente_nome: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mes: number
+          updated_at?: string
+          updated_by?: string | null
+          valor_orcado?: number
+        }
+        Update: {
+          ano?: number
+          cliente_nome?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mes?: number
+          updated_at?: string
+          updated_by?: string | null
+          valor_orcado?: number
+        }
+        Relationships: []
+      }
+      client_vendor_assignments: {
+        Row: {
+          cliente_nome: string
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+          vendedor_id: string | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          cliente_nome: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          cliente_nome?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cidade: string | null

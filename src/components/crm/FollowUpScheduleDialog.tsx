@@ -123,6 +123,18 @@ export function FollowUpScheduleDialog({ open, onOpenChange, leadId, leadName, o
       const tipoLabel = FOLLOWUP_TYPES.find(t => t.value === tipo)?.label || tipo;
       const descFull = [tipoLabel, descricao.trim()].filter(Boolean).join(' - ');
 
+      // Ensure the lead only appears in the agenda on the new date:
+      // mark any previously scheduled (pending) follow-ups for this lead as concluded.
+      try {
+        await supabase
+          .from('follow_ups')
+          .update({ concluido: true, updated_at: new Date().toISOString() })
+          .eq('lead_id', leadId)
+          .eq('concluido', false);
+      } catch (e) {
+        console.warn('Failed to clear previous pending follow-ups:', e);
+      }
+
       const { error: insertError } = await supabase.from('follow_ups').insert({
         lead_id: leadId,
         user_id: user?.id || '',

@@ -63,9 +63,23 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
 
   const loadVisits = async () => {
     const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    // Auto-conclude follow-ups whose scheduled date/time has already passed.
+    // They should disappear from the agenda automatically and only return when a new one is scheduled.
+    try {
+      await (supabase as any)
+        .from('follow_ups')
+        .update({ concluido: true, updated_at: nowIso })
+        .eq('concluido', false)
+        .not('lead_id', 'is', null)
+        .lt('data_agendada', nowIso);
+    } catch (e) {
+      console.warn('Auto-conclude past follow-ups failed:', e);
+    }
 
     let visitsQuery = (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true });
-    let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', cutoff).order('data_agendada', { ascending: true });
+    let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', nowIso).order('data_agendada', { ascending: true });
 
     // Filter by vendor from global filter
     const filterUserId = vendorFilter !== 'all' ? vendorFilter : null;

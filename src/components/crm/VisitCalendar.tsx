@@ -133,7 +133,10 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   const filteredVisits = useMemo(() => {
     if (!searchQuery) return visits;
     const q = searchQuery.toLowerCase();
-    return visits.filter(v => v.lead_name?.toLowerCase().includes(q));
+    return visits.filter(v =>
+      v.lead_name?.toLowerCase().includes(q) ||
+      v.lead_search?.includes(q)
+    );
   }, [visits, searchQuery]);
 
   const grouped: Record<string, Visit[]> = {};

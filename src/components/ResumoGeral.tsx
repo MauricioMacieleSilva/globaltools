@@ -287,7 +287,7 @@ export function ResumoGeral() {
                                     <span className="font-medium">{formatarNumero(calc.precoKg)}</span>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Base: {formatarNumero(calc.precoKgBase || 0)} | Desc: {calc.descontoItem}%</p>
+                                    <p>Base: {formatarNumero(calc.precoKgBase || 0)} | Desc: {calc.descontoItem}% | Perda embutida: +{formatarNumero(calc.perdaEmbutidaPercent)}%</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

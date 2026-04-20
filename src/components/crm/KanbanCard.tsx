@@ -44,10 +44,14 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isInAnalysis, setIsInAnalysis] = useState(false);
   const [blockedReason, setBlockedReason] = useState<string | null>(null);
+  const [lastContactAt, setLastContactAt] = useState<string>(lead.updated_at);
+  const [hasFutureSchedule, setHasFutureSchedule] = useState(false);
   const { settings: staleSettings } = useStaleLeadsBlinkSettings();
   const days = getDaysInStage(lead.updated_at);
+  const daysSinceContact = getDaysInStage(lastContactAt);
   const isStale = staleSettings.enabled
-    && days >= staleSettings.days_threshold
+    && daysSinceContact >= staleSettings.days_threshold
+    && !hasFutureSchedule
     && !['perdido', 'pedido_fechado'].includes(lead.status);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;

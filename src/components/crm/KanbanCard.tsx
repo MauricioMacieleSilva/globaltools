@@ -44,10 +44,14 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isInAnalysis, setIsInAnalysis] = useState(false);
   const [blockedReason, setBlockedReason] = useState<string | null>(null);
+  const [lastContactAt, setLastContactAt] = useState<string>(lead.updated_at);
+  const [hasFutureSchedule, setHasFutureSchedule] = useState(false);
   const { settings: staleSettings } = useStaleLeadsBlinkSettings();
   const days = getDaysInStage(lead.updated_at);
+  const daysSinceContact = getDaysInStage(lastContactAt);
   const isStale = staleSettings.enabled
-    && days >= staleSettings.days_threshold
+    && daysSinceContact >= staleSettings.days_threshold
+    && !hasFutureSchedule
     && !['perdido', 'pedido_fechado'].includes(lead.status);
   const name = lead.empresa || lead.client_name || lead.cliente_nome;
   const phone = lead.contact_phone || lead.cliente_telefone;
@@ -79,7 +83,34 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setFailedAttempts(0);
     setIsInAnalysis(false);
     setBlockedReason(null);
+    setLastContactAt(lead.updated_at);
+    setHasFutureSchedule(false);
     import('@/integrations/supabase/client').then(({ supabase }) => {
+      // Most recent activity = last real contact/interaction. When a lead returns
+      // from the agenda (follow-up completed), a new activity is logged, so the
+      // card stops being considered "stale".
+      (supabase as any)
+        .from('lead_activities')
+        .select('created_at')
+        .eq('lead_id', lead.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data }: any) => {
+          if (cancelled) return;
+          if (data?.[0]?.created_at) setLastContactAt(data[0].created_at);
+        });
+
+      // If the lead has a future scheduled visit or follow-up, it's "in agenda" — never stale.
+      Promise.all([
+        (supabase as any).from('crm_visits').select('id').eq('lead_id', lead.id).gte('visit_date', new Date().toISOString()).limit(1),
+        (supabase as any).from('follow_ups').select('id').eq('lead_id', lead.id).eq('concluido', false).gte('data_agendada', new Date().toISOString()).limit(1),
+      ]).then(([visitsRes, followsRes]: any) => {
+        if (cancelled) return;
+        if ((visitsRes?.data?.length || 0) > 0 || (followsRes?.data?.length || 0) > 0) {
+          setHasFutureSchedule(true);
+        }
+      });
+
       // Verifica se há disposição bloqueante registrada (mesmo que reativado)
       (supabase as any)
         .from('lead_dispositions')

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BarChart3 } from "lucide-react";
+import { Users, BarChart3, FileSpreadsheet } from "lucide-react";
 import { BaseClientesTable } from "@/components/clientes/BaseClientesTable";
 import { AnaliseClientes } from "@/components/clientes/AnaliseClientes";
+import { RelatorioClientes } from "@/components/clientes/RelatorioClientes";
 import { LastUpdatedIndicator } from "@/components/ui/last-updated-indicator";
 import { useComercial } from "@/context/ComercialContext";
 
@@ -34,7 +35,7 @@ export default function Clientes() {
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 h-9" data-tour="clientes-tabs">
+            <TabsList className="grid w-full grid-cols-3 h-9" data-tour="clientes-tabs">
               <TabsTrigger value="base" className="w-full min-w-0 px-2 text-xs sm:text-sm gap-1">
                 <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="min-w-0 truncate">Clientes</span>
@@ -42,6 +43,10 @@ export default function Clientes() {
               <TabsTrigger value="analise" className="w-full min-w-0 px-2 text-xs sm:text-sm gap-1">
                 <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="min-w-0 truncate">Análise</span>
+              </TabsTrigger>
+              <TabsTrigger value="relatorio" className="w-full min-w-0 px-2 text-xs sm:text-sm gap-1">
+                <FileSpreadsheet className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="min-w-0 truncate">Relatório</span>
               </TabsTrigger>
             </TabsList>
 
@@ -51,6 +56,10 @@ export default function Clientes() {
 
             <TabsContent value="analise" className="mt-4">
               <AnaliseClientes />
+            </TabsContent>
+
+            <TabsContent value="relatorio" className="mt-4">
+              <RelatorioClientes />
             </TabsContent>
           </Tabs>
         </CardContent>

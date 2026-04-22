@@ -8,12 +8,131 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Download } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { perfilPadraoU, perfilPadraoUE } from '@/lib/perfil-padrao-utils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function PerfilPadraoDialog() {
   const [open, setOpen] = useState(false);
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Cabeçalho
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tabelas de Perfis Padrão', pageWidth / 2, 15, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+      pageWidth / 2,
+      21,
+      { align: 'center' }
+    );
+
+    // ===== Perfil U =====
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Perfil U', 14, 32);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('h = Altura (alma)   |   B = Largura da aba (mesa)   |   e=r = Espessura', 14, 37);
+
+    const perfilUBody = perfilPadraoU.map((perfil) => {
+      const tira = perfil.h + 2 * perfil.B;
+      const espessuras = [...perfil.espessuras.map((e) => e.toFixed(2))];
+      while (espessuras.length < 5) espessuras.push('-');
+      return [
+        perfil.h.toFixed(2),
+        perfil.B.toFixed(2),
+        tira.toFixed(2),
+        ...espessuras,
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 41,
+      head: [
+        [
+          { content: 'Dimensão', colSpan: 8, styles: { halign: 'center', fillColor: [41, 128, 185] } },
+        ],
+        [
+          { content: 'h (mm)', styles: { halign: 'center' } },
+          { content: 'B (mm)', styles: { halign: 'center' } },
+          { content: 'Tira (mm)', styles: { halign: 'center' } },
+          { content: 'e=r (mm)', colSpan: 5, styles: { halign: 'center' } },
+        ],
+      ],
+      body: perfilUBody,
+      theme: 'grid',
+      headStyles: { fillColor: [52, 152, 219], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 9, halign: 'center', cellPadding: 2 },
+      columnStyles: { 2: { textColor: [41, 128, 185], fontStyle: 'bold' } },
+    });
+
+    // ===== Perfil UE =====
+    const finalY = (doc as any).lastAutoTable.finalY || 60;
+    let yStart = finalY + 12;
+
+    if (yStart > 230) {
+      doc.addPage();
+      yStart = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Perfil UE (Enrijecido)', 14, yStart);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      'h = Altura (alma)   |   B = Largura da aba   |   d = Enrijecedor   |   e=r = Espessura',
+      14,
+      yStart + 5
+    );
+
+    const perfilUEBody = perfilPadraoUE.map((perfil) => {
+      const tira = perfil.h + 2 * perfil.B + 2 * perfil.d;
+      const espessuras = [...perfil.espessuras.map((e) => e.toFixed(2))];
+      while (espessuras.length < 4) espessuras.push('-');
+      return [
+        perfil.h.toFixed(2),
+        perfil.B.toFixed(2),
+        perfil.d.toFixed(2),
+        tira.toFixed(2),
+        ...espessuras,
+      ];
+    });
+
+    autoTable(doc, {
+      startY: yStart + 9,
+      head: [
+        [
+          { content: 'Dimensão', colSpan: 8, styles: { halign: 'center', fillColor: [41, 128, 185] } },
+        ],
+        [
+          { content: 'h (mm)', styles: { halign: 'center' } },
+          { content: 'B (mm)', styles: { halign: 'center' } },
+          { content: 'd (mm)', styles: { halign: 'center' } },
+          { content: 'Tira (mm)', styles: { halign: 'center' } },
+          { content: 'e=r (mm)', colSpan: 4, styles: { halign: 'center' } },
+        ],
+      ],
+      body: perfilUEBody,
+      theme: 'grid',
+      headStyles: { fillColor: [52, 152, 219], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 9, halign: 'center', cellPadding: 2 },
+      columnStyles: { 3: { textColor: [41, 128, 185], fontStyle: 'bold' } },
+    });
+
+    doc.save(`tabelas-perfis-padrao-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -25,9 +144,20 @@ export function PerfilPadraoDialog() {
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
-            Tabelas de Perfis Padrão
+          <DialogTitle className="flex items-center justify-between gap-2 pr-8">
+            <span className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Tabelas de Perfis Padrão
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPDF}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Baixar PDF
+            </Button>
           </DialogTitle>
         </DialogHeader>
         

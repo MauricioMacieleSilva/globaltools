@@ -46,11 +46,14 @@ export function LeadListView({ leads, onLeadClick, onLeadUpdated, userRole }: Le
 
     if (search) {
       const q = search.toLowerCase();
+      const qDigits = search.replace(/\D/g, '');
       result = result.filter(l =>
         (l.client_name || l.cliente_nome || '').toLowerCase().includes(q) ||
         (l.empresa || '').toLowerCase().includes(q) ||
         (l.contact_phone || l.cliente_telefone || '').includes(q) ||
-        (l.cliente_cnpj || '').includes(q)
+        (l.cliente_cnpj || '').includes(q) ||
+        (qDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
+          .some(p => p && p.replace(/\D/g, '').includes(qDigits)))
       );
     }
     if (statusFilter !== 'all') result = result.filter(l => l.status === statusFilter);

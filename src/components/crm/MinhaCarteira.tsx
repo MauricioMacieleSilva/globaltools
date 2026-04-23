@@ -156,11 +156,14 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
     if (externalSearch) {
       const term = externalSearch.toLowerCase();
+      const termDigits = externalSearch.replace(/\D/g, '');
       result = result.filter(l =>
         (l.empresa || l.cliente_nome || '').toLowerCase().includes(term) ||
         (l.cliente_cnpj || '').includes(term) ||
         (l.contact_name || '').toLowerCase().includes(term) ||
-        (l.cliente_telefone || '').includes(term)
+        (l.cliente_telefone || '').includes(term) ||
+        (termDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
+          .some(p => p && p.replace(/\D/g, '').includes(termDigits)))
       );
     }
     return result;
@@ -186,11 +189,14 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
     if (search) {
       const term = search.toLowerCase();
+      const termDigits = search.replace(/\D/g, '');
       result = result.filter(l =>
         (l.empresa || l.cliente_nome || '').toLowerCase().includes(term) ||
         (l.cliente_cnpj || '').includes(term) ||
         (l.contact_name || '').toLowerCase().includes(term) ||
-        (l.cliente_telefone || '').includes(term)
+        (l.cliente_telefone || '').includes(term) ||
+        (termDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
+          .some(p => p && p.replace(/\D/g, '').includes(termDigits)))
       );
     }
     return result;

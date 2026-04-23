@@ -851,6 +851,7 @@ export default function CRM() {
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
+      const qDigits = searchQuery.replace(/\D/g, '');
       const fields = [
         l.client_name,
         l.cliente_nome,
@@ -871,7 +872,10 @@ export default function CRM() {
         l.origem,
       ];
       const matches = fields.some(f => f && f.toLowerCase().includes(q));
-      if (!matches) return false;
+      // Phone match: normalize digits on both sides so "(51) 3339-1221" matches "513339" or "1221"
+      const phoneMatch = qDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
+        .some(p => p && p.replace(/\D/g, '').includes(qDigits));
+      if (!matches && !phoneMatch) return false;
     }
     return true;
   });

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -80,10 +80,15 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   }, [isAdmin]);
 
   // Carrega motivos bloqueantes de lead_dispositions para todos os leads visíveis
+  const lastBlockedKeyRef = useRef<string>('');
   useEffect(() => {
     const loadBlocked = async () => {
       const ids = leads.map(l => l.id);
       if (ids.length === 0) { setBlockedMap({}); return; }
+      // Evita refetch quando o conjunto de IDs não mudou (apenas a referência do array)
+      const key = ids.slice().sort().join(',');
+      if (key === lastBlockedKeyRef.current) return;
+      lastBlockedKeyRef.current = key;
       const { data } = await (supabase as any)
         .from('lead_dispositions')
         .select('lead_id, reason, custom_reason')
@@ -100,9 +105,16 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   }, [leads]);
 
   // Carrega leads com visitas ou follow-ups futuros agendados (sem filtro .in para evitar limite de URL)
+  const lastScheduledKeyRef = useRef<string>('');
   useEffect(() => {
     const loadScheduled = async () => {
       if (leads.length === 0) { setScheduledLeadIds(new Set()); return; }
+      // Refetch no máximo a cada 60s, ou quando o conjunto de IDs mudar
+      const ids = leads.map(l => l.id).sort().join(',');
+      const minute = Math.floor(Date.now() / 60000);
+      const key = `${minute}:${ids}`;
+      if (key === lastScheduledKeyRef.current) return;
+      lastScheduledKeyRef.current = key;
       const nowIso = new Date().toISOString();
       const [visitsRes, followsRes] = await Promise.all([
         (supabase as any).from('crm_visits').select('lead_id').gte('visit_date', nowIso),

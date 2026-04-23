@@ -47,8 +47,13 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [lastContactAt, setLastContactAt] = useState<string>(lead.updated_at);
   const [hasFutureSchedule, setHasFutureSchedule] = useState(false);
   const { settings: staleSettings } = useStaleLeadsBlinkSettings();
-  const days = getDaysInStage(lead.updated_at);
+  // "Tempo sem contato" is anchored to the latest of:
+  //  - last activity logged on the lead (lead_activities)
+  //  - last past scheduled appointment (visita / follow-up)
+  // This way, when a lead returns from the agenda (the scheduled date passes),
+  // the timer resets to zero — the agenda itself counts as the most recent touchpoint.
   const daysSinceContact = getDaysInStage(lastContactAt);
+  const days = daysSinceContact;
   const isStale = staleSettings.enabled
     && daysSinceContact >= staleSettings.days_threshold
     && !hasFutureSchedule
@@ -86,19 +91,42 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
     setLastContactAt(lead.updated_at);
     setHasFutureSchedule(false);
     import('@/integrations/supabase/client').then(({ supabase }) => {
-      // Most recent activity = last real contact/interaction. When a lead returns
-      // from the agenda (follow-up completed), a new activity is logged, so the
-      // card stops being considered "stale".
-      (supabase as any)
-        .from('lead_activities')
-        .select('created_at')
-        .eq('lead_id', lead.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .then(({ data }: any) => {
-          if (cancelled) return;
-          if (data?.[0]?.created_at) setLastContactAt(data[0].created_at);
-        });
+      // "Tempo sem contato" anchor = most recent of:
+      //   1. last lead_activity (contact, note, status change, etc.)
+      //   2. last *past* scheduled visit or follow-up (when lead "returns from the agenda")
+      // This guarantees that when a scheduled date passes and the lead reappears
+      // in the kanban, the days counter resets to zero.
+      const nowIso = new Date().toISOString();
+      Promise.all([
+        (supabase as any)
+          .from('lead_activities')
+          .select('created_at')
+          .eq('lead_id', lead.id)
+          .order('created_at', { ascending: false })
+          .limit(1),
+        (supabase as any)
+          .from('crm_visits')
+          .select('visit_date')
+          .eq('lead_id', lead.id)
+          .lte('visit_date', nowIso)
+          .order('visit_date', { ascending: false })
+          .limit(1),
+        (supabase as any)
+          .from('follow_ups')
+          .select('data_agendada')
+          .eq('lead_id', lead.id)
+          .lte('data_agendada', nowIso)
+          .order('data_agendada', { ascending: false })
+          .limit(1),
+      ]).then(([actRes, visitRes, followRes]: any) => {
+        if (cancelled) return;
+        const candidates: number[] = [new Date(lead.updated_at).getTime()];
+        if (actRes?.data?.[0]?.created_at) candidates.push(new Date(actRes.data[0].created_at).getTime());
+        if (visitRes?.data?.[0]?.visit_date) candidates.push(new Date(visitRes.data[0].visit_date).getTime());
+        if (followRes?.data?.[0]?.data_agendada) candidates.push(new Date(followRes.data[0].data_agendada).getTime());
+        const mostRecent = Math.max(...candidates);
+        setLastContactAt(new Date(mostRecent).toISOString());
+      });
 
       // If the lead has a future scheduled visit or follow-up, it's "in agenda" — never stale.
       Promise.all([

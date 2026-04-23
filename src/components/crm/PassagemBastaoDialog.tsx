@@ -3,14 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
-import { UserCheck } from 'lucide-react';
-
-interface Vendor {
-  id: string;
-  full_name: string;
-  avatar_url: string | null;
-}
+import { UserCheck, Loader2 } from 'lucide-react';
+import { useCommercialVendors, preloadCommercialVendors } from '@/hooks/useCommercialVendors';
 
 interface PassagemBastaoDialogProps {
   open: boolean;
@@ -21,30 +15,14 @@ interface PassagemBastaoDialogProps {
 }
 
 export function PassagemBastaoDialog({ open, onOpenChange, leadName, onConfirm, onCancel }: PassagemBastaoDialogProps) {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const { vendors, loading: vendorsLoading } = useCommercialVendors();
   const [selectedVendor, setSelectedVendor] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const loadVendors = async () => {
-      // Get users with comercial, admin roles (vendedores + gestores)
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['comercial', 'admin']);
-      
-      if (!roleData?.length) return;
-      
-      const userIds = roleData.map(r => r.user_id);
-      const { data: profiles } = await supabase
-        .from('user_profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
-      
-      setVendors(profiles || []);
-    };
-    loadVendors();
+    // Make sure cache starts warming if it hasn't already
+    preloadCommercialVendors();
     setSelectedVendor('');
   }, [open]);
 
@@ -73,9 +51,15 @@ export function PassagemBastaoDialog({ open, onOpenChange, leadName, onConfirm, 
             <label className="text-sm font-medium mb-2 block">Selecione o vendedor responsável:</label>
             <Select value={selectedVendor} onValueChange={setSelectedVendor}>
               <SelectTrigger>
-                <SelectValue placeholder="Escolha um vendedor..." />
+                <SelectValue placeholder={vendorsLoading && vendors.length === 0 ? 'Carregando vendedores...' : 'Escolha um vendedor...'} />
               </SelectTrigger>
               <SelectContent>
+                {vendorsLoading && vendors.length === 0 && (
+                  <div className="flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Carregando vendedores...
+                  </div>
+                )}
                 {vendors.map(v => (
                   <SelectItem key={v.id} value={v.id}>
                     <div className="flex items-center gap-2">

@@ -26,8 +26,24 @@ export function PassagemBastaoDialog({ open, onOpenChange, leadName, onConfirm, 
     setSelectedVendor('');
   }, [open]);
 
+  // Workaround for Radix bug: when a Select inside a Dialog closes,
+  // it can leave `pointer-events: none` on <body>, blocking the dialog buttons.
+  useEffect(() => {
+    if (!selectedVendor) return;
+    const t = setTimeout(() => {
+      if (document.body.style.pointerEvents === 'none') {
+        document.body.style.pointerEvents = '';
+      }
+    }, 50);
+    return () => clearTimeout(t);
+  }, [selectedVendor]);
+
   const handleConfirm = () => {
     if (!selectedVendor) return;
+    // Safety: ensure body is interactive before invoking parent handler
+    if (document.body.style.pointerEvents === 'none') {
+      document.body.style.pointerEvents = '';
+    }
     setLoading(true);
     onConfirm(selectedVendor);
     setLoading(false);

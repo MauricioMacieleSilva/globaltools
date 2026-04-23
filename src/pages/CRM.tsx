@@ -32,6 +32,7 @@ import { HandoffHistory } from '@/components/crm/HandoffHistory';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
 import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
 import DashboardComercial from '@/pages/DashboardComercial';
+import { useCommercialVendors } from '@/hooks/useCommercialVendors';
 
 export interface CRMLead {
   id: string;
@@ -100,6 +101,8 @@ const STAGE_FULL_LABELS: Record<string, string> = {
 
 export default function CRM() {
   const [searchParams, setSearchParams] = useSearchParams();
+  // Pre-warm vendor cache so PassagemBastaoDialog opens instantly
+  useCommercialVendors();
   const [leads, setLeads] = useState<CRMLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);

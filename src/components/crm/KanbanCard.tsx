@@ -47,8 +47,13 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const [lastContactAt, setLastContactAt] = useState<string>(lead.updated_at);
   const [hasFutureSchedule, setHasFutureSchedule] = useState(false);
   const { settings: staleSettings } = useStaleLeadsBlinkSettings();
-  const days = getDaysInStage(lead.updated_at);
+  // "Tempo sem contato" is anchored to the latest of:
+  //  - last activity logged on the lead (lead_activities)
+  //  - last past scheduled appointment (visita / follow-up)
+  // This way, when a lead returns from the agenda (the scheduled date passes),
+  // the timer resets to zero — the agenda itself counts as the most recent touchpoint.
   const daysSinceContact = getDaysInStage(lastContactAt);
+  const days = daysSinceContact;
   const isStale = staleSettings.enabled
     && daysSinceContact >= staleSettings.days_threshold
     && !hasFutureSchedule

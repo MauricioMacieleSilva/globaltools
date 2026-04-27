@@ -332,7 +332,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
             Clique em "Atender" para adicionar o lead à sua lista
           </p>
         </div>
-        <ProspeccaoReviewPanel isManagerOrAdmin={false} onLeadsApproved={() => { loadData(); onLeadsApproved?.(); }} />
+        <ProspeccaoReviewPanel isManagerOrAdmin={false} onLeadsApproved={() => { onLeadsApproved?.(); }} />
       </div>
     );
   }
@@ -742,7 +742,7 @@ export function ProspeccaoPanel({ onLeadsApproved }: ProspeccaoPanelProps) {
       </div>
 
       {/* Review Panel */}
-      <ProspeccaoReviewPanel isManagerOrAdmin={true} onLeadsApproved={() => { loadData(); onLeadsApproved?.(); }} />
+      <ProspeccaoReviewPanel isManagerOrAdmin={true} onLeadsApproved={() => { onLeadsApproved?.(); }} />
 
       {/* History - collapsible */}
       <div>

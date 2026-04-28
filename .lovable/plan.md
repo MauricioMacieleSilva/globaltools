@@ -1,40 +1,77 @@
+## Salvar resumos no Corte Perfil para consulta posterior
 
+### Objetivo
 
-## Acelerar carregamento de vendedores na Passagem de Bastão
+Permitir que o usuário **salve o estado atual** do Corte Perfil (todos os perfis lançados em U/Z, L, U Enrij., Cartola etc. e o resumo geral) com um nome, e depois **reabra** esse mesmo cálculo exatamente como estava — visualizando inclusive as mesmas linhas e o mesmo Resumo Geral / Otimizado.
 
-### Problema
+### Como vai funcionar para o usuário
 
-Hoje, ao abrir o diálogo de Passagem de Bastão, a lista de vendedores só começa a ser carregada **naquele momento**, com **2 queries sequenciais** (`user_roles` depois `user_profiles`). Resultado: o dropdown fica vazio por 1-3 segundos toda vez que é aberto.
+Na aba **Resumo**, ao lado dos botões já existentes (Limpar, PDF, Excel), serão adicionados dois novos botões:
 
-### Solução
+1. **Salvar** — abre um diálogo pedindo um nome (ex.: "Obra Cliente X - Galpão") e uma observação opcional. Salva o snapshot completo no banco vinculado ao usuário logado.
+2. **Meus Resumos** — abre um diálogo listando todos os resumos salvos pelo usuário (e pelos colegas, se quiser ver), com:
+   - Nome / observação
+   - Data de criação
+   - Peso total e quantidade de peças (preview rápido)
+   - Botões **Abrir** (carrega no Corte Perfil) e **Excluir**
 
-Pré-carregar e cachear a lista de vendedores assim que o CRM carrega, exibindo-os instantaneamente quando o diálogo abrir.
+Ao clicar em **Abrir**, o sistema substitui o estado atual do Corte Perfil pelo resumo salvo — todas as 7 abas de perfis voltam a mostrar exatamente as linhas que estavam preenchidas, e o Resumo Geral fica idêntico ao momento do salvamento.
 
-### Mudanças
+Antes de abrir um resumo salvo, se houver dados não salvos no momento, aparece um aviso "Você tem cálculos não salvos. Deseja descartá-los?" para evitar perda acidental.
 
-**1. Criar hook `useCommercialVendors` (`src/hooks/useCommercialVendors.ts`)**
-- Busca uma única vez por sessão a lista de usuários com role `comercial` ou `admin`.
-- Faz as duas queries em **paralelo** (`Promise.all`) em vez de sequencial.
-- Mantém cache em memória (módulo-level) para não refazer a query ao reabrir o diálogo.
-- Expõe `{ vendors, loading }`.
+### O que será salvo
 
-**2. Atualizar `PassagemBastaoDialog.tsx`**
-- Substituir o `useEffect` que faz fetch por uso direto do hook.
-- Mostrar skeleton/placeholder "Carregando vendedores..." apenas no primeiro carregamento (raríssimo, pois o hook já está warm).
-- Manter ordenação alfabética por `full_name`.
+O snapshot guarda **tudo** que define o estado da página:
 
-**3. Pré-aquecer o cache em `src/pages/CRM.tsx`**
-- Chamar `useCommercialVendors()` no nível da página CRM para que a lista já esteja pronta antes do usuário clicar em qualquer card.
+- `calculos` (registro com todos os perfis calculados e seus pesos)
+- `linhasU`, `linhasL`, `linhasUEnrijecido`, `linhasCartola`, `linhasCartolaEnrijecido`, `linhasUSemiEnrijecido`, `linhasCartolaSemiEnrijecido` (estado das tabelas de entrada de cada aba)
 
-### Resultado esperado
+Isso garante que ao reabrir o usuário veja **exatamente o mesmo cenário** — não só o resumo final, mas também os campos preenchidos em cada perfil.
 
-Ao arrastar um lead para "Oportunidade", o diálogo abre com a lista de vendedores **já populada instantaneamente**, sem espera perceptível.
+### Detalhes técnicos
+
+**Banco de dados (nova migração)**
+
+Tabela `perfil_resumos_salvos`:
+
+```text
+id            uuid PK
+user_id       uuid (auth.uid())
+user_name     text
+nome          text NOT NULL          -- nome dado pelo usuário
+observacao    text
+snapshot      jsonb NOT NULL         -- { calculos, linhasU, linhasL, ... }
+peso_total    numeric                -- preview p/ listagem
+quantidade_pecas integer             -- preview p/ listagem
+created_at    timestamptz default now()
+updated_at    timestamptz default now()
+```
+
+RLS:
+- SELECT: qualquer usuário autenticado vê (mesma lógica das outras ferramentas operacionais — usuários podem consultar resumos da equipe).
+- INSERT: `auth.uid() = user_id`.
+- UPDATE/DELETE: dono do registro OU admin.
+
+**Frontend**
+
+Novos arquivos:
+- `src/services/perfilResumosService.ts` — funções `salvarResumo`, `listarResumos`, `excluirResumo`, `carregarResumo`.
+- `src/components/perfis/SalvarResumoDialog.tsx` — diálogo para salvar (nome + observação).
+- `src/components/perfis/ResumosSalvosDialog.tsx` — diálogo para listar/abrir/excluir.
+
+Alterações:
+- `src/context/PerfilContext.tsx` — expor uma função nova `restaurarSnapshot(snapshot)` que substitui de uma vez `calculos` + todos os arrays `linhasX`. Também expor `obterSnapshot()` que retorna o objeto serializável.
+- `src/pages/CortePerfil.tsx` — adicionar os dois botões na aba Resumo, ao lado de Limpar/PDF/Excel.
+
+Toast de confirmação via Sonner (padrão do projeto) ao salvar/abrir/excluir.
+
+### Fora de escopo
+
+- Compartilhar resumo por link público.
+- Versionamento (se o usuário abrir e modificar, ele pode "Salvar" de novo, gerando novo registro, ou clicar em "Sobrescrever" — incluiremos esse botão extra dentro do diálogo de salvar quando um resumo já estiver carregado).
 
 ### Arquivos afetados
 
-- `src/hooks/useCommercialVendors.ts` (novo)
-- `src/components/crm/PassagemBastaoDialog.tsx` (refatorar fetch)
-- `src/pages/CRM.tsx` (pré-aquecer hook)
-
-Nenhuma mudança em banco de dados ou RLS.
-
+- **Novos**: `src/services/perfilResumosService.ts`, `src/components/perfis/SalvarResumoDialog.tsx`, `src/components/perfis/ResumosSalvosDialog.tsx`
+- **Editados**: `src/context/PerfilContext.tsx`, `src/pages/CortePerfil.tsx`
+- **Migração**: criar tabela `perfil_resumos_salvos` + RLS

@@ -159,6 +159,19 @@ interface PerfilContextType {
   atualizarLinhaCartolaSemiEnrijecido: (linhas: LinhaPerfilCartolaSemiEnrijecido[]) => void;
   obterResumoGeral: () => ResumoGeral;
   limparCalculos: () => void;
+  obterSnapshot: () => PerfilSnapshot;
+  restaurarSnapshot: (snapshot: PerfilSnapshot) => void;
+}
+
+export interface PerfilSnapshot {
+  calculos: Record<string, CalculoItem>;
+  linhasU: LinhaPerfilU[];
+  linhasL: LinhaPerfilL[];
+  linhasUEnrijecido: LinhaPerfilUEnrijecido[];
+  linhasCartola: LinhaPerfilCartola[];
+  linhasCartolaEnrijecido: LinhaPerfilCartolaEnrijecido[];
+  linhasUSemiEnrijecido: LinhaPerfilUSemiEnrijecido[];
+  linhasCartolaSemiEnrijecido: LinhaPerfilCartolaSemiEnrijecido[];
 }
 
 const PerfilContext = createContext<PerfilContextType | undefined>(undefined);

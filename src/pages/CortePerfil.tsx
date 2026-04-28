@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calculator, FileDown, Trash2, Sparkles } from 'lucide-react';
+import { Calculator, FileDown, Trash2, Sparkles, Save, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PerfilU } from '@/components/perfis/PerfilU';
 import { PerfilL } from '@/components/perfis/PerfilL';
@@ -15,6 +15,8 @@ import { ResumoGeral } from '@/components/ResumoGeral';
 import { AproveitamentoOtimizado } from '@/components/perfis/AproveitamentoOtimizado';
 import { usePerfilContext, PerfilProvider } from '@/context/PerfilContext';
 import { PerfilPadraoDialog } from '@/components/perfis/PerfilPadraoDialog';
+import { SalvarResumoDialog } from '@/components/perfis/SalvarResumoDialog';
+import { ResumosSalvosDialog } from '@/components/perfis/ResumosSalvosDialog';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
@@ -24,6 +26,8 @@ function CortePerfliContent() {
     calculos,
     limparCalculos
   } = usePerfilContext();
+  const [salvarOpen, setSalvarOpen] = useState(false);
+  const [resumosOpen, setResumosOpen] = useState(false);
 
   const exportarPDF = async () => {
     const resumoElement = document.querySelector('[data-export="resumo"]');
@@ -207,6 +211,22 @@ function CortePerfliContent() {
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           Limpar
                         </Button>
+                        <Button
+                          variant="outline"
+                          className="gap-1 sm:gap-2 text-xs sm:text-sm"
+                          onClick={() => setSalvarOpen(true)}
+                        >
+                          <Save className="h-3 w-3 sm:h-4 sm:w-4" />
+                          Salvar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="gap-1 sm:gap-2 text-xs sm:text-sm"
+                          onClick={() => setResumosOpen(true)}
+                        >
+                          <FolderOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+                          Salvos
+                        </Button>
                         <Button 
                           variant="outline" 
                           className="gap-1 sm:gap-2 text-xs sm:text-sm"
@@ -249,6 +269,8 @@ function CortePerfliContent() {
           </div>
         </div>
       </div>
+      <SalvarResumoDialog open={salvarOpen} onOpenChange={setSalvarOpen} />
+      <ResumosSalvosDialog open={resumosOpen} onOpenChange={setResumosOpen} />
     </div>
   );
 }

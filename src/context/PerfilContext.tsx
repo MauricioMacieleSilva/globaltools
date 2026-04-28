@@ -159,6 +159,19 @@ interface PerfilContextType {
   atualizarLinhaCartolaSemiEnrijecido: (linhas: LinhaPerfilCartolaSemiEnrijecido[]) => void;
   obterResumoGeral: () => ResumoGeral;
   limparCalculos: () => void;
+  obterSnapshot: () => PerfilSnapshot;
+  restaurarSnapshot: (snapshot: PerfilSnapshot) => void;
+}
+
+export interface PerfilSnapshot {
+  calculos: Record<string, CalculoItem>;
+  linhasU: LinhaPerfilU[];
+  linhasL: LinhaPerfilL[];
+  linhasUEnrijecido: LinhaPerfilUEnrijecido[];
+  linhasCartola: LinhaPerfilCartola[];
+  linhasCartolaEnrijecido: LinhaPerfilCartolaEnrijecido[];
+  linhasUSemiEnrijecido: LinhaPerfilUSemiEnrijecido[];
+  linhasCartolaSemiEnrijecido: LinhaPerfilCartolaSemiEnrijecido[];
 }
 
 const PerfilContext = createContext<PerfilContextType | undefined>(undefined);
@@ -439,6 +452,28 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
     toast.success('Todos os dados foram limpos');
   };
 
+  const obterSnapshot = (): PerfilSnapshot => ({
+    calculos,
+    linhasU,
+    linhasL,
+    linhasUEnrijecido,
+    linhasCartola,
+    linhasCartolaEnrijecido,
+    linhasUSemiEnrijecido,
+    linhasCartolaSemiEnrijecido,
+  });
+
+  const restaurarSnapshot = (snapshot: PerfilSnapshot) => {
+    setCalculos(snapshot.calculos || {});
+    setLinhasU(snapshot.linhasU?.length ? snapshot.linhasU : criarLinhasIniciaisU());
+    setLinhasL(snapshot.linhasL?.length ? snapshot.linhasL : criarLinhasIniciaisL());
+    setLinhasUEnrijecido(snapshot.linhasUEnrijecido?.length ? snapshot.linhasUEnrijecido : criarLinhasIniciaisUEnrijecido());
+    setLinhasCartola(snapshot.linhasCartola?.length ? snapshot.linhasCartola : criarLinhasIniciaisCartola());
+    setLinhasCartolaEnrijecido(snapshot.linhasCartolaEnrijecido?.length ? snapshot.linhasCartolaEnrijecido : criarLinhasIniciaisCartolaEnrijecido());
+    setLinhasUSemiEnrijecido(snapshot.linhasUSemiEnrijecido?.length ? snapshot.linhasUSemiEnrijecido : criarLinhasIniciaisUSemiEnrijecido());
+    setLinhasCartolaSemiEnrijecido(snapshot.linhasCartolaSemiEnrijecido?.length ? snapshot.linhasCartolaSemiEnrijecido : criarLinhasIniciaisCartolaSemiEnrijecido());
+  };
+
   return (
     <PerfilContext.Provider
       value={{
@@ -461,7 +496,9 @@ export function PerfilProvider({ children }: { children: ReactNode }) {
         atualizarLinhaUSemiEnrijecido,
         atualizarLinhaCartolaSemiEnrijecido,
         obterResumoGeral,
-        limparCalculos
+        limparCalculos,
+        obterSnapshot,
+        restaurarSnapshot,
       }}
     >
       {children}

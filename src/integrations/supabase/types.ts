@@ -2372,6 +2372,45 @@ export type Database = {
           },
         ]
       }
+      perfil_resumos_salvos: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          observacao: string | null
+          peso_total: number | null
+          quantidade_pecas: number | null
+          snapshot: Json
+          updated_at: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          observacao?: string | null
+          peso_total?: number | null
+          quantidade_pecas?: number | null
+          snapshot: Json
+          updated_at?: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          observacao?: string | null
+          peso_total?: number | null
+          quantidade_pecas?: number | null
+          snapshot?: Json
+          updated_at?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       politica_comercial_itens: {
         Row: {
           ativo: boolean

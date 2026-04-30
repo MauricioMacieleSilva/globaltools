@@ -136,6 +136,8 @@ export function ComercialCharts() {
           if (!acc[dia]) {
             acc[dia] = { 
               valor: 0, 
+              valorFaturado: 0,
+              valorPedido: 0,
               pedidos: new Set<string>(), 
               clientes: new Set<string>(), 
               peso: 0,
@@ -143,6 +145,11 @@ export function ComercialCharts() {
             };
           }
           acc[dia].valor += item.valor;
+          if (item.situacao === 'Pedido') {
+            acc[dia].valorPedido += item.valor;
+          } else {
+            acc[dia].valorFaturado += item.valor;
+          }
           acc[dia].pedidos.add(item.numeropedido);
           acc[dia].clientes.add(item.cliente);
           acc[dia].peso += item.peso || 0;
@@ -160,7 +167,7 @@ export function ComercialCharts() {
           }
         }
         return acc;
-      }, {} as Record<string, { valor: number; pedidos: Set<string>; clientes: Set<string>; peso: number; detalhesMap: Map<string, {numeropedido: string, cliente: string, valor: number}> }>);
+      }, {} as Record<string, { valor: number; valorFaturado: number; valorPedido: number; pedidos: Set<string>; clientes: Set<string>; peso: number; detalhesMap: Map<string, {numeropedido: string, cliente: string, valor: number}> }>);
 
       return allDays.map(day => {
         const dia = format(day, 'dd');
@@ -169,6 +176,8 @@ export function ComercialCharts() {
           return { 
             periodo: dia, 
             valor: 0,
+            valorFaturado: 0,
+            valorPedido: 0,
             pedidos: 0,
             clientes: 0,
             peso: 0,
@@ -179,6 +188,8 @@ export function ComercialCharts() {
         return { 
           periodo: dia, 
           valor: data.valor,
+          valorFaturado: data.valorFaturado,
+          valorPedido: data.valorPedido,
           pedidos: data.pedidos.size,
           clientes: data.clientes.size,
           peso: data.peso,

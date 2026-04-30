@@ -661,25 +661,51 @@ export function ComercialCharts() {
                     wrapperStyle={{ zIndex: 9999 }}
                   />
                 )}
-                <Bar 
-                  dataKey="valor" 
-                  fill="hsl(var(--primary))"
-                  cursor="pointer"
-                  onClick={(data, index, event) => handleBarClick(data, index, event)}
-                >
-                  {faturamentoTemporalData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.color} 
-                    />
-                  ))}
-                  <LabelList 
+                {drillDown.isMonthView ? (
+                  <Bar 
                     dataKey="valor" 
-                    position="top" 
-                    formatter={drillDown.isMonthView ? formatLabel : formatLabelDaily}
-                    style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
-                  />
-                </Bar>
+                    fill="hsl(var(--primary))"
+                    cursor="pointer"
+                    onClick={(data, index, event) => handleBarClick(data, index, event)}
+                  >
+                    {faturamentoTemporalData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.color} 
+                      />
+                    ))}
+                    <LabelList 
+                      dataKey="valor" 
+                      position="top" 
+                      formatter={formatLabel}
+                      style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
+                    />
+                  </Bar>
+                ) : (
+                  <>
+                    <Bar 
+                      dataKey="valorFaturado" 
+                      stackId="fat"
+                      fill="hsl(var(--primary))"
+                      cursor="pointer"
+                      onClick={(data, index, event) => handleBarClick(data, index, event)}
+                    />
+                    <Bar 
+                      dataKey="valorPedido" 
+                      stackId="fat"
+                      fill="hsl(38 92% 50%)"
+                      cursor="pointer"
+                      onClick={(data, index, event) => handleBarClick(data, index, event)}
+                    >
+                      <LabelList 
+                        dataKey="valor" 
+                        position="top" 
+                        formatter={formatLabelDaily}
+                        style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
+                      />
+                    </Bar>
+                  </>
+                )}
                 <ReferenceLine 
                   y={drillDown.isMonthView ? metas.metaMensal : metas.metaDiaria} 
                   stroke="#ef4444" 

@@ -136,6 +136,8 @@ export function ComercialCharts() {
           if (!acc[dia]) {
             acc[dia] = { 
               valor: 0, 
+              valorFaturado: 0,
+              valorPedido: 0,
               pedidos: new Set<string>(), 
               clientes: new Set<string>(), 
               peso: 0,
@@ -143,6 +145,11 @@ export function ComercialCharts() {
             };
           }
           acc[dia].valor += item.valor;
+          if (item.situacao === 'Pedido') {
+            acc[dia].valorPedido += item.valor;
+          } else {
+            acc[dia].valorFaturado += item.valor;
+          }
           acc[dia].pedidos.add(item.numeropedido);
           acc[dia].clientes.add(item.cliente);
           acc[dia].peso += item.peso || 0;
@@ -160,7 +167,7 @@ export function ComercialCharts() {
           }
         }
         return acc;
-      }, {} as Record<string, { valor: number; pedidos: Set<string>; clientes: Set<string>; peso: number; detalhesMap: Map<string, {numeropedido: string, cliente: string, valor: number}> }>);
+      }, {} as Record<string, { valor: number; valorFaturado: number; valorPedido: number; pedidos: Set<string>; clientes: Set<string>; peso: number; detalhesMap: Map<string, {numeropedido: string, cliente: string, valor: number}> }>);
 
       return allDays.map(day => {
         const dia = format(day, 'dd');
@@ -169,6 +176,8 @@ export function ComercialCharts() {
           return { 
             periodo: dia, 
             valor: 0,
+            valorFaturado: 0,
+            valorPedido: 0,
             pedidos: 0,
             clientes: 0,
             peso: 0,
@@ -179,6 +188,8 @@ export function ComercialCharts() {
         return { 
           periodo: dia, 
           valor: data.valor,
+          valorFaturado: data.valorFaturado,
+          valorPedido: data.valorPedido,
           pedidos: data.pedidos.size,
           clientes: data.clientes.size,
           peso: data.peso,
@@ -602,12 +613,24 @@ export function ComercialCharts() {
             <div className="flex items-center gap-1 sm:gap-2">
               <span className="truncate">{drillDown.isMonthView ? 'Faturamento/Período' : 'Fat. Diário'}</span>
               {!drillDown.isMonthView && (
-                <button 
-                  onClick={handleBackToMonthView}
-                  className="text-[10px] sm:text-xs text-primary hover:underline flex-shrink-0"
-                >
-                  ← Voltar
-                </button>
+                <>
+                  <button 
+                    onClick={handleBackToMonthView}
+                    className="text-[10px] sm:text-xs text-primary hover:underline flex-shrink-0"
+                  >
+                    ← Voltar
+                  </button>
+                  <div className="flex items-center gap-2 ml-2 text-[9px] sm:text-[10px] font-normal text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 rounded-sm bg-primary" />
+                      Faturado
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 rounded-sm" style={{ backgroundColor: 'hsl(38 92% 50%)' }} />
+                      Pedido
+                    </span>
+                  </div>
+                </>
               )}
             </div>
             <Button
@@ -650,25 +673,51 @@ export function ComercialCharts() {
                     wrapperStyle={{ zIndex: 9999 }}
                   />
                 )}
-                <Bar 
-                  dataKey="valor" 
-                  fill="hsl(var(--primary))"
-                  cursor="pointer"
-                  onClick={(data, index, event) => handleBarClick(data, index, event)}
-                >
-                  {faturamentoTemporalData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.color} 
-                    />
-                  ))}
-                  <LabelList 
+                {drillDown.isMonthView ? (
+                  <Bar 
                     dataKey="valor" 
-                    position="top" 
-                    formatter={drillDown.isMonthView ? formatLabel : formatLabelDaily}
-                    style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
-                  />
-                </Bar>
+                    fill="hsl(var(--primary))"
+                    cursor="pointer"
+                    onClick={(data, index, event) => handleBarClick(data, index, event)}
+                  >
+                    {faturamentoTemporalData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.color} 
+                      />
+                    ))}
+                    <LabelList 
+                      dataKey="valor" 
+                      position="top" 
+                      formatter={formatLabel}
+                      style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
+                    />
+                  </Bar>
+                ) : (
+                  <>
+                    <Bar 
+                      dataKey="valorFaturado" 
+                      stackId="fat"
+                      fill="hsl(var(--primary))"
+                      cursor="pointer"
+                      onClick={(data, index, event) => handleBarClick(data, index, event)}
+                    />
+                    <Bar 
+                      dataKey="valorPedido" 
+                      stackId="fat"
+                      fill="hsl(38 92% 50%)"
+                      cursor="pointer"
+                      onClick={(data, index, event) => handleBarClick(data, index, event)}
+                    >
+                      <LabelList 
+                        dataKey="valor" 
+                        position="top" 
+                        formatter={formatLabelDaily}
+                        style={{ fontSize: '8px', fill: 'hsl(var(--foreground))' }}
+                      />
+                    </Bar>
+                  </>
+                )}
                 <ReferenceLine 
                   y={drillDown.isMonthView ? metas.metaMensal : metas.metaDiaria} 
                   stroke="#ef4444" 

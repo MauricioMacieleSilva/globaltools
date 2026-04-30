@@ -613,12 +613,24 @@ export function ComercialCharts() {
             <div className="flex items-center gap-1 sm:gap-2">
               <span className="truncate">{drillDown.isMonthView ? 'Faturamento/Período' : 'Fat. Diário'}</span>
               {!drillDown.isMonthView && (
-                <button 
-                  onClick={handleBackToMonthView}
-                  className="text-[10px] sm:text-xs text-primary hover:underline flex-shrink-0"
-                >
-                  ← Voltar
-                </button>
+                <>
+                  <button 
+                    onClick={handleBackToMonthView}
+                    className="text-[10px] sm:text-xs text-primary hover:underline flex-shrink-0"
+                  >
+                    ← Voltar
+                  </button>
+                  <div className="flex items-center gap-2 ml-2 text-[9px] sm:text-[10px] font-normal text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 rounded-sm bg-primary" />
+                      Faturado
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 rounded-sm" style={{ backgroundColor: 'hsl(38 92% 50%)' }} />
+                      Pedido
+                    </span>
+                  </div>
+                </>
               )}
             </div>
             <Button

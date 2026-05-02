@@ -69,8 +69,8 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('Usuário não autenticado');
 
-      const empresa = (lead as any).empresa || null;
-      const cnpj = (lead as any).cnpj || null;
+      const empresa = lead.empresa || null;
+      const cnpj = (lead as any).cliente_cnpj || null;
 
       const { data: ticketData, error } = await (supabase as any).from('tickets').insert({
         title: title.trim(),

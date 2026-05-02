@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Send, Loader2, Ticket, Paperclip, FileText, X } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import type { CRMLead } from '@/pages/CRM';
 import { fetchComercialData } from '@/services/googleSheetsService';
 import { parseDate } from '@/lib/utils-comercial';
@@ -36,6 +37,19 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
   const [numeroPedido, setNumeroPedido] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Calcula campos obrigatórios faltantes do cadastro do lead/cliente
+  const missingFields: string[] = (() => {
+    if (!lead) return [];
+    const m: string[] = [];
+    if (!lead.cliente_cnpj) m.push('CNPJ');
+    if (!lead.contact_name) m.push('Nome do contato');
+    if (!lead.contact_phone && !lead.cliente_telefone) m.push('Telefone');
+    if (!(numeroPedido?.trim()) && !lead.budget_number && !lead.numero_lead) m.push('Nº Pedido/Orçamento');
+    if (!lead.cidade) m.push('Cidade');
+    if (!lead.estado) m.push('UF');
+    return m;
+  })();
 
   useEffect(() => {
     if (!open) return;
@@ -235,6 +249,22 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
           </DialogDescription>
         </DialogHeader>
 
+        {missingFields.length > 0 && (
+          <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs">
+            <AlertCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-destructive">
+                Não é possível abrir o chamado. Cadastre os campos abaixo no lead/cliente:
+              </p>
+              <ul className="list-disc pl-4 text-destructive/90">
+                {missingFields.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-xs">Categoria *</Label>
@@ -343,7 +373,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleSubmit} disabled={submitting || !categoryId} className="gap-1.5">
+          <Button size="sm" onClick={handleSubmit} disabled={submitting || !categoryId || missingFields.length > 0} className="gap-1.5">
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Enviar ao Financeiro
           </Button>

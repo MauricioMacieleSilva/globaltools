@@ -10,6 +10,8 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Send, Loader2, Ticket, Paperclip, FileText, X } from 'lucide-react';
 import type { CRMLead } from '@/pages/CRM';
+import { fetchComercialData } from '@/services/googleSheetsService';
+import { parseDate } from '@/lib/utils-comercial';
 
 interface TicketCategory {
   id: string;
@@ -46,9 +48,48 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
       setCategories(data || []);
     })();
     if (lead) {
-      const valorEst = lead.valor_estimado;
-      if (valorEst) setValor(String(valorEst));
       setNumeroPedido(lead.budget_number || lead.numero_lead || '');
+      // Pré-preenche valor: usa valor_estimado do lead OU calcula a partir do(s) pedido(s) vinculado(s)
+      (async () => {
+        if (lead.valor_estimado) {
+          setValor(String(lead.valor_estimado));
+          return;
+        }
+        if (!lead.budget_number) return;
+        try {
+          const orderNums = lead.budget_number.split(',').map((s) => s.trim()).filter(Boolean);
+          if (orderNums.length === 0) return;
+          const meta = (lead as any).linked_orders_meta || {};
+          const data = await fetchComercialData();
+          let total = 0;
+          for (const num of orderNums) {
+            let matches = data.filter((d: any) => String(d.numeropedido).trim() === num);
+            if (matches.length === 0) continue;
+            const nameToMatch = meta[num] || lead.empresa || lead.cliente_nome || (lead as any).client_name;
+            if (nameToMatch) {
+              const norm = String(nameToMatch).trim().toLowerCase();
+              const clientMatches = matches.filter((d: any) => {
+                const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
+                return nome.includes(norm) || norm.includes(nome);
+              });
+              if (clientMatches.length > 0) matches = clientMatches;
+            }
+            const sorted = [...matches].sort((a: any, b: any) => {
+              const da = parseDate(a.data_emissao)?.getTime() || 0;
+              const db = parseDate(b.data_emissao)?.getTime() || 0;
+              return db - da;
+            });
+            const mostRecentDate = sorted[0]?.data_emissao;
+            const finalItems = mostRecentDate
+              ? matches.filter((d: any) => d.data_emissao === mostRecentDate)
+              : matches;
+            total += finalItems.reduce((sum: number, item: any) => sum + (item.valor || 0), 0);
+          }
+          if (total > 0) setValor(String(total.toFixed(2)));
+        } catch (e) {
+          console.error('Erro ao calcular valor do pedido:', e);
+        }
+      })();
     }
   }, [open, lead]);
 

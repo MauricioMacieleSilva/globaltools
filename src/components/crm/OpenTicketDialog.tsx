@@ -28,7 +28,6 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
   const { userProfile } = useAuth();
   const [categories, setCategories] = useState<TicketCategory[]>([]);
   const [categoryId, setCategoryId] = useState('');
-  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('media');
   const [valor, setValor] = useState('');
@@ -44,24 +43,21 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
         .order('display_order');
       setCategories(data || []);
     })();
-    // Pré-preencher título com base no lead
     if (lead) {
-      const empresa = lead.empresa || lead.cliente_nome || '';
-      setTitle(empresa ? `Demanda Financeiro — ${empresa}` : '');
       const valorEst = lead.valor_estimado;
       if (valorEst) setValor(String(valorEst));
     }
   }, [open, lead]);
 
   const reset = () => {
-    setCategoryId(''); setTitle(''); setDescription('');
+    setCategoryId(''); setDescription('');
     setPriority('media'); setValor('');
   };
 
   const handleSubmit = async () => {
     if (!lead) return;
-    if (!title.trim() || !categoryId) {
-      toast.error('Preencha categoria e título');
+    if (!categoryId) {
+      toast.error('Selecione a categoria');
       return;
     }
     setSubmitting(true);
@@ -71,9 +67,12 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
 
       const empresa = lead.empresa || null;
       const cnpj = (lead as any).cliente_cnpj || null;
+      const categoria = categories.find(c => c.id === categoryId)?.name || '';
+      const clienteLabel = empresa || lead.cliente_nome || 'Cliente';
+      const autoTitle = `Demanda Financeiro — ${categoria} — ${clienteLabel}`;
 
       const { data: ticketData, error } = await (supabase as any).from('tickets').insert({
-        title: title.trim(),
+        title: autoTitle,
         description: description.trim() || null,
         category_id: categoryId,
         priority,
@@ -87,7 +86,6 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
 
       if (error) throw error;
 
-      const categoria = categories.find(c => c.id === categoryId)?.name || '';
       const appUrl = window.location.origin;
 
       // Disparar email (não bloqueia em caso de erro)
@@ -95,7 +93,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
         body: {
           ticketId: ticketData.id,
           ticketNumber: ticketData.ticket_number,
-          title: title.trim(),
+          title: autoTitle,
           description: description.trim(),
           priority,
           valor: valor ? parseFloat(valor) : null,
@@ -148,17 +146,6 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Título *</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Resumo da demanda"
-              className="h-9 text-sm"
-              maxLength={200}
-            />
-          </div>
-
-          <div className="space-y-1">
             <Label className="text-xs">Descrição</Label>
             <Textarea
               value={description}
@@ -200,7 +187,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleSubmit} disabled={submitting || !title.trim() || !categoryId} className="gap-1.5">
+          <Button size="sm" onClick={handleSubmit} disabled={submitting || !categoryId} className="gap-1.5">
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Enviar ao Financeiro
           </Button>

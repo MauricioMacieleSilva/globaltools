@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { Send, Loader2, Ticket } from 'lucide-react';
+import { Send, Loader2, Ticket, Paperclip, FileText, X } from 'lucide-react';
 import type { CRMLead } from '@/pages/CRM';
 
 interface TicketCategory {
@@ -31,6 +31,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('media');
   const [valor, setValor] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
 
   const reset = () => {
     setCategoryId(''); setDescription('');
-    setPriority('media'); setValor('');
+    setPriority('media'); setValor(''); setFiles([]);
   };
 
   const handleSubmit = async () => {
@@ -84,6 +85,28 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
       }).select('id, ticket_number').single();
 
       if (error) throw error;
+
+      // Upload de anexos (mesmo padrão da página de Chamados)
+      if (files.length > 0 && ticketData?.id) {
+        for (const file of files) {
+          const ext = file.name.split('.').pop();
+          const filePath = `${ticketData.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('ticket-attachments')
+            .upload(filePath, file);
+          if (uploadErr) { console.error('Upload error:', uploadErr); continue; }
+          const { data: urlData } = supabase.storage.from('ticket-attachments').getPublicUrl(filePath);
+          await (supabase as any).from('ticket_attachments').insert({
+            ticket_id: ticketData.id,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: user.id,
+            uploaded_by_name: userProfile?.full_name || '',
+          });
+        }
+      }
 
       const appUrl = window.location.origin;
       const subjectTitle = `${categoria} - ${clienteLabel} | ${ticketData.ticket_number}`;

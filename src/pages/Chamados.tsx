@@ -88,6 +88,12 @@ function formatSLA(minutes: number): string {
   return `${minutes}min`;
 }
 
+const PARECER_OPTIONS = [
+  { value: 'aprovado', label: 'Aprovado', icon: CheckCircle, description: 'Cliente aprovado para faturamento normal', color: 'text-emerald-600' },
+  { value: 'precisa_info', label: 'Precisa de mais informações', icon: AlertTriangle, description: 'Documentação insuficiente ou dados pendentes', color: 'text-amber-600' },
+  { value: 'pagamento_antecipado', label: 'Pagamento antecipado', icon: CreditCard, description: 'Liberado apenas para pagamento à vista ou cartão de crédito', color: 'text-blue-600' },
+] as const;
+
 function SLAIndicator({ deadline, status }: { deadline: string | null; status: string }) {
   if (!deadline || status === 'concluido' || status === 'cancelado') return null;
   const deadlineDate = new Date(deadline);

@@ -78,7 +78,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
   return (
     <div className="flex flex-col h-full gap-3">
       <div
-        className={`flex gap-3 overflow-x-auto flex-1 min-h-0 ${isMobile ? 'snap-x snap-mandatory' : ''}`}
+        className={`kanban-scroll flex gap-3 overflow-x-scroll flex-1 min-h-0 ${isMobile ? 'snap-x snap-mandatory' : ''}`}
         style={{ scrollbarWidth: 'thin' }}
       >
         {stages.map(stage => {

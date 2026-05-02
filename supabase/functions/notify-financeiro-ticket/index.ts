@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { ticketId, ticketNumber, title, description, priority, valor, categoria, requesterName, clientName, clientCnpj, leadId, appUrl } = await req.json();
+    const { ticketId, ticketNumber, title, description, priority, valor, categoria, requesterName, clientName, clientCnpj, leadId, appUrl, numeroPedido, leadData } = await req.json();
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
@@ -46,6 +46,22 @@ Deno.serve(async (req) => {
     const prioridadeMap: Record<string, string> = { baixa: "Baixa", media: "Média", alta: "Alta", urgente: "Urgente" };
     const prioridadeLabel = prioridadeMap[priority] || priority || "Média";
 
+    const ld = leadData || {};
+    const valorEstFmt = ld.valor_estimado
+      ? `R$ ${Number(ld.valor_estimado).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+      : null;
+
+    const row = (label: string, value: any) => {
+      if (value === null || value === undefined || value === "") return "";
+      return `<tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 0; color:#666; font-size:13px; width:170px;">${label}</td>
+        <td style="padding:8px 0; color:#333; font-size:13px; font-weight:500;">${value}</td>
+      </tr>`;
+    };
+
+    const sectionTitle = (text: string) => `
+      <h2 style="margin:24px 0 8px; font-size:13px; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #2563eb; padding-bottom:4px;">${text}</h2>`;
+
     const htmlBody = `
 <!DOCTYPE html>
 <html>
@@ -66,28 +82,42 @@ Deno.serve(async (req) => {
         ${description ? `<p style="margin:8px 0 0; color:#555; font-size:13px; white-space:pre-wrap;">${description}</p>` : ""}
       </div>
 
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-        ${categoria ? `<tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px; width: 160px;">Categoria</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px; font-weight: 600;">${categoria}</td>
-        </tr>` : ""}
-        <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">Prioridade</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px;">${prioridadeLabel}</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">Valor</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px;">${valorFmt}</td>
-        </tr>
-        ${clientName ? `<tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">Cliente</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px;">${clientName}</td>
-        </tr>` : ""}
-        ${clientCnpj ? `<tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 8px 0; color: #666; font-size: 13px;">CNPJ</td>
-          <td style="padding: 8px 0; color: #333; font-size: 13px;">${clientCnpj}</td>
-        </tr>` : ""}
+      ${sectionTitle("Detalhes do Chamado")}
+      <table style="width: 100%; border-collapse: collapse;">
+        ${row("Categoria", categoria)}
+        ${row("Prioridade", prioridadeLabel)}
+        ${row("Valor", valorFmt)}
+        ${row("Nº Pedido/Orçamento", numeroPedido)}
+        ${row("Solicitante", requesterName)}
       </table>
+
+      ${sectionTitle("Dados do Cliente")}
+      <table style="width: 100%; border-collapse: collapse;">
+        ${row("Empresa", ld.empresa || clientName)}
+        ${row("CNPJ", clientCnpj)}
+        ${row("Contato", ld.contact_name)}
+        ${row("Telefone", ld.contact_phone)}
+        ${row("E-mail", ld.contact_email)}
+        ${row("Cidade", ld.cidade)}
+        ${row("UF", ld.estado)}
+        ${row("Ramo de Atuação", ld.ramo_atuacao)}
+        ${row("Regime Tributário", ld.regime_tributario)}
+        ${row("Website", ld.website)}
+      </table>
+
+      ${(ld.produto_interesse || ld.origem || ld.status || valorEstFmt || ld.numero_lead || ld.budget_number || ld.vendedor) ? sectionTitle("Informações Comerciais") : ""}
+      <table style="width: 100%; border-collapse: collapse;">
+        ${row("Vendedor Responsável", ld.vendedor)}
+        ${row("Status do Lead", ld.status)}
+        ${row("Origem", ld.origem)}
+        ${row("Produto de Interesse", ld.produto_interesse)}
+        ${row("Valor Estimado", valorEstFmt)}
+        ${row("Nº do Lead", ld.numero_lead)}
+        ${row("Nº do Orçamento", ld.budget_number)}
+      </table>
+
+      ${ld.observacoes ? `${sectionTitle("Observações")}
+      <div style="background:#fafafa; border:1px solid #eee; padding:12px; border-radius:4px; color:#555; font-size:13px; white-space:pre-wrap;">${ld.observacoes}</div>` : ""}
 
       <div style="text-align: center; margin: 24px 0;">
         <a href="${deepLink}" style="display:inline-block; background:#2563eb; color:#fff; padding:12px 28px; border-radius:6px; text-decoration:none; font-size:14px; font-weight:600;">

@@ -149,6 +149,12 @@ export default function Chamados() {
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
+  // Parecer (financial analysis response)
+  const [parecer, setParecer] = useState<string>('');
+  const [parecerConsideracoes, setParecerConsideracoes] = useState('');
+  const [parecerConfirmOpen, setParecerConfirmOpen] = useState(false);
+  const [submittingParecer, setSubmittingParecer] = useState(false);
+
   const isFinanceiro = userRole === 'admin' || userRole === 'financeiro';
 
   const loadUserRole = useCallback(async () => {

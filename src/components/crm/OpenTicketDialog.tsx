@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Send, Loader2, Ticket, Paperclip, FileText, X } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import type { CRMLead } from '@/pages/CRM';
 import { fetchComercialData } from '@/services/googleSheetsService';
 import { parseDate } from '@/lib/utils-comercial';
@@ -36,6 +37,19 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
   const [numeroPedido, setNumeroPedido] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Calcula campos obrigatórios faltantes do cadastro do lead/cliente
+  const missingFields: string[] = (() => {
+    if (!lead) return [];
+    const m: string[] = [];
+    if (!lead.cliente_cnpj) m.push('CNPJ');
+    if (!lead.contact_name) m.push('Nome do contato');
+    if (!lead.contact_phone && !lead.cliente_telefone) m.push('Telefone');
+    if (!(numeroPedido?.trim()) && !lead.budget_number && !lead.numero_lead) m.push('Nº Pedido/Orçamento');
+    if (!lead.cidade) m.push('Cidade');
+    if (!lead.estado) m.push('UF');
+    return m;
+  })();
 
   useEffect(() => {
     if (!open) return;

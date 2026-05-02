@@ -336,9 +336,66 @@ export default function Chamados() {
   const openDetail = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setDetailOpen(true);
+    setParecer('');
+    setParecerConsideracoes('');
     loadComments(ticket.id);
     loadTicketAttachments(ticket.id);
     loadTicketLead(ticket.lead_id);
+  };
+
+  const handleSubmitParecer = async () => {
+    if (!selectedTicket || !parecer) return;
+    setSubmittingParecer(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('Não autenticado');
+      const userName = userProfile?.full_name || user.email || '';
+      const parecerLabel = PARECER_OPTIONS.find(o => o.value === parecer)?.label || parecer;
+      const content = `📋 Parecer Financeiro: ${parecerLabel}${parecerConsideracoes.trim() ? `\n\nConsiderações: ${parecerConsideracoes.trim()}` : ''}`;
+
+      const { error: cErr } = await (supabase as any).from('ticket_comments').insert({
+        ticket_id: selectedTicket.id,
+        user_id: user.id,
+        user_name: userName,
+        content,
+      });
+      if (cErr) throw cErr;
+
+      const updates: any = {
+        status: 'concluido',
+        resolved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (!selectedTicket.assignee_id) {
+        updates.assignee_id = user.id;
+        updates.assignee_name = userName;
+      }
+      const { error: uErr } = await (supabase as any).from('tickets').update(updates).eq('id', selectedTicket.id);
+      if (uErr) throw uErr;
+
+      // If linked to lead, persist parecer there too
+      if (selectedTicket.lead_id) {
+        await (supabase as any).from('leads').update({
+          finance_parecer: parecer,
+          finance_consideracoes: parecerConsideracoes.trim() || null,
+          finance_analyst_name: userName,
+          finance_parecer_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq('id', selectedTicket.lead_id);
+      }
+
+      toast.success('Parecer registrado e chamado concluído');
+      setParecer('');
+      setParecerConsideracoes('');
+      setParecerConfirmOpen(false);
+      setSelectedTicket({ ...selectedTicket, ...updates });
+      loadComments(selectedTicket.id);
+      loadTickets();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao registrar parecer');
+    } finally {
+      setSubmittingParecer(false);
+    }
   };
 
   // KPIs

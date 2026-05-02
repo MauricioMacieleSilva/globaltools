@@ -46,9 +46,9 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
     })();
     // Pré-preencher título com base no lead
     if (lead) {
-      const empresa = (lead as any).empresa || lead.cliente_nome || '';
+      const empresa = lead.empresa || lead.cliente_nome || '';
       setTitle(empresa ? `Demanda Financeiro — ${empresa}` : '');
-      const valorEst = (lead as any).valor_estimado;
+      const valorEst = lead.valor_estimado;
       if (valorEst) setValor(String(valorEst));
     }
   }, [open, lead]);
@@ -128,7 +128,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
             Abrir Chamado para o Financeiro
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Envie a demanda relacionada a <strong>{(lead as any)?.empresa || lead?.cliente_nome}</strong>. O time financeiro receberá um e-mail com o link direto.
+            Envie a demanda relacionada a <strong>{lead?.empresa || lead?.cliente_nome}</strong>. O time financeiro receberá um e-mail com o link direto.
           </DialogDescription>
         </DialogHeader>
 

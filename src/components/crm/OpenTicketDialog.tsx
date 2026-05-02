@@ -204,6 +204,47 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
               />
             </div>
           </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Anexos</Label>
+            <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3">
+              <input
+                type="file"
+                multiple
+                id="crm-ticket-files"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                  e.target.value = '';
+                }}
+              />
+              <label
+                htmlFor="crm-ticket-files"
+                className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+              >
+                <Paperclip className="h-4 w-4" />
+                Clique para anexar documentos
+              </label>
+              {files.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {files.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1">
+                      <FileText className="h-3 w-3 shrink-0 text-primary" />
+                      <span className="truncate flex-1">{f.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                      <button
+                        type="button"
+                        onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                        className="shrink-0 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

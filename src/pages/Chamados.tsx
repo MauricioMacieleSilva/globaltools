@@ -665,6 +665,56 @@ export default function Chamados() {
                       )}
                     </div>
 
+                    {/* Dados completos do Lead/Cliente */}
+                    {ticketLead && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-primary border-b border-primary/30 pb-1 uppercase tracking-wide">
+                          Dados do Lead / Cliente
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          {[
+                            ['Empresa', ticketLead.empresa],
+                            ['CNPJ', ticketLead.cliente_cnpj],
+                            ['Razão Social', ticketLead.cliente_razao_social],
+                            ['Nome do Contato', ticketLead.contact_name],
+                            ['Cargo do Contato', ticketLead.contact_role],
+                            ['Telefone', ticketLead.contact_phone || ticketLead.cliente_telefone],
+                            ['E-mail', ticketLead.contact_email || ticketLead.cliente_email],
+                            ['Cidade', ticketLead.cidade],
+                            ['UF', ticketLead.estado],
+                            ['Endereço', ticketLead.endereco],
+                            ['CEP', ticketLead.cep],
+                            ['Ramo de Atuação', ticketLead.ramo_atuacao],
+                            ['Regime Tributário', ticketLead.regime_tributario],
+                            ['Website', ticketLead.website],
+                            ['Vendedor Responsável', ticketLead.vendedor?.full_name],
+                            ['Origem', ticketLead.origem || ticketLead.source],
+                            ['Status do Lead', ticketLead.status],
+                            ['Etapa do Funil', ticketLead.disposition],
+                            ['Produto de Interesse', ticketLead.produto_interesse],
+                            ['Valor Estimado', ticketLead.valor_estimado ? `R$ ${Number(ticketLead.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null],
+                            ['Nº do Lead', ticketLead.numero_lead],
+                            ['Nº Pedido/Orçamento', ticketLead.budget_number],
+                            ['Qualificação', ticketLead.qualification],
+                          ].filter(([, v]) => v !== null && v !== undefined && v !== '').map(([label, value]) => (
+                            <div key={label as string} className="space-y-0.5">
+                              <span className="text-muted-foreground">{label}</span>
+                              <p className="font-medium break-words">{String(value)}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {(ticketLead.observacoes || ticketLead.notes) && (
+                          <div className="space-y-1 pt-2">
+                            <span className="text-muted-foreground text-xs">Observações</span>
+                            <p className="text-xs bg-muted/40 border border-border rounded p-2 whitespace-pre-wrap">
+                              {ticketLead.observacoes || ticketLead.notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Attachments */}
                     {ticketAttachments.length > 0 && (
                       <div className="space-y-2">

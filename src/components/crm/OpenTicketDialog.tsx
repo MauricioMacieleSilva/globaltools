@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { Send, Loader2, Ticket } from 'lucide-react';
+import { Send, Loader2, Ticket, Paperclip, FileText, X } from 'lucide-react';
 import type { CRMLead } from '@/pages/CRM';
 
 interface TicketCategory {
@@ -31,6 +31,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('media');
   const [valor, setValor] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
 
   const reset = () => {
     setCategoryId(''); setDescription('');
-    setPriority('media'); setValor('');
+    setPriority('media'); setValor(''); setFiles([]);
   };
 
   const handleSubmit = async () => {
@@ -84,6 +85,28 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
       }).select('id, ticket_number').single();
 
       if (error) throw error;
+
+      // Upload de anexos (mesmo padrão da página de Chamados)
+      if (files.length > 0 && ticketData?.id) {
+        for (const file of files) {
+          const ext = file.name.split('.').pop();
+          const filePath = `${ticketData.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('ticket-attachments')
+            .upload(filePath, file);
+          if (uploadErr) { console.error('Upload error:', uploadErr); continue; }
+          const { data: urlData } = supabase.storage.from('ticket-attachments').getPublicUrl(filePath);
+          await (supabase as any).from('ticket_attachments').insert({
+            ticket_id: ticketData.id,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: user.id,
+            uploaded_by_name: userProfile?.full_name || '',
+          });
+        }
+      }
 
       const appUrl = window.location.origin;
       const subjectTitle = `${categoria} - ${clienteLabel} | ${ticketData.ticket_number}`;
@@ -179,6 +202,47 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
                 placeholder="0,00"
                 className="h-9 text-sm"
               />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Anexos</Label>
+            <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3">
+              <input
+                type="file"
+                multiple
+                id="crm-ticket-files"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                  e.target.value = '';
+                }}
+              />
+              <label
+                htmlFor="crm-ticket-files"
+                className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+              >
+                <Paperclip className="h-4 w-4" />
+                Clique para anexar documentos
+              </label>
+              {files.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {files.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1">
+                      <FileText className="h-3 w-3 shrink-0 text-primary" />
+                      <span className="truncate flex-1">{f.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                      <button
+                        type="button"
+                        onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                        className="shrink-0 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

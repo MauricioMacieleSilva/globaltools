@@ -373,7 +373,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleSubmit} disabled={submitting || !categoryId} className="gap-1.5">
+          <Button size="sm" onClick={handleSubmit} disabled={submitting || !categoryId || missingFields.length > 0} className="gap-1.5">
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Enviar ao Financeiro
           </Button>

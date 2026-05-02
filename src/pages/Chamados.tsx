@@ -1039,6 +1039,72 @@ export default function Chamados() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar este chamado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O chamado será marcado como <strong>cancelado</strong>. Você poderá reabri-lo posteriormente, se necessário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (selectedTicket) await handleStatusChange(selectedTicket, 'cancelado');
+                setCancelConfirmOpen(false);
+              }}
+            >
+              Sim, cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={reopenConfirmOpen} onOpenChange={setReopenConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reabrir este chamado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O chamado voltará para o status <strong>Em andamento</strong> e poderá ser tratado novamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (selectedTicket) await handleStatusChange(selectedTicket, 'em_andamento');
+                setReopenConfirmOpen(false);
+              }}
+            >
+              Reabrir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={concluirConfirmOpen} onOpenChange={setConcluirConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar como concluído?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirme que a parametrização fiscal foi concluída. O chamado será encerrado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (selectedTicket) await handleStatusChange(selectedTicket, 'concluido');
+                setConcluirConfirmOpen(false);
+              }}
+            >
+              Sim, concluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

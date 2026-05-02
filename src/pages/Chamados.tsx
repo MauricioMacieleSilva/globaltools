@@ -984,30 +984,6 @@ export default function Chamados() {
                           </div>
                         )}
 
-                        <Separator />
-
-                        {/* Comments */}
-                        <div>
-                          <h4 className="text-sm font-medium flex items-center gap-1.5 mb-3">
-                            <MessageSquare className="h-4 w-4" /> Comentários
-                          </h4>
-                          <div className="space-y-3">
-                            {comments.map(c => (
-                              <div key={c.id} className="flex gap-2">
-                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                                  {c.user_name.charAt(0)}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-xs font-medium">{c.user_name}</span>
-                                    <span className="text-[10px] text-muted-foreground">{format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
-                                  </div>
-                                  <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{c.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
                       </div>
                     </ScrollArea>
 

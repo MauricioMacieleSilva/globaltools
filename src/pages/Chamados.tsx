@@ -17,8 +17,11 @@ import { Progress } from '@/components/ui/progress';
 import {
   Plus, Search, Clock, CheckCircle, AlertTriangle, XCircle,
   Send, User, Calendar, DollarSign, FileText, Loader2,
-  BarChart3, Timer, ArrowRight, MessageSquare, Paperclip, X, Download
+  BarChart3, Timer, ArrowRight, MessageSquare, Paperclip, X, Download, CreditCard
 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, differenceInMinutes, differenceInHours, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -85,6 +88,12 @@ function formatSLA(minutes: number): string {
   return `${minutes}min`;
 }
 
+const PARECER_OPTIONS = [
+  { value: 'aprovado', label: 'Aprovado', icon: CheckCircle, description: 'Cliente aprovado para faturamento normal', color: 'text-emerald-600' },
+  { value: 'precisa_info', label: 'Precisa de mais informações', icon: AlertTriangle, description: 'Documentação insuficiente ou dados pendentes', color: 'text-amber-600' },
+  { value: 'pagamento_antecipado', label: 'Pagamento antecipado', icon: CreditCard, description: 'Liberado apenas para pagamento à vista ou cartão de crédito', color: 'text-blue-600' },
+] as const;
+
 function SLAIndicator({ deadline, status }: { deadline: string | null; status: string }) {
   if (!deadline || status === 'concluido' || status === 'cancelado') return null;
   const deadlineDate = new Date(deadline);
@@ -145,6 +154,12 @@ export default function Chamados() {
   const [ticketLead, setTicketLead] = useState<any | null>(null);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
+
+  // Parecer (financial analysis response)
+  const [parecer, setParecer] = useState<string>('');
+  const [parecerConsideracoes, setParecerConsideracoes] = useState('');
+  const [parecerConfirmOpen, setParecerConfirmOpen] = useState(false);
+  const [submittingParecer, setSubmittingParecer] = useState(false);
 
   const isFinanceiro = userRole === 'admin' || userRole === 'financeiro';
 
@@ -321,9 +336,66 @@ export default function Chamados() {
   const openDetail = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setDetailOpen(true);
+    setParecer('');
+    setParecerConsideracoes('');
     loadComments(ticket.id);
     loadTicketAttachments(ticket.id);
     loadTicketLead(ticket.lead_id);
+  };
+
+  const handleSubmitParecer = async () => {
+    if (!selectedTicket || !parecer) return;
+    setSubmittingParecer(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('Não autenticado');
+      const userName = userProfile?.full_name || user.email || '';
+      const parecerLabel = PARECER_OPTIONS.find(o => o.value === parecer)?.label || parecer;
+      const content = `📋 Parecer Financeiro: ${parecerLabel}${parecerConsideracoes.trim() ? `\n\nConsiderações: ${parecerConsideracoes.trim()}` : ''}`;
+
+      const { error: cErr } = await (supabase as any).from('ticket_comments').insert({
+        ticket_id: selectedTicket.id,
+        user_id: user.id,
+        user_name: userName,
+        content,
+      });
+      if (cErr) throw cErr;
+
+      const updates: any = {
+        status: 'concluido',
+        resolved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (!selectedTicket.assignee_id) {
+        updates.assignee_id = user.id;
+        updates.assignee_name = userName;
+      }
+      const { error: uErr } = await (supabase as any).from('tickets').update(updates).eq('id', selectedTicket.id);
+      if (uErr) throw uErr;
+
+      // If linked to lead, persist parecer there too
+      if (selectedTicket.lead_id) {
+        await (supabase as any).from('leads').update({
+          finance_parecer: parecer,
+          finance_consideracoes: parecerConsideracoes.trim() || null,
+          finance_analyst_name: userName,
+          finance_parecer_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq('id', selectedTicket.lead_id);
+      }
+
+      toast.success('Parecer registrado e chamado concluído');
+      setParecer('');
+      setParecerConsideracoes('');
+      setParecerConfirmOpen(false);
+      setSelectedTicket({ ...selectedTicket, ...updates });
+      loadComments(selectedTicket.id);
+      loadTickets();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao registrar parecer');
+    } finally {
+      setSubmittingParecer(false);
+    }
   };
 
   // KPIs
@@ -744,18 +816,66 @@ export default function Chamados() {
 
                     {/* Status actions (financeiro only) */}
                     {isFinanceiro && selectedTicket.status !== 'concluido' && selectedTicket.status !== 'cancelado' && (
-                      <div className="flex gap-2 flex-wrap">
-                        {selectedTicket.status === 'aberto' && (
-                          <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
-                            <Timer className="h-3 w-3" /> Assumir
+                      <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                            <FileText className="h-4 w-4" /> Parecer da Análise
+                          </h4>
+                          {selectedTicket.status === 'aberto' && (
+                            <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
+                              <Timer className="h-3 w-3" /> Assumir
+                            </Button>
+                          )}
+                        </div>
+
+                        <RadioGroup value={parecer} onValueChange={setParecer} className="space-y-2">
+                          {PARECER_OPTIONS.map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <div
+                                key={option.value}
+                                className="flex items-start space-x-3 rounded-md border bg-background p-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
+                                onClick={() => setParecer(option.value)}
+                              >
+                                <RadioGroupItem value={option.value} id={`parecer-${option.value}`} className="mt-0.5" />
+                                <Label htmlFor={`parecer-${option.value}`} className="flex-1 cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Icon className={cn("h-4 w-4", option.color)} />
+                                    <span className="text-sm font-medium">{option.label}</span>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">{option.description}</p>
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </RadioGroup>
+
+                        <Textarea
+                          value={parecerConsideracoes}
+                          onChange={(e) => setParecerConsideracoes(e.target.value)}
+                          placeholder="Considerações do responsável (opcional)..."
+                          className="text-sm min-h-[70px] resize-none bg-background"
+                        />
+
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1 text-xs text-muted-foreground"
+                            onClick={() => handleStatusChange(selectedTicket, 'cancelado')}
+                          >
+                            <XCircle className="h-3 w-3" /> Cancelar Chamado
                           </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="gap-1 text-xs text-emerald-600" onClick={() => handleStatusChange(selectedTicket, 'concluido')}>
-                          <CheckCircle className="h-3 w-3" /> Concluir
-                        </Button>
-                        <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => handleStatusChange(selectedTicket, 'cancelado')}>
-                          <XCircle className="h-3 w-3" /> Cancelar
-                        </Button>
+                          <Button
+                            size="sm"
+                            className="gap-1 text-xs"
+                            disabled={!parecer || submittingParecer}
+                            onClick={() => setParecerConfirmOpen(true)}
+                          >
+                            {submittingParecer ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                            Registrar Parecer e Concluir
+                          </Button>
+                        </div>
                       </div>
                     )}
 
@@ -814,6 +934,27 @@ export default function Chamados() {
           })()}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={parecerConfirmOpen} onOpenChange={setParecerConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar parecer</AlertDialogTitle>
+            <AlertDialogDescription>
+              O parecer <strong>"{PARECER_OPTIONS.find(o => o.value === parecer)?.label}"</strong> será registrado como comentário e o chamado será marcado como concluído.
+              {parecerConsideracoes.trim() && (
+                <span className="block mt-2 text-xs italic">Considerações: "{parecerConsideracoes.trim()}"</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submittingParecer}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmitParecer} disabled={submittingParecer}>
+              {submittingParecer ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

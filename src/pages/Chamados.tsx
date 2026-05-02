@@ -142,6 +142,7 @@ export default function Chamados() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [comments, setComments] = useState<TicketComment[]>([]);
   const [ticketAttachments, setTicketAttachments] = useState<any[]>([]);
+  const [ticketLead, setTicketLead] = useState<any | null>(null);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
@@ -187,6 +188,16 @@ export default function Chamados() {
     setTicketAttachments(data || []);
   }, []);
 
+  const loadTicketLead = useCallback(async (leadId: string | null) => {
+    if (!leadId) { setTicketLead(null); return; }
+    const { data } = await (supabase as any)
+      .from('leads')
+      .select('*, vendedor:user_profiles!leads_assigned_to_fkey(full_name, email)')
+      .eq('id', leadId)
+      .maybeSingle();
+    setTicketLead(data || null);
+  }, []);
+
   useEffect(() => { loadUserRole(); loadCategories(); loadTickets(); }, [loadUserRole, loadCategories, loadTickets]);
 
   // Deep link: abrir ticket via ?ticket=ID
@@ -201,12 +212,13 @@ export default function Chamados() {
       setDetailOpen(true);
       loadComments(ticket.id);
       loadTicketAttachments(ticket.id);
+      loadTicketLead(ticket.lead_id);
       // Limpa o parâmetro da URL sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete('ticket');
       window.history.replaceState({}, '', url.toString());
     }
-  }, [loading, tickets, loadComments, loadTicketAttachments]);
+  }, [loading, tickets, loadComments, loadTicketAttachments, loadTicketLead]);
 
   const handleCreateTicket = async () => {
     if (!newTitle.trim() || !newCategoryId) {
@@ -311,6 +323,7 @@ export default function Chamados() {
     setDetailOpen(true);
     loadComments(ticket.id);
     loadTicketAttachments(ticket.id);
+    loadTicketLead(ticket.lead_id);
   };
 
   // KPIs

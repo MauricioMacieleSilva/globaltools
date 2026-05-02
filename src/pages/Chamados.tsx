@@ -950,24 +950,6 @@ export default function Chamados() {
                       </div>
                     </ScrollArea>
 
-                    {/* Add comment */}
-                    {selectedTicket.status !== 'cancelado' && (
-                      <div className="shrink-0 border-t border-border bg-background p-4">
-                        <div className="flex gap-2 items-end">
-                          <Textarea
-                            placeholder="Escreva um comentário..."
-                            value={newComment}
-                            onChange={e => setNewComment(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
-                            className="text-sm min-h-[76px] resize-none"
-                            rows={3}
-                          />
-                          <Button size="sm" className="shrink-0 h-10" onClick={handleAddComment} disabled={sendingComment || !newComment.trim()}>
-                            {sendingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </>

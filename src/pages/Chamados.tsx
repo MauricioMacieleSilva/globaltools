@@ -385,6 +385,36 @@ export default function Chamados() {
       }
 
       toast.success('Parecer registrado e chamado concluído');
+
+      // Enviar email de notificação com a resposta do chamado
+      try {
+        await supabase.functions.invoke('notify-ticket-resposta', {
+          body: {
+            ticketId: selectedTicket.id,
+            ticketNumber: selectedTicket.ticket_number,
+            title: selectedTicket.title,
+            parecer,
+            parecerLabel,
+            consideracoes: parecerConsideracoes.trim() || null,
+            analystName: userName,
+            requesterName: selectedTicket.requester_name,
+            clientName: selectedTicket.client_name || ticketLead?.empresa || ticketLead?.cliente_nome,
+            clientCnpj: selectedTicket.client_cnpj || ticketLead?.cnpj,
+            numeroPedido: selectedTicket.numero_pedido || ticketLead?.budget_number || ticketLead?.numero_lead,
+            appUrl: window.location.origin,
+            leadData: ticketLead ? {
+              empresa: ticketLead.empresa,
+              contact_name: ticketLead.contact_name,
+              contact_phone: ticketLead.contact_phone,
+              cidade: ticketLead.cidade,
+              estado: ticketLead.estado,
+            } : null,
+          },
+        });
+      } catch (emailErr) {
+        console.error('Falha ao enviar email de resposta:', emailErr);
+      }
+
       setParecer('');
       setParecerConsideracoes('');
       setParecerConfirmOpen(false);

@@ -17,8 +17,11 @@ import { Progress } from '@/components/ui/progress';
 import {
   Plus, Search, Clock, CheckCircle, AlertTriangle, XCircle,
   Send, User, Calendar, DollarSign, FileText, Loader2,
-  BarChart3, Timer, ArrowRight, MessageSquare, Paperclip, X, Download
+  BarChart3, Timer, ArrowRight, MessageSquare, Paperclip, X, Download, CreditCard
 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, differenceInMinutes, differenceInHours, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';

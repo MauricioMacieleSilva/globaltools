@@ -761,6 +761,15 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <ClipboardList className="h-3.5 w-3.5" />
                 Agendar Follow-up
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setOpenTicketDialogOpen(true)}
+                className="gap-1.5 text-purple-700 border-purple-300 hover:bg-purple-50"
+              >
+                <Ticket className="h-3.5 w-3.5" />
+                Chamado Financeiro
+              </Button>
             </div>
 
             {/* Move Stage */}

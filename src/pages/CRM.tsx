@@ -980,7 +980,7 @@ export default function CRM() {
           </div>
         </div>
 
-        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden" data-tour="crm-kanban">
+        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-x-auto overflow-y-hidden" data-tour="crm-kanban">
           {scheduledLeadsCount > 0 && (
             <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
               <Clock className="h-3.5 w-3.5 text-amber-500" />

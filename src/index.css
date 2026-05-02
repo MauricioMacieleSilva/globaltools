@@ -586,21 +586,25 @@ body:has(.dashboard-fullscreen-mode) aside {
 }
 /* Kanban: barra de rolagem horizontal sempre visível na parte inferior */
 .kanban-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+  scrollbar-width: auto;
+  scrollbar-color: hsl(var(--primary) / 0.6) hsl(var(--muted) / 0.5);
+  padding-bottom: 4px;
 }
 .kanban-scroll::-webkit-scrollbar {
-  height: 10px;
+  height: 14px;
   -webkit-appearance: none;
+  display: block;
 }
 .kanban-scroll::-webkit-scrollbar-track {
-  background: hsl(var(--muted) / 0.3);
-  border-radius: 6px;
+  background: hsl(var(--muted) / 0.5);
+  border-radius: 8px;
+  margin: 0 4px;
 }
 .kanban-scroll::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.45);
-  border-radius: 6px;
+  background: hsl(var(--primary) / 0.55);
+  border-radius: 8px;
+  border: 2px solid hsl(var(--background));
 }
 .kanban-scroll::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.7);
+  background: hsl(var(--primary) / 0.8);
 }

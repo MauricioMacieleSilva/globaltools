@@ -69,10 +69,9 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
       const cnpj = (lead as any).cliente_cnpj || null;
       const categoria = categories.find(c => c.id === categoryId)?.name || '';
       const clienteLabel = empresa || lead.cliente_nome || 'Cliente';
-      const autoTitle = `Demanda Financeiro — ${categoria} — ${clienteLabel}`;
 
       const { data: ticketData, error } = await (supabase as any).from('tickets').insert({
-        title: autoTitle,
+        title: `${categoria} - ${clienteLabel}`,
         description: description.trim() || null,
         category_id: categoryId,
         priority,
@@ -87,13 +86,14 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
       if (error) throw error;
 
       const appUrl = window.location.origin;
+      const subjectTitle = `${categoria} - ${clienteLabel} | ${ticketData.ticket_number}`;
 
       // Disparar email (não bloqueia em caso de erro)
       supabase.functions.invoke('notify-financeiro-ticket', {
         body: {
           ticketId: ticketData.id,
           ticketNumber: ticketData.ticket_number,
-          title: autoTitle,
+          title: subjectTitle,
           description: description.trim(),
           priority,
           valor: valor ? parseFloat(valor) : null,

@@ -189,6 +189,25 @@ export default function Chamados() {
 
   useEffect(() => { loadUserRole(); loadCategories(); loadTickets(); }, [loadUserRole, loadCategories, loadTickets]);
 
+  // Deep link: abrir ticket via ?ticket=ID
+  useEffect(() => {
+    if (loading || tickets.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const ticketId = params.get('ticket');
+    if (!ticketId) return;
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (ticket) {
+      setSelectedTicket(ticket);
+      setDetailOpen(true);
+      loadComments(ticket.id);
+      loadTicketAttachments(ticket.id);
+      // Limpa o parâmetro da URL sem recarregar
+      const url = new URL(window.location.href);
+      url.searchParams.delete('ticket');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [loading, tickets, loadComments, loadTicketAttachments]);
+
   const handleCreateTicket = async () => {
     if (!newTitle.trim() || !newCategoryId) {
       toast.error('Preencha o título e a categoria');

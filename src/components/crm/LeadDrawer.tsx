@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed, DollarSign, CheckCircle2 } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed, DollarSign, CheckCircle2, Ticket } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
@@ -22,6 +22,7 @@ import { LeadEnrichForm } from './LeadEnrichForm';
 import { LeadEditDialog } from './LeadEditDialog';
 import { LeadAttachments } from './LeadAttachments';
 import { AnaliseFinanceiraResponseDialog } from './AnaliseFinanceiraResponseDialog';
+import { OpenTicketDialog } from './OpenTicketDialog';
 import { fetchComercialData } from '@/services/googleSheetsService';
 import { parseDate } from '@/lib/utils-comercial';
 
@@ -87,6 +88,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [analiseResponseOpen, setAnaliseResponseOpen] = useState(false);
   const [canAccessFinanceiro, setCanAccessFinanceiro] = useState(false);
   const [failedConfirmOpen, setFailedConfirmOpen] = useState(false);
+  const [openTicketDialogOpen, setOpenTicketDialogOpen] = useState(false);
 
   useEffect(() => {
     const checkFinanceAccess = async () => {
@@ -759,6 +761,15 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
                 <ClipboardList className="h-3.5 w-3.5" />
                 Agendar Follow-up
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setOpenTicketDialogOpen(true)}
+                className="gap-1.5 text-purple-700 border-purple-300 hover:bg-purple-50"
+              >
+                <Ticket className="h-3.5 w-3.5" />
+                Chamado Financeiro
+              </Button>
             </div>
 
             {/* Move Stage */}
@@ -1045,6 +1056,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           loadActivities(lead.id);
           onLeadUpdated();
         }}
+      />
+      <OpenTicketDialog
+        open={openTicketDialogOpen}
+        onOpenChange={setOpenTicketDialogOpen}
+        lead={lead}
+        onCreated={() => loadActivities(lead.id)}
       />
     </>
   );

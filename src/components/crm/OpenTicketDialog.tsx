@@ -249,6 +249,22 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
           </DialogDescription>
         </DialogHeader>
 
+        {missingFields.length > 0 && (
+          <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs">
+            <AlertCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-destructive">
+                Não é possível abrir o chamado. Cadastre os campos abaixo no lead/cliente:
+              </p>
+              <ul className="list-disc pl-4 text-destructive/90">
+                {missingFields.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-xs">Categoria *</Label>

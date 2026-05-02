@@ -400,7 +400,7 @@ export default function Chamados() {
             requesterName: selectedTicket.requester_name,
             clientName: selectedTicket.client_name || ticketLead?.empresa || ticketLead?.cliente_nome,
             clientCnpj: selectedTicket.client_cnpj || ticketLead?.cnpj,
-            numeroPedido: selectedTicket.numero_pedido || ticketLead?.budget_number || ticketLead?.numero_lead,
+            numeroPedido: (selectedTicket as any).numero_pedido || ticketLead?.budget_number || ticketLead?.numero_lead,
             appUrl: window.location.origin,
             leadData: ticketLead ? {
               empresa: ticketLead.empresa,

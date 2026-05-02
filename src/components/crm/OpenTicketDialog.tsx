@@ -31,6 +31,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('media');
   const [valor, setValor] = useState('');
+  const [numeroPedido, setNumeroPedido] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,12 +48,13 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
     if (lead) {
       const valorEst = lead.valor_estimado;
       if (valorEst) setValor(String(valorEst));
+      setNumeroPedido(lead.budget_number || lead.numero_lead || '');
     }
   }, [open, lead]);
 
   const reset = () => {
     setCategoryId(''); setDescription('');
-    setPriority('media'); setValor(''); setFiles([]);
+    setPriority('media'); setValor(''); setNumeroPedido(''); setFiles([]);
   };
 
   const handleSubmit = async () => {
@@ -61,6 +63,24 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
       toast.error('Selecione a categoria');
       return;
     }
+
+    // Validação de campos obrigatórios vindos do cadastro do lead/cliente
+    const missing: string[] = [];
+    if (!lead.cliente_cnpj) missing.push('CNPJ');
+    if (!lead.contact_name) missing.push('Nome do contato');
+    if (!lead.contact_phone && !lead.cliente_telefone) missing.push('Telefone');
+    if (!numeroPedido.trim()) missing.push('Nº Pedido/Orçamento');
+    if (!lead.cidade) missing.push('Cidade');
+    if (!lead.estado) missing.push('UF');
+
+    if (missing.length > 0) {
+      toast.error(
+        `Não é possível abrir o chamado. Cadastre no lead/cliente: ${missing.join(', ')}.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
@@ -126,6 +146,27 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
           clientCnpj: cnpj,
           leadId: lead.id,
           appUrl,
+          numeroPedido: numeroPedido.trim() || null,
+          leadData: {
+            empresa: lead.empresa,
+            cliente_nome: lead.cliente_nome,
+            contact_name: lead.contact_name,
+            contact_phone: lead.contact_phone || lead.cliente_telefone,
+            contact_email: lead.contact_email || lead.cliente_email,
+            cidade: lead.cidade,
+            estado: lead.estado,
+            ramo_atuacao: lead.ramo_atuacao,
+            regime_tributario: lead.regime_tributario,
+            website: lead.website,
+            produto_interesse: lead.produto_interesse,
+            origem: lead.origem || lead.source,
+            status: lead.status,
+            valor_estimado: lead.valor_estimado,
+            numero_lead: lead.numero_lead,
+            budget_number: lead.budget_number,
+            observacoes: lead.observacoes || lead.notes,
+            vendedor: lead.vendedor?.full_name || null,
+          },
         },
       }).catch(err => console.error('Erro ao notificar financeiro:', err));
 
@@ -203,6 +244,16 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
                 className="h-9 text-sm"
               />
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Nº Pedido/Orçamento *</Label>
+            <Input
+              value={numeroPedido}
+              onChange={(e) => setNumeroPedido(e.target.value)}
+              placeholder="Ex.: 12345"
+              className="h-9 text-sm"
+            />
           </div>
 
           <div className="space-y-1">

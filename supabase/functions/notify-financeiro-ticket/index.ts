@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Chamados Global Aço <onboarding@resend.dev>",
         to: recipients,
-        subject: `🎫 Novo Chamado ${ticketNumber || ""}: ${title}`,
+        subject: title,
         html: htmlBody,
       }),
     });

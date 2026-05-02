@@ -142,6 +142,7 @@ export default function Chamados() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [comments, setComments] = useState<TicketComment[]>([]);
   const [ticketAttachments, setTicketAttachments] = useState<any[]>([]);
+  const [ticketLead, setTicketLead] = useState<any | null>(null);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
@@ -187,6 +188,16 @@ export default function Chamados() {
     setTicketAttachments(data || []);
   }, []);
 
+  const loadTicketLead = useCallback(async (leadId: string | null) => {
+    if (!leadId) { setTicketLead(null); return; }
+    const { data } = await (supabase as any)
+      .from('leads')
+      .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, email)')
+      .eq('id', leadId)
+      .maybeSingle();
+    setTicketLead(data || null);
+  }, []);
+
   useEffect(() => { loadUserRole(); loadCategories(); loadTickets(); }, [loadUserRole, loadCategories, loadTickets]);
 
   // Deep link: abrir ticket via ?ticket=ID
@@ -201,12 +212,13 @@ export default function Chamados() {
       setDetailOpen(true);
       loadComments(ticket.id);
       loadTicketAttachments(ticket.id);
+      loadTicketLead(ticket.lead_id);
       // Limpa o parâmetro da URL sem recarregar
       const url = new URL(window.location.href);
       url.searchParams.delete('ticket');
       window.history.replaceState({}, '', url.toString());
     }
-  }, [loading, tickets, loadComments, loadTicketAttachments]);
+  }, [loading, tickets, loadComments, loadTicketAttachments, loadTicketLead]);
 
   const handleCreateTicket = async () => {
     if (!newTitle.trim() || !newCategoryId) {
@@ -311,6 +323,7 @@ export default function Chamados() {
     setDetailOpen(true);
     loadComments(ticket.id);
     loadTicketAttachments(ticket.id);
+    loadTicketLead(ticket.lead_id);
   };
 
   // KPIs
@@ -651,6 +664,56 @@ export default function Chamados() {
                         </div>
                       )}
                     </div>
+
+                    {/* Dados completos do Lead/Cliente */}
+                    {ticketLead && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-primary border-b border-primary/30 pb-1 uppercase tracking-wide">
+                          Dados do Lead / Cliente
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          {[
+                            ['Empresa', ticketLead.empresa],
+                            ['CNPJ', ticketLead.cliente_cnpj],
+                            ['Razão Social', ticketLead.cliente_razao_social],
+                            ['Nome do Contato', ticketLead.contact_name],
+                            ['Cargo do Contato', ticketLead.contact_role],
+                            ['Telefone', ticketLead.contact_phone || ticketLead.cliente_telefone],
+                            ['E-mail', ticketLead.contact_email || ticketLead.cliente_email],
+                            ['Cidade', ticketLead.cidade],
+                            ['UF', ticketLead.estado],
+                            ['Endereço', ticketLead.endereco],
+                            ['CEP', ticketLead.cep],
+                            ['Ramo de Atuação', ticketLead.ramo_atuacao],
+                            ['Regime Tributário', ticketLead.regime_tributario],
+                            ['Website', ticketLead.website],
+                            ['Vendedor Responsável', ticketLead.vendedor?.full_name],
+                            ['Origem', ticketLead.origem || ticketLead.source],
+                            ['Status do Lead', ticketLead.status],
+                            ['Etapa do Funil', ticketLead.disposition],
+                            ['Produto de Interesse', ticketLead.produto_interesse],
+                            ['Valor Estimado', ticketLead.valor_estimado ? `R$ ${Number(ticketLead.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null],
+                            ['Nº do Lead', ticketLead.numero_lead],
+                            ['Nº Pedido/Orçamento', ticketLead.budget_number],
+                            ['Qualificação', ticketLead.qualification],
+                          ].filter(([, v]) => v !== null && v !== undefined && v !== '').map(([label, value]) => (
+                            <div key={label as string} className="space-y-0.5">
+                              <span className="text-muted-foreground">{label}</span>
+                              <p className="font-medium break-words">{String(value)}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {(ticketLead.observacoes || ticketLead.notes) && (
+                          <div className="space-y-1 pt-2">
+                            <span className="text-muted-foreground text-xs">Observações</span>
+                            <p className="text-xs bg-muted/40 border border-border rounded p-2 whitespace-pre-wrap">
+                              {ticketLead.observacoes || ticketLead.notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Attachments */}
                     {ticketAttachments.length > 0 && (

@@ -23,23 +23,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Buscar emails de admins e financeiros
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .in("role", ["admin", "financeiro"]);
-
-    const userIds = (roles || []).map((r: any) => r.user_id);
-    const { data: profiles } = await supabase
-      .from("user_profiles")
-      .select("email")
-      .in("id", userIds);
-
-    const recipients = Array.from(new Set((profiles || []).map((p: any) => p.email).filter(Boolean)));
-
-    if (recipients.length === 0) {
-      return new Response(JSON.stringify({ warning: "Nenhum destinatário encontrado" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    // Sandbox Resend: enviar somente para o email do dono da conta
+    const recipients = ["mauricio.maciel@globalaco.com.br"];
 
     const deepLink = `${appUrl || "https://globaltools.lovable.app"}/chamados?ticket=${ticketId}`;
     const valorFmt = valor ? `R$ ${Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Não informado";

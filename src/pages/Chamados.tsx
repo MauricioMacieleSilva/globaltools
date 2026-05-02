@@ -192,7 +192,7 @@ export default function Chamados() {
     if (!leadId) { setTicketLead(null); return; }
     const { data } = await (supabase as any)
       .from('leads')
-      .select('*, vendedor:user_profiles!leads_assigned_to_fkey(full_name, email)')
+      .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, email)')
       .eq('id', leadId)
       .maybeSingle();
     setTicketLead(data || null);

@@ -668,7 +668,7 @@ export default function Chamados() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogContent className="w-[min(96vw,1120px)] sm:!max-w-5xl h-[min(92vh,820px)] max-h-[92vh] overflow-hidden p-0 gap-0 flex flex-col">
           {selectedTicket && (() => {
             const statusCfg = STATUS_CONFIG[selectedTicket.status] || STATUS_CONFIG.aberto;
             const priorityCfg = PRIORITY_CONFIG[selectedTicket.priority] || PRIORITY_CONFIG.media;
@@ -677,7 +677,7 @@ export default function Chamados() {
 
             return (
               <>
-                <DialogHeader>
+                <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-12">
                   <DialogTitle className="flex items-center gap-2 text-base">
                     <span className="font-mono text-muted-foreground">{selectedTicket.ticket_number}</span>
                     <Badge className={cn("text-white border-none", statusCfg.color)}>{statusCfg.label}</Badge>
@@ -685,8 +685,9 @@ export default function Chamados() {
                   </DialogTitle>
                 </DialogHeader>
 
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-4 pr-2">
+                <div className="grid flex-1 min-h-0 grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.9fr)]">
+                  <ScrollArea className="min-h-0 border-b border-border lg:border-b-0 lg:border-r">
+                    <div className="space-y-4 p-5">
                     {/* Info */}
                     <div>
                       <h3 className="font-medium">{selectedTicket.title}</h3>
@@ -814,121 +815,131 @@ export default function Chamados() {
                       </div>
                     )}
 
-                    {/* Status actions (financeiro only) */}
-                    {isFinanceiro && selectedTicket.status !== 'concluido' && selectedTicket.status !== 'cancelado' && (
-                      <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                            <FileText className="h-4 w-4" /> Parecer da Análise
-                          </h4>
-                          {selectedTicket.status === 'aberto' && (
-                            <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
-                              <Timer className="h-3 w-3" /> Assumir
-                            </Button>
-                          )}
-                        </div>
+                    </div>
+                  </ScrollArea>
 
-                        <RadioGroup value={parecer} onValueChange={setParecer} className="space-y-2">
-                          {PARECER_OPTIONS.map((option) => {
-                            const Icon = option.icon;
-                            return (
-                              <div
-                                key={option.value}
-                                className="flex items-start space-x-3 rounded-md border bg-background p-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
-                                onClick={() => setParecer(option.value)}
-                              >
-                                <RadioGroupItem value={option.value} id={`parecer-${option.value}`} className="mt-0.5" />
-                                <Label htmlFor={`parecer-${option.value}`} className="flex-1 cursor-pointer">
-                                  <div className="flex items-center gap-2">
-                                    <Icon className={cn("h-4 w-4", option.color)} />
-                                    <span className="text-sm font-medium">{option.label}</span>
-                                  </div>
-                                  <p className="text-[11px] text-muted-foreground mt-0.5">{option.description}</p>
-                                </Label>
-                              </div>
-                            );
-                          })}
-                        </RadioGroup>
-
-                        <Textarea
-                          value={parecerConsideracoes}
-                          onChange={(e) => setParecerConsideracoes(e.target.value)}
-                          placeholder="Considerações do responsável (opcional)..."
-                          className="text-sm min-h-[70px] resize-none bg-background"
-                        />
-
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="gap-1 text-xs text-muted-foreground"
-                            onClick={() => handleStatusChange(selectedTicket, 'cancelado')}
-                          >
-                            <XCircle className="h-3 w-3" /> Cancelar Chamado
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="gap-1 text-xs"
-                            disabled={!parecer || submittingParecer}
-                            onClick={() => setParecerConfirmOpen(true)}
-                          >
-                            {submittingParecer ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
-                            Registrar Parecer e Concluir
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Cancel for requester */}
-                    {!isFinanceiro && selectedTicket.status === 'aberto' && selectedTicket.requester_id === userProfile?.id && (
-                      <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => handleStatusChange(selectedTicket, 'cancelado')}>
-                        <XCircle className="h-3 w-3" /> Cancelar Chamado
-                      </Button>
-                    )}
-
-                    <Separator />
-
-                    {/* Comments */}
-                    <div>
-                      <h4 className="text-sm font-medium flex items-center gap-1.5 mb-3">
-                        <MessageSquare className="h-4 w-4" /> Comentários
-                      </h4>
-                      <div className="space-y-3 max-h-[200px] overflow-y-auto">
-                        {comments.map(c => (
-                          <div key={c.id} className="flex gap-2">
-                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                              {c.user_name.charAt(0)}
+                  <div className="flex min-h-0 flex-col bg-muted/20">
+                    <ScrollArea className="min-h-0 flex-1">
+                      <div className="space-y-4 p-5">
+                        {/* Status actions (financeiro only) */}
+                        {isFinanceiro && selectedTicket.status !== 'concluido' && selectedTicket.status !== 'cancelado' && (
+                          <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                                <FileText className="h-4 w-4" /> Parecer da Análise
+                              </h4>
+                              {selectedTicket.status === 'aberto' && (
+                                <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
+                                  <Timer className="h-3 w-3" /> Assumir
+                                </Button>
+                              )}
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium">{c.user_name}</span>
-                                <span className="text-[10px] text-muted-foreground">{format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
-                              </div>
-                              <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{c.content}</p>
+
+                            <RadioGroup value={parecer} onValueChange={setParecer} className="space-y-2">
+                              {PARECER_OPTIONS.map((option) => {
+                                const Icon = option.icon;
+                                return (
+                                  <div
+                                    key={option.value}
+                                    className="flex items-start space-x-3 rounded-md border bg-muted/30 p-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
+                                    onClick={() => setParecer(option.value)}
+                                  >
+                                    <RadioGroupItem value={option.value} id={`parecer-${option.value}`} className="mt-0.5" />
+                                    <Label htmlFor={`parecer-${option.value}`} className="flex-1 cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                        <Icon className={cn("h-4 w-4", option.color)} />
+                                        <span className="text-sm font-medium">{option.label}</span>
+                                      </div>
+                                      <p className="text-[11px] text-muted-foreground mt-0.5">{option.description}</p>
+                                    </Label>
+                                  </div>
+                                );
+                              })}
+                            </RadioGroup>
+
+                            <Textarea
+                              value={parecerConsideracoes}
+                              onChange={(e) => setParecerConsideracoes(e.target.value)}
+                              placeholder="Considerações do responsável (opcional)..."
+                              className="text-sm min-h-[110px] resize-none bg-background"
+                            />
+
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1 text-xs text-muted-foreground"
+                                onClick={() => handleStatusChange(selectedTicket, 'cancelado')}
+                              >
+                                <XCircle className="h-3 w-3" /> Cancelar Chamado
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="gap-1 text-xs"
+                                disabled={!parecer || submittingParecer}
+                                onClick={() => setParecerConfirmOpen(true)}
+                              >
+                                {submittingParecer ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                                Registrar Parecer
+                              </Button>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        )}
 
-                      {/* Add comment */}
-                      {selectedTicket.status !== 'cancelado' && (
-                        <div className="flex gap-2 mt-3 items-end">
+                        {/* Cancel for requester */}
+                        {!isFinanceiro && selectedTicket.status === 'aberto' && selectedTicket.requester_id === userProfile?.id && (
+                          <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => handleStatusChange(selectedTicket, 'cancelado')}>
+                            <XCircle className="h-3 w-3" /> Cancelar Chamado
+                          </Button>
+                        )}
+
+                        <Separator />
+
+                        {/* Comments */}
+                        <div>
+                          <h4 className="text-sm font-medium flex items-center gap-1.5 mb-3">
+                            <MessageSquare className="h-4 w-4" /> Comentários
+                          </h4>
+                          <div className="space-y-3">
+                            {comments.map(c => (
+                              <div key={c.id} className="flex gap-2">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                                  {c.user_name.charAt(0)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-medium">{c.user_name}</span>
+                                    <span className="text-[10px] text-muted-foreground">{format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
+                                  </div>
+                                  <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{c.content}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </ScrollArea>
+
+                    {/* Add comment */}
+                    {selectedTicket.status !== 'cancelado' && (
+                      <div className="shrink-0 border-t border-border bg-background p-4">
+                        <div className="flex gap-2 items-end">
                           <Textarea
                             placeholder="Escreva um comentário..."
                             value={newComment}
                             onChange={e => setNewComment(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
-                            className="text-sm min-h-[80px] resize-none"
+                            className="text-sm min-h-[76px] resize-none"
                             rows={3}
                           />
                           <Button size="sm" className="shrink-0 h-10" onClick={handleAddComment} disabled={sendingComment || !newComment.trim()}>
                             {sendingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                           </Button>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                </ScrollArea>
+                </div>
               </>
             );
           })()}

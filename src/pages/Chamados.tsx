@@ -934,6 +934,27 @@ export default function Chamados() {
           })()}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={parecerConfirmOpen} onOpenChange={setParecerConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar parecer</AlertDialogTitle>
+            <AlertDialogDescription>
+              O parecer <strong>"{PARECER_OPTIONS.find(o => o.value === parecer)?.label}"</strong> será registrado como comentário e o chamado será marcado como concluído.
+              {parecerConsideracoes.trim() && (
+                <span className="block mt-2 text-xs italic">Considerações: "{parecerConsideracoes.trim()}"</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submittingParecer}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmitParecer} disabled={submittingParecer}>
+              {submittingParecer ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1057,6 +1057,12 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           onLeadUpdated();
         }}
       />
+      <OpenTicketDialog
+        open={openTicketDialogOpen}
+        onOpenChange={setOpenTicketDialogOpen}
+        lead={lead}
+        onCreated={() => loadActivities(lead.id)}
+      />
     </>
   );
 }

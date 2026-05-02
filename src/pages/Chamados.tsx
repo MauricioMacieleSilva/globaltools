@@ -816,18 +816,66 @@ export default function Chamados() {
 
                     {/* Status actions (financeiro only) */}
                     {isFinanceiro && selectedTicket.status !== 'concluido' && selectedTicket.status !== 'cancelado' && (
-                      <div className="flex gap-2 flex-wrap">
-                        {selectedTicket.status === 'aberto' && (
-                          <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
-                            <Timer className="h-3 w-3" /> Assumir
+                      <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                            <FileText className="h-4 w-4" /> Parecer da Análise
+                          </h4>
+                          {selectedTicket.status === 'aberto' && (
+                            <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
+                              <Timer className="h-3 w-3" /> Assumir
+                            </Button>
+                          )}
+                        </div>
+
+                        <RadioGroup value={parecer} onValueChange={setParecer} className="space-y-2">
+                          {PARECER_OPTIONS.map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <div
+                                key={option.value}
+                                className="flex items-start space-x-3 rounded-md border bg-background p-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
+                                onClick={() => setParecer(option.value)}
+                              >
+                                <RadioGroupItem value={option.value} id={`parecer-${option.value}`} className="mt-0.5" />
+                                <Label htmlFor={`parecer-${option.value}`} className="flex-1 cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <Icon className={cn("h-4 w-4", option.color)} />
+                                    <span className="text-sm font-medium">{option.label}</span>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">{option.description}</p>
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </RadioGroup>
+
+                        <Textarea
+                          value={parecerConsideracoes}
+                          onChange={(e) => setParecerConsideracoes(e.target.value)}
+                          placeholder="Considerações do responsável (opcional)..."
+                          className="text-sm min-h-[70px] resize-none bg-background"
+                        />
+
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1 text-xs text-muted-foreground"
+                            onClick={() => handleStatusChange(selectedTicket, 'cancelado')}
+                          >
+                            <XCircle className="h-3 w-3" /> Cancelar Chamado
                           </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="gap-1 text-xs text-emerald-600" onClick={() => handleStatusChange(selectedTicket, 'concluido')}>
-                          <CheckCircle className="h-3 w-3" /> Concluir
-                        </Button>
-                        <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => handleStatusChange(selectedTicket, 'cancelado')}>
-                          <XCircle className="h-3 w-3" /> Cancelar
-                        </Button>
+                          <Button
+                            size="sm"
+                            className="gap-1 text-xs"
+                            disabled={!parecer || submittingParecer}
+                            onClick={() => setParecerConfirmOpen(true)}
+                          >
+                            {submittingParecer ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                            Registrar Parecer e Concluir
+                          </Button>
+                        </div>
                       </div>
                     )}
 

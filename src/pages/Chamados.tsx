@@ -160,6 +160,9 @@ export default function Chamados() {
   const [parecerConsideracoes, setParecerConsideracoes] = useState('');
   const [parecerConfirmOpen, setParecerConfirmOpen] = useState(false);
   const [submittingParecer, setSubmittingParecer] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false);
+  const [concluirConfirmOpen, setConcluirConfirmOpen] = useState(false);
 
   const isFinanceiro = userRole === 'admin' || userRole === 'financeiro';
 
@@ -853,6 +856,46 @@ export default function Chamados() {
                       <div className="space-y-4 p-5">
                         {/* Status actions (financeiro only) */}
                         {isFinanceiro && selectedTicket.status !== 'concluido' && selectedTicket.status !== 'cancelado' && (
+                          (() => {
+                            const catName = (selectedTicket.category?.name || categories.find(c => c.id === selectedTicket.category_id)?.name || '').toLowerCase();
+                            const isParamFiscal = catName.includes('parametriza') && catName.includes('fiscal');
+                            if (isParamFiscal) {
+                              return (
+                                <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                                      <FileText className="h-4 w-4" /> Parametrização Fiscal
+                                    </h4>
+                                    {selectedTicket.status === 'aberto' && (
+                                      <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
+                                        <Timer className="h-3 w-3" /> Assumir
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Para esta categoria não é necessário registrar parecer. Basta informar quando a parametrização estiver concluída.
+                                  </p>
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="gap-1 text-xs text-muted-foreground"
+                                      onClick={() => setCancelConfirmOpen(true)}
+                                    >
+                                      <XCircle className="h-3 w-3" /> Cancelar Chamado
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="gap-1 text-xs"
+                                      onClick={() => setConcluirConfirmOpen(true)}
+                                    >
+                                      <CheckCircle className="h-3 w-3" /> Marcar como Concluído
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
                           <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
                             <div className="flex items-center justify-between gap-2">
                               <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
@@ -899,7 +942,7 @@ export default function Chamados() {
                                 size="sm"
                                 variant="ghost"
                                 className="gap-1 text-xs text-muted-foreground"
-                                onClick={() => handleStatusChange(selectedTicket, 'cancelado')}
+                                onClick={() => setCancelConfirmOpen(true)}
                               >
                                 <XCircle className="h-3 w-3" /> Cancelar Chamado
                               </Button>
@@ -914,13 +957,31 @@ export default function Chamados() {
                               </Button>
                             </div>
                           </div>
+                            );
+                          })()
                         )}
 
                         {/* Cancel for requester */}
                         {!isFinanceiro && selectedTicket.status === 'aberto' && selectedTicket.requester_id === userProfile?.id && (
-                          <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => handleStatusChange(selectedTicket, 'cancelado')}>
+                          <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => setCancelConfirmOpen(true)}>
                             <XCircle className="h-3 w-3" /> Cancelar Chamado
                           </Button>
+                        )}
+
+                        {/* Reopen cancelled ticket (financeiro) */}
+                        {isFinanceiro && selectedTicket.status === 'cancelado' && (
+                          <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2">
+                            <p className="text-xs text-amber-700 dark:text-amber-400">
+                              Este chamado foi cancelado. Você pode reabri-lo para continuar a análise.
+                            </p>
+                            <Button
+                              size="sm"
+                              className="gap-1 text-xs w-full"
+                              onClick={() => setReopenConfirmOpen(true)}
+                            >
+                              <Timer className="h-3 w-3" /> Reabrir Chamado
+                            </Button>
+                          </div>
                         )}
 
                         <Separator />

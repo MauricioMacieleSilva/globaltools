@@ -385,6 +385,21 @@ export default function Chamados() {
           finance_parecer_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }).eq('id', selectedTicket.lead_id);
+
+        // Registrar atividade no histórico do lead com a resposta da análise
+        try {
+          const parts: string[] = [`✅ Resposta do Chamado Financeiro (${selectedTicket.ticket_number}): ${parecerLabel}`];
+          if (parecerConsideracoes.trim()) parts.push(`- ${parecerConsideracoes.trim()}`);
+          await (supabase as any).from('lead_activities').insert({
+            lead_id: selectedTicket.lead_id,
+            activity_type: 'nota',
+            description: parts.join(' '),
+            user_id: user.id,
+            sdr_name: userName,
+          });
+        } catch (actErr) {
+          console.error('Falha ao registrar atividade do lead:', actErr);
+        }
       }
 
       toast.success('Parecer registrado e chamado concluído');

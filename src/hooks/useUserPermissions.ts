@@ -84,6 +84,12 @@ export const SYSTEM_PAGES = {
     supportsEdit: false,
     route: '/reunioes'
   },
+  chamados: {
+    label: 'Chamados',
+    category: 'Principais',
+    supportsEdit: true,
+    route: '/chamados'
+  },
   
   // Páginas administrativas
   usuarios: { 

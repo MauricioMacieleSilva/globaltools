@@ -385,6 +385,21 @@ export default function Chamados() {
           finance_parecer_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }).eq('id', selectedTicket.lead_id);
+
+        // Registrar atividade no histórico do lead com a resposta da análise
+        try {
+          const parts: string[] = [`✅ Resposta do Chamado Financeiro (${selectedTicket.ticket_number}): ${parecerLabel}`];
+          if (parecerConsideracoes.trim()) parts.push(`- ${parecerConsideracoes.trim()}`);
+          await (supabase as any).from('lead_activities').insert({
+            lead_id: selectedTicket.lead_id,
+            activity_type: 'nota',
+            description: parts.join(' '),
+            user_id: user.id,
+            sdr_name: userName,
+          });
+        } catch (actErr) {
+          console.error('Falha ao registrar atividade do lead:', actErr);
+        }
       }
 
       toast.success('Parecer registrado e chamado concluído');
@@ -981,6 +996,32 @@ export default function Chamados() {
                             >
                               <Timer className="h-3 w-3" /> Reabrir Chamado
                             </Button>
+                          </div>
+                        )}
+
+                        {/* Parecer / Resposta — visível em chamados concluídos */}
+                        {selectedTicket.status === 'concluido' && (
+                          <div className="space-y-2 rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 p-3">
+                            <h4 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                              <CheckCircle className="h-4 w-4" /> Resposta do Chamado
+                            </h4>
+                            {comments.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">Nenhum parecer registrado.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {comments.map((c) => (
+                                  <div key={c.id} className="rounded border border-border bg-background p-2.5">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                      <span className="text-xs font-medium">{c.user_name}</span>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {format(new Date(c.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs whitespace-pre-wrap text-foreground">{c.content}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
 

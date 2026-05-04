@@ -915,8 +915,16 @@ export default function CRM() {
       .map(fu => fu.lead_id)
   );
 
-  const kanbanLeads = filteredLeads.filter(l => !leadsWithFutureFollowUp.has(l.id));
-  const scheduledLeadsCount = filteredLeads.filter(l => leadsWithFutureFollowUp.has(l.id)).length;
+  // Stages that represent a "locked / awaiting action" state must always remain
+  // visible on the kanban regardless of future follow-ups, otherwise managers
+  // cannot see leads waiting for vendor assignment or financial analysis.
+  const ALWAYS_VISIBLE_STAGES = new Set(['passagem_bastao', 'analise_financeira']);
+  const kanbanLeads = filteredLeads.filter(
+    l => ALWAYS_VISIBLE_STAGES.has(l.status) || !leadsWithFutureFollowUp.has(l.id)
+  );
+  const scheduledLeadsCount = filteredLeads.filter(
+    l => !ALWAYS_VISIBLE_STAGES.has(l.status) && leadsWithFutureFollowUp.has(l.id)
+  ).length;
 
   const lostLeads = leads.filter(l => l.status === 'perdido');
   const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);

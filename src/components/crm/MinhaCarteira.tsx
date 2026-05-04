@@ -28,7 +28,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   lead: { label: 'Lead', color: 'bg-blue-100 text-blue-800' },
   contato_feito: { label: 'Contato', color: 'bg-amber-100 text-amber-800' },
   passagem_bastao: { label: 'Passagem', color: 'bg-pink-100 text-pink-800' },
-  visita_reuniao: { label: 'Visita', color: 'bg-purple-100 text-purple-800' },
+  visita_reuniao: { label: 'Follow', color: 'bg-purple-100 text-purple-800' },
   analise_financeira: { label: 'Análise', color: 'bg-indigo-100 text-indigo-800' },
   proposta: { label: 'Proposta', color: 'bg-green-100 text-green-800' },
   pedido_fechado: { label: 'Fechado', color: 'bg-teal-100 text-teal-800' },

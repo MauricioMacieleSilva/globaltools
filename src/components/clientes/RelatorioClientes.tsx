@@ -446,6 +446,24 @@ export function RelatorioClientes() {
         </div>
 
         <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted-foreground">Vendedor</label>
+          <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
+            <SelectTrigger className="w-full lg:w-[180px] h-10">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os vendedores</SelectItem>
+              <SelectItem value="__none__">— Sem vendedor —</SelectItem>
+              {vendors.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground opacity-0 hidden lg:block">.</label>
           <Button
             onClick={handleExport}

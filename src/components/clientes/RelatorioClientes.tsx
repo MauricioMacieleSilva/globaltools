@@ -100,6 +100,7 @@ export function RelatorioClientes() {
   const [periodo, setPeriodo] = useState<PeriodoMedia>("12");
   const [ano, setAno] = useState<number>(hoje.getFullYear());
   const [mes, setMes] = useState<number>(hoje.getMonth() + 1);
+  const [vendedorFilter, setVendedorFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>("faturadoTotal");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -196,10 +197,20 @@ export function RelatorioClientes() {
   }, [data, periodo, ano, mes]);
 
   const filteredClientes = useMemo(() => {
-    if (!debouncedSearch.trim()) return clientes;
-    const term = debouncedSearch.toLowerCase();
-    return clientes.filter((c) => c.nome.toLowerCase().includes(term));
-  }, [clientes, debouncedSearch]);
+    let arr = clientes;
+    if (debouncedSearch.trim()) {
+      const term = debouncedSearch.toLowerCase();
+      arr = arr.filter((c) => c.nome.toLowerCase().includes(term));
+    }
+    if (vendedorFilter !== "all") {
+      if (vendedorFilter === "__none__") {
+        arr = arr.filter((c) => !getAssignment(c.nome)?.vendedor_id);
+      } else {
+        arr = arr.filter((c) => getAssignment(c.nome)?.vendedor_id === vendedorFilter);
+      }
+    }
+    return arr;
+  }, [clientes, debouncedSearch, vendedorFilter, getAssignment]);
 
   const sortedClientes = useMemo(() => {
     const arr = [...filteredClientes];
@@ -249,7 +260,7 @@ export function RelatorioClientes() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, periodo, ano, mes, sortField, sortDir]);
+  }, [debouncedSearch, periodo, ano, mes, sortField, sortDir, vendedorFilter]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -428,6 +439,24 @@ export function RelatorioClientes() {
               {MESES.map((m) => (
                 <SelectItem key={m.value} value={String(m.value)}>
                   {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted-foreground">Vendedor</label>
+          <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
+            <SelectTrigger className="w-full lg:w-[180px] h-10">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os vendedores</SelectItem>
+              <SelectItem value="__none__">— Sem vendedor —</SelectItem>
+              {vendors.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.full_name}
                 </SelectItem>
               ))}
             </SelectContent>

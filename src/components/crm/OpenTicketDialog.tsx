@@ -161,6 +161,22 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
 
       if (error) throw error;
 
+      // Registrar atividade no histórico do lead
+      try {
+        const descParts: string[] = [`📋 Chamado Financeiro aberto: ${categoria} (${ticketData.ticket_number})`];
+        if (description.trim()) descParts.push(`- ${description.trim()}`);
+        if (numeroPedido.trim()) descParts.push(`| Pedido/Orçamento: ${numeroPedido.trim()}`);
+        await (supabase as any).from('lead_activities').insert({
+          lead_id: lead.id,
+          activity_type: 'nota',
+          description: descParts.join(' '),
+          user_id: user.id,
+          sdr_name: userProfile?.full_name || user.email || '',
+        });
+      } catch (actErr) {
+        console.error('Falha ao registrar atividade do lead:', actErr);
+      }
+
       // Upload de anexos (mesmo padrão da página de Chamados)
       if (files.length > 0 && ticketData?.id) {
         for (const file of files) {

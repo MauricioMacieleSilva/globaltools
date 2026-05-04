@@ -430,6 +430,29 @@ export default function CRM() {
 
     // Intercept move to passagem_bastao — confirm first (irreversible)
     if (newStatus === 'passagem_bastao') {
+      const requiredFields: { key: keyof CRMLead; label: string }[] = [
+        { key: 'empresa', label: 'Empresa' },
+        { key: 'cliente_cnpj', label: 'CNPJ' },
+        { key: 'contact_name', label: 'Nome do Contato' },
+        { key: 'cliente_telefone', label: 'Telefone' },
+        { key: 'origem', label: 'Origem' },
+        { key: 'ramo_atuacao', label: 'Ramo de Atuação' },
+        { key: 'estado', label: 'UF' },
+        { key: 'cidade', label: 'Cidade' },
+        { key: 'produto_interesse', label: 'Produto de Interesse' },
+      ];
+      const missing = requiredFields.filter(f => {
+        const v = (lead as any)[f.key];
+        return v === null || v === undefined || String(v).trim() === '';
+      });
+      if (missing.length > 0) {
+        toast.error(
+          `Para passar o bastão é necessário preencher: ${missing.map(m => m.label).join(', ')}`,
+          { duration: 6000 }
+        );
+        openLeadDrawer(lead);
+        return;
+      }
       const confirmed = window.confirm(
         `Atenção: Ao mover "${lead.cliente_nome}" para Passagem de Bastão, o lead ficará travado até que um gestor atribua um vendedor.\n\nEssa ação não pode ser desfeita. Deseja continuar?`
       );

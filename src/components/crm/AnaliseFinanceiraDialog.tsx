@@ -108,6 +108,14 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
     if (!leadProdutoInteresse) missing.push('Produto de Interesse');
     if (!description.trim()) missing.push('Descrição sobre o cliente ou negociação');
 
+    if (files.length === 0) {
+      toast.error('Anexo obrigatório', {
+        description: 'Anexe ao menos um documento antes de enviar o chamado financeiro.',
+        duration: 6000,
+      });
+      return;
+    }
+
     if (missing.length > 0) {
       toast.error('Dados obrigatórios faltando', {
         description: `Preencha: ${missing.join(', ')}`,

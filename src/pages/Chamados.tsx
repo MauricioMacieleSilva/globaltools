@@ -88,6 +88,43 @@ function formatSLA(minutes: number): string {
   return `${minutes}min`;
 }
 
+// Business hours: Mon-Fri 08:00 - 17:45 (America/Sao_Paulo)
+// Returns business minutes between two dates (positive if `to` is after `from`).
+function businessMinutesBetween(from: Date, to: Date): number {
+  const sign = to.getTime() >= from.getTime() ? 1 : -1;
+  let start = sign > 0 ? new Date(from) : new Date(to);
+  const end = sign > 0 ? new Date(to) : new Date(from);
+  const DAY_START = 8 * 60;
+  const DAY_END = 17 * 60 + 45;
+  let total = 0;
+  // Cap iterations to avoid runaway loops
+  for (let i = 0; i < 5000 && start < end; i++) {
+    const dow = start.getDay(); // 0=Sun..6=Sat
+    const curMin = start.getHours() * 60 + start.getMinutes();
+    if (dow === 0 || dow === 6) {
+      // Jump to next Monday 08:00
+      const daysToMon = dow === 0 ? 1 : 2;
+      start = new Date(start.getFullYear(), start.getMonth(), start.getDate() + daysToMon, 8, 0, 0, 0);
+      continue;
+    }
+    if (curMin < DAY_START) {
+      start = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 8, 0, 0, 0);
+      continue;
+    }
+    if (curMin >= DAY_END) {
+      const jump = dow === 5 ? 3 : 1;
+      start = new Date(start.getFullYear(), start.getMonth(), start.getDate() + jump, 8, 0, 0, 0);
+      continue;
+    }
+    // Inside business hours
+    const endOfDay = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 17, 45, 0, 0);
+    const sliceEnd = end < endOfDay ? end : endOfDay;
+    total += Math.max(0, Math.round((sliceEnd.getTime() - start.getTime()) / 60000));
+    start = sliceEnd;
+  }
+  return total * sign;
+}
+
 const PARECER_OPTIONS = [
   { value: 'aprovado', label: 'Aprovado', icon: CheckCircle, description: 'Cliente aprovado para faturamento normal', color: 'text-emerald-600' },
   { value: 'precisa_info', label: 'Precisa de mais informações', icon: AlertTriangle, description: 'Documentação insuficiente ou dados pendentes', color: 'text-amber-600' },
@@ -99,12 +136,12 @@ function SLAIndicator({ deadline, status }: { deadline: string | null; status: s
   const deadlineDate = new Date(deadline);
   const now = new Date();
   const isOverdue = isPast(deadlineDate);
-  const minutesLeft = differenceInMinutes(deadlineDate, now);
-  const hoursLeft = differenceInHours(deadlineDate, now);
+  const minutesLeft = businessMinutesBetween(now, deadlineDate);
+  const hoursLeft = Math.floor(minutesLeft / 60);
 
   if (isOverdue) {
-    const overMinutes = differenceInMinutes(now, deadlineDate);
-    const overHours = differenceInHours(now, deadlineDate);
+    const overMinutes = businessMinutesBetween(deadlineDate, now);
+    const overHours = Math.floor(overMinutes / 60);
     return (
       <Badge variant="outline" className="text-destructive border-destructive text-[10px] gap-1">
         <AlertTriangle className="h-3 w-3" />

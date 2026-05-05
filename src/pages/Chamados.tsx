@@ -573,8 +573,8 @@ export default function Chamados() {
             ticketId: selectedTicket.id,
             ticketNumber: selectedTicket.ticket_number,
             title: selectedTicket.title,
-            parecer: 'consulta_serasa',
-            parecerLabel: `Consulta Serasa - Score ${serasaScore.trim()}`,
+            parecer: 'pre_analise',
+            parecerLabel: `Pré-Análise - Score ${serasaScore.trim()}`,
             consideracoes: serasaConsideracoes.trim() || null,
             analystName: userName,
             requesterName: selectedTicket.requester_name,
@@ -1038,7 +1038,7 @@ export default function Chamados() {
                           (() => {
                             const catName = (selectedTicket.category?.name || categories.find(c => c.id === selectedTicket.category_id)?.name || '').toLowerCase();
                             const isParamFiscal = catName.includes('parametriza') && catName.includes('fiscal');
-                            const isSerasa = catName.includes('serasa');
+                            const isPreAnalise = catName.includes('pré') && catName.includes('analise');
                             if (isParamFiscal) {
                               return (
                                 <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
@@ -1075,12 +1075,12 @@ export default function Chamados() {
                                 </div>
                               );
                             }
-                            if (isSerasa) {
+                            if (isPreAnalise) {
                               return (
                                 <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
                                   <div className="flex items-center justify-between gap-2">
                                     <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                                      <FileText className="h-4 w-4" /> Consulta Serasa
+                                      <FileText className="h-4 w-4" /> Pré-Análise
                                     </h4>
                                     {selectedTicket.status === 'aberto' && (
                                       <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
@@ -1157,7 +1157,7 @@ export default function Chamados() {
                                       onClick={() => setSerasaConfirmOpen(true)}
                                     >
                                       {submittingSerasa ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
-                                      Registrar Consulta
+                                      Registrar Pré-Análise
                                     </Button>
                                   </div>
                                 </div>
@@ -1313,7 +1313,7 @@ export default function Chamados() {
       <AlertDialog open={serasaConfirmOpen} onOpenChange={setSerasaConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar consulta Serasa</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar Pré-Análise</AlertDialogTitle>
             <AlertDialogDescription>
               A consulta com Score <strong>{serasaScore}</strong> será registrada como comentário e o chamado será marcado como concluído.
               {serasaConsideracoes.trim() && (

@@ -385,6 +385,9 @@ export default function Chamados() {
     setDetailOpen(true);
     setParecer('');
     setParecerConsideracoes('');
+    setSerasaScore('');
+    setSerasaConsideracoes('');
+    setSerasaFiles([]);
     loadComments(ticket.id);
     loadTicketAttachments(ticket.id);
     loadTicketLead(ticket.lead_id);

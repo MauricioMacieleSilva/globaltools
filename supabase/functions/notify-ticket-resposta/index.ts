@@ -49,6 +49,8 @@ Deno.serve(async (req) => {
       aprovado: { bg: "#ecfdf5", border: "#10b981", text: "#065f46", emoji: "✅" },
       precisa_info: { bg: "#fffbeb", border: "#f59e0b", text: "#92400e", emoji: "ℹ️" },
       pagamento_antecipado: { bg: "#eff6ff", border: "#2563eb", text: "#1e40af", emoji: "💳" },
+      pre_analise: { bg: "#f3e8ff", border: "#9333ea", text: "#6b21a8", emoji: "🔎" },
+      consulta_serasa: { bg: "#f3e8ff", border: "#9333ea", text: "#6b21a8", emoji: "🔎" },
     };
     const pc = parecerColors[parecer] || { bg: "#f3f4f6", border: "#6b7280", text: "#374151", emoji: "📋" };
 

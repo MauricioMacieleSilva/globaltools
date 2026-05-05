@@ -1038,6 +1038,7 @@ export default function Chamados() {
                           (() => {
                             const catName = (selectedTicket.category?.name || categories.find(c => c.id === selectedTicket.category_id)?.name || '').toLowerCase();
                             const isParamFiscal = catName.includes('parametriza') && catName.includes('fiscal');
+                            const isSerasa = catName.includes('serasa');
                             if (isParamFiscal) {
                               return (
                                 <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
@@ -1069,6 +1070,94 @@ export default function Chamados() {
                                       onClick={() => setConcluirConfirmOpen(true)}
                                     >
                                       <CheckCircle className="h-3 w-3" /> Marcar como Concluído
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            if (isSerasa) {
+                              return (
+                                <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                                      <FileText className="h-4 w-4" /> Consulta Serasa
+                                    </h4>
+                                    {selectedTicket.status === 'aberto' && (
+                                      <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
+                                        <Timer className="h-3 w-3" /> Assumir
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Score do cliente *</Label>
+                                    <Input
+                                      type="number"
+                                      value={serasaScore}
+                                      onChange={(e) => setSerasaScore(e.target.value)}
+                                      placeholder="Ex.: 750"
+                                      className="h-9 text-sm"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Considerações *</Label>
+                                    <Textarea
+                                      value={serasaConsideracoes}
+                                      onChange={(e) => setSerasaConsideracoes(e.target.value)}
+                                      placeholder="Considerações sobre o resultado da consulta..."
+                                      className="text-sm min-h-[100px] resize-none bg-background"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Anexo da consulta (opcional)</Label>
+                                    <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3">
+                                      <input
+                                        type="file"
+                                        multiple
+                                        id="serasa-files"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          if (e.target.files) setSerasaFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                                          e.target.value = '';
+                                        }}
+                                      />
+                                      <label htmlFor="serasa-files" className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                                        <Paperclip className="h-4 w-4" /> Clique para anexar a consulta
+                                      </label>
+                                      {serasaFiles.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                          {serasaFiles.map((f, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1">
+                                              <FileText className="h-3 w-3 shrink-0 text-primary" />
+                                              <span className="truncate flex-1">{f.name}</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => setSerasaFiles((prev) => prev.filter((_, j) => j !== i))}
+                                                className="shrink-0 hover:text-destructive"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => setCancelConfirmOpen(true)}>
+                                      <XCircle className="h-3 w-3" /> Cancelar Chamado
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="gap-1 text-xs"
+                                      disabled={!serasaScore.trim() || !serasaConsideracoes.trim() || submittingSerasa}
+                                      onClick={() => setSerasaConfirmOpen(true)}
+                                    >
+                                      {submittingSerasa ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                                      Registrar Consulta
                                     </Button>
                                   </div>
                                 </div>

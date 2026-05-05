@@ -3247,6 +3247,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_business_minutes: {
+        Args: { mins: number; start_ts: string }
+        Returns: string
+      }
       check_invitation_rate_limit: {
         Args: { user_id: string }
         Returns: boolean

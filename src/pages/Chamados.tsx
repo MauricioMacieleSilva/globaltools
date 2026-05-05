@@ -493,6 +493,123 @@ export default function Chamados() {
     }
   };
 
+  const handleSubmitSerasa = async () => {
+    if (!selectedTicket || !serasaScore.trim()) return;
+    setSubmittingSerasa(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('Não autenticado');
+      const userName = userProfile?.full_name || user.email || '';
+
+      // Upload optional attachments
+      if (serasaFiles.length > 0) {
+        for (const file of serasaFiles) {
+          const ext = file.name.split('.').pop();
+          const filePath = `${selectedTicket.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('ticket-attachments')
+            .upload(filePath, file);
+          if (uploadErr) { console.error('Upload error:', uploadErr); continue; }
+          const { data: urlData } = supabase.storage.from('ticket-attachments').getPublicUrl(filePath);
+          await (supabase as any).from('ticket_attachments').insert({
+            ticket_id: selectedTicket.id,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: user.id,
+            uploaded_by_name: userName,
+          });
+        }
+      }
+
+      const content = `🔎 Consulta Serasa\nScore: ${serasaScore.trim()}${serasaConsideracoes.trim() ? `\n\nConsiderações: ${serasaConsideracoes.trim()}` : ''}`;
+
+      const { error: cErr } = await (supabase as any).from('ticket_comments').insert({
+        ticket_id: selectedTicket.id,
+        user_id: user.id,
+        user_name: userName,
+        content,
+      });
+      if (cErr) throw cErr;
+
+      const updates: any = {
+        status: 'concluido',
+        resolved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (!selectedTicket.assignee_id) {
+        updates.assignee_id = user.id;
+        updates.assignee_name = userName;
+      }
+      const { error: uErr } = await (supabase as any).from('tickets').update(updates).eq('id', selectedTicket.id);
+      if (uErr) throw uErr;
+
+      // Registrar atividade no histórico do lead
+      if (selectedTicket.lead_id) {
+        try {
+          const parts: string[] = [
+            `🔎 Resposta da Consulta Serasa (${selectedTicket.ticket_number}): Score ${serasaScore.trim()}`,
+          ];
+          if (serasaConsideracoes.trim()) parts.push(`- ${serasaConsideracoes.trim()}`);
+          await (supabase as any).from('lead_activities').insert({
+            lead_id: selectedTicket.lead_id,
+            activity_type: 'nota',
+            description: parts.join(' '),
+            user_id: user.id,
+            sdr_name: userName,
+          });
+        } catch (actErr) {
+          console.error('Falha ao registrar atividade do lead:', actErr);
+        }
+      }
+
+      toast.success('Consulta Serasa registrada e chamado concluído');
+
+      // Email de notificação
+      try {
+        await supabase.functions.invoke('notify-ticket-resposta', {
+          body: {
+            ticketId: selectedTicket.id,
+            ticketNumber: selectedTicket.ticket_number,
+            title: selectedTicket.title,
+            parecer: 'consulta_serasa',
+            parecerLabel: `Consulta Serasa - Score ${serasaScore.trim()}`,
+            consideracoes: serasaConsideracoes.trim() || null,
+            analystName: userName,
+            requesterName: selectedTicket.requester_name,
+            clientName: selectedTicket.client_name || ticketLead?.empresa || ticketLead?.cliente_nome,
+            clientCnpj: selectedTicket.client_cnpj || ticketLead?.cnpj,
+            numeroPedido: (selectedTicket as any).numero_pedido || ticketLead?.budget_number || ticketLead?.numero_lead,
+            appUrl: window.location.origin,
+            leadData: ticketLead ? {
+              empresa: ticketLead.empresa,
+              contact_name: ticketLead.contact_name,
+              contact_phone: ticketLead.contact_phone,
+              cidade: ticketLead.cidade,
+              estado: ticketLead.estado,
+            } : null,
+          },
+        });
+      } catch (emailErr) {
+        console.error('Falha ao enviar email de resposta:', emailErr);
+      }
+
+      setSerasaScore('');
+      setSerasaConsideracoes('');
+      setSerasaFiles([]);
+      setSerasaConfirmOpen(false);
+      setSelectedTicket({ ...selectedTicket, ...updates });
+      loadComments(selectedTicket.id);
+      loadTicketAttachments(selectedTicket.id);
+      loadTickets();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao registrar consulta Serasa');
+    } finally {
+      setSubmittingSerasa(false);
+    }
+  };
+
   // KPIs
   const kpis = useMemo(() => {
     const open = tickets.filter(t => t.status === 'aberto');

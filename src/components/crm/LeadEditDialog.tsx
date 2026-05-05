@@ -198,7 +198,6 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
         });
         return;
       }
-      const { isValidCnpj } = await import('@/lib/cnpj');
       if (!isValidCnpj(cnpjDigits)) {
         toast.error('CNPJ inválido', {
           description: 'Os dígitos verificadores do CNPJ não conferem. Verifique e tente novamente.',

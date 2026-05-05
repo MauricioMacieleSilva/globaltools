@@ -523,7 +523,7 @@ export default function Chamados() {
         }
       }
 
-      const content = `🔎 Consulta Serasa\nScore: ${serasaScore.trim()}${serasaConsideracoes.trim() ? `\n\nConsiderações: ${serasaConsideracoes.trim()}` : ''}`;
+      const content = `🔎 Pré-Análise\nScore: ${serasaScore.trim()}${serasaConsideracoes.trim() ? `\n\nConsiderações: ${serasaConsideracoes.trim()}` : ''}`;
 
       const { error: cErr } = await (supabase as any).from('ticket_comments').insert({
         ticket_id: selectedTicket.id,

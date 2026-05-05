@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isValidCnpj, onlyDigits } from '@/lib/cnpj';
 import { locationsService } from '@/services/locationsService';
 import { Plus, ChevronsUpDown, X } from 'lucide-react';
 import { CRM_STAGES } from '@/pages/CRM';
@@ -189,6 +190,21 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
       toast.error('Telefone é obrigatório');
       return;
     }
+    const cnpjDigits = form.cliente_cnpj.replace(/\D/g, '');
+    if (cnpjDigits.length > 0) {
+      if (cnpjDigits.length !== 14) {
+        toast.error('CNPJ incompleto', {
+          description: `O CNPJ deve conter 14 dígitos (informados: ${cnpjDigits.length}).`,
+        });
+        return;
+      }
+      if (!isValidCnpj(cnpjDigits)) {
+        toast.error('CNPJ inválido', {
+          description: 'Os dígitos verificadores do CNPJ não conferem. Verifique e tente novamente.',
+        });
+        return;
+      }
+    }
     setLoading(true);
     try {
       const contactName = form.cliente_nome.trim() || form.empresa.trim();
@@ -267,6 +283,13 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
             <div className="space-y-1.5">
               <Label>CNPJ</Label>
               <Input value={formatCnpj(form.cliente_cnpj)} onChange={(e) => setForm(f => ({ ...f, cliente_cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
+              {(() => {
+                const d = onlyDigits(form.cliente_cnpj);
+                if (d.length === 0) return null;
+                if (d.length !== 14) return <p className="text-[11px] text-destructive">CNPJ incompleto ({d.length}/14 dígitos)</p>;
+                if (!isValidCnpj(d)) return <p className="text-[11px] text-destructive">CNPJ inválido — verifique os números</p>;
+                return <p className="text-[11px] text-emerald-600">CNPJ válido</p>;
+              })()}
             </div>
 
             {/* Nº Pedido / Orçamento */}

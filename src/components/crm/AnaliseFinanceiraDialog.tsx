@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { FileText, Upload, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isValidCnpj, onlyDigits } from '@/lib/cnpj';
 
 interface AnaliseFinanceiraDialogProps {
   open: boolean;
@@ -107,6 +108,14 @@ export function AnaliseFinanceiraDialog({ open, onOpenChange, leadId, leadName, 
     
     if (!leadProdutoInteresse) missing.push('Produto de Interesse');
     if (!description.trim()) missing.push('Descrição sobre o cliente ou negociação');
+
+    if (leadCnpj && !isValidCnpj(leadCnpj)) {
+      toast.error('CNPJ inválido', {
+        description: `O CNPJ informado (${leadCnpj}) não está no formato correto. Edite o lead e corrija o CNPJ (14 dígitos) antes de enviar o chamado financeiro.`,
+        duration: 8000,
+      });
+      return;
+    }
 
     if (files.length === 0) {
       toast.error('Anexo obrigatório', {

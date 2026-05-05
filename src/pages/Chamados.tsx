@@ -201,6 +201,13 @@ export default function Chamados() {
   const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false);
   const [concluirConfirmOpen, setConcluirConfirmOpen] = useState(false);
 
+  // Serasa response state
+  const [serasaScore, setSerasaScore] = useState('');
+  const [serasaConsideracoes, setSerasaConsideracoes] = useState('');
+  const [serasaFiles, setSerasaFiles] = useState<File[]>([]);
+  const [serasaConfirmOpen, setSerasaConfirmOpen] = useState(false);
+  const [submittingSerasa, setSubmittingSerasa] = useState(false);
+
   const isFinanceiro = userRole === 'admin' || userRole === 'financeiro';
 
   const loadUserRole = useCallback(async () => {

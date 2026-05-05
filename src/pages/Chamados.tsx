@@ -1310,6 +1310,27 @@ export default function Chamados() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={serasaConfirmOpen} onOpenChange={setSerasaConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar consulta Serasa</AlertDialogTitle>
+            <AlertDialogDescription>
+              A consulta com Score <strong>{serasaScore}</strong> será registrada como comentário e o chamado será marcado como concluído.
+              {serasaConsideracoes.trim() && (
+                <span className="block mt-2 text-xs italic">Considerações: "{serasaConsideracoes.trim()}"</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submittingSerasa}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmitSerasa} disabled={submittingSerasa}>
+              {submittingSerasa ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

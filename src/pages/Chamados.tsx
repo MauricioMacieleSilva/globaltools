@@ -564,7 +564,7 @@ export default function Chamados() {
         }
       }
 
-      toast.success('Consulta Serasa registrada e chamado concluído');
+      toast.success('Pré-Análise registrada e chamado concluído');
 
       // Email de notificação
       try {

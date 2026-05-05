@@ -201,6 +201,13 @@ export default function Chamados() {
   const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false);
   const [concluirConfirmOpen, setConcluirConfirmOpen] = useState(false);
 
+  // Serasa response state
+  const [serasaScore, setSerasaScore] = useState('');
+  const [serasaConsideracoes, setSerasaConsideracoes] = useState('');
+  const [serasaFiles, setSerasaFiles] = useState<File[]>([]);
+  const [serasaConfirmOpen, setSerasaConfirmOpen] = useState(false);
+  const [submittingSerasa, setSubmittingSerasa] = useState(false);
+
   const isFinanceiro = userRole === 'admin' || userRole === 'financeiro';
 
   const loadUserRole = useCallback(async () => {
@@ -378,6 +385,9 @@ export default function Chamados() {
     setDetailOpen(true);
     setParecer('');
     setParecerConsideracoes('');
+    setSerasaScore('');
+    setSerasaConsideracoes('');
+    setSerasaFiles([]);
     loadComments(ticket.id);
     loadTicketAttachments(ticket.id);
     loadTicketLead(ticket.lead_id);
@@ -480,6 +490,123 @@ export default function Chamados() {
       toast.error(err.message || 'Erro ao registrar parecer');
     } finally {
       setSubmittingParecer(false);
+    }
+  };
+
+  const handleSubmitSerasa = async () => {
+    if (!selectedTicket || !serasaScore.trim()) return;
+    setSubmittingSerasa(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('Não autenticado');
+      const userName = userProfile?.full_name || user.email || '';
+
+      // Upload optional attachments
+      if (serasaFiles.length > 0) {
+        for (const file of serasaFiles) {
+          const ext = file.name.split('.').pop();
+          const filePath = `${selectedTicket.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('ticket-attachments')
+            .upload(filePath, file);
+          if (uploadErr) { console.error('Upload error:', uploadErr); continue; }
+          const { data: urlData } = supabase.storage.from('ticket-attachments').getPublicUrl(filePath);
+          await (supabase as any).from('ticket_attachments').insert({
+            ticket_id: selectedTicket.id,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            file_type: file.type,
+            uploaded_by: user.id,
+            uploaded_by_name: userName,
+          });
+        }
+      }
+
+      const content = `🔎 Consulta Serasa\nScore: ${serasaScore.trim()}${serasaConsideracoes.trim() ? `\n\nConsiderações: ${serasaConsideracoes.trim()}` : ''}`;
+
+      const { error: cErr } = await (supabase as any).from('ticket_comments').insert({
+        ticket_id: selectedTicket.id,
+        user_id: user.id,
+        user_name: userName,
+        content,
+      });
+      if (cErr) throw cErr;
+
+      const updates: any = {
+        status: 'concluido',
+        resolved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (!selectedTicket.assignee_id) {
+        updates.assignee_id = user.id;
+        updates.assignee_name = userName;
+      }
+      const { error: uErr } = await (supabase as any).from('tickets').update(updates).eq('id', selectedTicket.id);
+      if (uErr) throw uErr;
+
+      // Registrar atividade no histórico do lead
+      if (selectedTicket.lead_id) {
+        try {
+          const parts: string[] = [
+            `🔎 Resposta da Consulta Serasa (${selectedTicket.ticket_number}): Score ${serasaScore.trim()}`,
+          ];
+          if (serasaConsideracoes.trim()) parts.push(`- ${serasaConsideracoes.trim()}`);
+          await (supabase as any).from('lead_activities').insert({
+            lead_id: selectedTicket.lead_id,
+            activity_type: 'nota',
+            description: parts.join(' '),
+            user_id: user.id,
+            sdr_name: userName,
+          });
+        } catch (actErr) {
+          console.error('Falha ao registrar atividade do lead:', actErr);
+        }
+      }
+
+      toast.success('Consulta Serasa registrada e chamado concluído');
+
+      // Email de notificação
+      try {
+        await supabase.functions.invoke('notify-ticket-resposta', {
+          body: {
+            ticketId: selectedTicket.id,
+            ticketNumber: selectedTicket.ticket_number,
+            title: selectedTicket.title,
+            parecer: 'consulta_serasa',
+            parecerLabel: `Consulta Serasa - Score ${serasaScore.trim()}`,
+            consideracoes: serasaConsideracoes.trim() || null,
+            analystName: userName,
+            requesterName: selectedTicket.requester_name,
+            clientName: selectedTicket.client_name || ticketLead?.empresa || ticketLead?.cliente_nome,
+            clientCnpj: selectedTicket.client_cnpj || ticketLead?.cnpj,
+            numeroPedido: (selectedTicket as any).numero_pedido || ticketLead?.budget_number || ticketLead?.numero_lead,
+            appUrl: window.location.origin,
+            leadData: ticketLead ? {
+              empresa: ticketLead.empresa,
+              contact_name: ticketLead.contact_name,
+              contact_phone: ticketLead.contact_phone,
+              cidade: ticketLead.cidade,
+              estado: ticketLead.estado,
+            } : null,
+          },
+        });
+      } catch (emailErr) {
+        console.error('Falha ao enviar email de resposta:', emailErr);
+      }
+
+      setSerasaScore('');
+      setSerasaConsideracoes('');
+      setSerasaFiles([]);
+      setSerasaConfirmOpen(false);
+      setSelectedTicket({ ...selectedTicket, ...updates });
+      loadComments(selectedTicket.id);
+      loadTicketAttachments(selectedTicket.id);
+      loadTickets();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao registrar consulta Serasa');
+    } finally {
+      setSubmittingSerasa(false);
     }
   };
 
@@ -911,6 +1038,7 @@ export default function Chamados() {
                           (() => {
                             const catName = (selectedTicket.category?.name || categories.find(c => c.id === selectedTicket.category_id)?.name || '').toLowerCase();
                             const isParamFiscal = catName.includes('parametriza') && catName.includes('fiscal');
+                            const isSerasa = catName.includes('serasa');
                             if (isParamFiscal) {
                               return (
                                 <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
@@ -942,6 +1070,94 @@ export default function Chamados() {
                                       onClick={() => setConcluirConfirmOpen(true)}
                                     >
                                       <CheckCircle className="h-3 w-3" /> Marcar como Concluído
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            if (isSerasa) {
+                              return (
+                                <div className="space-y-3 rounded-lg border border-primary/20 bg-background p-3 shadow-sm">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                                      <FileText className="h-4 w-4" /> Consulta Serasa
+                                    </h4>
+                                    {selectedTicket.status === 'aberto' && (
+                                      <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => handleStatusChange(selectedTicket, 'em_andamento')}>
+                                        <Timer className="h-3 w-3" /> Assumir
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Score do cliente *</Label>
+                                    <Input
+                                      type="number"
+                                      value={serasaScore}
+                                      onChange={(e) => setSerasaScore(e.target.value)}
+                                      placeholder="Ex.: 750"
+                                      className="h-9 text-sm"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Considerações *</Label>
+                                    <Textarea
+                                      value={serasaConsideracoes}
+                                      onChange={(e) => setSerasaConsideracoes(e.target.value)}
+                                      placeholder="Considerações sobre o resultado da consulta..."
+                                      className="text-sm min-h-[100px] resize-none bg-background"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Anexo da consulta (opcional)</Label>
+                                    <div className="border border-dashed border-muted-foreground/30 rounded-lg p-3">
+                                      <input
+                                        type="file"
+                                        multiple
+                                        id="serasa-files"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          if (e.target.files) setSerasaFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                                          e.target.value = '';
+                                        }}
+                                      />
+                                      <label htmlFor="serasa-files" className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                                        <Paperclip className="h-4 w-4" /> Clique para anexar a consulta
+                                      </label>
+                                      {serasaFiles.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                          {serasaFiles.map((f, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-xs bg-accent/50 rounded px-2 py-1">
+                                              <FileText className="h-3 w-3 shrink-0 text-primary" />
+                                              <span className="truncate flex-1">{f.name}</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => setSerasaFiles((prev) => prev.filter((_, j) => j !== i))}
+                                                className="shrink-0 hover:text-destructive"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <Button size="sm" variant="ghost" className="gap-1 text-xs text-muted-foreground" onClick={() => setCancelConfirmOpen(true)}>
+                                      <XCircle className="h-3 w-3" /> Cancelar Chamado
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="gap-1 text-xs"
+                                      disabled={!serasaScore.trim() || !serasaConsideracoes.trim() || submittingSerasa}
+                                      onClick={() => setSerasaConfirmOpen(true)}
+                                    >
+                                      {submittingSerasa ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                                      Registrar Consulta
                                     </Button>
                                   </div>
                                 </div>
@@ -1088,6 +1304,27 @@ export default function Chamados() {
             <AlertDialogCancel disabled={submittingParecer}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleSubmitParecer} disabled={submittingParecer}>
               {submittingParecer ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={serasaConfirmOpen} onOpenChange={setSerasaConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar consulta Serasa</AlertDialogTitle>
+            <AlertDialogDescription>
+              A consulta com Score <strong>{serasaScore}</strong> será registrada como comentário e o chamado será marcado como concluído.
+              {serasaConsideracoes.trim() && (
+                <span className="block mt-2 text-xs italic">Considerações: "{serasaConsideracoes.trim()}"</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submittingSerasa}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmitSerasa} disabled={submittingSerasa}>
+              {submittingSerasa ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>

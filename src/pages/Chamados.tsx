@@ -549,7 +549,7 @@ export default function Chamados() {
       if (selectedTicket.lead_id) {
         try {
           const parts: string[] = [
-            `🔎 Resposta da Consulta Serasa (${selectedTicket.ticket_number}): Score ${serasaScore.trim()}`,
+            `🔎 Resposta da Pré-Análise (${selectedTicket.ticket_number}): Score ${serasaScore.trim()}`,
           ];
           if (serasaConsideracoes.trim()) parts.push(`- ${serasaConsideracoes.trim()}`);
           await (supabase as any).from('lead_activities').insert({

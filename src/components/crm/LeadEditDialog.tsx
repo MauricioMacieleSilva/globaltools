@@ -189,6 +189,22 @@ export function LeadEditDialog({ lead, open, onOpenChange, onUpdated }: LeadEdit
       toast.error('Telefone é obrigatório');
       return;
     }
+    const cnpjDigits = form.cliente_cnpj.replace(/\D/g, '');
+    if (cnpjDigits.length > 0) {
+      if (cnpjDigits.length !== 14) {
+        toast.error('CNPJ incompleto', {
+          description: `O CNPJ deve conter 14 dígitos (informados: ${cnpjDigits.length}).`,
+        });
+        return;
+      }
+      const { isValidCnpj } = await import('@/lib/cnpj');
+      if (!isValidCnpj(cnpjDigits)) {
+        toast.error('CNPJ inválido', {
+          description: 'Os dígitos verificadores do CNPJ não conferem. Verifique e tente novamente.',
+        });
+        return;
+      }
+    }
     setLoading(true);
     try {
       const contactName = form.cliente_nome.trim() || form.empresa.trim();

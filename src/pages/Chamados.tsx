@@ -302,7 +302,7 @@ export default function Chamados() {
         requester_name: userProfile?.full_name || user.email || '',
         client_name: newClientName.trim() || null,
         client_cnpj: newClientCnpj.trim() || null,
-      }).select('id').single();
+      }).select('id, ticket_number').single();
 
       if (error) throw error;
 
@@ -329,6 +329,29 @@ export default function Chamados() {
       }
 
       toast.success('Chamado criado com sucesso!');
+
+      // Enviar e-mail de notificação para todos os chamados criados
+      try {
+        const cat = categories.find(c => c.id === newCategoryId);
+        await supabase.functions.invoke('notify-financeiro-ticket', {
+          body: {
+            ticketId: ticketData?.id,
+            ticketNumber: ticketData?.ticket_number,
+            title: `[${ticketData?.ticket_number}] ${newTitle.trim()}`,
+            description: newDescription.trim() || null,
+            priority: newPriority,
+            valor: newValor ? parseFloat(newValor) : null,
+            categoria: cat?.name || null,
+            requesterName: userProfile?.full_name || user.email || '',
+            clientName: newClientName.trim() || null,
+            clientCnpj: newClientCnpj.trim() || null,
+            appUrl: window.location.origin,
+          },
+        });
+      } catch (notifyErr) {
+        console.error('Erro ao enviar email do chamado:', notifyErr);
+      }
+
       setNewTicketOpen(false);
       setNewTitle(''); setNewDescription(''); setNewCategoryId(''); setNewPriority('media');
       setNewValor(''); setNewClientName(''); setNewClientCnpj(''); setNewFiles([]);

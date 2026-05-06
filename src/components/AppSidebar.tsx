@@ -185,7 +185,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Ferramentas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {(loading ? menuItems : menuItems.filter(item => checkPageAccess(item.pageKey as PageKey).canView)).map((item) => (
+              {(loading ? menuItems : menuItems.filter(item => item.pageKey === 'ajuda' || checkPageAccess(item.pageKey as PageKey).canView)).map((item) => (
                 <SidebarMenuItem key={item.title} data-tour={item.tourId}>
                   <SidebarMenuButton asChild isActive={!item.external && isActive(item.url)}>
                     {item.external ? (

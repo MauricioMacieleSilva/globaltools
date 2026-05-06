@@ -932,12 +932,12 @@ export default function Chamados() {
                           <p className="font-medium">{selectedTicket.client_name}</p>
                         </div>
                       )}
-                      {selectedTicket.valor && (
-                        <div className="space-y-1">
-                          <span className="text-muted-foreground">Valor</span>
-                          <p className="font-medium">R$ {selectedTicket.valor.toLocaleString('pt-BR')}</p>
-                        </div>
-                      )}
+                       {selectedTicket.valor && (
+                         <div className="space-y-1">
+                           <span className="text-muted-foreground">Valor</span>
+                           <p className="font-medium">R$ {Number(selectedTicket.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                         </div>
+                       )}
                       <div className="space-y-1">
                         <span className="text-muted-foreground">Criado em</span>
                         <p className="font-medium">{format(new Date(selectedTicket.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
@@ -977,7 +977,6 @@ export default function Chamados() {
                             ['Status do Lead', ticketLead.status],
                             ['Etapa do Funil', ticketLead.disposition],
                             ['Produto de Interesse', ticketLead.produto_interesse],
-                            ['Valor Estimado', ticketLead.valor_estimado ? `R$ ${Number(ticketLead.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null],
                             ['Nº do Lead', ticketLead.numero_lead],
                             ['Nº Pedido/Orçamento', ticketLead.budget_number],
                             ['Qualificação', ticketLead.qualification],

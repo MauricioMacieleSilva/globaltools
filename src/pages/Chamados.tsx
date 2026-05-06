@@ -302,7 +302,7 @@ export default function Chamados() {
         requester_name: userProfile?.full_name || user.email || '',
         client_name: newClientName.trim() || null,
         client_cnpj: newClientCnpj.trim() || null,
-      }).select('id').single();
+      }).select('id, ticket_number').single();
 
       if (error) throw error;
 
@@ -329,6 +329,29 @@ export default function Chamados() {
       }
 
       toast.success('Chamado criado com sucesso!');
+
+      // Enviar e-mail de notificação para todos os chamados criados
+      try {
+        const cat = categories.find(c => c.id === newCategoryId);
+        await supabase.functions.invoke('notify-financeiro-ticket', {
+          body: {
+            ticketId: ticketData?.id,
+            ticketNumber: ticketData?.ticket_number,
+            title: `[${ticketData?.ticket_number}] ${newTitle.trim()}`,
+            description: newDescription.trim() || null,
+            priority: newPriority,
+            valor: newValor ? parseFloat(newValor) : null,
+            categoria: cat?.name || null,
+            requesterName: userProfile?.full_name || user.email || '',
+            clientName: newClientName.trim() || null,
+            clientCnpj: newClientCnpj.trim() || null,
+            appUrl: window.location.origin,
+          },
+        });
+      } catch (notifyErr) {
+        console.error('Erro ao enviar email do chamado:', notifyErr);
+      }
+
       setNewTicketOpen(false);
       setNewTitle(''); setNewDescription(''); setNewCategoryId(''); setNewPriority('media');
       setNewValor(''); setNewClientName(''); setNewClientCnpj(''); setNewFiles([]);
@@ -932,12 +955,12 @@ export default function Chamados() {
                           <p className="font-medium">{selectedTicket.client_name}</p>
                         </div>
                       )}
-                      {selectedTicket.valor && (
-                        <div className="space-y-1">
-                          <span className="text-muted-foreground">Valor</span>
-                          <p className="font-medium">R$ {selectedTicket.valor.toLocaleString('pt-BR')}</p>
-                        </div>
-                      )}
+                       {selectedTicket.valor && (
+                         <div className="space-y-1">
+                           <span className="text-muted-foreground">Valor</span>
+                           <p className="font-medium">R$ {Number(selectedTicket.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                         </div>
+                       )}
                       <div className="space-y-1">
                         <span className="text-muted-foreground">Criado em</span>
                         <p className="font-medium">{format(new Date(selectedTicket.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
@@ -977,7 +1000,6 @@ export default function Chamados() {
                             ['Status do Lead', ticketLead.status],
                             ['Etapa do Funil', ticketLead.disposition],
                             ['Produto de Interesse', ticketLead.produto_interesse],
-                            ['Valor Estimado', ticketLead.valor_estimado ? `R$ ${Number(ticketLead.valor_estimado).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null],
                             ['Nº do Lead', ticketLead.numero_lead],
                             ['Nº Pedido/Orçamento', ticketLead.budget_number],
                             ['Qualificação', ticketLead.qualification],

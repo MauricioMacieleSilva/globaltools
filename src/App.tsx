@@ -36,6 +36,7 @@ import Fretes from "./pages/Fretes";
 import Auth from "./pages/Auth";
 import Treinamentos from "./pages/Treinamentos";
 import Chamados from "./pages/Chamados";
+import Ajuda from "./pages/Ajuda";
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { LeadAssignmentNotification } from "@/components/crm/LeadAssignmentNotification";
 
@@ -77,6 +78,8 @@ function AppContent() {
         return 'Controle de Fretes';
       case '/chamados':
         return 'Chamados Financeiro';
+      case '/ajuda':
+        return 'Central de Ajuda';
       case '/admin/usuarios':
       case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
@@ -115,6 +118,8 @@ function AppContent() {
         return 'Gestão de fretes e entregas por pedido';
       case '/chamados':
         return 'Solicitações e chamados para o financeiro';
+      case '/ajuda':
+        return 'Documentação completa do sistema';
       case '/admin/usuarios':
         return 'Controle de usuários e permissões do sistema';
       default:
@@ -262,6 +267,14 @@ function AppContent() {
                                   element={
                                     <ProtectedRoute>
                                       <Chamados />
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/ajuda"
+                                  element={
+                                    <ProtectedRoute>
+                                      <Ajuda />
                                     </ProtectedRoute>
                                   }
                                 />

@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap, Ticket } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap, Ticket, HelpCircle } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -101,6 +101,13 @@ const menuItems = [
     tourId: 'sidebar-chamados',
   },
   {
+    title: 'Central de Ajuda',
+    url: '/ajuda',
+    icon: HelpCircle,
+    pageKey: 'ajuda',
+    tourId: 'sidebar-ajuda',
+  },
+  {
     title: 'Reuniões',
     url: 'https://global-a-o-secret-rio-digital-399093119582.us-west1.run.app/',
     icon: Calendar,
@@ -178,7 +185,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Ferramentas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {(loading ? menuItems : menuItems.filter(item => checkPageAccess(item.pageKey as PageKey).canView)).map((item) => (
+              {(loading ? menuItems : menuItems.filter(item => item.pageKey === 'ajuda' || checkPageAccess(item.pageKey as PageKey).canView)).map((item) => (
                 <SidebarMenuItem key={item.title} data-tour={item.tourId}>
                   <SidebarMenuButton asChild isActive={!item.external && isActive(item.url)}>
                     {item.external ? (

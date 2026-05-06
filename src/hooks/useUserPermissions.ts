@@ -90,6 +90,12 @@ export const SYSTEM_PAGES = {
     supportsEdit: true,
     route: '/chamados'
   },
+  ajuda: {
+    label: 'Central de Ajuda',
+    category: 'Principais',
+    supportsEdit: false,
+    route: '/ajuda'
+  },
   
   // Páginas administrativas
   usuarios: { 

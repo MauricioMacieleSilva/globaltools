@@ -78,6 +78,8 @@ function AppContent() {
         return 'Controle de Fretes';
       case '/chamados':
         return 'Chamados Financeiro';
+      case '/ajuda':
+        return 'Central de Ajuda';
       case '/admin/usuarios':
       case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
@@ -116,6 +118,8 @@ function AppContent() {
         return 'Gestão de fretes e entregas por pedido';
       case '/chamados':
         return 'Solicitações e chamados para o financeiro';
+      case '/ajuda':
+        return 'Documentação completa do sistema';
       case '/admin/usuarios':
         return 'Controle de usuários e permissões do sistema';
       default:

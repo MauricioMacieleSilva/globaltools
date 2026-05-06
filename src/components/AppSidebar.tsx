@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap, Ticket } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap, Ticket, HelpCircle } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -99,6 +99,13 @@ const menuItems = [
     icon: Ticket,
     pageKey: 'chamados',
     tourId: 'sidebar-chamados',
+  },
+  {
+    title: 'Central de Ajuda',
+    url: '/ajuda',
+    icon: HelpCircle,
+    pageKey: 'ajuda',
+    tourId: 'sidebar-ajuda',
   },
   {
     title: 'Reuniões',

@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Chamados Global Aço <onboarding@resend.dev>",
         to: recipients,
-        subject: title,
+        subject: ticketNumber ? `[${ticketNumber}] ${title}` : title,
         html: htmlBody,
       }),
     });

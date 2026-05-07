@@ -11,7 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { ticketId, ticketNumber, title, description, priority, valor, categoria, requesterName, clientName, clientCnpj, leadId, appUrl, numeroPedido, leadData } = await req.json();
+    const body = await req.json();
+    const { ticketId, ticketNumber, title, description, priority, valor, categoria, requesterName, clientName, clientCnpj, leadId, appUrl, numeroPedido } = body;
+    let leadData: any = body.leadData;
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
@@ -22,6 +24,36 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Se temos leadId mas leadData veio vazio, busca do banco para enriquecer o e-mail
+    if (leadId && !leadData) {
+      const { data: ld } = await supabase
+        .from("leads")
+        .select("*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name)")
+        .eq("id", leadId)
+        .maybeSingle();
+      if (ld) {
+        leadData = {
+          empresa: ld.empresa,
+          cliente_nome: ld.cliente_nome,
+          contact_name: ld.contact_name,
+          contact_phone: ld.contact_phone || ld.cliente_telefone,
+          contact_email: ld.contact_email || ld.cliente_email,
+          cidade: ld.cidade,
+          estado: ld.estado,
+          ramo_atuacao: ld.ramo_atuacao,
+          regime_tributario: ld.regime_tributario,
+          website: ld.website,
+          produto_interesse: ld.produto_interesse,
+          origem: ld.origem || ld.source,
+          status: ld.status,
+          numero_lead: ld.numero_lead,
+          budget_number: ld.budget_number,
+          observacoes: ld.observacoes || ld.notes,
+          vendedor: (ld as any).vendedor?.full_name || null,
+        };
+      }
+    }
 
     // Sandbox Resend: enviar somente para o email do dono da conta
     const recipients = ["mauricio.maciel@globalaco.com.br"];

@@ -11,10 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { ticketId, ticketNumber, title, description, priority, valor, categoria, requesterName, clientName, clientCnpj, leadId, appUrl, numeroPedido } = await req.json();
-    let { leadData } = await (async () => ({ leadData: undefined as any })).call(null);
-    // Body já consumido acima; recuperar leadData do payload original
-    // (re-parse via clone não é possível — então pegamos abaixo do escopo)
+    const body = await req.json();
+    const { ticketId, ticketNumber, title, description, priority, valor, categoria, requesterName, clientName, clientCnpj, leadId, appUrl, numeroPedido } = body;
+    let leadData: any = body.leadData;
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {

@@ -135,8 +135,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   // Origin-matching helper
   const leadMatchesOrigem = useCallback((l: CRMLead) => {
     if (!origemFilter || origemFilter === 'all') return true;
-    const leadOrigem = (l.source || l.origem || '').toLowerCase();
-    return leadOrigem.includes(origemFilter.toLowerCase());
+    const leadOrigem = (l.source || l.origem || '').toLowerCase().trim();
+    return leadOrigem === origemFilter.toLowerCase().trim();
   }, [origemFilter]);
 
   const filteredLeads = useMemo(() => {

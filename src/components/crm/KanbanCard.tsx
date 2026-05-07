@@ -67,7 +67,8 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
   const bastaoAndBeyond = ['passagem_bastao', 'oportunidade', 'visita_reuniao', 'proposta', 'pedido_fechado'];
   const showHandoff = !!handoffBy && bastaoAndBeyond.includes(lead.status);
 
-  const isTrafegoPage = ((lead.source && lead.source.toLowerCase().replace(/[áàã]/g, 'a').includes('trafego pago')) || (lead.origem && lead.origem.toLowerCase().replace(/[áàã]/g, 'a').includes('trafego pago')));
+  const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const isTrafegoPage = !!((lead.source && normalize(lead.source).includes('trafego pago')) || (lead.origem && normalize(lead.origem).includes('trafego pago')));
 
   const produtos = lead.produto_interesse
     ? lead.produto_interesse.split(',').map(p => p.trim()).filter(Boolean)

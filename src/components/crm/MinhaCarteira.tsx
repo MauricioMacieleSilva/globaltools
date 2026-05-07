@@ -141,8 +141,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     // Apply external filters from CRM header
     if (origemFilter && origemFilter !== 'all') {
       result = result.filter(l => {
-        const leadOrigem = (l.source || l.origem || '').toLowerCase();
-        return leadOrigem.includes(origemFilter.toLowerCase());
+        const leadOrigem = (l.source || l.origem || '').toLowerCase().trim();
+        return leadOrigem === origemFilter.toLowerCase().trim();
       });
     }
     if (vendorFilter && vendorFilter !== 'all') {

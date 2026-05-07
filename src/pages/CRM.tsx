@@ -869,8 +869,9 @@ export default function CRM() {
       if (l.vendedor_id !== vendorFilter) return false;
     }
     if (origemFilter && origemFilter !== 'all') {
-      const leadOrigem = (l.source || l.origem || '').toLowerCase();
-      if (!leadOrigem.includes(origemFilter.toLowerCase())) return false;
+      const leadOrigem = (l.source || l.origem || '').toLowerCase().trim();
+      const filterVal = origemFilter.toLowerCase().trim();
+      if (leadOrigem !== filterVal) return false;
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();

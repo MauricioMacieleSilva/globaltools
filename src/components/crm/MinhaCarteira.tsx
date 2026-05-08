@@ -170,20 +170,24 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   }, [leads, currentUserId, isAdmin, origemFilter, vendorFilter, kanbanDateFilter, externalSearch]);
 
   const isAndamento = (l: CRMLead) => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !isLeadBlocked(l);
+  // Um lead aparece em "Agendados" sempre que tem visita/follow-up futuro agendado
+  // E não está bloqueado (Não Recontatar). Inclui leads "perdido" cujo kanban
+  // solicitou agendamento de follow-up no momento da perda.
+  const isAgendado = (l: CRMLead) => !isLeadBlocked(l) && scheduledLeadIds.has(l.id);
 
   const filtered = useMemo(() => {
     let result = myLeads;
     if (statusFilter === 'andamento') {
-      result = result.filter(isAndamento);
+      result = result.filter(l => isAndamento(l) || isAgendado(l));
     } else if (statusFilter === 'kanban') {
-      result = result.filter(l => isAndamento(l) && !scheduledLeadIds.has(l.id));
+      result = result.filter(l => isAndamento(l) && !isAgendado(l));
     } else if (statusFilter === 'agendados') {
-      result = result.filter(l => isAndamento(l) && scheduledLeadIds.has(l.id));
+      result = result.filter(isAgendado);
     } else if (statusFilter === 'fechados') {
       result = result.filter(l => l.status === 'pedido_fechado');
     } else if (statusFilter === 'perdidos') {
-      // Perdidos comuns (excluindo bloqueados — eles têm aba própria)
-      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l));
+      // Perdidos sem follow-up agendado e sem motivo bloqueante
+      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l) && !scheduledLeadIds.has(l.id));
     } else if (statusFilter === 'bloqueados') {
       result = result.filter(l => !!isLeadBlocked(l));
     }
@@ -205,15 +209,21 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const counts = useMemo(() => {
     const blocked = myLeads.filter(l => !!isLeadBlocked(l));
     const blockedIds = new Set(blocked.map(l => l.id));
-    const andamentoLeads = myLeads.filter(l => l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id));
-    const agendados = andamentoLeads.filter(l => scheduledLeadIds.has(l.id)).length;
+    // Agendados: qualquer lead (inclusive "perdido") com follow-up/visita futura, exceto bloqueados
+    const agendadosLeads = myLeads.filter(l => !blockedIds.has(l.id) && scheduledLeadIds.has(l.id));
+    const agendadosIds = new Set(agendadosLeads.map(l => l.id));
+    // No Kanban: em andamento (não perdido, não fechado, não bloqueado) e sem agendamento futuro
+    const kanbanLeads = myLeads.filter(l =>
+      l.status !== 'perdido' && l.status !== 'pedido_fechado' && !blockedIds.has(l.id) && !agendadosIds.has(l.id)
+    );
     return {
       total: myLeads.length,
-      andamento: andamentoLeads.length,
-      kanban: andamentoLeads.length - agendados,
-      agendados,
+      andamento: kanbanLeads.length + agendadosLeads.length,
+      kanban: kanbanLeads.length,
+      agendados: agendadosLeads.length,
       fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
-      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id)).length,
+      // Perdidos "comuns": perdido sem agendamento e sem motivo bloqueante
+      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id) && !scheduledLeadIds.has(l.id)).length,
       bloqueados: blocked.length,
     };
   }, [myLeads, blockedMap, scheduledLeadIds]);

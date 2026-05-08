@@ -739,9 +739,7 @@ export default function Chamados() {
             {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button size="sm" className="gap-1.5 h-8 ml-auto" onClick={() => setNewTicketOpen(true)}>
-          <Plus className="h-3.5 w-3.5" /> Novo Chamado
-        </Button>
+        {/* Novo chamado é aberto exclusivamente pelo CRM (botão "Chamado Financeiro" no lead). */}
       </div>
 
       {/* Ticket List */}

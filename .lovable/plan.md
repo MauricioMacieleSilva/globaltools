@@ -1,132 +1,57 @@
-## Documentação Completa do Sistema Global Tools
+## Problemas
 
-Vou montar uma documentação profissional cobrindo **todas as páginas e abas** do sistema, em **dois formatos complementares**:
+### 1. Sem scrollbar horizontal no Kanban
+As colunas usam `flex-1` (crescem para preencher o container). Resultado: a soma das larguras das colunas nunca ultrapassa o container, então nem o `overflow-x-scroll` interno (`KanbanBoard`) nem o `overflow-x-auto` externo (`TabsContent` em `CRM.tsx`) acionam barra de rolagem. Em telas estreitas as colunas só encolhem até `min-w-[260px]` e ainda assim o conteúdo cabe porque o flexbox redistribui espaço.
 
-1. **PDF ilustrado para download** — manual completo, com prints reais de cada tela, pronto para imprimir, compartilhar com novos colaboradores ou consultar offline.
-2. **Central de Ajuda dentro do sistema** — nova página `/ajuda` no menu lateral, com busca, navegação por módulo, screenshots e passo a passo, sempre disponível para consulta posterior.
+### 2. Valor errado no card do lead (Pedido 1609 — J F GOELLNER: card mostra R$ 103.974,76, dialog do pedido mostra R$ 9.688,35)
+O card lê `lead.valor_estimado` direto do banco. Esse campo foi gravado uma única vez (pelo sync em background do `CRM.tsx` ou pelo `LeadDrawer`) usando matching frouxo:
 
-Os dois formatos compartilham o mesmo conteúdo, então qualquer atualização futura é feita em um único lugar.
-
----
-
-### Estrutura da documentação (mesma em PDF e na Central)
-
-**1. Introdução**
-- O que é o Global Tools, primeiro acesso, login, recuperação de senha, instalação como app (PWA mobile/desktop), troca de tema, menu do avatar.
-
-**2. Dashboard Comercial** (`/dashboard-comercial`)
-- KPIs, Top Clientes, modo TV, atualização automática, filtros.
-
-**3. CRM** (`/crm`) — módulo mais extenso, dividido por aba
-- Kanban (estágios, drag-and-drop, regras de movimentação, badges)
-- Lista de Leads (filtros, paginação, busca por telefone/empresa/origem)
-- Minha Carteira
-- Prospecção e Revisão de Prospecção (BrasilAPI, CNAE)
-- Visitas (calendário, agendamento, conflitos)
-- Bastão / Handoff (SDR → Vendedor)
-- Dashboard CRM e Metas
-- Análise Financeira / Pré-Análise (chamados financeiros)
-- Anexos, Propostas de Concorrentes, Reaberturas, Transferências
-
-**4. Pré-Vendas** (`/pre-vendas`) — KPIs, status, novo lead, filtros, tabela
-**5. Pipeline** (`/pipeline`) — etapas, lead time, filtros, conversão
-**6. Clientes** (`/clientes`) — Análise ABC, Base, Orçamentos, Follow-ups, Relatório
-**7. Produção** (`/producao`) — Ordens, Resumo, Pendências, Notificações, Indicadores
-
-**8. Estoque** (aba dentro de Produção)
-- Categorias (Perfis, Tubos, Laminados, etc.), Entrada, Saída, Histórico, Relatório por e-mail, indicadores de disponibilidade.
-
-**9. Política Comercial** (`/politica-comercial`) — Tabela de Preços, Perfis, Descontos, Simulador, Transportadoras
-**10. Corte Perfil** (`/corte-perfil`) — Perfis U/L/Cartola, otimização bin-packing, integração estoque, salvar resumos
-**11. Corte Blank** (`/corte-blank`) — Configuração da chapa, lista de peças, mapa de corte, relatório de aproveitamento
-**12. Fretes** (`/fretes`) — Cadastro, vínculo com pedidos, fluxo de aprovação (rascunho → pendente → aprovado), histórico, R$/ton
-**13. Chamados** (`/chamados`) — Abertura, categorias (incluindo Pré-Análise/Serasa), CNPJ válido obrigatório, anexo obrigatório, SLA em horário comercial, respostas, e-mails
-**14. Treinamentos** (`/treinamentos`) — PDFs em modo apresentação, fullscreen
-**15. Assistente Global** (`/assistente-global`) — Chat de texto e voz com Zé da Global
-**16. Reuniões e Central de Preços** — links externos do menu
-
-**17. Administração** (`/admin/*`)
-- Usuários (convites, papéis, permissões individuais e padrão por perfil, exclusão)
-- Gestão de Conhecimento (artigos, categorias, upload, analytics)
-- Configuração de Relatórios (e-mail diário, dias úteis, metas, agendamentos)
-- Metas de vendedores, Leads bloqueados, Pedidos excluídos, Configurações diversas
-
-**18. Notificações** — sino de IA, alertas em tempo real, lembretes unificados
-**19. Tour interativo** — botão de tour por página, sistema de avaliação 5 estrelas
-**20. Glossário e FAQ** — termos (SDR, Bastão, OP, Prazo Comercial), perguntas frequentes, troubleshooting
-
----
-
-### Como cada página é documentada
-
-Para cada tela, o mesmo padrão visual:
-
-```text
-┌─────────────────────────────────────────┐
-│  [SCREENSHOT REAL DA TELA - anotada]    │
-└─────────────────────────────────────────┘
-  ① O que é esta página
-  ② Quem tem acesso (perfis/permissões)
-  ③ Passo a passo das ações principais
-       1. Clique em ...
-       2. Preencha ...
-       3. Confirme ...
-  ④ Dicas e atalhos
-  ⑤ Erros comuns e como resolver
+```ts
+nome.includes(norm) || norm.includes(nome)
 ```
 
-Screenshots reais serão capturados navegando o sistema autenticado, em viewport desktop e, quando relevante, mobile. Telas com dados sensíveis (CNPJ, e-mails, valores) serão desfocadas/anonimizadas.
+Isso casou o pedido 1609 contra itens de outros clientes na planilha comercial e somou tudo, salvando 103k. Como o sync atual em `CRM.tsx` só recalcula quando `valor_estimado` é nulo/zero, o valor incorreto fica congelado para sempre. O `OrderDetailDialog` recalcula sob demanda — por isso mostra o valor certo (9.688,35).
 
----
+## Plano
 
-### Detalhes técnicos da entrega
+### Correção 1 — Scrollbar horizontal sempre presente
 
-**Central de Ajuda no sistema**
-- Nova rota `/ajuda` registrada em `App.tsx` e em `SYSTEM_PAGES` (`useUserPermissions.ts`).
-- Item no menu lateral (`AppSidebar.tsx`) com ícone de livro/ajuda — visível para todos os usuários autenticados.
-- Layout: barra de busca no topo + sidebar com módulos (CRM, Produção, Estoque, etc.) + área principal renderizando o artigo selecionado.
-- Conteúdo armazenado como **MDX/Markdown estático** em `src/content/help/` (uma pasta por módulo, um arquivo por página/aba). Isso permite versionamento via Git e fácil edição futura, sem necessidade de banco.
-- Componentes reutilizados do design system (Tabs, Card, Accordion). Imagens em `public/help/` para carregamento rápido.
-- Botão "Baixar manual em PDF" no topo, apontando para o PDF gerado (hospedado em `public/manual-global-tools.pdf`).
-- Busca client-side simples (filtro por título/conteúdo).
+**Arquivo:** `src/components/crm/KanbanBoard.tsx`
 
-**PDF**
-- Gerado por script Node usando `docx-js` → conversão final para PDF, ou diretamente via PDFKit/Puppeteer renderizando os mesmos arquivos MDX. Saída em `/mnt/documents/manual-global-tools.pdf` e copiada para `public/` para servir do app.
-- Capa com logo, índice clicável, cabeçalho/rodapé com paginação, paleta da marca (azul #2563eb), tipografia consistente.
-- ~80–120 páginas estimadas dada a abrangência.
+- Trocar `flex-1` das colunas por `shrink-0` (mantendo `min-w-[240px] sm:min-w-[260px]`) e adicionar uma `w-[280px]` desktop, fazendo com que a soma das colunas exceda a largura do container.
+- Garantir que o wrapper externo no `CRM.tsx` (`TabsContent value="kanban"`) **não** tenha `overflow-x-auto` concorrente — deixar só o `overflow-x-scroll` do `KanbanBoard` (com a classe `kanban-scroll` que já tem o estilo da barra estilizada).
 
-**Captura de screenshots**
-- Usar `browser--navigate_to_sandbox` + `browser--screenshot` autenticado, percorrendo cada rota.
-- Salvar em `public/help/<modulo>/<tela>.png`.
-- Anotações (setas, números, destaques) feitas programaticamente com Pillow (Python) sobre os PNGs.
+**Arquivo:** `src/pages/CRM.tsx` (linha 1015)
+- Remover `overflow-x-auto` do `TabsContent value="kanban"`, manter `overflow-y-hidden` e `flex-1 min-h-0`.
 
----
+Resultado: assim que tiver mais colunas que o viewport comporta, a barra azul horizontal aparece colada na base do Kanban (já estilizada em `index.css`).
 
-### Plano de execução em fases
+### Correção 2 — Valor do lead sempre confiável
 
-Por causa do volume, vou entregar em **3 fases incrementais** (cada uma já utilizável):
+**Arquivo:** `src/pages/CRM.tsx` (`loadLeads`, linhas 213–287)
 
-**Fase 1 — Fundação + módulos comerciais** (mais usados)
-- Estrutura da Central de Ajuda no sistema (rota, menu, layout, busca).
-- Conteúdo + screenshots: Introdução, Dashboard, CRM (todas as abas), Pré-Vendas, Pipeline, Clientes, Chamados.
-- Primeira versão do PDF cobrindo essas seções.
+- **Sempre recalcular** o valor de leads com `budget_number` (não só quando é nulo/zero). Isso elimina valores antigos congelados.
+- **Endurecer o matching de cliente** dentro do recálculo:
+  - Preferir match por `linked_orders_meta[num]` quando existir (nome salvo no momento da vinculação).
+  - Quando não houver meta, exigir match exato (igualdade após normalização) em vez do `includes` bilateral. Se nenhum item bater exatamente, ignorar o pedido (não somar nada) em vez de aceitar o conjunto inteiro.
+- Fazer `update` no banco somente quando o novo total for diferente do atual, e refletir em `setLeads` para o card atualizar imediatamente.
 
-**Fase 2 — Produção e ferramentas operacionais**
-- Conteúdo + screenshots: Produção, Estoque, Política Comercial, Corte Perfil, Corte Blank, Fretes.
-- PDF atualizado.
+**Arquivo:** `src/components/crm/LeadDrawer.tsx` (linhas 130–175)
 
-**Fase 3 — Administração, recursos transversais e finalização**
-- Conteúdo + screenshots: Administração completa, Treinamentos, Assistente, Reuniões, Central de Preços, Notificações, Tour, Glossário/FAQ.
-- PDF final consolidado, índice revisado, QA visual de todas as páginas.
+- Aplicar a mesma lógica de matching estrito (preferir `meta[num]`, exigir igualdade quando não houver meta) para que o sync do drawer e do dashboard fiquem alinhados com o `OrderDetailDialog`.
 
-Ao final de cada fase você recebe a Central de Ajuda funcionando com o que já foi documentado e o PDF parcial, podendo dar feedback antes de seguir.
+**Arquivo:** `src/components/crm/OrderDetailDialog.tsx` (linhas 36–47)
 
----
+- Adotar o mesmo critério estrito (preferir `linkedClientName`, igualdade exata como fallback) para consistência total entre as três fontes.
 
-### Pontos para confirmar antes de começar
+### Verificação após implementação
 
-- **Anonimização**: posso desfocar nomes de clientes/CNPJs/valores reais nos screenshots, ou prefere usar dados de teste (criar leads/pedidos fake só para os prints)?
-- **Tom**: prefere linguagem mais formal ("o usuário deve clicar...") ou mais direta ("clique em...")? Sugiro a segunda, mais didática.
-- **Acesso à Central**: liberada para todos os autenticados, ou também para visitantes não logados (página pública)?
+1. Abrir o CRM no preview, observar barra azul horizontal fixa no rodapé do Kanban e poder rolar entre as colunas.
+2. Abrir o card do lead **J F GOELLNER REPRESENTACOES** após o refresh: o valor exibido no card deve ser **R$ 9.688,35** (mesmo do dialog do pedido 1609).
+3. Conferir 2–3 outros leads com `budget_number` para garantir que valores corretos foram preservados.
 
-Pode aprovar o plano que eu inicio pela Fase 1.
+## Notas técnicas
+
+- A planilha comercial (`fetchComercialData`) é cacheada no `googleSheetsService`, então recalcular para todos os leads em background não dispara N requests.
+- O recálculo continua em background (não bloqueia a renderização inicial dos cards).
+- Nenhuma migração de banco necessária.

@@ -128,6 +128,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
     const meta = (lead as any).linked_orders_meta || {};
 
+    const norm = (s: string) => (s || '').trim().toLowerCase();
     fetchComercialData()
       .then((data) => {
         let total = 0;
@@ -136,15 +137,18 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
           let matches = data.filter(d => String(d.numeropedido).trim() === num);
           if (matches.length === 0) continue;
 
-          const nameToMatch = meta[num] || lead.empresa || lead.cliente_nome || lead.client_name;
-          if (nameToMatch) {
-            const norm = nameToMatch.trim().toLowerCase();
-            const clientMatches = matches.filter(d => {
-              const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
-              return nome.includes(norm) || norm.includes(nome);
-            });
-            if (clientMatches.length > 0) {
-              matches = clientMatches;
+          const metaName = meta[num];
+          if (metaName) {
+            const target = norm(metaName);
+            const exact = matches.filter(d => norm(d.cli_nomefantasia || d.cliente) === target);
+            if (exact.length === 0) continue;
+            matches = exact;
+          } else {
+            const candidates = [lead.empresa, lead.cliente_nome, lead.client_name].filter(Boolean).map(norm);
+            if (candidates.length > 0) {
+              const exact = matches.filter(d => candidates.includes(norm(d.cli_nomefantasia || d.cliente)));
+              if (exact.length === 0) continue;
+              matches = exact;
             }
           }
 

@@ -33,16 +33,14 @@ export function OrderDetailDialog({ open, onClose, budgetNumber, clientName, lin
           return;
         }
 
-        // Priorizar linkedClientName (salvo na vinculação) sobre clientName do lead
+        // Strict matching: prefer linkedClientName (saved at linking time), exact equality
+        const norm = (s: string) => (s || '').trim().toLowerCase();
         const nameToMatch = linkedClientName || clientName;
         if (nameToMatch) {
-          const norm = nameToMatch.trim().toLowerCase();
-          const clientMatches = matches.filter(d => {
-            const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
-            return nome.includes(norm) || norm.includes(nome);
-          });
-          if (clientMatches.length > 0) {
-            matches = clientMatches;
+          const target = norm(nameToMatch);
+          const exact = matches.filter(d => norm(d.cli_nomefantasia || d.cliente) === target);
+          if (exact.length > 0) {
+            matches = exact;
           }
         }
 

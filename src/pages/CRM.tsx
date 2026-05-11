@@ -233,14 +233,14 @@ export default function CRM() {
       setLeads(allLeads as CRMLead[]);
       setLastUpdated(new Date());
 
-      // Background sync: fix leads with budget_number but no valor_estimado
-      const leadsToFix = (allLeads as any[]).filter(
-        (l: any) => l.budget_number && (!l.valor_estimado || l.valor_estimado === 0)
-      );
+      // Background sync: always recalculate valor_estimado for leads with budget_number
+      // (avoids stale values from older loose-matching logic)
+      const leadsToFix = (allLeads as any[]).filter((l: any) => l.budget_number);
       if (leadsToFix.length > 0) {
         import('@/services/googleSheetsService').then(({ fetchComercialData }) => {
           import('@/lib/utils-comercial').then(({ parseDate }) => {
             fetchComercialData().then((comercialData) => {
+              const norm = (s: string) => (s || '').trim().toLowerCase();
               for (const lead of leadsToFix) {
                 const orderNums = lead.budget_number.split(',').map((s: string) => s.trim()).filter(Boolean);
                 const meta = lead.linked_orders_meta || {};
@@ -248,14 +248,22 @@ export default function CRM() {
                 for (const num of orderNums) {
                   let matches = comercialData.filter((d: any) => String(d.numeropedido).trim() === num);
                   if (matches.length === 0) continue;
-                  const nameToMatch = meta[num] || lead.empresa || lead.cliente_nome || lead.client_name;
-                  if (nameToMatch) {
-                    const norm = nameToMatch.trim().toLowerCase();
-                    const clientMatches = matches.filter((d: any) => {
-                      const nome = (d.cli_nomefantasia || d.cliente || '').toLowerCase();
-                      return nome.includes(norm) || norm.includes(nome);
-                    });
-                    if (clientMatches.length > 0) matches = clientMatches;
+                  // Strict matching: prefer linked_orders_meta exact match, else lead's company name (exact)
+                  const metaName = meta[num];
+                  if (metaName) {
+                    const target = norm(metaName);
+                    const exact = matches.filter((d: any) => norm(d.cli_nomefantasia || d.cliente) === target);
+                    if (exact.length === 0) continue; // skip if can't confirm
+                    matches = exact;
+                  } else {
+                    const candidates = [lead.empresa, lead.cliente_nome, lead.client_name].filter(Boolean).map(norm);
+                    if (candidates.length > 0) {
+                      const exact = matches.filter((d: any) =>
+                        candidates.includes(norm(d.cli_nomefantasia || d.cliente))
+                      );
+                      if (exact.length === 0) continue; // skip if no exact match
+                      matches = exact;
+                    }
                   }
                   const sorted = [...matches].sort((a: any, b: any) => {
                     const da = parseDate(a.data_emissao)?.getTime() || 0;
@@ -268,7 +276,7 @@ export default function CRM() {
                     : matches;
                   total += finalItems.reduce((sum: number, item: any) => sum + (item.valor || 0), 0);
                 }
-                if (total > 0) {
+                if (total !== (lead.valor_estimado || 0)) {
                   (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
                   setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, valor_estimado: total } : l));
                 }
@@ -1012,7 +1020,7 @@ export default function CRM() {
           </div>
         </div>
 
-        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-x-auto overflow-y-hidden" data-tour="crm-kanban">
+        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden flex flex-col" data-tour="crm-kanban">
           {scheduledLeadsCount > 0 && (
             <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
               <Clock className="h-3.5 w-3.5 text-amber-500" />

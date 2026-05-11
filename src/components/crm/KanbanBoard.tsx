@@ -95,7 +95,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
           return (
             <div
               key={stage.key}
-              className={`min-w-[240px] sm:min-w-[260px] flex-1 flex flex-col rounded-xl transition-all min-h-0 ${isMobile ? 'snap-center' : ''}`}
+              className={`shrink-0 w-[260px] sm:w-[280px] flex flex-col rounded-xl transition-all min-h-0 ${isMobile ? 'snap-center' : ''}`}
               style={{
                 backgroundColor: isOver ? `${stage.color}15` : 'hsl(var(--card))',
                 border: isOver ? `2px dashed ${stage.color}` : '1px solid hsl(var(--border))',

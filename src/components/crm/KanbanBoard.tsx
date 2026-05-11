@@ -76,10 +76,9 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
   }
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col h-full min-h-0 gap-3">
       <div
-        className={`kanban-scroll flex gap-3 overflow-x-scroll flex-1 min-h-0 ${isMobile ? 'snap-x snap-mandatory' : ''}`}
-        style={{ scrollbarWidth: 'thin' }}
+        className={`kanban-scroll flex gap-3 overflow-x-scroll overflow-y-hidden flex-1 min-h-0 ${isMobile ? 'snap-x snap-mandatory' : ''}`}
       >
         {stages.map(stage => {
           const stageLeads = leads
@@ -95,7 +94,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
           return (
             <div
               key={stage.key}
-              className={`shrink-0 w-[260px] sm:w-[280px] flex flex-col rounded-xl transition-all min-h-0 ${isMobile ? 'snap-center' : ''}`}
+              className={`shrink-0 w-[260px] sm:w-[280px] h-full flex flex-col rounded-xl transition-all min-h-0 ${isMobile ? 'snap-center' : ''}`}
               style={{
                 backgroundColor: isOver ? `${stage.color}15` : 'hsl(var(--card))',
                 border: isOver ? `2px dashed ${stage.color}` : '1px solid hsl(var(--border))',

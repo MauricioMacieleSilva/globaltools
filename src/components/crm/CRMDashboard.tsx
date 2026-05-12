@@ -555,8 +555,7 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <>
-        {/* Last updated indicator */}
+      {/* Last updated indicator */}
         {lastUpdated && !tvMode && (
           <div className="flex justify-end">
             <LastUpdatedIndicator 

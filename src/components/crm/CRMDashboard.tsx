@@ -1086,7 +1086,6 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardContent>
           </Card>
         )}
-      </div>
     </div>
   );
 }

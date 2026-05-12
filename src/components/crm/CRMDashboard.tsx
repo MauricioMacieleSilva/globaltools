@@ -554,9 +554,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
   const rankColors = ['text-amber-500', 'text-slate-400', 'text-amber-700'];
 
   return (
-    <div className="overflow-auto">
-      <div className="space-y-3 sm:space-y-4">
-        {/* Last updated indicator */}
+    <div className="space-y-3 sm:space-y-4">
+      {/* Last updated indicator */}
         {lastUpdated && !tvMode && (
           <div className="flex justify-end">
             <LastUpdatedIndicator 
@@ -1087,7 +1086,6 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
             </CardContent>
           </Card>
         )}
-      </div>
     </div>
   );
 }

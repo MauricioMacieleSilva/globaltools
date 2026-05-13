@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { VisitEditDialog } from './VisitEditDialog';
+import { FollowUpEditDialog } from './FollowUpEditDialog';
 import type { CRMLead } from '@/pages/CRM';
 
 interface Visit {
@@ -46,6 +47,7 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
   const [editingVisit, setEditingVisit] = useState<Visit | null>(null);
+  const [editingFollowUp, setEditingFollowUp] = useState<Visit | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -121,7 +123,11 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
 
   const handleEditClick = (e: React.MouseEvent, visit: Visit) => {
     e.stopPropagation();
-    setEditingVisit(visit);
+    if (visit.type === 'followup') {
+      setEditingFollowUp(visit);
+    } else {
+      setEditingVisit(visit);
+    }
   };
 
   const handleVisitUpdated = () => {
@@ -226,8 +232,8 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
               <Clock className="h-3 w-3" />
               {format(new Date(visit.visit_date), 'HH:mm')}
             </div>
-            {showEdit && !isFollowup && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleEditClick(e, visit)} title="Editar visita">
+            {showEdit && (
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleEditClick(e, visit)} title={isFollowup ? 'Editar follow-up' : 'Editar visita'}>
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             )}
@@ -384,6 +390,13 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
         open={!!editingVisit}
         onOpenChange={(v) => { if (!v) setEditingVisit(null); }}
         visit={editingVisit}
+        onUpdated={handleVisitUpdated}
+      />
+
+      <FollowUpEditDialog
+        open={!!editingFollowUp}
+        onOpenChange={(v) => { if (!v) setEditingFollowUp(null); }}
+        followUp={editingFollowUp}
         onUpdated={handleVisitUpdated}
       />
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +50,14 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
   const [editingFollowUp, setEditingFollowUp] = useState<Visit | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const hasAutoConcludedRef = useRef(false);
+
+  // Build O(1) lookup for lead enrichment (avoids O(n*m) .find per visit)
+  const leadsById = useMemo(() => {
+    const m = new Map<string, CRMLead>();
+    leads.forEach(l => m.set(l.id, l));
+    return m;
+  }, [leads]);
 
   useEffect(() => {
     const init = async () => {
@@ -62,63 +70,58 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
 
   useEffect(() => {
     if (currentUserId) loadVisits();
-  }, [leads, vendorFilter, currentUserId]);
+    // Intentionally do NOT depend on `leads` — enrichment uses leadsById memo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vendorFilter, currentUserId]);
 
   const loadVisits = async () => {
     const cutoff = new Date(Date.now() - 90 * 86400000).toISOString();
     const nowIso = new Date().toISOString();
 
-    // Auto-conclude follow-ups whose scheduled date/time has already passed.
-    // They should disappear from the agenda automatically and only return when a new one is scheduled.
-    try {
-      await (supabase as any)
+    // Auto-conclude past follow-ups: run once per session, fire-and-forget,
+    // so it never blocks the agenda from rendering.
+    if (!hasAutoConcludedRef.current) {
+      hasAutoConcludedRef.current = true;
+      (supabase as any)
         .from('follow_ups')
         .update({ concluido: true, updated_at: nowIso })
         .eq('concluido', false)
         .not('lead_id', 'is', null)
-        .lt('data_agendada', nowIso);
-    } catch (e) {
-      console.warn('Auto-conclude past follow-ups failed:', e);
+        .lt('data_agendada', nowIso)
+        .then(() => {}, (e: any) => console.warn('Auto-conclude past follow-ups failed:', e));
     }
 
-    let visitsQuery = (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true });
-    let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', nowIso).order('data_agendada', { ascending: true });
+    try {
+      let visitsQuery = (supabase as any).from('crm_visits').select('*').gte('visit_date', cutoff).order('visit_date', { ascending: true });
+      let followupsQuery = (supabase as any).from('follow_ups').select('*').not('lead_id', 'is', null).eq('concluido', false).gte('data_agendada', nowIso).order('data_agendada', { ascending: true });
 
-    // Filter by vendor from global filter
-    const filterUserId = vendorFilter !== 'all' ? vendorFilter : null;
-    if (filterUserId) {
-      visitsQuery = visitsQuery.eq('user_id', filterUserId);
-      followupsQuery = followupsQuery.eq('user_id', filterUserId);
-    }
+      const filterUserId = vendorFilter !== 'all' ? vendorFilter : null;
+      if (filterUserId) {
+        visitsQuery = visitsQuery.eq('user_id', filterUserId);
+        followupsQuery = followupsQuery.eq('user_id', filterUserId);
+      }
 
-    const [visitsRes, followupsRes] = await Promise.all([visitsQuery, followupsQuery]);
+      const [visitsRes, followupsRes] = await Promise.all([visitsQuery, followupsQuery]);
 
-    const enrichedVisits: Visit[] = (visitsRes.data || []).map((v: any) => {
-      const lead = leads.find(l => l.id === v.lead_id);
-      const displayName = lead?.empresa || lead?.client_name || lead?.cliente_nome || 'Lead';
-      const search = [lead?.empresa, lead?.client_name, lead?.cliente_nome, lead?.contact_name, lead?.cliente_telefone, lead?.contact_phone]
-        .filter(Boolean).join(' ').toLowerCase();
-      return { ...v, lead_name: displayName, lead_search: search, lead_status: lead?.status, type: 'visit' as const };
-    });
-
-    const enrichedFollowups: Visit[] = (followupsRes.data || []).map((f: any) => {
-      const lead = leads.find(l => l.id === f.lead_id);
-      const displayName = lead?.empresa || lead?.client_name || lead?.cliente_nome || 'Lead';
-      const search = [lead?.empresa, lead?.client_name, lead?.cliente_nome, lead?.contact_name, lead?.cliente_telefone, lead?.contact_phone]
-        .filter(Boolean).join(' ').toLowerCase();
-      return {
+      // Store raw rows; enrichment happens in a memo so it stays cheap when
+      // `leads` updates without triggering a refetch.
+      const rawVisits: Visit[] = (visitsRes.data || []).map((v: any) => ({
+        ...v, type: 'visit' as const,
+      }));
+      const rawFollowups: Visit[] = (followupsRes.data || []).map((f: any) => ({
         id: f.id, lead_id: f.lead_id, visit_date: f.data_agendada,
         location: null, notes: f.descricao,
-        lead_name: displayName, lead_search: search, lead_status: lead?.status,
         type: 'followup' as const, followup_tipo: f.tipo, followup_titulo: f.titulo,
-      };
-    });
-
-    const all = [...enrichedVisits, ...enrichedFollowups].sort(
-      (a, b) => new Date(a.visit_date).getTime() - new Date(b.visit_date).getTime()
-    );
-    setVisits(all);
-    setLoading(false);
+      }));
+      const all = [...rawVisits, ...rawFollowups].sort(
+        (a, b) => new Date(a.visit_date).getTime() - new Date(b.visit_date).getTime()
+      );
+      setVisits(all);
+    } catch (e) {
+      console.error('Erro ao carregar agenda:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditClick = (e: React.MouseEvent, visit: Visit) => {

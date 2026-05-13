@@ -492,7 +492,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
         </Button>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-320px)]">
+      <ScrollArea className="max-h-[calc(100vh-260px)]">
         <div className="space-y-4 pr-2">
           {filtered.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">

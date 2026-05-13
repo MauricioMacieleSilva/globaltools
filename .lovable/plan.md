@@ -1,57 +1,43 @@
-## Problemas
+## Problema 1 — Gap em branco em todas as abas do CRM (exceto Kanban)
 
-### 1. Sem scrollbar horizontal no Kanban
-As colunas usam `flex-1` (crescem para preencher o container). Resultado: a soma das larguras das colunas nunca ultrapassa o container, então nem o `overflow-x-scroll` interno (`KanbanBoard`) nem o `overflow-x-auto` externo (`TabsContent` em `CRM.tsx`) acionam barra de rolagem. Em telas estreitas as colunas só encolhem até `min-w-[260px]` e ainda assim o conteúdo cabe porque o flexbox redistribui espaço.
+Em `src/pages/CRM.tsx`, o container `Tabs` é `flex flex-col flex-1 min-h-0` e cada `TabsContent` (exceto Kanban) usa `flex-1 ... overflow-y-auto`. Isso faz a área da aba esticar até preencher a viewport — o componente Kanban preenche essa altura porque tem `flex-1 h-full` interno, mas o resto (Dashboard, Agenda, Lista, Minha Carteira, Bastão, Concorrência, Relatório, Prospecção) renderiza conteúdo de fluxo normal, e o resultado visível é uma faixa enorme em branco antes do conteúdo (calendário aparece em y≈460, KPIs do dashboard idem, e o "Carregando agenda…" fica no meio vertical da tela).
 
-### 2. Valor errado no card do lead (Pedido 1609 — J F GOELLNER: card mostra R$ 103.974,76, dialog do pedido mostra R$ 9.688,35)
-O card lê `lead.valor_estimado` direto do banco. Esse campo foi gravado uma única vez (pelo sync em background do `CRM.tsx` ou pelo `LeadDrawer`) usando matching frouxo:
+### Correção
 
-```ts
-nome.includes(norm) || norm.includes(nome)
-```
+Manter o comportamento de scroll/altura cheia **somente** para o Kanban. Para as demais abas, deixar fluxo natural (sem `flex-1`), com scroll do container externo:
 
-Isso casou o pedido 1609 contra itens de outros clientes na planilha comercial e somou tudo, salvando 103k. Como o sync atual em `CRM.tsx` só recalcula quando `valor_estimado` é nulo/zero, o valor incorreto fica congelado para sempre. O `OrderDetailDialog` recalcula sob demanda — por isso mostra o valor certo (9.688,35).
+1. Em `src/pages/CRM.tsx`:
+   - Mudar o wrapper raiz da página de `flex flex-col h-[calc(100vh-56px)] overflow-hidden` para um container scrollável tradicional, mas preservar o caso especial do Kanban.
+   - Na prática: trocar o `Tabs` para `flex flex-col flex-1 min-h-0` somente quando `activeTab === 'kanban'`; nas outras abas usar layout block normal (`mt-3`) para que cada `TabsContent` flua a partir do topo logo abaixo das linhas de filtros.
+   - Remover `flex-1`/`overflow-y-auto`/`min-h-0` dos `TabsContent` não-Kanban (usar apenas `mt-3`). O scroll passa a ser do `<main>`/página.
+   - Manter as duas linhas de filtros (`Row 1` tabs + `Row 2` filters) como `shrink-0` no topo.
 
-## Plano
+2. Em `src/components/crm/MinhaCarteira.tsx` (linha 495):
+   - Substituir `<ScrollArea className="h-[calc(100vh-320px)]">` por uma área cuja altura siga o fluxo natural (`max-h-[calc(100vh-260px)]`) ou remover a altura fixa para acompanhar o conteúdo.
 
-### Correção 1 — Scrollbar horizontal sempre presente
+3. Em `src/components/crm/VisitCalendar.tsx`:
+   - O modo "Mês" usa fluxo natural — ok. O modo "Semana" usa `h-[calc(100vh-220px)]` e continua válido pois o pai não impõe mais altura fixa.
 
-**Arquivo:** `src/components/crm/KanbanBoard.tsx`
+## Problema 2 — Carregamento da Agenda extremamente lento
 
-- Trocar `flex-1` das colunas por `shrink-0` (mantendo `min-w-[240px] sm:min-w-[260px]`) e adicionar uma `w-[280px]` desktop, fazendo com que a soma das colunas exceda a largura do container.
-- Garantir que o wrapper externo no `CRM.tsx` (`TabsContent value="kanban"`) **não** tenha `overflow-x-auto` concorrente — deixar só o `overflow-x-scroll` do `KanbanBoard` (com a classe `kanban-scroll` que já tem o estilo da barra estilizada).
+Em `src/components/crm/VisitCalendar.tsx`:
 
-**Arquivo:** `src/pages/CRM.tsx` (linha 1015)
-- Remover `overflow-x-auto` do `TabsContent value="kanban"`, manter `overflow-y-hidden` e `flex-1 min-h-0`.
+1. **Auto-conclude pesado roda em todo refetch (linhas 71–82).** O `UPDATE` em `follow_ups ... lt('data_agendada', nowIso)` executa toda vez que `leads`/`vendorFilter`/`currentUserId` muda. Mover para rodar **uma vez** por sessão (usar ref `hasAutoConcluded`), e fazer fire-and-forget (sem `await`) para não bloquear o `loadVisits`.
 
-Resultado: assim que tiver mais colunas que o viewport comporta, a barra azul horizontal aparece colada na base do Kanban (já estilizada em `index.css`).
+2. **Dependência em `leads` causa refetch em cascata (linha 65).** O CRM pai pagina e atualiza `leads` várias vezes; cada update dispara um `loadVisits` completo. Remover `leads` da dependência do `useEffect`; recarregar apenas quando `vendorFilter` ou `currentUserId` mudar. O enriquecimento com nome do lead pode ser feito em `useMemo` a partir do array atual de `leads` (mapa `Map<id, lead>`), sem refetch.
 
-### Correção 2 — Valor do lead sempre confiável
+3. **`leads.find()` por visita/followup (linhas 96–115)** é O(n·m) — substituir por `Map<id, lead>` construído uma vez em `useMemo`.
 
-**Arquivo:** `src/pages/CRM.tsx` (`loadLeads`, linhas 213–287)
+4. **`loadVisits` define `loading=true` somente uma vez no estado inicial.** Garantir que o `setLoading(false)` ocorra mesmo em erro (try/finally) para não travar em "Carregando agenda…" se uma das queries falhar.
 
-- **Sempre recalcular** o valor de leads com `budget_number` (não só quando é nulo/zero). Isso elimina valores antigos congelados.
-- **Endurecer o matching de cliente** dentro do recálculo:
-  - Preferir match por `linked_orders_meta[num]` quando existir (nome salvo no momento da vinculação).
-  - Quando não houver meta, exigir match exato (igualdade após normalização) em vez do `includes` bilateral. Se nenhum item bater exatamente, ignorar o pedido (não somar nada) em vez de aceitar o conjunto inteiro.
-- Fazer `update` no banco somente quando o novo total for diferente do atual, e refletir em `setLeads` para o card atualizar imediatamente.
+## Arquivos afetados
 
-**Arquivo:** `src/components/crm/LeadDrawer.tsx` (linhas 130–175)
+- `src/pages/CRM.tsx` — ajustar layout do `Tabs`/`TabsContent`.
+- `src/components/crm/MinhaCarteira.tsx` — relaxar altura do `ScrollArea`.
+- `src/components/crm/VisitCalendar.tsx` — refatorar `loadVisits` (auto-conclude 1×, sem dep em `leads`, `Map` para join, `try/finally`).
 
-- Aplicar a mesma lógica de matching estrito (preferir `meta[num]`, exigir igualdade quando não houver meta) para que o sync do drawer e do dashboard fiquem alinhados com o `OrderDetailDialog`.
+## Resultado esperado
 
-**Arquivo:** `src/components/crm/OrderDetailDialog.tsx` (linhas 36–47)
-
-- Adotar o mesmo critério estrito (preferir `linkedClientName`, igualdade exata como fallback) para consistência total entre as três fontes.
-
-### Verificação após implementação
-
-1. Abrir o CRM no preview, observar barra azul horizontal fixa no rodapé do Kanban e poder rolar entre as colunas.
-2. Abrir o card do lead **J F GOELLNER REPRESENTACOES** após o refresh: o valor exibido no card deve ser **R$ 9.688,35** (mesmo do dialog do pedido 1609).
-3. Conferir 2–3 outros leads com `budget_number` para garantir que valores corretos foram preservados.
-
-## Notas técnicas
-
-- A planilha comercial (`fetchComercialData`) é cacheada no `googleSheetsService`, então recalcular para todos os leads em background não dispara N requests.
-- O recálculo continua em background (não bloqueia a renderização inicial dos cards).
-- Nenhuma migração de banco necessária.
+- Conteúdo de Dashboard, Agenda, Lista, Minha Carteira, Bastão, Concorrência, Relatório e Prospecção começa imediatamente abaixo dos filtros (sem faixa em branco).
+- Kanban segue com seu scroll horizontal/vertical próprios e altura cheia.
+- Agenda carrega em uma única consulta rápida e não recarrega a cada update da lista de leads.

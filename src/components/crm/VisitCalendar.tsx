@@ -140,13 +140,21 @@ export function VisitCalendar({ onLeadClick, leads, searchQuery = '', vendorFilt
 
   // Group by date, filter by searchQuery
   const filteredVisits = useMemo(() => {
-    if (!searchQuery) return visits;
+    // Enrich with lead info via O(1) map lookup
+    const enriched = visits.map(v => {
+      const lead = v.lead_id ? leadsById.get(v.lead_id) : undefined;
+      const displayName = lead?.empresa || lead?.client_name || lead?.cliente_nome || 'Lead';
+      const search = [lead?.empresa, lead?.client_name, lead?.cliente_nome, lead?.contact_name, lead?.cliente_telefone, lead?.contact_phone]
+        .filter(Boolean).join(' ').toLowerCase();
+      return { ...v, lead_name: displayName, lead_search: search, lead_status: lead?.status };
+    });
+    if (!searchQuery) return enriched;
     const q = searchQuery.toLowerCase();
-    return visits.filter(v =>
+    return enriched.filter(v =>
       v.lead_name?.toLowerCase().includes(q) ||
       v.lead_search?.includes(q)
     );
-  }, [visits, searchQuery]);
+  }, [visits, searchQuery, leadsById]);
 
   const grouped: Record<string, Visit[]> = {};
   filteredVisits.forEach(v => {

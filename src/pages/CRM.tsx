@@ -212,6 +212,49 @@ export default function CRM() {
 
   const loadLeads = useCallback(async () => {
     try {
+      // Reactivate "perdido" leads whose scheduled follow-up date has arrived.
+      // Non-definitive lost leads schedule a follow-up; when that date hits,
+      // the lead must return to the active list (status = 'lead').
+      try {
+        const nowIso = new Date().toISOString();
+        const { data: expired } = await (supabase as any)
+          .from('follow_ups')
+          .select('id, lead_id')
+          .eq('concluido', false)
+          .not('lead_id', 'is', null)
+          .lte('data_agendada', nowIso);
+        const expiredLeadIds = Array.from(new Set((expired || []).map((f: any) => f.lead_id))).filter(Boolean);
+        if (expiredLeadIds.length > 0) {
+          const { data: perdidoLeads } = await (supabase as any)
+            .from('leads')
+            .select('id')
+            .in('id', expiredLeadIds)
+            .eq('status', 'perdido');
+          const perdidoIds = (perdidoLeads || []).map((l: any) => l.id);
+          if (perdidoIds.length > 0) {
+            await (supabase as any)
+              .from('leads')
+              .update({ status: 'lead', updated_at: nowIso })
+              .in('id', perdidoIds);
+            const user = (await supabase.auth.getUser()).data.user;
+            const activities = perdidoIds.map((lid: string) => ({
+              lead_id: lid,
+              activity_type: 'mudanca_status',
+              description: 'Lead reativado automaticamente: data do follow-up agendado chegou',
+              user_id: user?.id || '',
+            }));
+            await supabase.from('lead_activities').insert(activities as any);
+          }
+          // Mark all expired pending follow-ups as concluded
+          await (supabase as any)
+            .from('follow_ups')
+            .update({ concluido: true, updated_at: nowIso })
+            .in('id', (expired || []).map((f: any) => f.id));
+        }
+      } catch (e) {
+        console.warn('Auto-reactivate perdido leads failed:', e);
+      }
+
       const PAGE_SIZE = 1000;
       let allLeads: any[] = [];
       let from = 0;

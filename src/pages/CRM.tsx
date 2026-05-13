@@ -987,9 +987,10 @@ export default function CRM() {
     value: filteredLeads.filter(l => l.status === stage.key).reduce((s, l) => s + (l.valor_estimado || 0), 0),
   }));
 
+  const isKanban = activeTab === 'kanban';
     return (
-    <div className="flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+    <div className={isKanban ? "flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden" : "flex flex-col min-h-[calc(100vh-56px)] p-3 sm:p-4 gap-0"}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className={isKanban ? "flex flex-col flex-1 min-h-0" : "flex flex-col"}>
         {/* Row 1: Tabs */}
         <div className="flex items-center justify-between gap-2 pb-2 shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto">
@@ -1094,32 +1095,32 @@ export default function CRM() {
           />
         </TabsContent>
 
-        <TabsContent value="agenda" className="mt-0 overflow-y-auto flex-1 min-h-0">
+        <TabsContent value="agenda" className="mt-3">
           <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} />
         </TabsContent>
 
 
-        <TabsContent value="dashboard" className="mt-0 overflow-y-auto flex-1 min-h-0">
+        <TabsContent value="dashboard" className="mt-3">
           <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} vendorFilter={vendorFilter} />
         </TabsContent>
 
-        <TabsContent value="prospeccao" className="mt-3 overflow-y-auto flex-1">
+        <TabsContent value="prospeccao" className="mt-3">
           <ProspeccaoPanel onLeadsApproved={loadLeads} />
         </TabsContent>
 
-        <TabsContent value="carteira" className="mt-3 overflow-y-auto flex-1">
+        <TabsContent value="carteira" className="mt-3">
           <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={searchQuery} kanbanDateFilter={kanbanDateFilter} />
         </TabsContent>
 
-        <TabsContent value="bastao" className="mt-3 overflow-y-auto flex-1">
+        <TabsContent value="bastao" className="mt-3">
           <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} origemFilter={origemFilter} kanbanDateFilter={kanbanDateFilter} />
         </TabsContent>
 
-        <TabsContent value="concorrencia" className="mt-3 overflow-y-auto flex-1">
+        <TabsContent value="concorrencia" className="mt-3">
           <CompetitorProposalsView />
         </TabsContent>
 
-        <TabsContent value="relatorio" className="mt-3 overflow-y-auto flex-1">
+        <TabsContent value="relatorio" className="mt-3">
           <CRMReport leads={leads} onLeadClick={openLeadDrawer} followUps={pendingFollowUps} />
         </TabsContent>
       </Tabs>

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Download, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -18,6 +19,7 @@ export const PWAInstallPrompt: React.FC = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Detectar iOS
@@ -41,6 +43,11 @@ export const PWAInstallPrompt: React.FC = () => {
     // Verificação inicial
     if (checkIfInstalled()) {
       return;
+    }
+
+    // No iOS não existe o evento beforeinstallprompt — mostrar instruções diretamente
+    if (isIOSDevice) {
+      setShowPrompt(true);
     }
 
     // Listener para o evento beforeinstallprompt
@@ -135,8 +142,8 @@ export const PWAInstallPrompt: React.FC = () => {
     localStorage.setItem('pwa-prompt-dismissed', new Date().toISOString());
   };
 
-  // Não mostrar se instalado, dispensado ou se não há prompt disponível
-  if (!showPrompt || localStorage.getItem('pwa-installed')) {
+  // Mostrar somente em dispositivos móveis, quando não instalado e não dispensado
+  if (!isMobile || !showPrompt || localStorage.getItem('pwa-installed')) {
     return null;
   }
 

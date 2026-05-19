@@ -47,8 +47,7 @@ export function PerfilCartola() {
     const pesoTotal = quantidade * pesoPorPeca;
     const pesoPerdaPorPeca = (espessura * comprimento / 1000) * (tiraPerda / 1000) * 8;
     const chapas = tirasAproveitadas > 0 ? Math.ceil(quantidade / tirasAproveitadas) : 0;
-    const tirasVaziasUltimaChapa = Math.max(0, (chapas * tirasAproveitadas) - quantidade);
-    const pesoPerda = (pesoPerdaPorPeca * chapas) + (pesoPorPeca * tirasVaziasUltimaChapa);
+    const pesoPerda = pesoPerdaPorPeca * chapas;
     return { id: linha.id, tipo: 'CARTOLA', espessura, aba1, base, aba2, enrij1, enrij3, comprimento, largura, quantidade, percentualPerda, tira, tirasAproveitadas, tiraPerda, pesoPorPeca, pesoTotal, pesoPerda, pesoPerdaPorPeca };
   };
 

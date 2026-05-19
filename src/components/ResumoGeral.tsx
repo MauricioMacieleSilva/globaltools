@@ -61,10 +61,17 @@ export function ResumoGeral() {
     const pesoUtil = calc.pesoTotal * (calc.percentualPerda || 100) / 100;
     const pesoPerda = calc.pesoPerda || 0;
     const pesoBruto = pesoUtil + pesoPerda;
-    const valorTotal = precoTabelaComDesc ? pesoBruto * precoTabelaComDesc : null;
+    const aproveitamento = calc.largura > 0 && calc.tira > 0
+      ? ((calc.tirasAproveitadas * calc.tira) / calc.largura) * 100
+      : 0;
+    // Aproveitamento >= 95% usa preço de tabela direto (sem embutir perda)
+    // < 95% embute o custo da perda no R$/kg
+    const usarTabelaDireto = aproveitamento >= 95;
+    const pesoFaturado = usarTabelaDireto ? pesoUtil : pesoBruto;
+    const valorTotal = precoTabelaComDesc ? pesoFaturado * precoTabelaComDesc : null;
     const precoKg = precoTabelaComDesc && pesoUtil > 0 ? (valorTotal as number) / pesoUtil : null;
-    const perdaEmbutidaPercent = pesoUtil > 0 ? (pesoPerda / pesoUtil) * 100 : 0;
-    return { ...calc, precoKgBase, precoTabelaComDesc, precoKg, valorTotal, isPadrao, descontoItem, perdaEmbutidaPercent };
+    const perdaEmbutidaPercent = usarTabelaDireto || pesoUtil <= 0 ? 0 : (pesoPerda / pesoUtil) * 100;
+    return { ...calc, precoKgBase, precoTabelaComDesc, precoKg, valorTotal, isPadrao, descontoItem, perdaEmbutidaPercent, aproveitamento, usarTabelaDireto };
   });
 
   const valorTotalGeral = calculosComPreco.reduce((sum, calc) => {

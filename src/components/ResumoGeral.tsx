@@ -294,7 +294,12 @@ export function ResumoGeral() {
                                     <span className="font-medium">{formatarNumero(calc.precoKg)}</span>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Base: {formatarNumero(calc.precoKgBase || 0)} | Desc: {calc.descontoItem}% | Perda embutida: +{formatarNumero(calc.perdaEmbutidaPercent)}%</p>
+                                    <p>
+                                      Base: {formatarNumero(calc.precoKgBase || 0)} | Desc: {calc.descontoItem}% | Aprov.: {formatarNumero(calc.aproveitamento)}%
+                                      {calc.usarTabelaDireto
+                                        ? ' | Preço de tabela (aprov. ≥95%)'
+                                        : ` | Perda embutida: +${formatarNumero(calc.perdaEmbutidaPercent)}%`}
+                                    </p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

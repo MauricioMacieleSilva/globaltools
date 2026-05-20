@@ -44,16 +44,25 @@ export function DashboardSideIndicators() {
     const faturados = filteredData.filter(
       item => (item.situacao === 'Emitida' || item.situacao === 'Pedido') && item.faturamento_tipo === 1
     );
-    const map: Record<string, number> = {};
+    const map: Record<string, { value: number; peso: number }> = {};
     faturados.forEach(item => {
       const classe = item.classe || 'Outros';
-      map[classe] = (map[classe] || 0) + (item.valor || 0);
+      if (!map[classe]) map[classe] = { value: 0, peso: 0 };
+      map[classe].value += item.valor || 0;
+      map[classe].peso += (item as any).peso || 0;
     });
+    const totalValor = Object.values(map).reduce((s, v) => s + v.value, 0) || 1;
     const sorted = Object.entries(map)
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, a], [, b]) => b.value - a.value)
       .slice(0, 5);
-    const max = sorted[0]?.[1] || 1;
-    return sorted.map(([name, value]) => ({ name, value, percent: (value / max) * 100 }));
+    const max = sorted[0]?.[1].value || 1;
+    return sorted.map(([name, v]) => ({
+      name,
+      value: v.value,
+      peso: v.peso,
+      percent: (v.value / max) * 100,
+      percentTotal: (v.value / totalValor) * 100,
+    }));
   }, [filteredData]);
 
 
@@ -141,7 +150,7 @@ export function DashboardSideIndicators() {
                     {item.name}
                   </span>
                   <span className="text-[10px] text-muted-foreground">
-                    {formatCurrency(item.value)}
+                    {formatCurrency(item.value)} · {formatWeight(item.peso)} · {item.percentTotal.toFixed(1)}%
                   </span>
                 </div>
                 <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">

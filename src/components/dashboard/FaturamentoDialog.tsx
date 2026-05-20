@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import * as XLSX from 'xlsx';
 import { formatDateSafe, parseDate } from '@/lib/utils-comercial';
 
 interface FaturamentoDialogProps {
@@ -68,11 +70,47 @@ export function FaturamentoDialog({ isOpen, onClose, data }: FaturamentoDialogPr
     setExpandedPedidos(newExpanded);
   };
 
+  const handleExportExcel = () => {
+    const rows = data.map(item => ({
+      Pedido: item.numeropedido || '',
+      NF: item.numeronf || '',
+      Data: formatDateSafe(item.data_emissao),
+      Cliente: item.cli_nomefantasia || '',
+      UF: item.uf || '',
+      Cidade: item.cli_cidade || '',
+      Vendedor: item.vendedor || '',
+      Material: item.descricaomat || '',
+      Observação: item.observacao || '',
+      Quantidade: item.qtd,
+      Unidade: item.un || '',
+      'Valor Unitário': item.valor_un_bruto,
+      'Valor Total': item.valor,
+      'Peso (kg)': item.peso,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Faturamento');
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `pedidos-faturados-${today}.xlsx`);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[90vw] max-h-[85vh]">
         <DialogHeader>
-          <DialogTitle>Pedidos Faturados ({totalPedidos} pedidos • {totalClientes} clientes)</DialogTitle>
+          <div className="flex items-center justify-between gap-4 pr-8">
+            <DialogTitle>Pedidos Faturados ({totalPedidos} pedidos • {totalClientes} clientes)</DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportExcel}
+              disabled={data.length === 0}
+              className="gap-2"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </DialogHeader>
         <ScrollArea className="h-[70vh]"> {/* Aumentado de 60vh para 70vh para aproveitar o espaço extra */}
           <div className="overflow-x-auto">

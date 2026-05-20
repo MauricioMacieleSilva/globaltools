@@ -15,6 +15,7 @@ import { ResumoGeral } from '@/components/ResumoGeral';
 import { AproveitamentoOtimizado } from '@/components/perfis/AproveitamentoOtimizado';
 import { usePerfilContext, PerfilProvider } from '@/context/PerfilContext';
 import { PerfilPadraoDialog } from '@/components/perfis/PerfilPadraoDialog';
+import { PerfiladeiraDialog } from '@/components/perfis/PerfiladeiraDialog';
 import { SalvarResumoDialog } from '@/components/perfis/SalvarResumoDialog';
 import { ResumosSalvosDialog } from '@/components/perfis/ResumosSalvosDialog';
 import jsPDF from 'jspdf';
@@ -98,7 +99,8 @@ function CortePerfliContent() {
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {/* Main Content */}
           <div>
-            <div className="flex justify-end mb-4" data-tour="perfil-padrao-btn">
+            <div className="flex justify-end gap-2 mb-4" data-tour="perfil-padrao-btn">
+              <PerfiladeiraDialog />
               <PerfilPadraoDialog />
             </div>
             

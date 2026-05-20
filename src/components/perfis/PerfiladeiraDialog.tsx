@@ -54,7 +54,7 @@ export function PerfiladeiraDialog() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Factory className="h-5 w-5 text-primary" />
-            Perfis Produzidos em Série pela Global
+            Perfis Produzidos na Perfiladeira
           </DialogTitle>
         </DialogHeader>
 

@@ -89,6 +89,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [canAccessFinanceiro, setCanAccessFinanceiro] = useState(false);
   const [failedConfirmOpen, setFailedConfirmOpen] = useState(false);
   const [openTicketDialogOpen, setOpenTicketDialogOpen] = useState(false);
+  const [apresentacaoConfirmOpen, setApresentacaoConfirmOpen] = useState(false);
 
   useEffect(() => {
     const checkFinanceAccess = async () => {

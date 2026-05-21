@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck, Ban } from 'lucide-react';
+import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck, Ban, Presentation } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -274,6 +274,14 @@ export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCar
             >
               <MessageCircle className="h-3 w-3 text-success" />
             </a>
+          )}
+          {lead.apresentacao_enviada_at && (
+            <span
+              className="shrink-0 p-0.5 rounded text-primary"
+              title={`Apresentação enviada em ${new Date(lead.apresentacao_enviada_at).toLocaleDateString('pt-BR')}`}
+            >
+              <Presentation className="h-3 w-3" />
+            </span>
           )}
         </div>
 

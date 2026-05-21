@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed, DollarSign, CheckCircle2, Ticket } from 'lucide-react';
+import { MessageCircle, Mail, Phone, Building2, Calendar, MapPin, FileText, Send, Clock, Edit2, User, ArrowRightLeft, Package, Tags, Globe, ExternalLink, CalendarX2, Plus, ClipboardList, Loader2, PhoneMissed, DollarSign, CheckCircle2, Ticket, Presentation } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FollowUpScheduleDialog } from './FollowUpScheduleDialog';
 import { OrderLinkDialog } from './OrderLinkDialog';
@@ -768,6 +768,33 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               >
                 <Ticket className="h-3.5 w-3.5" />
                 Chamado Financeiro
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const isSent = !!lead.apresentacao_enviada_at;
+                  const newValue = isSent ? null : new Date().toISOString();
+                  const { error } = await (supabase as any)
+                    .from('leads')
+                    .update({ apresentacao_enviada_at: newValue })
+                    .eq('id', lead.id);
+                  if (error) {
+                    toast.error('Erro ao atualizar apresentação');
+                    return;
+                  }
+                  await (supabase as any).from('lead_activities').insert({
+                    lead_id: lead.id,
+                    activity_type: 'nota',
+                    description: isSent ? 'Marcação de apresentação enviada removida' : 'Apresentação enviada ao cliente',
+                  });
+                  toast.success(isSent ? 'Marcação removida' : 'Apresentação marcada como enviada');
+                  onLeadUpdated();
+                }}
+                className={`gap-1.5 ${lead.apresentacao_enviada_at ? 'text-primary border-primary/40 bg-primary/5' : ''}`}
+              >
+                <Presentation className="h-3.5 w-3.5" />
+                {lead.apresentacao_enviada_at ? 'Apresentação Enviada ✓' : 'Apresentação Enviada'}
               </Button>
             </div>
 

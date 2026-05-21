@@ -1763,6 +1763,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          apresentacao_enviada_at: string | null
           budget_number: string | null
           cidade: string | null
           client_code: string | null
@@ -1806,6 +1807,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          apresentacao_enviada_at?: string | null
           budget_number?: string | null
           cidade?: string | null
           client_code?: string | null
@@ -1849,6 +1851,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          apresentacao_enviada_at?: string | null
           budget_number?: string | null
           cidade?: string | null
           client_code?: string | null

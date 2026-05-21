@@ -950,6 +950,47 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Apresentação enviada confirmation dialog */}
+      <AlertDialog open={apresentacaoConfirmOpen} onOpenChange={setApresentacaoConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lead?.apresentacao_enviada_at ? 'Remover marcação?' : 'Confirmar apresentação enviada?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lead?.apresentacao_enviada_at
+                ? <>Deseja remover a marcação de apresentação enviada para <strong>{lead?.empresa || lead?.client_name || lead?.cliente_nome}</strong>?</>
+                : <>Confirma que a apresentação foi enviada para <strong>{lead?.empresa || lead?.client_name || lead?.cliente_nome}</strong>?</>}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              const isSent = !!lead.apresentacao_enviada_at;
+              const newValue = isSent ? null : new Date().toISOString();
+              const { error } = await (supabase as any)
+                .from('leads')
+                .update({ apresentacao_enviada_at: newValue })
+                .eq('id', lead.id);
+              setApresentacaoConfirmOpen(false);
+              if (error) {
+                toast.error('Erro ao atualizar apresentação');
+                return;
+              }
+              await (supabase as any).from('lead_activities').insert({
+                lead_id: lead.id,
+                activity_type: 'nota',
+                description: isSent ? 'Marcação de apresentação enviada removida' : 'Apresentação enviada ao cliente',
+              });
+              toast.success(isSent ? 'Marcação removida' : 'Apresentação marcada como enviada');
+              onLeadUpdated();
+            }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Order detail popup */}
       {selectedOrderNum && (
         <OrderDetailDialog

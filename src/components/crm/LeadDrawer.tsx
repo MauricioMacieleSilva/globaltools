@@ -772,25 +772,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               <Button
                 size="sm"
                 variant="outline"
-                onClick={async () => {
-                  const isSent = !!lead.apresentacao_enviada_at;
-                  const newValue = isSent ? null : new Date().toISOString();
-                  const { error } = await (supabase as any)
-                    .from('leads')
-                    .update({ apresentacao_enviada_at: newValue })
-                    .eq('id', lead.id);
-                  if (error) {
-                    toast.error('Erro ao atualizar apresentação');
-                    return;
-                  }
-                  await (supabase as any).from('lead_activities').insert({
-                    lead_id: lead.id,
-                    activity_type: 'nota',
-                    description: isSent ? 'Marcação de apresentação enviada removida' : 'Apresentação enviada ao cliente',
-                  });
-                  toast.success(isSent ? 'Marcação removida' : 'Apresentação marcada como enviada');
-                  onLeadUpdated();
-                }}
+                onClick={() => setApresentacaoConfirmOpen(true)}
                 className={`gap-1.5 ${lead.apresentacao_enviada_at ? 'text-primary border-primary/40 bg-primary/5' : ''}`}
               >
                 <Presentation className="h-3.5 w-3.5" />

@@ -929,6 +929,8 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
 
       {/* Failed contact confirmation dialog */}
       <AlertDialog open={failedConfirmOpen} onOpenChange={setFailedConfirmOpen}>
+
+      {/* placeholder */}
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Registrar tentativa sem sucesso</AlertDialogTitle>

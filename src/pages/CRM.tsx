@@ -1009,44 +1009,45 @@ export default function CRM() {
       )}
 
       {pendingLostLead && (
-        <FollowUpScheduleDialog
+        <Suspense fallback={null}><FollowUpScheduleDialog
           open={lostFollowUpOpen}
           onOpenChange={(v) => { if (!v) handleLostFollowUpCancelled(); }}
           leadId={pendingLostLead.id}
           leadName={pendingLostLead.client_name || pendingLostLead.cliente_nome}
           onConfirm={handleLostFollowUpConfirmed}
-        />
+        /></Suspense>
       )}
 
       {pendingVisitLead && (
-        <VisitScheduleDialog
+        <Suspense fallback={null}><VisitScheduleDialog
           open={visitDialogOpen}
           onOpenChange={(v) => { setVisitDialogOpen(v); if (!v) setPendingVisitLead(null); }}
           leadId={pendingVisitLead.id}
           leadName={pendingVisitLead.client_name || pendingVisitLead.cliente_nome}
           onConfirm={handleVisitConfirmed}
-      />
+      /></Suspense>
       )}
 
       {pendingContactLead && (
-        <ContactDescriptionDialog
+        <Suspense fallback={null}><ContactDescriptionDialog
           open={contactDescOpen}
           onOpenChange={(v) => { setContactDescOpen(v); if (!v) setPendingContactLead(null); }}
           leadName={pendingContactLead.client_name || pendingContactLead.cliente_nome}
           onConfirm={handleContactDescConfirmed}
-        />
+        /></Suspense>
       )}
 
       {pendingEnrichLead && (
-        <LeadEnrichGateDialog
+        <Suspense fallback={null}><LeadEnrichGateDialog
           open={enrichGateOpen}
           onOpenChange={(v) => { setEnrichGateOpen(v); if (!v) setPendingEnrichLead(null); }}
           lead={pendingEnrichLead}
           onConfirm={handleEnrichConfirmed}
-        />
+        /></Suspense>
       )}
 
-      <OrderLinkDialog
+      {orderLinkOpen && (
+      <Suspense fallback={null}><OrderLinkDialog
         open={orderLinkOpen}
         onOpenChange={setOrderLinkOpen}
         targetStage={pendingOrderStage}
@@ -1081,10 +1082,11 @@ export default function CRM() {
           setPendingOrderLead(null);
           setOrderLinkOpen(false);
         }}
-      />
+      /></Suspense>
+      )}
 
       {pendingAnaliseLead && (
-        <AnaliseFinanceiraDialog
+        <Suspense fallback={null}><AnaliseFinanceiraDialog
           open={analiseFinOpen}
           onOpenChange={(v) => { setAnaliseFinOpen(v); if (!v) setPendingAnaliseLead(null); }}
           leadId={pendingAnaliseLead.id}
@@ -1101,17 +1103,17 @@ export default function CRM() {
           leadTelefone={pendingAnaliseLead.cliente_telefone}
           leadEmail={pendingAnaliseLead.cliente_email}
           onConfirm={handleAnaliseFinConfirmed}
-        />
+        /></Suspense>
       )}
 
       {pendingPassagemLead && (
-        <PassagemBastaoDialog
+        <Suspense fallback={null}><PassagemBastaoDialog
           open={passagemBastaoOpen}
           onOpenChange={(v) => { setPassagemBastaoOpen(v); if (!v) setPendingPassagemLead(null); }}
           leadName={pendingPassagemLead.empresa || pendingPassagemLead.client_name || pendingPassagemLead.cliente_nome}
           onConfirm={handlePassagemBastaoConfirmed}
           onCancel={() => { setPendingPassagemLead(null); setPassagemBastaoOpen(false); }}
-        />
+        /></Suspense>
       )}
 
       <OwnershipWarningDialog
@@ -1133,14 +1135,18 @@ export default function CRM() {
         </button>
       )}
 
-      <DashboardCarousel
-        open={carouselOpen}
-        onClose={() => setCarouselOpen(false)}
-        labels={['Dashboard CRM', 'Dashboard Comercial']}
-      >
-        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode vendorFilter={vendorFilter} origemFilter={origemFilter} />
-        <DashboardComercial tvMode />
-      </DashboardCarousel>
+      {carouselOpen && (
+        <Suspense fallback={null}>
+          <DashboardCarousel
+            open={carouselOpen}
+            onClose={() => setCarouselOpen(false)}
+            labels={['Dashboard CRM', 'Dashboard Comercial']}
+          >
+            <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode vendorFilter={vendorFilter} origemFilter={origemFilter} />
+            <DashboardComercial tvMode />
+          </DashboardCarousel>
+        </Suspense>
+      )}
     </div>
   );
 }

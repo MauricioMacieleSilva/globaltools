@@ -116,8 +116,18 @@ export default function CRM() {
   const [searchParams, setSearchParams] = useSearchParams();
   // Pre-warm vendor cache so PassagemBastaoDialog opens instantly
   useCommercialVendors();
-  const [leads, setLeads] = useState<CRMLead[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Dados do CRM vivem no provider — não recarregam ao navegar entre telas
+  const {
+    leads,
+    setLeads,
+    pendingFollowUps,
+    loading,
+    lastUpdated,
+    currentUserId,
+    currentUserRole,
+    loadLeads,
+    loadFollowUps,
+  } = useCRMData();
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
@@ -125,6 +135,7 @@ export default function CRM() {
   const [pendingLostReason, setPendingLostReason] = useState<string | null>(null);
   const [lostFollowUpOpen, setLostFollowUpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 150);
   const [vendorFilter, setVendorFilter] = useState('');
   const [origemFilter, setOrigemFilter] = useState('all');
 
@@ -151,9 +162,14 @@ export default function CRM() {
   }, []);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
+  // Keep-alive: abas já visitadas continuam montadas (display:none quando inativas)
+  // — evita refetch dos filhos ao alternar abas.
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set(['kanban']));
+  const handleTabChange = useCallback((v: string) => {
+    setActiveTab(v);
+    setMountedTabs(prev => prev.has(v) ? prev : new Set(prev).add(v));
+  }, []);
   const [kanbanDateFilter, setKanbanDateFilter] = useState('');
-  // Follow-ups for hiding leads from kanban
-  const [pendingFollowUps, setPendingFollowUps] = useState<{ lead_id: string; data_agendada: string; titulo: string; user_id: string }[]>([]);
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
@@ -167,7 +183,6 @@ export default function CRM() {
   const [orderLinkOpen, setOrderLinkOpen] = useState(false);
   const [pendingOrderLead, setPendingOrderLead] = useState<CRMLead | null>(null);
   const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [carouselOpen, setCarouselOpen] = useState(false);
   // Analise Financeira dialog
   const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
@@ -175,9 +190,6 @@ export default function CRM() {
   // Passagem de bastão dialog
   const [passagemBastaoOpen, setPassagemBastaoOpen] = useState(false);
   const [pendingPassagemLead, setPendingPassagemLead] = useState<CRMLead | null>(null);
-  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [ownershipWarning, setOwnershipWarning] = useState<{
     open: boolean;
     ownerName: string;
@@ -187,168 +199,6 @@ export default function CRM() {
   }>({ open: false, ownerName: '', ownerAvatarUrl: null, entityName: '', leadId: '' });
   
   const isMobile = useIsMobile();
-
-  // Load current user info for ownership checks
-  useEffect(() => {
-    const loadCurrentUser = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData.user) {
-        setCurrentUserId(authData.user.id);
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', authData.user.id)
-          .maybeSingle();
-        setCurrentUserRole(roleData?.role || null);
-      }
-    };
-    loadCurrentUser();
-  }, []);
-
-  const loadFollowUps = useCallback(async () => {
-    try {
-      const { data } = await supabase
-        .from('follow_ups')
-        .select('lead_id, data_agendada, titulo, user_id')
-        .eq('concluido', false)
-        .not('lead_id', 'is', null);
-      setPendingFollowUps((data || []).map(d => ({
-        lead_id: d.lead_id!,
-        data_agendada: d.data_agendada,
-        titulo: d.titulo,
-        user_id: d.user_id,
-      })));
-    } catch (e) {
-      console.error('Erro ao carregar follow-ups:', e);
-    }
-  }, []);
-
-  const loadLeads = useCallback(async () => {
-    try {
-      // Reactivate "perdido" leads whose scheduled follow-up date has arrived.
-      // Non-definitive lost leads schedule a follow-up; when that date hits,
-      // the lead must return to the active list (status = 'lead').
-      try {
-        const nowIso = new Date().toISOString();
-        const { data: expired } = await (supabase as any)
-          .from('follow_ups')
-          .select('id, lead_id')
-          .eq('concluido', false)
-          .not('lead_id', 'is', null)
-          .lte('data_agendada', nowIso);
-        const expiredLeadIds = Array.from(new Set((expired || []).map((f: any) => f.lead_id))).filter(Boolean);
-        if (expiredLeadIds.length > 0) {
-          const { data: perdidoLeads } = await (supabase as any)
-            .from('leads')
-            .select('id')
-            .in('id', expiredLeadIds)
-            .eq('status', 'perdido');
-          const perdidoIds = (perdidoLeads || []).map((l: any) => l.id);
-          if (perdidoIds.length > 0) {
-            await (supabase as any)
-              .from('leads')
-              .update({ status: 'lead', updated_at: nowIso })
-              .in('id', perdidoIds);
-            const user = (await supabase.auth.getUser()).data.user;
-            const activities = perdidoIds.map((lid: string) => ({
-              lead_id: lid,
-              activity_type: 'mudanca_status',
-              description: 'Lead reativado automaticamente: data do follow-up agendado chegou',
-              user_id: user?.id || '',
-            }));
-            await supabase.from('lead_activities').insert(activities as any);
-          }
-          // Mark all expired pending follow-ups as concluded
-          await (supabase as any)
-            .from('follow_ups')
-            .update({ concluido: true, updated_at: nowIso })
-            .in('id', (expired || []).map((f: any) => f.id));
-        }
-      } catch (e) {
-        console.warn('Auto-reactivate perdido leads failed:', e);
-      }
-
-      const PAGE_SIZE = 1000;
-      let allLeads: any[] = [];
-      let from = 0;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await (supabase as any)
-          .from('leads')
-          .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, avatar_url)')
-          .order('updated_at', { ascending: false })
-          .range(from, from + PAGE_SIZE - 1);
-        if (error) throw error;
-
-        allLeads = allLeads.concat(data || []);
-        hasMore = (data?.length || 0) === PAGE_SIZE;
-        from += PAGE_SIZE;
-      }
-
-      setLeads(allLeads as CRMLead[]);
-      setLastUpdated(new Date());
-
-      // Background sync: always recalculate valor_estimado for leads with budget_number
-      // (avoids stale values from older loose-matching logic)
-      const leadsToFix = (allLeads as any[]).filter((l: any) => l.budget_number);
-      if (leadsToFix.length > 0) {
-        import('@/services/googleSheetsService').then(({ fetchComercialData }) => {
-          import('@/lib/utils-comercial').then(({ parseDate }) => {
-            fetchComercialData().then((comercialData) => {
-              const norm = (s: string) => (s || '').trim().toLowerCase();
-              for (const lead of leadsToFix) {
-                const orderNums = lead.budget_number.split(',').map((s: string) => s.trim()).filter(Boolean);
-                const meta = lead.linked_orders_meta || {};
-                let total = 0;
-                for (const num of orderNums) {
-                  let matches = comercialData.filter((d: any) => String(d.numeropedido).trim() === num);
-                  if (matches.length === 0) continue;
-                  // Strict matching: prefer linked_orders_meta exact match, else lead's company name (exact)
-                  const metaName = meta[num];
-                  if (metaName) {
-                    const target = norm(metaName);
-                    const exact = matches.filter((d: any) => norm(d.cli_nomefantasia || d.cliente) === target);
-                    if (exact.length === 0) continue; // skip if can't confirm
-                    matches = exact;
-                  } else {
-                    const candidates = [lead.empresa, lead.cliente_nome, lead.client_name].filter(Boolean).map(norm);
-                    if (candidates.length > 0) {
-                      const exact = matches.filter((d: any) =>
-                        candidates.includes(norm(d.cli_nomefantasia || d.cliente))
-                      );
-                      if (exact.length === 0) continue; // skip if no exact match
-                      matches = exact;
-                    }
-                  }
-                  const sorted = [...matches].sort((a: any, b: any) => {
-                    const da = parseDate(a.data_emissao)?.getTime() || 0;
-                    const db = parseDate(b.data_emissao)?.getTime() || 0;
-                    return db - da;
-                  });
-                  const mostRecentDate = sorted[0]?.data_emissao;
-                  const finalItems = mostRecentDate
-                    ? matches.filter((d: any) => d.data_emissao === mostRecentDate)
-                    : matches;
-                  total += finalItems.reduce((sum: number, item: any) => sum + (item.valor || 0), 0);
-                }
-                if (total !== (lead.valor_estimado || 0)) {
-                  (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
-                  setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, valor_estimado: total } : l));
-                }
-              }
-            }).catch(() => {});
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar leads:', error);
-    } finally {
-      setLoading(false);
-    }
-    // Also refresh follow-ups
-    loadFollowUps();
-  }, [loadFollowUps]);
 
   // Auto-open carousel from URL param (e.g. /crm?tv=1)
   useEffect(() => {

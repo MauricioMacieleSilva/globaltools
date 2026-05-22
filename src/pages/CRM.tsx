@@ -761,86 +761,67 @@ export default function CRM() {
     setDrawerOpen(true);
   };
 
-  const filteredLeads = leads.filter(l => {
-    if (l.status === 'perdido') return false;
-    // Filter "pedido_fechado" to current month only
-    if (l.status === 'pedido_fechado') {
-      const now = new Date();
-      const closedAt = new Date(l.updated_at);
-      if (closedAt.getMonth() !== now.getMonth() || closedAt.getFullYear() !== now.getFullYear()) {
-        return false;
+  const filteredLeads = useMemo(() => {
+    const q = debouncedSearchQuery.toLowerCase();
+    const qDigits = debouncedSearchQuery.replace(/\D/g, '');
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+    return leads.filter(l => {
+      if (l.status === 'perdido') return false;
+      if (l.status === 'pedido_fechado') {
+        const closedAt = new Date(l.updated_at);
+        if (closedAt.getMonth() !== curMonth || closedAt.getFullYear() !== curYear) return false;
       }
-    }
-    if (vendorFilter && vendorFilter !== 'all') {
-      if (l.vendedor_id !== vendorFilter) return false;
-    }
-    if (origemFilter && origemFilter !== 'all') {
-      const leadOrigem = (l.source || l.origem || '').toLowerCase().trim();
-      const filterVal = origemFilter.toLowerCase().trim();
-      if (leadOrigem !== filterVal) return false;
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const qDigits = searchQuery.replace(/\D/g, '');
-      const fields = [
-        l.client_name,
-        l.cliente_nome,
-        l.contact_name,
-        l.empresa,
-        l.cliente_cnpj,
-        l.budget_number,
-        l.numero_lead,
-        l.ramo_atuacao,
-        l.produto_interesse,
-        l.cidade,
-        l.estado,
-        l.contact_phone,
-        l.cliente_telefone,
-        l.contact_email,
-        l.cliente_email,
-        l.source,
-        l.origem,
-      ];
-      const matches = fields.some(f => f && f.toLowerCase().includes(q));
-      // Phone match: normalize digits on both sides so "(51) 3339-1221" matches "513339" or "1221"
-      const phoneMatch = qDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
-        .some(p => p && p.replace(/\D/g, '').includes(qDigits));
-      if (!matches && !phoneMatch) return false;
-    }
-    return true;
-  });
+      if (vendorFilter && vendorFilter !== 'all' && l.vendedor_id !== vendorFilter) return false;
+      if (origemFilter && origemFilter !== 'all') {
+        const leadOrigem = (l.source || l.origem || '').toLowerCase().trim();
+        if (leadOrigem !== origemFilter.toLowerCase().trim()) return false;
+      }
+      if (debouncedSearchQuery) {
+        const fields = [
+          l.client_name, l.cliente_nome, l.contact_name, l.empresa, l.cliente_cnpj,
+          l.budget_number, l.numero_lead, l.ramo_atuacao, l.produto_interesse,
+          l.cidade, l.estado, l.contact_phone, l.cliente_telefone, l.contact_email,
+          l.cliente_email, l.source, l.origem,
+        ];
+        const matches = fields.some(f => f && f.toLowerCase().includes(q));
+        const phoneMatch = qDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
+          .some(p => p && p.replace(/\D/g, '').includes(qDigits));
+        if (!matches && !phoneMatch) return false;
+      }
+      return true;
+    });
+  }, [leads, vendorFilter, origemFilter, debouncedSearchQuery]);
 
-  // Leads with future follow-ups (not today) should be hidden from kanban
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const leadsWithFutureFollowUp = new Set(
-    pendingFollowUps
-      .filter(fu => new Date(fu.data_agendada) >= tomorrow)
-      .map(fu => fu.lead_id)
-  );
+  const { kanbanLeads, scheduledLeadsCount } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const leadsWithFutureFollowUp = new Set(
+      pendingFollowUps.filter(fu => new Date(fu.data_agendada) >= tomorrow).map(fu => fu.lead_id)
+    );
+    const ALWAYS_VISIBLE_STAGES = new Set(['passagem_bastao', 'analise_financeira']);
+    const kLeads = filteredLeads.filter(
+      l => ALWAYS_VISIBLE_STAGES.has(l.status) || !leadsWithFutureFollowUp.has(l.id)
+    );
+    const sCount = filteredLeads.filter(
+      l => !ALWAYS_VISIBLE_STAGES.has(l.status) && leadsWithFutureFollowUp.has(l.id)
+    ).length;
+    return { kanbanLeads: kLeads, scheduledLeadsCount: sCount };
+  }, [filteredLeads, pendingFollowUps]);
 
-  // Stages that represent a "locked / awaiting action" state must always remain
-  // visible on the kanban regardless of future follow-ups, otherwise managers
-  // cannot see leads waiting for vendor assignment or financial analysis.
-  const ALWAYS_VISIBLE_STAGES = new Set(['passagem_bastao', 'analise_financeira']);
-  const kanbanLeads = filteredLeads.filter(
-    l => ALWAYS_VISIBLE_STAGES.has(l.status) || !leadsWithFutureFollowUp.has(l.id)
-  );
-  const scheduledLeadsCount = filteredLeads.filter(
-    l => !ALWAYS_VISIBLE_STAGES.has(l.status) && leadsWithFutureFollowUp.has(l.id)
-  ).length;
+  const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
 
-  const lostLeads = leads.filter(l => l.status === 'perdido');
-  const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
-
-  const funnelCounts = CRM_STAGES.map(stage => ({
-    ...stage,
-    count: filteredLeads.filter(l => l.status === stage.key).length,
-    value: filteredLeads.filter(l => l.status === stage.key).reduce((s, l) => s + (l.valor_estimado || 0), 0),
-  }));
+  const kanbanLeadsByDate = useMemo(() => {
+    if (!kanbanDateFilter) return kanbanLeads;
+    return kanbanLeads.filter(l => {
+      const leadDate = l.updated_at ? l.updated_at.slice(0, 10) : '';
+      const createdDate = l.created_at ? l.created_at.slice(0, 10) : '';
+      return leadDate === kanbanDateFilter || createdDate === kanbanDateFilter;
+    });
+  }, [kanbanLeads, kanbanDateFilter]);
 
   const isKanban = activeTab === 'kanban';
     return (

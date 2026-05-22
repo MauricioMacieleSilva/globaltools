@@ -1,38 +1,50 @@
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { OwnershipWarningDialog } from '@/components/crm/OwnershipWarningDialog';
 
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
-import { CRMDashboard } from '@/components/crm/CRMDashboard';
-import { LeadDrawer } from '@/components/crm/LeadDrawer';
-import { LostDealsDialog } from '@/components/crm/LostDealsDialog';
 import { CRMFilters } from '@/components/crm/CRMFilters';
-import { NewLeadDialog } from '@/components/crm/NewLeadDialog';
-import { LeadListView } from '@/components/crm/LeadListView';
-import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
-import { FollowUpScheduleDialog } from '@/components/crm/FollowUpScheduleDialog';
-import { VisitCalendar } from '@/components/crm/VisitCalendar';
-import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
-import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
-import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
-import { AnaliseFinanceiraDialog } from '@/components/crm/AnaliseFinanceiraDialog';
-import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords, ArrowRightLeft, ClipboardList } from 'lucide-react';
-import { CRMReport } from '@/components/crm/CRMReport';
-import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
-import { MinhaCarteira } from '@/components/crm/MinhaCarteira';
-import { CompetitorProposalsView } from '@/components/crm/CompetitorProposalsView';
-import { HandoffHistory } from '@/components/crm/HandoffHistory';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
-import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
-import DashboardComercial from '@/pages/DashboardComercial';
 import { useCommercialVendors } from '@/hooks/useCommercialVendors';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useCRMData } from '@/context/CRMDataContext';
+
+// Lazy-loaded heavy children — só baixam o JS quando o usuário abre a aba/diálogo
+const CRMDashboard = lazy(() => import('@/components/crm/CRMDashboard').then(m => ({ default: m.CRMDashboard })));
+const LeadDrawer = lazy(() => import('@/components/crm/LeadDrawer').then(m => ({ default: m.LeadDrawer })));
+const LostDealsDialog = lazy(() => import('@/components/crm/LostDealsDialog').then(m => ({ default: m.LostDealsDialog })));
+const NewLeadDialog = lazy(() => import('@/components/crm/NewLeadDialog').then(m => ({ default: m.NewLeadDialog })));
+const LeadListView = lazy(() => import('@/components/crm/LeadListView').then(m => ({ default: m.LeadListView })));
+const VisitScheduleDialog = lazy(() => import('@/components/crm/VisitScheduleDialog').then(m => ({ default: m.VisitScheduleDialog })));
+const FollowUpScheduleDialog = lazy(() => import('@/components/crm/FollowUpScheduleDialog').then(m => ({ default: m.FollowUpScheduleDialog })));
+const VisitCalendar = lazy(() => import('@/components/crm/VisitCalendar').then(m => ({ default: m.VisitCalendar })));
+const LeadEnrichGateDialog = lazy(() => import('@/components/crm/LeadEnrichGateDialog').then(m => ({ default: m.LeadEnrichGateDialog })));
+const ContactDescriptionDialog = lazy(() => import('@/components/crm/ContactDescriptionDialog').then(m => ({ default: m.ContactDescriptionDialog })));
+const OrderLinkDialog = lazy(() => import('@/components/crm/OrderLinkDialog').then(m => ({ default: m.OrderLinkDialog })));
+const AnaliseFinanceiraDialog = lazy(() => import('@/components/crm/AnaliseFinanceiraDialog').then(m => ({ default: m.AnaliseFinanceiraDialog })));
+const PassagemBastaoDialog = lazy(() => import('@/components/crm/PassagemBastaoDialog').then(m => ({ default: m.PassagemBastaoDialog })));
+const CRMReport = lazy(() => import('@/components/crm/CRMReport').then(m => ({ default: m.CRMReport })));
+const ProspeccaoPanel = lazy(() => import('@/components/crm/ProspeccaoPanel').then(m => ({ default: m.ProspeccaoPanel })));
+const MinhaCarteira = lazy(() => import('@/components/crm/MinhaCarteira').then(m => ({ default: m.MinhaCarteira })));
+const CompetitorProposalsView = lazy(() => import('@/components/crm/CompetitorProposalsView').then(m => ({ default: m.CompetitorProposalsView })));
+const HandoffHistory = lazy(() => import('@/components/crm/HandoffHistory').then(m => ({ default: m.HandoffHistory })));
+const DashboardCarousel = lazy(() => import('@/components/dashboard/DashboardCarousel').then(m => ({ default: m.DashboardCarousel })));
+const DashboardComercial = lazy(() => import('@/pages/DashboardComercial'));
+
+const TabFallback = () => (
+  <div className="space-y-3 p-2">
+    <Skeleton className="h-8 w-64" />
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
 
 export interface CRMLead {
   id: string;

@@ -1,5 +1,5 @@
 
-import { memo, useEffect, useState } from 'react';
+import { memo, useState } from 'react';
 import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck, Ban, Presentation } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { OrderDetailDialog } from './OrderDetailDialog';
 import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
 import { useStaleLeadsBlinkSettings } from '@/hooks/useCrmSettings';
 import instagramLogo from '@/assets/instagram-logo.png';
+import type { CRMLeadCardMeta } from '@/context/CRMDataContext';
 
 /** Converte texto para Title Case, independente do formato original */
 function toTitleCase(str: string): string {
@@ -23,6 +24,7 @@ interface KanbanCardProps {
   onDragStart: (e: React.DragEvent, leadId: string) => void;
   onClick: () => void;
   isDragging: boolean;
+  cardMeta?: CRMLeadCardMeta;
 }
 
 function getDaysInStage(updatedAt: string): number {
@@ -36,17 +38,17 @@ function getAgingColor(days: number): string {
   return 'border-l-purple-600';
 }
 
-function KanbanCardImpl({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
-  const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
+function KanbanCardImpl({ lead, onDragStart, onClick, isDragging, cardMeta }: KanbanCardProps) {
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
-  const [financeParecer, setFinanceParecer] = useState<string | null>(null);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [isInAnalysis, setIsInAnalysis] = useState(false);
-  const [blockedReason, setBlockedReason] = useState<string | null>(null);
-  const [lastContactAt, setLastContactAt] = useState<string>(lead.updated_at);
-  const [hasFutureSchedule, setHasFutureSchedule] = useState(false);
   const { settings: staleSettings } = useStaleLeadsBlinkSettings();
+  const nextVisit = cardMeta?.nextVisit || null;
+  const financeParecer = cardMeta?.financeParecer || null;
+  const failedAttempts = cardMeta?.failedAttempts || 0;
+  const isInAnalysis = cardMeta?.isInAnalysis || lead.status === 'analise_financeira';
+  const blockedReason = cardMeta?.blockedReason || (lead.status === 'perdido' && isBlockedLossReason(lead.notes) ? lead.notes! : null);
+  const hasFutureSchedule = cardMeta?.hasFutureSchedule || false;
+  const lastContactAt = cardMeta?.lastContactAt || lead.updated_at;
   // "Tempo sem contato" is anchored to the latest of:
   //  - last activity logged on the lead (lead_activities)
   //  - last past scheduled appointment (visita / follow-up)
@@ -81,163 +83,6 @@ function KanbanCardImpl({ lead, onDragStart, onClick, isDragging }: KanbanCardPr
   const vendorName = lead.vendedor?.full_name || null;
   const vendorAvatar = lead.vendedor?.avatar_url || null;
   const vendorInitials = vendorName ? vendorName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : '';
-
-  useEffect(() => {
-    let cancelled = false;
-    setNextVisit(null);
-    setFinanceParecer(null);
-    setFailedAttempts(0);
-    setIsInAnalysis(false);
-    setBlockedReason(null);
-    setLastContactAt(lead.updated_at);
-    setHasFutureSchedule(false);
-    import('@/integrations/supabase/client').then(({ supabase }) => {
-      // "Tempo sem contato" anchor = most recent of:
-      //   1. last lead_activity (contact, note, status change, etc.)
-      //   2. last *past* scheduled visit or follow-up (when lead "returns from the agenda")
-      // This guarantees that when a scheduled date passes and the lead reappears
-      // in the kanban, the days counter resets to zero.
-      const nowIso = new Date().toISOString();
-      Promise.all([
-        (supabase as any)
-          .from('lead_activities')
-          .select('created_at')
-          .eq('lead_id', lead.id)
-          .order('created_at', { ascending: false })
-          .limit(1),
-        (supabase as any)
-          .from('crm_visits')
-          .select('visit_date')
-          .eq('lead_id', lead.id)
-          .lte('visit_date', nowIso)
-          .order('visit_date', { ascending: false })
-          .limit(1),
-        (supabase as any)
-          .from('follow_ups')
-          .select('data_agendada')
-          .eq('lead_id', lead.id)
-          .lte('data_agendada', nowIso)
-          .order('data_agendada', { ascending: false })
-          .limit(1),
-      ]).then(([actRes, visitRes, followRes]: any) => {
-        if (cancelled) return;
-        const candidates: number[] = [new Date(lead.updated_at).getTime()];
-        if (actRes?.data?.[0]?.created_at) candidates.push(new Date(actRes.data[0].created_at).getTime());
-        if (visitRes?.data?.[0]?.visit_date) candidates.push(new Date(visitRes.data[0].visit_date).getTime());
-        if (followRes?.data?.[0]?.data_agendada) candidates.push(new Date(followRes.data[0].data_agendada).getTime());
-        const mostRecent = Math.max(...candidates);
-        setLastContactAt(new Date(mostRecent).toISOString());
-      });
-
-      // If the lead has a future scheduled visit or follow-up, it's "in agenda" — never stale.
-      Promise.all([
-        (supabase as any).from('crm_visits').select('id').eq('lead_id', lead.id).gte('visit_date', new Date().toISOString()).limit(1),
-        (supabase as any).from('follow_ups').select('id').eq('lead_id', lead.id).eq('concluido', false).gte('data_agendada', new Date().toISOString()).limit(1),
-      ]).then(([visitsRes, followsRes]: any) => {
-        if (cancelled) return;
-        if ((visitsRes?.data?.length || 0) > 0 || (followsRes?.data?.length || 0) > 0) {
-          setHasFutureSchedule(true);
-        }
-      });
-
-      // Verifica se há disposição bloqueante registrada (mesmo que reativado)
-      (supabase as any)
-        .from('lead_dispositions')
-        .select('reason, custom_reason')
-        .eq('lead_id', lead.id)
-        .eq('disposition_type', 'lost')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .then(({ data }: any) => {
-          if (cancelled) return;
-          const r = data?.[0]?.reason || data?.[0]?.custom_reason || '';
-          if (isBlockedLossReason(r)) setBlockedReason(r);
-          else if (lead.status === 'perdido' && isBlockedLossReason(lead.notes)) {
-            setBlockedReason(lead.notes!);
-          }
-        });
-
-      // Fetch next visit
-      (supabase as any)
-        .from('crm_visits')
-        .select('visit_date, location')
-        .eq('lead_id', lead.id)
-        .gte('visit_date', new Date().toISOString())
-        .order('visit_date', { ascending: true })
-        .limit(1)
-        .then(({ data }: any) => {
-          if (!cancelled) {
-            setNextVisit(data?.[0] ? { date: data[0].visit_date, location: data[0].location } : null);
-          }
-        });
-
-      // Fetch financial parecer directly from leads table
-      (supabase as any)
-        .from('leads')
-        .select('finance_parecer')
-        .eq('id', lead.id)
-        .maybeSingle()
-        .then(({ data }: any) => {
-          if (!cancelled && data?.finance_parecer) {
-            setFinanceParecer(data.finance_parecer);
-          }
-        });
-
-      // Fetch failed contact attempts count - scoped to AFTER the last stage transition
-      (supabase as any)
-        .from('lead_activities')
-        .select('created_at')
-        .eq('lead_id', lead.id)
-        .eq('activity_type', 'mudanca_status')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .then(({ data: moveData }: any) => {
-          if (cancelled) return;
-          const sinceDate = moveData?.[0]?.created_at || null;
-          let query = (supabase as any)
-            .from('lead_activities')
-            .select('id', { count: 'exact', head: true })
-            .eq('lead_id', lead.id)
-            .eq('activity_type', 'contato_sem_sucesso');
-          if (sinceDate) {
-            query = query.gt('created_at', sinceDate);
-          }
-          query.then(({ count }: any) => {
-            if (!cancelled) setFailedAttempts(count || 0);
-          });
-        });
-
-      // Check if lead is currently in financial analysis (status = analise_financeira)
-      if (lead.status === 'analise_financeira') {
-        setIsInAnalysis(true);
-      } else {
-        // Check if there's a pending analysis (sent but no parecer yet)
-        (supabase as any)
-          .from('lead_activities')
-          .select('id')
-          .eq('lead_id', lead.id)
-          .eq('activity_type', 'nota')
-          .ilike('description', '%Enviado para Análise Financeira%')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .then(({ data: sentData }: any) => {
-            if (!cancelled && sentData?.length > 0) {
-              (supabase as any)
-                .from('leads')
-                .select('finance_parecer')
-                .eq('id', lead.id)
-                .maybeSingle()
-                .then(({ data: fp }: any) => {
-                  if (!cancelled && !fp?.finance_parecer) {
-                    setIsInAnalysis(true);
-                  }
-                });
-            }
-          });
-      }
-    });
-    return () => { cancelled = true; };
-  }, [lead.id, lead.updated_at, lead.status]);
 
   return (
     <Card
@@ -435,6 +280,7 @@ function KanbanCardImpl({ lead, onDragStart, onClick, isDragging }: KanbanCardPr
 export const KanbanCard = memo(KanbanCardImpl, (prev, next) => {
   return (
     prev.lead === next.lead &&
+    prev.cardMeta === next.cardMeta &&
     prev.isDragging === next.isDragging &&
     prev.onClick === next.onClick &&
     prev.onDragStart === next.onDragStart

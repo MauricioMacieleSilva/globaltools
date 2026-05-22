@@ -1,12 +1,23 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { CRMLead } from '@/pages/CRM';
+import { isBlockedLossReason } from '@/lib/lead-blocked-reasons';
 
 export interface PendingFollowUp {
   lead_id: string;
   data_agendada: string;
   titulo: string;
   user_id: string;
+}
+
+export interface CRMLeadCardMeta {
+  nextVisit: { date: string; location?: string | null } | null;
+  hasFutureSchedule: boolean;
+  blockedReason: string | null;
+  lastContactAt: string;
+  failedAttempts: number;
+  financeParecer: string | null;
+  isInAnalysis: boolean;
 }
 
 interface CRMDataContextValue {
@@ -17,6 +28,7 @@ interface CRMDataContextValue {
   lastUpdated: Date | null;
   currentUserId: string | null;
   currentUserRole: string | null;
+  cardMeta: Record<string, CRMLeadCardMeta>;
   loadLeads: () => Promise<void>;
   loadFollowUps: () => Promise<void>;
 }
@@ -35,6 +47,7 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [cardMeta, setCardMeta] = useState<Record<string, CRMLeadCardMeta>>({});
 
   const initialLoadDoneRef = useRef(false);
   const bgReconcileDoneRef = useRef(false);
@@ -56,6 +69,65 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error('Erro ao carregar follow-ups:', e);
     }
+  }, []);
+
+  const loadCardMeta = useCallback(async (crmLeads: CRMLead[]) => {
+    const nowIso = new Date().toISOString();
+    const base: Record<string, CRMLeadCardMeta> = {};
+    crmLeads.forEach((lead: any) => {
+      base[lead.id] = {
+        nextVisit: null,
+        hasFutureSchedule: false,
+        blockedReason: lead.status === 'perdido' && isBlockedLossReason(lead.notes) ? lead.notes : null,
+        lastContactAt: lead.updated_at,
+        failedAttempts: 0,
+        financeParecer: lead.finance_parecer || null,
+        isInAnalysis: lead.status === 'analise_financeira',
+      };
+    });
+
+    try {
+      const [visitsRes, followsRes, dispositionsRes] = await Promise.all([
+        (supabase as any)
+          .from('crm_visits')
+          .select('lead_id, visit_date, location')
+          .gte('visit_date', nowIso)
+          .order('visit_date', { ascending: true }),
+        supabase
+          .from('follow_ups')
+          .select('lead_id, data_agendada')
+          .eq('concluido', false)
+          .not('lead_id', 'is', null)
+          .gte('data_agendada', nowIso),
+        (supabase as any)
+          .from('lead_dispositions')
+          .select('lead_id, reason, custom_reason')
+          .eq('disposition_type', 'lost'),
+      ]);
+
+      (visitsRes.data || []).forEach((visit: any) => {
+        const meta = base[visit.lead_id];
+        if (!meta) return;
+        meta.hasFutureSchedule = true;
+        if (!meta.nextVisit) meta.nextVisit = { date: visit.visit_date, location: visit.location };
+      });
+
+      (followsRes.data || []).forEach((fu: any) => {
+        const meta = base[fu.lead_id];
+        if (meta) meta.hasFutureSchedule = true;
+      });
+
+      (dispositionsRes.data || []).forEach((d: any) => {
+        const meta = base[d.lead_id];
+        if (!meta) return;
+        const reason = d.reason || d.custom_reason || '';
+        if (isBlockedLossReason(reason)) meta.blockedReason = reason;
+      });
+    } catch (e) {
+      console.warn('Erro ao carregar metadados dos cards CRM:', e);
+    }
+
+    setCardMeta(base);
   }, []);
 
   const loadLeads = useCallback(async () => {
@@ -138,6 +210,7 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
       }));
       setLeads(leadsWithVendor as CRMLead[]);
       setLastUpdated(new Date());
+      loadCardMeta(leadsWithVendor as CRMLead[]);
 
       // Background reconcile do valor_estimado: roda no máximo UMA vez por sessão
       // (antes rodava em cada loadLeads, baixando ~20MB do Google Sheets toda vez)
@@ -199,7 +272,7 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
     loadFollowUps();
-  }, [loadFollowUps]);
+  }, [loadCardMeta, loadFollowUps]);
 
   // Carrega usuário corrente UMA vez
   useEffect(() => {
@@ -243,6 +316,7 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
         lastUpdated,
         currentUserId,
         currentUserRole,
+        cardMeta,
         loadLeads,
         loadFollowUps,
       }}

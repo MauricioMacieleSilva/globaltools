@@ -10,6 +10,7 @@ import { PerfilProvider } from "./context/PerfilContext";
 import { ComercialProvider } from "./context/ComercialContext";
 import { PreVendasProvider } from "./context/PreVendasContext";
 import { ProducaoProvider } from "./context/ProducaoContext";
+import { CRMDataProvider } from "./context/CRMDataContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -142,6 +143,7 @@ function AppContent() {
                 <CorteBlanksProvider>
                   <PerfilProvider>
                     <PreVendasProvider>
+                      <CRMDataProvider>
                       <SidebarProvider defaultOpen={!isMobile}>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
@@ -308,6 +310,7 @@ function AppContent() {
                           <LeadAssignmentNotification />
                         </div>
                       </SidebarProvider>
+                      </CRMDataProvider>
                     </PreVendasProvider>
                   </PerfilProvider>
                 </CorteBlanksProvider>

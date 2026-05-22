@@ -1,38 +1,50 @@
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { OwnershipWarningDialog } from '@/components/crm/OwnershipWarningDialog';
 
 import { KanbanBoard } from '@/components/crm/KanbanBoard';
-import { CRMDashboard } from '@/components/crm/CRMDashboard';
-import { LeadDrawer } from '@/components/crm/LeadDrawer';
-import { LostDealsDialog } from '@/components/crm/LostDealsDialog';
 import { CRMFilters } from '@/components/crm/CRMFilters';
-import { NewLeadDialog } from '@/components/crm/NewLeadDialog';
-import { LeadListView } from '@/components/crm/LeadListView';
-import { VisitScheduleDialog } from '@/components/crm/VisitScheduleDialog';
-import { FollowUpScheduleDialog } from '@/components/crm/FollowUpScheduleDialog';
-import { VisitCalendar } from '@/components/crm/VisitCalendar';
-import { LeadEnrichGateDialog } from '@/components/crm/LeadEnrichGateDialog';
-import { ContactDescriptionDialog } from '@/components/crm/ContactDescriptionDialog';
-import { OrderLinkDialog } from '@/components/crm/OrderLinkDialog';
-import { AnaliseFinanceiraDialog } from '@/components/crm/AnaliseFinanceiraDialog';
-import { PassagemBastaoDialog } from '@/components/crm/PassagemBastaoDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords, ArrowRightLeft, ClipboardList } from 'lucide-react';
-import { CRMReport } from '@/components/crm/CRMReport';
-import { ProspeccaoPanel } from '@/components/crm/ProspeccaoPanel';
-import { MinhaCarteira } from '@/components/crm/MinhaCarteira';
-import { CompetitorProposalsView } from '@/components/crm/CompetitorProposalsView';
-import { HandoffHistory } from '@/components/crm/HandoffHistory';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
-import { DashboardCarousel } from '@/components/dashboard/DashboardCarousel';
-import DashboardComercial from '@/pages/DashboardComercial';
 import { useCommercialVendors } from '@/hooks/useCommercialVendors';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useCRMData } from '@/context/CRMDataContext';
+
+// Lazy-loaded heavy children — só baixam o JS quando o usuário abre a aba/diálogo
+const CRMDashboard = lazy(() => import('@/components/crm/CRMDashboard').then(m => ({ default: m.CRMDashboard })));
+const LeadDrawer = lazy(() => import('@/components/crm/LeadDrawer').then(m => ({ default: m.LeadDrawer })));
+const LostDealsDialog = lazy(() => import('@/components/crm/LostDealsDialog').then(m => ({ default: m.LostDealsDialog })));
+const NewLeadDialog = lazy(() => import('@/components/crm/NewLeadDialog').then(m => ({ default: m.NewLeadDialog })));
+const LeadListView = lazy(() => import('@/components/crm/LeadListView').then(m => ({ default: m.LeadListView })));
+const VisitScheduleDialog = lazy(() => import('@/components/crm/VisitScheduleDialog').then(m => ({ default: m.VisitScheduleDialog })));
+const FollowUpScheduleDialog = lazy(() => import('@/components/crm/FollowUpScheduleDialog').then(m => ({ default: m.FollowUpScheduleDialog })));
+const VisitCalendar = lazy(() => import('@/components/crm/VisitCalendar').then(m => ({ default: m.VisitCalendar })));
+const LeadEnrichGateDialog = lazy(() => import('@/components/crm/LeadEnrichGateDialog').then(m => ({ default: m.LeadEnrichGateDialog })));
+const ContactDescriptionDialog = lazy(() => import('@/components/crm/ContactDescriptionDialog').then(m => ({ default: m.ContactDescriptionDialog })));
+const OrderLinkDialog = lazy(() => import('@/components/crm/OrderLinkDialog').then(m => ({ default: m.OrderLinkDialog })));
+const AnaliseFinanceiraDialog = lazy(() => import('@/components/crm/AnaliseFinanceiraDialog').then(m => ({ default: m.AnaliseFinanceiraDialog })));
+const PassagemBastaoDialog = lazy(() => import('@/components/crm/PassagemBastaoDialog').then(m => ({ default: m.PassagemBastaoDialog })));
+const CRMReport = lazy(() => import('@/components/crm/CRMReport').then(m => ({ default: m.CRMReport })));
+const ProspeccaoPanel = lazy(() => import('@/components/crm/ProspeccaoPanel').then(m => ({ default: m.ProspeccaoPanel })));
+const MinhaCarteira = lazy(() => import('@/components/crm/MinhaCarteira').then(m => ({ default: m.MinhaCarteira })));
+const CompetitorProposalsView = lazy(() => import('@/components/crm/CompetitorProposalsView').then(m => ({ default: m.CompetitorProposalsView })));
+const HandoffHistory = lazy(() => import('@/components/crm/HandoffHistory').then(m => ({ default: m.HandoffHistory })));
+const DashboardCarousel = lazy(() => import('@/components/dashboard/DashboardCarousel').then(m => ({ default: m.DashboardCarousel })));
+const DashboardComercial = lazy(() => import('@/pages/DashboardComercial'));
+
+const TabFallback = () => (
+  <div className="space-y-3 p-2">
+    <Skeleton className="h-8 w-64" />
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
 
 export interface CRMLead {
   id: string;
@@ -104,8 +116,18 @@ export default function CRM() {
   const [searchParams, setSearchParams] = useSearchParams();
   // Pre-warm vendor cache so PassagemBastaoDialog opens instantly
   useCommercialVendors();
-  const [leads, setLeads] = useState<CRMLead[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Dados do CRM vivem no provider — não recarregam ao navegar entre telas
+  const {
+    leads,
+    setLeads,
+    pendingFollowUps,
+    loading,
+    lastUpdated,
+    currentUserId,
+    currentUserRole,
+    loadLeads,
+    loadFollowUps,
+  } = useCRMData();
   const [selectedLead, setSelectedLead] = useState<CRMLead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lostDialogOpen, setLostDialogOpen] = useState(false);
@@ -113,6 +135,7 @@ export default function CRM() {
   const [pendingLostReason, setPendingLostReason] = useState<string | null>(null);
   const [lostFollowUpOpen, setLostFollowUpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 150);
   const [vendorFilter, setVendorFilter] = useState('');
   const [origemFilter, setOrigemFilter] = useState('all');
 
@@ -139,9 +162,14 @@ export default function CRM() {
   }, []);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
+  // Keep-alive: abas já visitadas continuam montadas (display:none quando inativas)
+  // — evita refetch dos filhos ao alternar abas.
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => new Set(['kanban']));
+  const handleTabChange = useCallback((v: string) => {
+    setActiveTab(v);
+    setMountedTabs(prev => prev.has(v) ? prev : new Set(prev).add(v));
+  }, []);
   const [kanbanDateFilter, setKanbanDateFilter] = useState('');
-  // Follow-ups for hiding leads from kanban
-  const [pendingFollowUps, setPendingFollowUps] = useState<{ lead_id: string; data_agendada: string; titulo: string; user_id: string }[]>([]);
   // Visit schedule dialog
   const [visitDialogOpen, setVisitDialogOpen] = useState(false);
   const [pendingVisitLead, setPendingVisitLead] = useState<CRMLead | null>(null);
@@ -155,7 +183,6 @@ export default function CRM() {
   const [orderLinkOpen, setOrderLinkOpen] = useState(false);
   const [pendingOrderLead, setPendingOrderLead] = useState<CRMLead | null>(null);
   const [pendingOrderStage, setPendingOrderStage] = useState<string>('');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [carouselOpen, setCarouselOpen] = useState(false);
   // Analise Financeira dialog
   const [analiseFinOpen, setAnaliseFinOpen] = useState(false);
@@ -163,9 +190,6 @@ export default function CRM() {
   // Passagem de bastão dialog
   const [passagemBastaoOpen, setPassagemBastaoOpen] = useState(false);
   const [pendingPassagemLead, setPendingPassagemLead] = useState<CRMLead | null>(null);
-  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [ownershipWarning, setOwnershipWarning] = useState<{
     open: boolean;
     ownerName: string;
@@ -175,168 +199,6 @@ export default function CRM() {
   }>({ open: false, ownerName: '', ownerAvatarUrl: null, entityName: '', leadId: '' });
   
   const isMobile = useIsMobile();
-
-  // Load current user info for ownership checks
-  useEffect(() => {
-    const loadCurrentUser = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData.user) {
-        setCurrentUserId(authData.user.id);
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', authData.user.id)
-          .maybeSingle();
-        setCurrentUserRole(roleData?.role || null);
-      }
-    };
-    loadCurrentUser();
-  }, []);
-
-  const loadFollowUps = useCallback(async () => {
-    try {
-      const { data } = await supabase
-        .from('follow_ups')
-        .select('lead_id, data_agendada, titulo, user_id')
-        .eq('concluido', false)
-        .not('lead_id', 'is', null);
-      setPendingFollowUps((data || []).map(d => ({
-        lead_id: d.lead_id!,
-        data_agendada: d.data_agendada,
-        titulo: d.titulo,
-        user_id: d.user_id,
-      })));
-    } catch (e) {
-      console.error('Erro ao carregar follow-ups:', e);
-    }
-  }, []);
-
-  const loadLeads = useCallback(async () => {
-    try {
-      // Reactivate "perdido" leads whose scheduled follow-up date has arrived.
-      // Non-definitive lost leads schedule a follow-up; when that date hits,
-      // the lead must return to the active list (status = 'lead').
-      try {
-        const nowIso = new Date().toISOString();
-        const { data: expired } = await (supabase as any)
-          .from('follow_ups')
-          .select('id, lead_id')
-          .eq('concluido', false)
-          .not('lead_id', 'is', null)
-          .lte('data_agendada', nowIso);
-        const expiredLeadIds = Array.from(new Set((expired || []).map((f: any) => f.lead_id))).filter(Boolean);
-        if (expiredLeadIds.length > 0) {
-          const { data: perdidoLeads } = await (supabase as any)
-            .from('leads')
-            .select('id')
-            .in('id', expiredLeadIds)
-            .eq('status', 'perdido');
-          const perdidoIds = (perdidoLeads || []).map((l: any) => l.id);
-          if (perdidoIds.length > 0) {
-            await (supabase as any)
-              .from('leads')
-              .update({ status: 'lead', updated_at: nowIso })
-              .in('id', perdidoIds);
-            const user = (await supabase.auth.getUser()).data.user;
-            const activities = perdidoIds.map((lid: string) => ({
-              lead_id: lid,
-              activity_type: 'mudanca_status',
-              description: 'Lead reativado automaticamente: data do follow-up agendado chegou',
-              user_id: user?.id || '',
-            }));
-            await supabase.from('lead_activities').insert(activities as any);
-          }
-          // Mark all expired pending follow-ups as concluded
-          await (supabase as any)
-            .from('follow_ups')
-            .update({ concluido: true, updated_at: nowIso })
-            .in('id', (expired || []).map((f: any) => f.id));
-        }
-      } catch (e) {
-        console.warn('Auto-reactivate perdido leads failed:', e);
-      }
-
-      const PAGE_SIZE = 1000;
-      let allLeads: any[] = [];
-      let from = 0;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await (supabase as any)
-          .from('leads')
-          .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, avatar_url)')
-          .order('updated_at', { ascending: false })
-          .range(from, from + PAGE_SIZE - 1);
-        if (error) throw error;
-
-        allLeads = allLeads.concat(data || []);
-        hasMore = (data?.length || 0) === PAGE_SIZE;
-        from += PAGE_SIZE;
-      }
-
-      setLeads(allLeads as CRMLead[]);
-      setLastUpdated(new Date());
-
-      // Background sync: always recalculate valor_estimado for leads with budget_number
-      // (avoids stale values from older loose-matching logic)
-      const leadsToFix = (allLeads as any[]).filter((l: any) => l.budget_number);
-      if (leadsToFix.length > 0) {
-        import('@/services/googleSheetsService').then(({ fetchComercialData }) => {
-          import('@/lib/utils-comercial').then(({ parseDate }) => {
-            fetchComercialData().then((comercialData) => {
-              const norm = (s: string) => (s || '').trim().toLowerCase();
-              for (const lead of leadsToFix) {
-                const orderNums = lead.budget_number.split(',').map((s: string) => s.trim()).filter(Boolean);
-                const meta = lead.linked_orders_meta || {};
-                let total = 0;
-                for (const num of orderNums) {
-                  let matches = comercialData.filter((d: any) => String(d.numeropedido).trim() === num);
-                  if (matches.length === 0) continue;
-                  // Strict matching: prefer linked_orders_meta exact match, else lead's company name (exact)
-                  const metaName = meta[num];
-                  if (metaName) {
-                    const target = norm(metaName);
-                    const exact = matches.filter((d: any) => norm(d.cli_nomefantasia || d.cliente) === target);
-                    if (exact.length === 0) continue; // skip if can't confirm
-                    matches = exact;
-                  } else {
-                    const candidates = [lead.empresa, lead.cliente_nome, lead.client_name].filter(Boolean).map(norm);
-                    if (candidates.length > 0) {
-                      const exact = matches.filter((d: any) =>
-                        candidates.includes(norm(d.cli_nomefantasia || d.cliente))
-                      );
-                      if (exact.length === 0) continue; // skip if no exact match
-                      matches = exact;
-                    }
-                  }
-                  const sorted = [...matches].sort((a: any, b: any) => {
-                    const da = parseDate(a.data_emissao)?.getTime() || 0;
-                    const db = parseDate(b.data_emissao)?.getTime() || 0;
-                    return db - da;
-                  });
-                  const mostRecentDate = sorted[0]?.data_emissao;
-                  const finalItems = mostRecentDate
-                    ? matches.filter((d: any) => d.data_emissao === mostRecentDate)
-                    : matches;
-                  total += finalItems.reduce((sum: number, item: any) => sum + (item.valor || 0), 0);
-                }
-                if (total !== (lead.valor_estimado || 0)) {
-                  (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
-                  setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, valor_estimado: total } : l));
-                }
-              }
-            }).catch(() => {});
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar leads:', error);
-    } finally {
-      setLoading(false);
-    }
-    // Also refresh follow-ups
-    loadFollowUps();
-  }, [loadFollowUps]);
 
   // Auto-open carousel from URL param (e.g. /crm?tv=1)
   useEffect(() => {
@@ -362,16 +224,8 @@ export default function CRM() {
   }, [searchParams, leads, loading, setSearchParams]);
 
 
-  useEffect(() => {
-    loadLeads();
-    loadFollowUps();
-    // Auto-refresh every 15 minutes
-    refreshTimerRef.current = setInterval(() => {
-      loadLeads();
-      loadFollowUps();
-    }, 15 * 60 * 1000);
-    return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
-  }, [loadLeads, loadFollowUps]);
+  // Carga inicial e auto-refresh agora são gerenciados pelo CRMDataProvider
+  // (sobrevivem à navegação entre páginas).
 
   // Notify user about leads returning today from follow-up
   const notifiedFollowUpsRef = useRef<Set<string>>(new Set());
@@ -907,91 +761,72 @@ export default function CRM() {
     setDrawerOpen(true);
   };
 
-  const filteredLeads = leads.filter(l => {
-    if (l.status === 'perdido') return false;
-    // Filter "pedido_fechado" to current month only
-    if (l.status === 'pedido_fechado') {
-      const now = new Date();
-      const closedAt = new Date(l.updated_at);
-      if (closedAt.getMonth() !== now.getMonth() || closedAt.getFullYear() !== now.getFullYear()) {
-        return false;
+  const filteredLeads = useMemo(() => {
+    const q = debouncedSearchQuery.toLowerCase();
+    const qDigits = debouncedSearchQuery.replace(/\D/g, '');
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+    return leads.filter(l => {
+      if (l.status === 'perdido') return false;
+      if (l.status === 'pedido_fechado') {
+        const closedAt = new Date(l.updated_at);
+        if (closedAt.getMonth() !== curMonth || closedAt.getFullYear() !== curYear) return false;
       }
-    }
-    if (vendorFilter && vendorFilter !== 'all') {
-      if (l.vendedor_id !== vendorFilter) return false;
-    }
-    if (origemFilter && origemFilter !== 'all') {
-      const leadOrigem = (l.source || l.origem || '').toLowerCase().trim();
-      const filterVal = origemFilter.toLowerCase().trim();
-      if (leadOrigem !== filterVal) return false;
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const qDigits = searchQuery.replace(/\D/g, '');
-      const fields = [
-        l.client_name,
-        l.cliente_nome,
-        l.contact_name,
-        l.empresa,
-        l.cliente_cnpj,
-        l.budget_number,
-        l.numero_lead,
-        l.ramo_atuacao,
-        l.produto_interesse,
-        l.cidade,
-        l.estado,
-        l.contact_phone,
-        l.cliente_telefone,
-        l.contact_email,
-        l.cliente_email,
-        l.source,
-        l.origem,
-      ];
-      const matches = fields.some(f => f && f.toLowerCase().includes(q));
-      // Phone match: normalize digits on both sides so "(51) 3339-1221" matches "513339" or "1221"
-      const phoneMatch = qDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
-        .some(p => p && p.replace(/\D/g, '').includes(qDigits));
-      if (!matches && !phoneMatch) return false;
-    }
-    return true;
-  });
+      if (vendorFilter && vendorFilter !== 'all' && l.vendedor_id !== vendorFilter) return false;
+      if (origemFilter && origemFilter !== 'all') {
+        const leadOrigem = (l.source || l.origem || '').toLowerCase().trim();
+        if (leadOrigem !== origemFilter.toLowerCase().trim()) return false;
+      }
+      if (debouncedSearchQuery) {
+        const fields = [
+          l.client_name, l.cliente_nome, l.contact_name, l.empresa, l.cliente_cnpj,
+          l.budget_number, l.numero_lead, l.ramo_atuacao, l.produto_interesse,
+          l.cidade, l.estado, l.contact_phone, l.cliente_telefone, l.contact_email,
+          l.cliente_email, l.source, l.origem,
+        ];
+        const matches = fields.some(f => f && f.toLowerCase().includes(q));
+        const phoneMatch = qDigits.length >= 3 && [l.contact_phone, l.cliente_telefone, l.cliente_cnpj]
+          .some(p => p && p.replace(/\D/g, '').includes(qDigits));
+        if (!matches && !phoneMatch) return false;
+      }
+      return true;
+    });
+  }, [leads, vendorFilter, origemFilter, debouncedSearchQuery]);
 
-  // Leads with future follow-ups (not today) should be hidden from kanban
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const leadsWithFutureFollowUp = new Set(
-    pendingFollowUps
-      .filter(fu => new Date(fu.data_agendada) >= tomorrow)
-      .map(fu => fu.lead_id)
-  );
+  const { kanbanLeads, scheduledLeadsCount } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const leadsWithFutureFollowUp = new Set(
+      pendingFollowUps.filter(fu => new Date(fu.data_agendada) >= tomorrow).map(fu => fu.lead_id)
+    );
+    const ALWAYS_VISIBLE_STAGES = new Set(['passagem_bastao', 'analise_financeira']);
+    const kLeads = filteredLeads.filter(
+      l => ALWAYS_VISIBLE_STAGES.has(l.status) || !leadsWithFutureFollowUp.has(l.id)
+    );
+    const sCount = filteredLeads.filter(
+      l => !ALWAYS_VISIBLE_STAGES.has(l.status) && leadsWithFutureFollowUp.has(l.id)
+    ).length;
+    return { kanbanLeads: kLeads, scheduledLeadsCount: sCount };
+  }, [filteredLeads, pendingFollowUps]);
 
-  // Stages that represent a "locked / awaiting action" state must always remain
-  // visible on the kanban regardless of future follow-ups, otherwise managers
-  // cannot see leads waiting for vendor assignment or financial analysis.
-  const ALWAYS_VISIBLE_STAGES = new Set(['passagem_bastao', 'analise_financeira']);
-  const kanbanLeads = filteredLeads.filter(
-    l => ALWAYS_VISIBLE_STAGES.has(l.status) || !leadsWithFutureFollowUp.has(l.id)
-  );
-  const scheduledLeadsCount = filteredLeads.filter(
-    l => !ALWAYS_VISIBLE_STAGES.has(l.status) && leadsWithFutureFollowUp.has(l.id)
-  ).length;
+  const lostLeads = useMemo(() => leads.filter(l => l.status === 'perdido'), [leads]);
 
-  const lostLeads = leads.filter(l => l.status === 'perdido');
-  const lostValue = lostLeads.reduce((sum, l) => sum + (l.valor_estimado || 0), 0);
-
-  const funnelCounts = CRM_STAGES.map(stage => ({
-    ...stage,
-    count: filteredLeads.filter(l => l.status === stage.key).length,
-    value: filteredLeads.filter(l => l.status === stage.key).reduce((s, l) => s + (l.valor_estimado || 0), 0),
-  }));
+  const kanbanLeadsByDate = useMemo(() => {
+    if (!kanbanDateFilter) return kanbanLeads;
+    return kanbanLeads.filter(l => {
+      const leadDate = l.updated_at ? l.updated_at.slice(0, 10) : '';
+      const createdDate = l.created_at ? l.created_at.slice(0, 10) : '';
+      return leadDate === kanbanDateFilter || createdDate === kanbanDateFilter;
+    });
+  }, [kanbanLeads, kanbanDateFilter]);
 
   const isKanban = activeTab === 'kanban';
     return (
     <div className={isKanban ? "flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden" : "flex flex-col min-h-[calc(100vh-56px)] p-3 sm:p-4 gap-0"}>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className={isKanban ? "flex flex-col flex-1 min-h-0" : "flex flex-col"}>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className={isKanban ? "flex flex-col flex-1 min-h-0" : "flex flex-col"}>
         {/* Row 1: Tabs */}
         <div className="flex items-center justify-between gap-2 pb-2 shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto">
@@ -1065,7 +900,7 @@ export default function CRM() {
           </div>
         </div>
 
-        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden flex flex-col" data-tour="crm-kanban">
+        <TabsContent forceMount value="kanban" hidden={activeTab !== 'kanban'} className="flex-1 min-h-0 mt-0 overflow-hidden flex flex-col data-[state=inactive]:hidden" data-tour="crm-kanban">
           {scheduledLeadsCount > 0 && (
             <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
               <Clock className="h-3.5 w-3.5 text-amber-500" />
@@ -1073,13 +908,7 @@ export default function CRM() {
             </div>
           )}
           <KanbanBoard
-            leads={kanbanDateFilter 
-              ? kanbanLeads.filter(l => {
-                  const leadDate = l.updated_at ? l.updated_at.slice(0, 10) : '';
-                  const createdDate = l.created_at ? l.created_at.slice(0, 10) : '';
-                  return leadDate === kanbanDateFilter || createdDate === kanbanDateFilter;
-                })
-              : kanbanLeads}
+            leads={kanbanLeadsByDate}
             stages={KANBAN_STAGES}
             loading={loading}
             onStatusChange={updateLeadStatus}
@@ -1087,106 +916,138 @@ export default function CRM() {
           />
         </TabsContent>
 
-        <TabsContent value="lista" className="mt-3">
-          <LeadListView
-            leads={filteredLeads}
-            onLeadClick={openLeadDrawer}
-            onLeadUpdated={loadLeads}
-            userRole={currentUserRole}
-          />
-        </TabsContent>
-
-        <TabsContent value="agenda" className="mt-3">
-          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} />
-        </TabsContent>
-
-
-        <TabsContent value="dashboard" className="mt-3">
-          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} vendorFilter={vendorFilter} />
-        </TabsContent>
-
-        <TabsContent value="prospeccao" className="mt-3">
-          <ProspeccaoPanel onLeadsApproved={loadLeads} />
-        </TabsContent>
-
-        <TabsContent value="carteira" className="mt-3">
-          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={searchQuery} kanbanDateFilter={kanbanDateFilter} />
-        </TabsContent>
-
-        <TabsContent value="bastao" className="mt-3">
-          <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} origemFilter={origemFilter} kanbanDateFilter={kanbanDateFilter} />
-        </TabsContent>
-
-        <TabsContent value="concorrencia" className="mt-3">
-          <CompetitorProposalsView />
-        </TabsContent>
-
-        <TabsContent value="relatorio" className="mt-3">
-          <CRMReport leads={leads} onLeadClick={openLeadDrawer} followUps={pendingFollowUps} />
-        </TabsContent>
+        {mountedTabs.has('lista') && (
+          <TabsContent forceMount value="lista" hidden={activeTab !== 'lista'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <LeadListView leads={filteredLeads} onLeadClick={openLeadDrawer} onLeadUpdated={loadLeads} userRole={currentUserRole} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('agenda') && (
+          <TabsContent forceMount value="agenda" hidden={activeTab !== 'agenda'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={debouncedSearchQuery} vendorFilter={vendorFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('dashboard') && (
+          <TabsContent forceMount value="dashboard" hidden={activeTab !== 'dashboard'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} vendorFilter={vendorFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('prospeccao') && (
+          <TabsContent forceMount value="prospeccao" hidden={activeTab !== 'prospeccao'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <ProspeccaoPanel onLeadsApproved={loadLeads} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('carteira') && (
+          <TabsContent forceMount value="carteira" hidden={activeTab !== 'carteira'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={debouncedSearchQuery} kanbanDateFilter={kanbanDateFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('bastao') && (
+          <TabsContent forceMount value="bastao" hidden={activeTab !== 'bastao'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} searchQuery={debouncedSearchQuery} vendorFilter={vendorFilter} origemFilter={origemFilter} kanbanDateFilter={kanbanDateFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('concorrencia') && (
+          <TabsContent forceMount value="concorrencia" hidden={activeTab !== 'concorrencia'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <CompetitorProposalsView />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('relatorio') && (
+          <TabsContent forceMount value="relatorio" hidden={activeTab !== 'relatorio'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <CRMReport leads={leads} onLeadClick={openLeadDrawer} followUps={pendingFollowUps} />
+            </Suspense>
+          </TabsContent>
+        )}
       </Tabs>
 
-      <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />
+      {newLeadOpen && (
+        <Suspense fallback={null}>
+          <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />
+        </Suspense>
+      )}
 
-      <LeadDrawer
-        lead={selectedLead}
-        open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setSelectedLead(null); }}
-        onStatusChange={updateLeadStatus}
-        onLeadUpdated={loadLeads}
-      />
+      {(drawerOpen || selectedLead) && (
+        <Suspense fallback={null}>
+          <LeadDrawer
+            lead={selectedLead}
+            open={drawerOpen}
+            onClose={() => { setDrawerOpen(false); setSelectedLead(null); }}
+            onStatusChange={updateLeadStatus}
+            onLeadUpdated={loadLeads}
+          />
+        </Suspense>
+      )}
 
-      <LostDealsDialog
-        open={lostDialogOpen}
-        onOpenChange={setLostDialogOpen}
-        pendingLead={pendingLostLead}
-        lostLeads={lostLeads}
-        onConfirmLost={confirmLostDeal}
-        onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
-        onLeadClick={openLeadDrawer}
-        onLeadReactivated={loadLeads}
-        userRole={currentUserRole}
-      />
+      {(lostDialogOpen || pendingLostLead) && (
+        <Suspense fallback={null}>
+          <LostDealsDialog
+            open={lostDialogOpen}
+            onOpenChange={setLostDialogOpen}
+            pendingLead={pendingLostLead}
+            lostLeads={lostLeads}
+            onConfirmLost={confirmLostDeal}
+            onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
+            onLeadClick={openLeadDrawer}
+            onLeadReactivated={loadLeads}
+            userRole={currentUserRole}
+          />
+        </Suspense>
+      )}
 
       {pendingLostLead && (
-        <FollowUpScheduleDialog
+        <Suspense fallback={null}><FollowUpScheduleDialog
           open={lostFollowUpOpen}
           onOpenChange={(v) => { if (!v) handleLostFollowUpCancelled(); }}
           leadId={pendingLostLead.id}
           leadName={pendingLostLead.client_name || pendingLostLead.cliente_nome}
           onConfirm={handleLostFollowUpConfirmed}
-        />
+        /></Suspense>
       )}
 
       {pendingVisitLead && (
-        <VisitScheduleDialog
+        <Suspense fallback={null}><VisitScheduleDialog
           open={visitDialogOpen}
           onOpenChange={(v) => { setVisitDialogOpen(v); if (!v) setPendingVisitLead(null); }}
           leadId={pendingVisitLead.id}
           leadName={pendingVisitLead.client_name || pendingVisitLead.cliente_nome}
           onConfirm={handleVisitConfirmed}
-      />
+      /></Suspense>
       )}
 
       {pendingContactLead && (
-        <ContactDescriptionDialog
+        <Suspense fallback={null}><ContactDescriptionDialog
           open={contactDescOpen}
           onOpenChange={(v) => { setContactDescOpen(v); if (!v) setPendingContactLead(null); }}
           leadName={pendingContactLead.client_name || pendingContactLead.cliente_nome}
           onConfirm={handleContactDescConfirmed}
-        />
+        /></Suspense>
       )}
 
       {pendingEnrichLead && (
-        <LeadEnrichGateDialog
+        <Suspense fallback={null}><LeadEnrichGateDialog
           open={enrichGateOpen}
           onOpenChange={(v) => { setEnrichGateOpen(v); if (!v) setPendingEnrichLead(null); }}
           lead={pendingEnrichLead}
           onConfirm={handleEnrichConfirmed}
-        />
+        /></Suspense>
       )}
 
-      <OrderLinkDialog
+      {orderLinkOpen && (
+      <Suspense fallback={null}><OrderLinkDialog
         open={orderLinkOpen}
         onOpenChange={setOrderLinkOpen}
         targetStage={pendingOrderStage}
@@ -1221,10 +1082,11 @@ export default function CRM() {
           setPendingOrderLead(null);
           setOrderLinkOpen(false);
         }}
-      />
+      /></Suspense>
+      )}
 
       {pendingAnaliseLead && (
-        <AnaliseFinanceiraDialog
+        <Suspense fallback={null}><AnaliseFinanceiraDialog
           open={analiseFinOpen}
           onOpenChange={(v) => { setAnaliseFinOpen(v); if (!v) setPendingAnaliseLead(null); }}
           leadId={pendingAnaliseLead.id}
@@ -1241,17 +1103,17 @@ export default function CRM() {
           leadTelefone={pendingAnaliseLead.cliente_telefone}
           leadEmail={pendingAnaliseLead.cliente_email}
           onConfirm={handleAnaliseFinConfirmed}
-        />
+        /></Suspense>
       )}
 
       {pendingPassagemLead && (
-        <PassagemBastaoDialog
+        <Suspense fallback={null}><PassagemBastaoDialog
           open={passagemBastaoOpen}
           onOpenChange={(v) => { setPassagemBastaoOpen(v); if (!v) setPendingPassagemLead(null); }}
           leadName={pendingPassagemLead.empresa || pendingPassagemLead.client_name || pendingPassagemLead.cliente_nome}
           onConfirm={handlePassagemBastaoConfirmed}
           onCancel={() => { setPendingPassagemLead(null); setPassagemBastaoOpen(false); }}
-        />
+        /></Suspense>
       )}
 
       <OwnershipWarningDialog
@@ -1273,14 +1135,18 @@ export default function CRM() {
         </button>
       )}
 
-      <DashboardCarousel
-        open={carouselOpen}
-        onClose={() => setCarouselOpen(false)}
-        labels={['Dashboard CRM', 'Dashboard Comercial']}
-      >
-        <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode vendorFilter={vendorFilter} origemFilter={origemFilter} />
-        <DashboardComercial tvMode />
-      </DashboardCarousel>
+      {carouselOpen && (
+        <Suspense fallback={null}>
+          <DashboardCarousel
+            open={carouselOpen}
+            onClose={() => setCarouselOpen(false)}
+            labels={['Dashboard CRM', 'Dashboard Comercial']}
+          >
+            <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode vendorFilter={vendorFilter} origemFilter={origemFilter} />
+            <DashboardComercial tvMode />
+          </DashboardCarousel>
+        </Suspense>
+      )}
     </div>
   );
 }

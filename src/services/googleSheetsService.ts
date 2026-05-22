@@ -91,6 +91,27 @@ function normalizeField(value: string): string {
 }
 
 export async function fetchComercialData(): Promise<ComercialData[]> {
+  // Cache em memória (5min) + dedupe de chamadas concorrentes
+  const TTL = 5 * 60 * 1000;
+  const store = fetchComercialData as any;
+  if (store._cache && Date.now() - store._cache.ts < TTL) {
+    return store._cache.data as ComercialData[];
+  }
+  if (store._inflight) {
+    return store._inflight as Promise<ComercialData[]>;
+  }
+  store._inflight = _fetchComercialDataImpl()
+    .then((data) => {
+      store._cache = { data, ts: Date.now() };
+      return data;
+    })
+    .finally(() => {
+      store._inflight = undefined;
+    });
+  return store._inflight as Promise<ComercialData[]>;
+}
+
+async function _fetchComercialDataImpl(): Promise<ComercialData[]> {
   try {
     console.log("Fetching data from Google Sheets CSV...");
 

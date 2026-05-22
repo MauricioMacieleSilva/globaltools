@@ -1,8 +1,9 @@
 
-import { useState, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KanbanCard } from './KanbanCard';
 import type { CRMLead } from '@/pages/CRM';
+import type { CRMLeadCardMeta } from '@/context/CRMDataContext';
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -18,12 +19,27 @@ interface KanbanBoardProps {
   loading: boolean;
   onStatusChange: (leadId: string, newStatus: string) => void;
   onCardClick: (lead: CRMLead) => void;
+  cardMeta?: Record<string, CRMLeadCardMeta>;
 }
 
-export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClick }: KanbanBoardProps) {
+export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClick, cardMeta = {} }: KanbanBoardProps) {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  const leadsByStage = useMemo(() => {
+    const grouped = new Map<string, CRMLead[]>();
+    stages.forEach(stage => grouped.set(stage.key, []));
+    leads.forEach(lead => grouped.get(lead.status)?.push(lead));
+    grouped.forEach(stageLeads => {
+      stageLeads.sort((a, b) => {
+        const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return aTime - bTime;
+      });
+    });
+    return grouped;
+  }, [leads, stages]);
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.setData('text/plain', leadId);
@@ -81,14 +97,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
         className={`kanban-scroll flex gap-3 overflow-x-scroll overflow-y-hidden flex-1 min-h-0 ${isMobile ? 'snap-x snap-mandatory' : ''}`}
       >
         {stages.map(stage => {
-          const stageLeads = leads
-            .filter(l => l.status === stage.key)
-            .sort((a, b) => {
-              // Leads com mais tempo sem interação (updated_at mais antigo) ficam no topo
-              const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
-              const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
-              return aTime - bTime;
-            });
+          const stageLeads = leadsByStage.get(stage.key) || [];
           const isOver = dragOverColumn === stage.key;
 
           return (
@@ -124,6 +133,7 @@ export function KanbanBoard({ leads, stages, loading, onStatusChange, onCardClic
                       onDragStart={handleDragStart}
                       onClick={() => onCardClick(lead)}
                       isDragging={draggedLeadId === lead.id}
+                      cardMeta={cardMeta[lead.id]}
                     />
                   ))
                 )}

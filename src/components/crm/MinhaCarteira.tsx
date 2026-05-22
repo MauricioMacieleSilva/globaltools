@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,7 +11,9 @@ import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CRMLead } from '@/pages/CRM';
+import type { CRMLeadCardMeta } from '@/context/CRMDataContext';
 import { isBlockedLossReason, getBlockedReasonLabel } from '@/lib/lead-blocked-reasons';
+import { useCommercialVendors } from '@/hooks/useCommercialVendors';
 
 interface MinhaCarteiraProps {
   leads: CRMLead[];
@@ -22,6 +24,8 @@ interface MinhaCarteiraProps {
   vendorFilter?: string;
   searchQuery?: string;
   kanbanDateFilter?: string;
+  currentUserRole?: string | null;
+  cardMeta?: Record<string, CRMLeadCardMeta>;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -37,13 +41,11 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 type StatusFilter = 'todos' | 'andamento' | 'kanban' | 'agendados' | 'fechados' | 'perdidos' | 'bloqueados';
 
-export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated, origemFilter, vendorFilter, searchQuery: externalSearch, kanbanDateFilter }: MinhaCarteiraProps) {
+export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactivated, origemFilter, vendorFilter, searchQuery: externalSearch, kanbanDateFilter, currentUserRole, cardMeta = {} }: MinhaCarteiraProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [reactivateConfirm, setReactivateConfirm] = useState<CRMLead | null>(null);
   const [reactivating, setReactivating] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
   const [assignVendorOpen, setAssignVendorOpen] = useState(false);
   const [assignVendorLead, setAssignVendorLead] = useState<CRMLead | null>(null);
   const [selectedVendorId, setSelectedVendorId] = useState('');
@@ -51,86 +53,13 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  // Map leadId -> motivo bloqueante (de lead_dispositions, para leads bloqueados mesmo que reativados)
-  const [blockedMap, setBlockedMap] = useState<Record<string, string>>({});
-  // Set de leadIds que possuem visita ou follow-up futuro agendado
-  const [scheduledLeadIds, setScheduledLeadIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const checkRole = async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) return;
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', authData.user.id)
-        .maybeSingle();
-      const role = (roleData as any)?.role;
-      setIsAdmin(role === 'admin' || role === 'comercial');
-    };
-    checkRole();
-  }, []);
-
-  useEffect(() => {
-    if (isAdmin) {
-      supabase.from('user_profiles').select('id, full_name').then(({ data }) => {
-        if (data) setVendors(data.map(v => ({ id: v.id, name: v.full_name })));
-      });
-    }
-  }, [isAdmin]);
-
-  // Carrega motivos bloqueantes de lead_dispositions para todos os leads visíveis
-  const lastBlockedKeyRef = useRef<string>('');
-  useEffect(() => {
-    const loadBlocked = async () => {
-      const ids = leads.map(l => l.id);
-      if (ids.length === 0) { setBlockedMap({}); return; }
-      // Evita refetch quando o conjunto de IDs não mudou (apenas a referência do array)
-      const key = ids.slice().sort().join(',');
-      if (key === lastBlockedKeyRef.current) return;
-      lastBlockedKeyRef.current = key;
-      const { data } = await (supabase as any)
-        .from('lead_dispositions')
-        .select('lead_id, reason, custom_reason')
-        .eq('disposition_type', 'lost')
-        .in('lead_id', ids);
-      const map: Record<string, string> = {};
-      (data || []).forEach((d: any) => {
-        const r = d.reason || d.custom_reason || '';
-        if (isBlockedLossReason(r)) map[d.lead_id] = r;
-      });
-      setBlockedMap(map);
-    };
-    loadBlocked();
-  }, [leads]);
-
-  // Carrega leads com visitas ou follow-ups futuros agendados (sem filtro .in para evitar limite de URL)
-  const lastScheduledKeyRef = useRef<string>('');
-  useEffect(() => {
-    const loadScheduled = async () => {
-      if (leads.length === 0) { setScheduledLeadIds(new Set()); return; }
-      // Refetch no máximo a cada 60s, ou quando o conjunto de IDs mudar
-      const ids = leads.map(l => l.id).sort().join(',');
-      const minute = Math.floor(Date.now() / 60000);
-      const key = `${minute}:${ids}`;
-      if (key === lastScheduledKeyRef.current) return;
-      lastScheduledKeyRef.current = key;
-      const nowIso = new Date().toISOString();
-      const [visitsRes, followsRes] = await Promise.all([
-        (supabase as any).from('crm_visits').select('lead_id').gte('visit_date', nowIso),
-        supabase.from('follow_ups').select('lead_id').eq('concluido', false).gte('data_agendada', nowIso).not('lead_id', 'is', null),
-      ]);
-      const set = new Set<string>();
-      (visitsRes.data || []).forEach((v: any) => v.lead_id && set.add(v.lead_id));
-      (followsRes.data || []).forEach((f: any) => f.lead_id && set.add(f.lead_id));
-      setScheduledLeadIds(set);
-    };
-    loadScheduled();
-  }, [leads]);
+  const { vendors: commercialVendors } = useCommercialVendors();
+  const vendors = useMemo(() => commercialVendors.map(v => ({ id: v.id, name: v.full_name })), [commercialVendors]);
+  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'comercial';
 
   // Helper: lead é bloqueado se status=perdido com motivo bloqueante OU tem disposição bloqueante registrada
   const isLeadBlocked = (lead: CRMLead): string | null => {
-    if (blockedMap[lead.id]) return blockedMap[lead.id];
+    if (cardMeta[lead.id]?.blockedReason) return cardMeta[lead.id].blockedReason;
     if (lead.status === 'perdido' && isBlockedLossReason(lead.notes)) return lead.notes!;
     return null;
   };
@@ -173,7 +102,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   // Um lead aparece em "Agendados" sempre que tem visita/follow-up futuro agendado
   // E não está bloqueado (Não Recontatar). Inclui leads "perdido" cujo kanban
   // solicitou agendamento de follow-up no momento da perda.
-  const isAgendado = (l: CRMLead) => !isLeadBlocked(l) && scheduledLeadIds.has(l.id);
+  const isAgendado = (l: CRMLead) => !isLeadBlocked(l) && !!cardMeta[l.id]?.hasFutureSchedule;
 
   const filtered = useMemo(() => {
     let result = myLeads;
@@ -187,7 +116,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       result = result.filter(l => l.status === 'pedido_fechado');
     } else if (statusFilter === 'perdidos') {
       // Perdidos sem follow-up agendado e sem motivo bloqueante
-      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l) && !scheduledLeadIds.has(l.id));
+      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l) && !isAgendado(l));
     } else if (statusFilter === 'bloqueados') {
       result = result.filter(l => !!isLeadBlocked(l));
     }
@@ -204,13 +133,13 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       );
     }
     return result;
-  }, [myLeads, search, statusFilter, blockedMap, scheduledLeadIds]);
+  }, [myLeads, search, statusFilter, cardMeta]);
 
   const counts = useMemo(() => {
     const blocked = myLeads.filter(l => !!isLeadBlocked(l));
     const blockedIds = new Set(blocked.map(l => l.id));
     // Agendados: qualquer lead (inclusive "perdido") com follow-up/visita futura, exceto bloqueados
-    const agendadosLeads = myLeads.filter(l => !blockedIds.has(l.id) && scheduledLeadIds.has(l.id));
+    const agendadosLeads = myLeads.filter(l => !blockedIds.has(l.id) && !!cardMeta[l.id]?.hasFutureSchedule);
     const agendadosIds = new Set(agendadosLeads.map(l => l.id));
     // No Kanban: em andamento (não perdido, não fechado, não bloqueado) e sem agendamento futuro
     const kanbanLeads = myLeads.filter(l =>
@@ -223,10 +152,10 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       agendados: agendadosLeads.length,
       fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
       // Perdidos "comuns": perdido sem agendamento e sem motivo bloqueante
-      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id) && !scheduledLeadIds.has(l.id)).length,
+      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id) && !cardMeta[l.id]?.hasFutureSchedule).length,
       bloqueados: blocked.length,
     };
-  }, [myLeads, blockedMap, scheduledLeadIds]);
+  }, [myLeads, cardMeta]);
 
   const handleReactivate = async () => {
     if (!reactivateConfirm) return;

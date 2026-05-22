@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import type { CRMLead } from '@/pages/CRM';
 import { CRM_STAGES, KANBAN_STAGES } from '@/pages/CRM';
+import { useCommercialVendors } from '@/hooks/useCommercialVendors';
 
 interface CRMDashboardProps {
   leads: CRMLead[];
@@ -28,16 +29,23 @@ interface CRMDashboardProps {
 
 const CHART_COLOR = 'hsl(200, 98%, 39%)';
 
+const dashboardCache = new Map<string, { activities: any[]; lossReasons: any[]; goals: any[]; ts: number }>();
+const DASHBOARD_CACHE_TTL = 5 * 60 * 1000;
+
 export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMode = false, origemFilter, vendorFilter: externalVendorFilter }: CRMDashboardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [allActivities, setAllActivities] = useState<any[]>([]);
-  const [vendors, setVendors] = useState<{ id: string; name: string; avatar_url: string | null }[]>([]);
+  const { vendors: commercialVendors } = useCommercialVendors();
+  const vendors = useMemo(
+    () => commercialVendors.map(v => ({ id: v.id, name: v.full_name, avatar_url: v.avatar_url })),
+    [commercialVendors]
+  );
   const [lossReasons, setLossReasons] = useState<any[]>([]);
   const vendorFilter = externalVendorFilter || 'all';
   const [periodFilter, setPeriodFilter] = useState(() => format(new Date(), 'yyyy-MM'));
   const [dateFilter, setDateFilter] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [vendorGoals, setVendorGoals] = useState<any[]>([]);
 
   const monthOptions = useMemo(() => {
@@ -49,33 +57,30 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return months;
   }, []);
 
-  const loadVendors = useCallback(async () => {
-    const { data } = await supabase.from('user_profiles').select('id, full_name, avatar_url');
-    if (data) setVendors(data.map(v => ({ id: v.id, name: v.full_name, avatar_url: v.avatar_url })));
-  }, []);
-
-  const loadVendorGoals = useCallback(async () => {
-    const { data } = await (supabase as any)
-      .from('crm_vendor_goals')
-      .select('*')
-      .eq('month_year', periodFilter);
-    setVendorGoals(data || []);
-  }, [periodFilter]);
-
   const loadActivities = useCallback(async () => {
+    const cacheKey = periodFilter;
+    const cached = dashboardCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < DASHBOARD_CACHE_TTL) {
+      setAllActivities(cached.activities);
+      setActivities(vendorFilter !== 'all' ? cached.activities.filter(a => a.user_id === vendorFilter) : cached.activities);
+      setLossReasons(cached.lossReasons);
+      setVendorGoals(cached.goals);
+      return;
+    }
+
     setLoading(true);
     const [year, month] = periodFilter.split('-').map(Number);
     const start = startOfMonth(new Date(year, month - 1));
     const end = endOfMonth(new Date(year, month - 1));
 
-    // Load ALL activities — paginate to overcome 1000 row limit
+    // Load only columns used by the dashboard, cached by month.
     let allData: any[] = [];
     let from = 0;
     const pageSize = 1000;
     while (true) {
       const { data: batch } = await supabase
         .from('lead_activities')
-        .select('*')
+        .select('lead_id, activity_type, description, user_id, created_at, sdr_name, contact_channel')
         .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString())
         .range(from, from + pageSize - 1);
@@ -84,33 +89,33 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
       if (batch.length < pageSize) break;
       from += pageSize;
     }
-    
-    setAllActivities(allData);
 
-    // Set filtered activities based on vendor
-    if (vendorFilter !== 'all') {
-      setActivities(allData.filter(a => a.user_id === vendorFilter));
-    } else {
-      setActivities(allData);
-    }
-
-    let lossQuery = (supabase as any)
+    const [lossRes, goalsRes] = await Promise.all([
+      (supabase as any)
       .from('lead_dispositions')
       .select('reason, custom_reason, disposition_type')
       .eq('disposition_type', 'lost')
       .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString());
+      .lte('created_at', end.toISOString()),
+      (supabase as any)
+        .from('crm_vendor_goals')
+        .select('*')
+        .eq('month_year', periodFilter),
+    ]);
 
-    const { data: lossData } = await lossQuery;
-    setLossReasons(lossData || []);
+    const payload = { activities: allData, lossReasons: lossRes.data || [], goals: goalsRes.data || [], ts: Date.now() };
+    dashboardCache.set(cacheKey, payload);
+    setAllActivities(payload.activities);
+    setActivities(vendorFilter !== 'all' ? payload.activities.filter(a => a.user_id === vendorFilter) : payload.activities);
+    setLossReasons(payload.lossReasons);
+    setVendorGoals(payload.goals);
 
     setLoading(false);
   }, [periodFilter, vendorFilter]);
 
   // vendorFilter is now controlled externally via props
 
-  useEffect(() => { loadVendors(); }, [loadVendors]);
-  useEffect(() => { loadActivities(); loadVendorGoals(); }, [loadActivities, loadVendorGoals]);
+  useEffect(() => { loadActivities(); }, [loadActivities]);
 
   // Computed goals based on filter
   const currentGoals = useMemo(() => {
@@ -156,52 +161,19 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return ids;
   }, [leads, origemFilter, leadMatchesOrigem]);
 
-  // Load historical stage counts from lead_activities (mudanca_status)
-  const [historicalStageCounts, setHistoricalStageCounts] = useState<Record<string, { count: number; value: number }>>({});
-  const loadHistoricalFunnel = useCallback(async () => {
+  // Histórico do funil calculado dos dados já carregados — sem nova ida ao banco ao abrir Dashboard.
+  const historicalStageCounts = useMemo<Record<string, { count: number; value: number }>>(() => {
     const [year, month] = periodFilter.split('-').map(Number);
     const start = startOfMonth(new Date(year, month - 1));
     const end = endOfMonth(new Date(year, month - 1));
 
-    // Get all stage move activities in period
-    let allMoves: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data: batch } = await supabase
-        .from('lead_activities')
-        .select('lead_id, description, user_id')
-        .eq('activity_type', 'mudanca_status')
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString())
-        .range(from, from + pageSize - 1);
-      if (!batch || batch.length === 0) break;
-      allMoves = allMoves.concat(batch);
-      if (batch.length < pageSize) break;
-      from += pageSize;
-    }
-
-    // Also count leads created in the period (they enter "Lead" stage)
-    let leadsCreated: any[] = [];
-    from = 0;
-    while (true) {
-      const { data: batch } = await supabase
-        .from('leads')
-        .select('id, valor_estimado, vendedor_id')
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString())
-        .range(from, from + pageSize - 1);
-      if (!batch || batch.length === 0) break;
-      leadsCreated = leadsCreated.concat(batch);
-      if (batch.length < pageSize) break;
-      from += pageSize;
-    }
-
     const counts: Record<string, { count: number; value: number }> = {};
-    
-    // Filter by origin if needed
     const origemIds = origemLeadIds;
-    const filterByOrigem = (leadId: string) => !origemIds || origemIds.has(leadId);
+    const leadsById = new Map(leads.map(l => [l.id, l]));
+    const leadsCreated = leads.filter(l => {
+      const created = new Date(l.created_at);
+      return created >= start && created <= end;
+    });
 
     // Count leads entering "Lead" stage (created)
     let filteredCreated = vendorFilter !== 'all' 
@@ -217,9 +189,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const stageLabels: Record<string, string> = {};
     CRM_STAGES.forEach(s => { stageLabels[s.label.toLowerCase()] = s.key; });
 
-    let filteredMoves = vendorFilter !== 'all'
-      ? allMoves.filter(a => a.user_id === vendorFilter)
-      : allMoves;
+    let filteredMoves = allActivities.filter(a => a.activity_type === 'mudanca_status');
+    if (vendorFilter !== 'all') filteredMoves = filteredMoves.filter(a => a.user_id === vendorFilter);
     if (origemIds) filteredMoves = filteredMoves.filter(a => origemIds.has(a.lead_id));
 
     filteredMoves.forEach((a: any) => {
@@ -233,16 +204,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           if (!counts[stageKey]) counts[stageKey] = { count: 0, value: 0 };
           counts[stageKey].count++;
           // Find lead value
-          const leadObj = leads.find(l => l.id === a.lead_id);
+          const leadObj = leadsById.get(a.lead_id);
           if (leadObj) counts[stageKey].value += leadObj.valor_estimado || 0;
         }
       }
     });
 
-    setHistoricalStageCounts(counts);
-  }, [periodFilter, vendorFilter, leads, origemLeadIds]);
-
-  useEffect(() => { loadHistoricalFunnel(); }, [loadHistoricalFunnel]);
+    return counts;
+  }, [periodFilter, vendorFilter, leads, origemLeadIds, allActivities]);
 
   // All active leads (unfiltered) for funnel "Lead" stage
   const allActiveLeads = useMemo(() => leads.filter(l => l.status !== 'perdido'), [leads]);

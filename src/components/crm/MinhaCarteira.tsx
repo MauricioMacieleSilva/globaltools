@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,8 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
   const { vendors: commercialVendors } = useCommercialVendors();
   const vendors = useMemo(() => commercialVendors.map(v => ({ id: v.id, name: v.full_name })), [commercialVendors]);
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'comercial';
@@ -133,6 +136,16 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
     return result;
   }, [myLeads, search, statusFilter, cardMeta]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setPage(1); }, [search, statusFilter, origemFilter, vendorFilter, externalSearch, kanbanDateFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage]
+  );
 
   const counts = useMemo(() => {
     const blocked = myLeads.filter(l => !!isLeadBlocked(l));
@@ -422,9 +435,39 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
 
       <div className="space-y-4">
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {filtered.map(renderLeadCard)}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {paginated.map(renderLeadCard)}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                <p className="text-xs text-muted-foreground">
+                  Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de {filtered.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <p className="text-center text-sm text-muted-foreground py-8">
             {search ? 'Nenhum lead encontrado na busca' : 'Nenhum lead nesta categoria'}

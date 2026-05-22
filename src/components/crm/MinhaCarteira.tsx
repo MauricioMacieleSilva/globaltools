@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -421,19 +420,17 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
         </Button>
       </div>
 
-      <ScrollArea className="max-h-[calc(100vh-260px)]">
-        <div className="space-y-4 pr-2">
-          {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {filtered.map(renderLeadCard)}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-muted-foreground py-8">
-              {search ? 'Nenhum lead encontrado na busca' : 'Nenhum lead nesta categoria'}
-            </p>
-          )}
-        </div>
-      </ScrollArea>
+      <div className="space-y-4">
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {filtered.map(renderLeadCard)}
+          </div>
+        ) : (
+          <p className="text-center text-sm text-muted-foreground py-8">
+            {search ? 'Nenhum lead encontrado na busca' : 'Nenhum lead nesta categoria'}
+          </p>
+        )}
+      </div>
 
       <AlertDialog open={!!reactivateConfirm} onOpenChange={(v) => { if (!v) { setReactivateConfirm(null); setSelectedVendorId(''); } }}>
         <AlertDialogContent>

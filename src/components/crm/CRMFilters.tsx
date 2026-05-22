@@ -1,5 +1,6 @@
 
 import { Search } from 'lucide-react';
+import { memo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEffect, useState } from 'react';
@@ -15,7 +16,7 @@ interface CRMFiltersProps {
   hideSearch?: boolean;
 }
 
-export function CRMFilters({ searchQuery, onSearchChange, vendorFilter, onVendorChange, origemFilter, onOrigemChange, hideSearch = false }: CRMFiltersProps) {
+function CRMFiltersImpl({ searchQuery, onSearchChange, vendorFilter, onVendorChange, origemFilter, onOrigemChange, hideSearch = false }: CRMFiltersProps) {
   const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
   const [origens, setOrigens] = useState<string[]>([]);
 
@@ -72,3 +73,5 @@ export function CRMFilters({ searchQuery, onSearchChange, vendorFilter, onVendor
     </div>
   );
 }
+
+export const CRMFilters = memo(CRMFiltersImpl);

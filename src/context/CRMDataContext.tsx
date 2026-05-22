@@ -108,7 +108,7 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
       while (hasMore) {
         const { data, error } = await (supabase as any)
           .from('leads')
-          .select('*, vendedor:user_profiles!leads_vendedor_id_fkey(full_name, avatar_url)')
+          .select('*')
           .order('updated_at', { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
         if (error) throw error;
@@ -118,7 +118,25 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
         from += PAGE_SIZE;
       }
 
-      setLeads(allLeads as CRMLead[]);
+      // Client-side join com user_profiles — evita o JOIN no servidor (muito mais leve no Postgres)
+      const vendorIds = Array.from(
+        new Set((allLeads as any[]).map((l) => l.vendedor_id).filter(Boolean))
+      );
+      let profilesMap = new Map<string, { full_name: string; avatar_url: string | null }>();
+      if (vendorIds.length > 0) {
+        const { data: profiles } = await (supabase as any)
+          .from('user_profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', vendorIds);
+        (profiles || []).forEach((p: any) => {
+          profilesMap.set(p.id, { full_name: p.full_name || '', avatar_url: p.avatar_url ?? null });
+        });
+      }
+      const leadsWithVendor = (allLeads as any[]).map((l) => ({
+        ...l,
+        vendedor: l.vendedor_id ? profilesMap.get(l.vendedor_id) || null : null,
+      }));
+      setLeads(leadsWithVendor as CRMLead[]);
       setLastUpdated(new Date());
 
       // Background reconcile do valor_estimado: roda no máximo UMA vez por sessão

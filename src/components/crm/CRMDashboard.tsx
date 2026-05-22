@@ -161,52 +161,19 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     return ids;
   }, [leads, origemFilter, leadMatchesOrigem]);
 
-  // Load historical stage counts from lead_activities (mudanca_status)
-  const [historicalStageCounts, setHistoricalStageCounts] = useState<Record<string, { count: number; value: number }>>({});
-  const loadHistoricalFunnel = useCallback(async () => {
+  // Histórico do funil calculado dos dados já carregados — sem nova ida ao banco ao abrir Dashboard.
+  const historicalStageCounts = useMemo<Record<string, { count: number; value: number }>>(() => {
     const [year, month] = periodFilter.split('-').map(Number);
     const start = startOfMonth(new Date(year, month - 1));
     const end = endOfMonth(new Date(year, month - 1));
 
-    // Get all stage move activities in period
-    let allMoves: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data: batch } = await supabase
-        .from('lead_activities')
-        .select('lead_id, description, user_id')
-        .eq('activity_type', 'mudanca_status')
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString())
-        .range(from, from + pageSize - 1);
-      if (!batch || batch.length === 0) break;
-      allMoves = allMoves.concat(batch);
-      if (batch.length < pageSize) break;
-      from += pageSize;
-    }
-
-    // Also count leads created in the period (they enter "Lead" stage)
-    let leadsCreated: any[] = [];
-    from = 0;
-    while (true) {
-      const { data: batch } = await supabase
-        .from('leads')
-        .select('id, valor_estimado, vendedor_id')
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString())
-        .range(from, from + pageSize - 1);
-      if (!batch || batch.length === 0) break;
-      leadsCreated = leadsCreated.concat(batch);
-      if (batch.length < pageSize) break;
-      from += pageSize;
-    }
-
     const counts: Record<string, { count: number; value: number }> = {};
-    
-    // Filter by origin if needed
     const origemIds = origemLeadIds;
-    const filterByOrigem = (leadId: string) => !origemIds || origemIds.has(leadId);
+    const leadsById = new Map(leads.map(l => [l.id, l]));
+    const leadsCreated = leads.filter(l => {
+      const created = new Date(l.created_at);
+      return created >= start && created <= end;
+    });
 
     // Count leads entering "Lead" stage (created)
     let filteredCreated = vendorFilter !== 'all' 
@@ -222,9 +189,8 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
     const stageLabels: Record<string, string> = {};
     CRM_STAGES.forEach(s => { stageLabels[s.label.toLowerCase()] = s.key; });
 
-    let filteredMoves = vendorFilter !== 'all'
-      ? allMoves.filter(a => a.user_id === vendorFilter)
-      : allMoves;
+    let filteredMoves = allActivities.filter(a => a.activity_type === 'mudanca_status');
+    if (vendorFilter !== 'all') filteredMoves = filteredMoves.filter(a => a.user_id === vendorFilter);
     if (origemIds) filteredMoves = filteredMoves.filter(a => origemIds.has(a.lead_id));
 
     filteredMoves.forEach((a: any) => {
@@ -238,16 +204,14 @@ export function CRMDashboard({ leads, lastUpdated, onRefresh, isRefreshing, tvMo
           if (!counts[stageKey]) counts[stageKey] = { count: 0, value: 0 };
           counts[stageKey].count++;
           // Find lead value
-          const leadObj = leads.find(l => l.id === a.lead_id);
+          const leadObj = leadsById.get(a.lead_id);
           if (leadObj) counts[stageKey].value += leadObj.valor_estimado || 0;
         }
       }
     });
 
-    setHistoricalStageCounts(counts);
-  }, [periodFilter, vendorFilter, leads, origemLeadIds]);
-
-  useEffect(() => { loadHistoricalFunnel(); }, [loadHistoricalFunnel]);
+    return counts;
+  }, [periodFilter, vendorFilter, leads, origemLeadIds, allActivities]);
 
   // All active leads (unfiltered) for funnel "Lead" stage
   const allActiveLeads = useMemo(() => leads.filter(l => l.status !== 'perdido'), [leads]);

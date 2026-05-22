@@ -125,6 +125,7 @@ export default function CRM() {
     lastUpdated,
     currentUserId,
     currentUserRole,
+    cardMeta,
     loadLeads,
     loadFollowUps,
   } = useCRMData();
@@ -913,6 +914,7 @@ export default function CRM() {
             loading={loading}
             onStatusChange={updateLeadStatus}
             onCardClick={openLeadDrawer}
+            cardMeta={cardMeta}
           />
         </TabsContent>
 

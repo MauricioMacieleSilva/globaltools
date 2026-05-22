@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Clock, MessageCircle, Calendar, MapPin, Briefcase, Package, CheckCircle2, AlertCircle, CreditCard, PhoneMissed, ArrowRightLeft, ShieldCheck, Ban, Presentation } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,7 @@ function getAgingColor(days: number): string {
   return 'border-l-purple-600';
 }
 
-export function KanbanCard({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
+function KanbanCardImpl({ lead, onDragStart, onClick, isDragging }: KanbanCardProps) {
   const [nextVisit, setNextVisit] = useState<{ date: string; location?: string } | null>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);

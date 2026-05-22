@@ -431,3 +431,12 @@ function KanbanCardImpl({ lead, onDragStart, onClick, isDragging }: KanbanCardPr
     </Card>
   );
 }
+
+export const KanbanCard = memo(KanbanCardImpl, (prev, next) => {
+  return (
+    prev.lead === next.lead &&
+    prev.isDragging === next.isDragging &&
+    prev.onClick === next.onClick &&
+    prev.onDragStart === next.onDragStart
+  );
+});

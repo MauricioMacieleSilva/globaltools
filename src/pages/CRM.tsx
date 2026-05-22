@@ -826,7 +826,7 @@ export default function CRM() {
   const isKanban = activeTab === 'kanban';
     return (
     <div className={isKanban ? "flex flex-col h-[calc(100vh-56px)] p-3 sm:p-4 gap-0 overflow-hidden" : "flex flex-col min-h-[calc(100vh-56px)] p-3 sm:p-4 gap-0"}>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className={isKanban ? "flex flex-col flex-1 min-h-0" : "flex flex-col"}>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className={isKanban ? "flex flex-col flex-1 min-h-0" : "flex flex-col"}>
         {/* Row 1: Tabs */}
         <div className="flex items-center justify-between gap-2 pb-2 shrink-0">
           <div className="flex items-center gap-2 overflow-x-auto">
@@ -900,7 +900,7 @@ export default function CRM() {
           </div>
         </div>
 
-        <TabsContent value="kanban" className="flex-1 min-h-0 mt-0 overflow-hidden flex flex-col" data-tour="crm-kanban">
+        <TabsContent forceMount value="kanban" hidden={activeTab !== 'kanban'} className="flex-1 min-h-0 mt-0 overflow-hidden flex flex-col data-[state=inactive]:hidden" data-tour="crm-kanban">
           {scheduledLeadsCount > 0 && (
             <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
               <Clock className="h-3.5 w-3.5 text-amber-500" />
@@ -908,13 +908,7 @@ export default function CRM() {
             </div>
           )}
           <KanbanBoard
-            leads={kanbanDateFilter 
-              ? kanbanLeads.filter(l => {
-                  const leadDate = l.updated_at ? l.updated_at.slice(0, 10) : '';
-                  const createdDate = l.created_at ? l.created_at.slice(0, 10) : '';
-                  return leadDate === kanbanDateFilter || createdDate === kanbanDateFilter;
-                })
-              : kanbanLeads}
+            leads={kanbanLeadsByDate}
             stages={KANBAN_STAGES}
             loading={loading}
             onStatusChange={updateLeadStatus}
@@ -922,66 +916,97 @@ export default function CRM() {
           />
         </TabsContent>
 
-        <TabsContent value="lista" className="mt-3">
-          <LeadListView
-            leads={filteredLeads}
-            onLeadClick={openLeadDrawer}
-            onLeadUpdated={loadLeads}
-            userRole={currentUserRole}
-          />
-        </TabsContent>
-
-        <TabsContent value="agenda" className="mt-3">
-          <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} />
-        </TabsContent>
-
-
-        <TabsContent value="dashboard" className="mt-3">
-          <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} vendorFilter={vendorFilter} />
-        </TabsContent>
-
-        <TabsContent value="prospeccao" className="mt-3">
-          <ProspeccaoPanel onLeadsApproved={loadLeads} />
-        </TabsContent>
-
-        <TabsContent value="carteira" className="mt-3">
-          <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={searchQuery} kanbanDateFilter={kanbanDateFilter} />
-        </TabsContent>
-
-        <TabsContent value="bastao" className="mt-3">
-          <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} searchQuery={searchQuery} vendorFilter={vendorFilter} origemFilter={origemFilter} kanbanDateFilter={kanbanDateFilter} />
-        </TabsContent>
-
-        <TabsContent value="concorrencia" className="mt-3">
-          <CompetitorProposalsView />
-        </TabsContent>
-
-        <TabsContent value="relatorio" className="mt-3">
-          <CRMReport leads={leads} onLeadClick={openLeadDrawer} followUps={pendingFollowUps} />
-        </TabsContent>
+        {mountedTabs.has('lista') && (
+          <TabsContent forceMount value="lista" hidden={activeTab !== 'lista'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <LeadListView leads={filteredLeads} onLeadClick={openLeadDrawer} onLeadUpdated={loadLeads} userRole={currentUserRole} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('agenda') && (
+          <TabsContent forceMount value="agenda" hidden={activeTab !== 'agenda'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <VisitCalendar leads={leads} onLeadClick={openLeadDrawer} searchQuery={debouncedSearchQuery} vendorFilter={vendorFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('dashboard') && (
+          <TabsContent forceMount value="dashboard" hidden={activeTab !== 'dashboard'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} origemFilter={origemFilter} vendorFilter={vendorFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('prospeccao') && (
+          <TabsContent forceMount value="prospeccao" hidden={activeTab !== 'prospeccao'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <ProspeccaoPanel onLeadsApproved={loadLeads} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('carteira') && (
+          <TabsContent forceMount value="carteira" hidden={activeTab !== 'carteira'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={debouncedSearchQuery} kanbanDateFilter={kanbanDateFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('bastao') && (
+          <TabsContent forceMount value="bastao" hidden={activeTab !== 'bastao'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <HandoffHistory leads={leads} onLeadClick={openLeadDrawer} searchQuery={debouncedSearchQuery} vendorFilter={vendorFilter} origemFilter={origemFilter} kanbanDateFilter={kanbanDateFilter} />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('concorrencia') && (
+          <TabsContent forceMount value="concorrencia" hidden={activeTab !== 'concorrencia'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <CompetitorProposalsView />
+            </Suspense>
+          </TabsContent>
+        )}
+        {mountedTabs.has('relatorio') && (
+          <TabsContent forceMount value="relatorio" hidden={activeTab !== 'relatorio'} className="mt-3 data-[state=inactive]:hidden">
+            <Suspense fallback={<TabFallback />}>
+              <CRMReport leads={leads} onLeadClick={openLeadDrawer} followUps={pendingFollowUps} />
+            </Suspense>
+          </TabsContent>
+        )}
       </Tabs>
 
-      <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />
+      {newLeadOpen && (
+        <Suspense fallback={null}>
+          <NewLeadDialog open={newLeadOpen} onOpenChange={setNewLeadOpen} onLeadCreated={loadLeads} />
+        </Suspense>
+      )}
 
-      <LeadDrawer
-        lead={selectedLead}
-        open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setSelectedLead(null); }}
-        onStatusChange={updateLeadStatus}
-        onLeadUpdated={loadLeads}
-      />
+      {(drawerOpen || selectedLead) && (
+        <Suspense fallback={null}>
+          <LeadDrawer
+            lead={selectedLead}
+            open={drawerOpen}
+            onClose={() => { setDrawerOpen(false); setSelectedLead(null); }}
+            onStatusChange={updateLeadStatus}
+            onLeadUpdated={loadLeads}
+          />
+        </Suspense>
+      )}
 
-      <LostDealsDialog
-        open={lostDialogOpen}
-        onOpenChange={setLostDialogOpen}
-        pendingLead={pendingLostLead}
-        lostLeads={lostLeads}
-        onConfirmLost={confirmLostDeal}
-        onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
-        onLeadClick={openLeadDrawer}
-        onLeadReactivated={loadLeads}
-        userRole={currentUserRole}
-      />
+      {(lostDialogOpen || pendingLostLead) && (
+        <Suspense fallback={null}>
+          <LostDealsDialog
+            open={lostDialogOpen}
+            onOpenChange={setLostDialogOpen}
+            pendingLead={pendingLostLead}
+            lostLeads={lostLeads}
+            onConfirmLost={confirmLostDeal}
+            onCancel={() => { setPendingLostLead(null); setLostDialogOpen(false); }}
+            onLeadClick={openLeadDrawer}
+            onLeadReactivated={loadLeads}
+            userRole={currentUserRole}
+          />
+        </Suspense>
+      )}
 
       {pendingLostLead && (
         <FollowUpScheduleDialog

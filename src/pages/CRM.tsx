@@ -224,16 +224,8 @@ export default function CRM() {
   }, [searchParams, leads, loading, setSearchParams]);
 
 
-  useEffect(() => {
-    loadLeads();
-    loadFollowUps();
-    // Auto-refresh every 15 minutes
-    refreshTimerRef.current = setInterval(() => {
-      loadLeads();
-      loadFollowUps();
-    }, 15 * 60 * 1000);
-    return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
-  }, [loadLeads, loadFollowUps]);
+  // Carga inicial e auto-refresh agora são gerenciados pelo CRMDataProvider
+  // (sobrevivem à navegação entre páginas).
 
   // Notify user about leads returning today from follow-up
   const notifiedFollowUpsRef = useRef<Set<string>>(new Set());

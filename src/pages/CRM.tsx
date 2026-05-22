@@ -949,7 +949,7 @@ export default function CRM() {
         {mountedTabs.has('carteira') && (
           <TabsContent forceMount value="carteira" hidden={activeTab !== 'carteira'} className="mt-3 data-[state=inactive]:hidden">
             <Suspense fallback={<TabFallback />}>
-              <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={debouncedSearchQuery} kanbanDateFilter={kanbanDateFilter} />
+              <MinhaCarteira leads={leads} currentUserId={currentUserId || ''} currentUserRole={currentUserRole} cardMeta={cardMeta} onLeadClick={openLeadDrawer} onLeadReactivated={loadLeads} origemFilter={origemFilter} vendorFilter={vendorFilter} searchQuery={debouncedSearchQuery} kanbanDateFilter={kanbanDateFilter} />
             </Suspense>
           </TabsContent>
         )}

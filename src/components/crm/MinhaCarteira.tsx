@@ -116,7 +116,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       result = result.filter(l => l.status === 'pedido_fechado');
     } else if (statusFilter === 'perdidos') {
       // Perdidos sem follow-up agendado e sem motivo bloqueante
-      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l) && !scheduledLeadIds.has(l.id));
+      result = result.filter(l => l.status === 'perdido' && !isLeadBlocked(l) && !isAgendado(l));
     } else if (statusFilter === 'bloqueados') {
       result = result.filter(l => !!isLeadBlocked(l));
     }
@@ -133,13 +133,13 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       );
     }
     return result;
-  }, [myLeads, search, statusFilter, blockedMap, scheduledLeadIds]);
+  }, [myLeads, search, statusFilter, cardMeta]);
 
   const counts = useMemo(() => {
     const blocked = myLeads.filter(l => !!isLeadBlocked(l));
     const blockedIds = new Set(blocked.map(l => l.id));
     // Agendados: qualquer lead (inclusive "perdido") com follow-up/visita futura, exceto bloqueados
-    const agendadosLeads = myLeads.filter(l => !blockedIds.has(l.id) && scheduledLeadIds.has(l.id));
+    const agendadosLeads = myLeads.filter(l => !blockedIds.has(l.id) && !!cardMeta[l.id]?.hasFutureSchedule);
     const agendadosIds = new Set(agendadosLeads.map(l => l.id));
     // No Kanban: em andamento (não perdido, não fechado, não bloqueado) e sem agendamento futuro
     const kanbanLeads = myLeads.filter(l =>
@@ -152,10 +152,10 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
       agendados: agendadosLeads.length,
       fechados: myLeads.filter(l => l.status === 'pedido_fechado').length,
       // Perdidos "comuns": perdido sem agendamento e sem motivo bloqueante
-      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id) && !scheduledLeadIds.has(l.id)).length,
+      perdidos: myLeads.filter(l => l.status === 'perdido' && !blockedIds.has(l.id) && !cardMeta[l.id]?.hasFutureSchedule).length,
       bloqueados: blocked.length,
     };
-  }, [myLeads, blockedMap, scheduledLeadIds]);
+  }, [myLeads, cardMeta]);
 
   const handleReactivate = async () => {
     if (!reactivateConfirm) return;

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2, Ban } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2, Ban, UserCheck } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -53,6 +53,9 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [transferLead, setTransferLead] = useState<CRMLead | null>(null);
+  const [transferVendorId, setTransferVendorId] = useState('');
+  const [transferring, setTransferring] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 50;
   const { vendors: commercialVendors } = useCommercialVendors();
@@ -228,6 +231,41 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
   };
 
+  const handleTransfer = async () => {
+    if (!transferLead || !transferVendorId) return;
+    setTransferring(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const fromVendorName = transferLead.vendedor?.full_name || 'vendedor anterior';
+      const toVendorName = vendors.find(v => v.id === transferVendorId)?.name || 'novo vendedor';
+
+      const { error } = await (supabase as any)
+        .from('leads')
+        .update({ vendedor_id: transferVendorId, updated_at: new Date().toISOString() })
+        .eq('id', transferLead.id);
+      if (error) throw error;
+
+      await supabase.from('lead_activities').insert({
+        lead_id: transferLead.id,
+        activity_type: 'transferencia',
+        description: `Lead transferido de ${fromVendorName} para ${toVendorName}`,
+        user_id: user?.id || '',
+      } as any);
+
+      toast.success('Lead transferido com sucesso', {
+        description: `${transferLead.empresa || transferLead.cliente_nome} agora pertence a ${toVendorName}`,
+      });
+      onLeadReactivated?.();
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao transferir lead');
+    } finally {
+      setTransferring(false);
+      setTransferLead(null);
+      setTransferVendorId('');
+    }
+  };
+
   const handleExportExcel = async () => {
     setExporting(true);
     try {
@@ -288,6 +326,9 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
     const isLost = lead.status === 'perdido';
     const blockedReason = isLeadBlocked(lead);
+    // Only the current owner (or admin/comercial) can transfer the lead.
+    // A user can give a lead away, but cannot pull a lead from someone else.
+    const canTransfer = !blockedReason && lead.status !== 'pedido_fechado' && (isAdmin || lead.vendedor_id === currentUserId);
     return (
       <Card
         key={lead.id}
@@ -377,6 +418,24 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
+            </div>
+          )}
+          {!isLost && canTransfer && (
+            <div className="pt-1 border-t border-border/40">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1 w-full text-muted-foreground hover:text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTransferLead(lead);
+                  setTransferVendorId('');
+                }}
+                title="Transferir lead para outro vendedor"
+              >
+                <UserCheck className="h-3 w-3" />
+                Transferir para outro vendedor
+              </Button>
             </div>
           )}
         </CardContent>
@@ -524,6 +583,38 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!transferLead} onOpenChange={(v) => { if (!v) { setTransferLead(null); setTransferVendorId(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transferir lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está transferindo <strong>{transferLead?.empresa || transferLead?.cliente_nome}</strong>
+              {transferLead?.vendedor?.full_name ? <> de <strong>{transferLead.vendedor.full_name}</strong></> : null}
+              {' '}para outro vendedor. O lead sairá da sua carteira imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Novo responsável:</p>
+            <Select value={transferVendorId} onValueChange={setTransferVendorId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione o vendedor" />
+              </SelectTrigger>
+              <SelectContent>
+                {vendors.filter(v => v.id !== transferLead?.vendedor_id).map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={transferring}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleTransfer} disabled={transferring || !transferVendorId}>
+              {transferring ? 'Transferindo...' : 'Confirmar transferência'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

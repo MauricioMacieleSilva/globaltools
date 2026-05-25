@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2, Ban } from 'lucide-react';
+import { Search, Building2, Phone, Mail, MapPin, RotateCcw, Users, Trash2, FileSpreadsheet, Loader2, Ban, UserCheck } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -53,6 +53,9 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   const [deleteTarget, setDeleteTarget] = useState<CRMLead | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [transferLead, setTransferLead] = useState<CRMLead | null>(null);
+  const [transferVendorId, setTransferVendorId] = useState('');
+  const [transferring, setTransferring] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 50;
   const { vendors: commercialVendors } = useCommercialVendors();
@@ -229,6 +232,46 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
   };
 
   const handleExportExcel = async () => {
+    // unchanged
+    return _handleExportExcel();
+  };
+
+  const handleTransfer = async () => {
+    if (!transferLead || !transferVendorId) return;
+    setTransferring(true);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      const fromVendorName = transferLead.vendedor?.full_name || 'vendedor anterior';
+      const toVendorName = vendors.find(v => v.id === transferVendorId)?.name || 'novo vendedor';
+
+      const { error } = await (supabase as any)
+        .from('leads')
+        .update({ vendedor_id: transferVendorId, updated_at: new Date().toISOString() })
+        .eq('id', transferLead.id);
+      if (error) throw error;
+
+      await supabase.from('lead_activities').insert({
+        lead_id: transferLead.id,
+        activity_type: 'transferencia',
+        description: `Lead transferido de ${fromVendorName} para ${toVendorName}`,
+        user_id: user?.id || '',
+      } as any);
+
+      toast.success('Lead transferido com sucesso', {
+        description: `${transferLead.empresa || transferLead.cliente_nome} agora pertence a ${toVendorName}`,
+      });
+      onLeadReactivated?.();
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao transferir lead');
+    } finally {
+      setTransferring(false);
+      setTransferLead(null);
+      setTransferVendorId('');
+    }
+  };
+
+  const _handleExportExcel = async () => {
     setExporting(true);
     try {
       const statusMap: Record<string, string> = {

@@ -231,11 +231,6 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
   };
 
-  const handleExportExcel = async () => {
-    // unchanged
-    return _handleExportExcel();
-  };
-
   const handleTransfer = async () => {
     if (!transferLead || !transferVendorId) return;
     setTransferring(true);
@@ -271,7 +266,7 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     }
   };
 
-  const _handleExportExcel = async () => {
+  const handleExportExcel = async () => {
     setExporting(true);
     try {
       const statusMap: Record<string, string> = {

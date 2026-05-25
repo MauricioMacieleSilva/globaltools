@@ -587,6 +587,38 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!transferLead} onOpenChange={(v) => { if (!v) { setTransferLead(null); setTransferVendorId(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transferir lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está transferindo <strong>{transferLead?.empresa || transferLead?.cliente_nome}</strong>
+              {transferLead?.vendedor?.full_name ? <> de <strong>{transferLead.vendedor.full_name}</strong></> : null}
+              {' '}para outro vendedor. O lead sairá da sua carteira imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Novo responsável:</p>
+            <Select value={transferVendorId} onValueChange={setTransferVendorId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione o vendedor" />
+              </SelectTrigger>
+              <SelectContent>
+                {vendors.filter(v => v.id !== transferLead?.vendedor_id).map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={transferring}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleTransfer} disabled={transferring || !transferVendorId}>
+              {transferring ? 'Transferindo...' : 'Confirmar transferência'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

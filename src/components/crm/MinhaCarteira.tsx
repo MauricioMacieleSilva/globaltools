@@ -326,6 +326,9 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
     const status = statusLabels[lead.status] || { label: lead.status, color: 'bg-muted text-muted-foreground' };
     const isLost = lead.status === 'perdido';
     const blockedReason = isLeadBlocked(lead);
+    // Only the current owner (or admin/comercial) can transfer the lead.
+    // A user can give a lead away, but cannot pull a lead from someone else.
+    const canTransfer = !blockedReason && lead.status !== 'pedido_fechado' && (isAdmin || lead.vendedor_id === currentUserId);
     return (
       <Card
         key={lead.id}
@@ -415,6 +418,24 @@ export function MinhaCarteira({ leads, currentUserId, onLeadClick, onLeadReactiv
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
+            </div>
+          )}
+          {!isLost && canTransfer && (
+            <div className="pt-1 border-t border-border/40">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1 w-full text-muted-foreground hover:text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTransferLead(lead);
+                  setTransferVendorId('');
+                }}
+                title="Transferir lead para outro vendedor"
+              >
+                <UserCheck className="h-3 w-3" />
+                Transferir para outro vendedor
+              </Button>
             </div>
           )}
         </CardContent>

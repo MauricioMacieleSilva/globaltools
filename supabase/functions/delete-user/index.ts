@@ -81,6 +81,12 @@ serve(async (req) => {
       .update({ assigned_specialist_id: null, assigned_specialist_name: null })
       .eq('assigned_specialist_id', userId)
 
+    // Atualizar leads com vendedor_id (FK para user_profiles bloqueia o delete)
+    await supabaseClient
+      .from('leads')
+      .update({ vendedor_id: null, vendedor_nome: 'Usuário removido' })
+      .eq('vendedor_id', userId)
+
     // Atualizar lead_activities
     await supabaseClient
       .from('lead_activities')

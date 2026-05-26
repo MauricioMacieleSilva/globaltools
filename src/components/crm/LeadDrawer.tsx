@@ -119,6 +119,31 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     }
   }, [lead?.id, open]);
 
+  // Load latest loss reason when lead is marked as perdido
+  useEffect(() => {
+    if (!lead?.id || !open) { setLossReason(null); return; }
+    if (lead.status !== 'perdido') { setLossReason(null); return; }
+    (async () => {
+      const { data } = await (supabase as any)
+        .from('lead_dispositions')
+        .select('reason, custom_reason, notes, created_at')
+        .eq('lead_id', lead.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const row = data?.[0];
+      if (!row) { setLossReason(null); return; }
+      setLossReason(row.custom_reason || row.reason || row.notes || null);
+    })();
+  }, [lead?.id, lead?.status, open]);
+
+  // Default proposals tab to the lead's current status bucket
+  useEffect(() => {
+    if (!lead) return;
+    if (lead.status === 'perdido') setProposalsTab('perdidas');
+    else if (lead.status === 'pedido_fechado') setProposalsTab('fechadas');
+    else setProposalsTab('abertas');
+  }, [lead?.status, lead?.id]);
+
   useEffect(() => {
     if (!lead?.budget_number || !open) {
       setOrderValue(null);

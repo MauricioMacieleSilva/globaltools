@@ -112,6 +112,12 @@ serve(async (req) => {
       .update({ performed_by: null })
       .eq('performed_by', userId)
 
+    // Anular reviewed_by em lead_prospecting_results (FK para user_profiles bloqueia o delete)
+    await supabaseClient
+      .from('lead_prospecting_results')
+      .update({ reviewed_by: null })
+      .eq('reviewed_by', userId)
+
     // Deletar do auth.users (isso vai fazer cascade delete no user_profiles)
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId)
 

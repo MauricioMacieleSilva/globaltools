@@ -79,6 +79,9 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
   const [editOpen, setEditOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<{ key: string; label: string } | null>(null);
   const [orderValue, setOrderValue] = useState<number | null>(null);
+  const [orderValues, setOrderValues] = useState<Record<string, number>>({});
+  const [lossReason, setLossReason] = useState<string | null>(null);
+  const [proposalsTab, setProposalsTab] = useState<'abertas' | 'perdidas' | 'fechadas'>('abertas');
   const [nextVisit, setNextVisit] = useState<{ id: string; date: string; location: string | null } | null>(null);
   const isMobile = useIsMobile();
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);

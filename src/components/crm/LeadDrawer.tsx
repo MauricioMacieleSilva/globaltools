@@ -580,33 +580,95 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
               {/* Orders linked */}
               {(() => {
                 const orders = lead.budget_number ? lead.budget_number.split(',').map(s => s.trim()).filter(Boolean) : [];
+                const bucket: 'abertas' | 'perdidas' | 'fechadas' =
+                  lead.status === 'perdido' ? 'perdidas'
+                  : lead.status === 'pedido_fechado' ? 'fechadas'
+                  : 'abertas';
+                const abertasOrders = bucket === 'abertas' ? orders : [];
+                const perdidasOrders = bucket === 'perdidas' ? orders : [];
+                const fechadasOrders = bucket === 'fechadas' ? orders : [];
+
+                const renderOrders = (list: string[], emptyMsg: string, showLossReason = false) => (
+                  <div className="space-y-1.5 mt-2">
+                    {list.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic py-2">{emptyMsg}</p>
+                    ) : (
+                      <>
+                        {showLossReason && lossReason && (
+                          <div className="text-[11px] rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-foreground">
+                            <span className="font-medium text-muted-foreground">Motivo:</span> {lossReason}
+                          </div>
+                        )}
+                        {list.map((orderNum, idx) => {
+                          const v = orderValues[orderNum];
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between gap-2 text-sm rounded-md border px-2 py-1.5 cursor-pointer hover:bg-accent/40 transition-colors"
+                              onClick={() => { setSelectedOrderNum(orderNum); setOrderDialogOpen(true); }}
+                            >
+                              <span className="flex items-center gap-1.5 font-medium text-primary">
+                                <Package className="h-3.5 w-3.5" />
+                                Pedido {orderNum}
+                              </span>
+                              {v != null && v > 0 && (
+                                <span className="text-xs font-semibold text-foreground">
+                                  R$ {v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                );
+
                 return (
-                  <>
-                    {orders.map((orderNum, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2 text-sm font-medium text-primary cursor-pointer hover:underline"
-                        onClick={() => { setSelectedOrderNum(orderNum); setOrderDialogOpen(true); }}
-                      >
-                        <Package className="h-4 w-4" />
-                        <span>Pedido {orderNum}</span>
-                      </div>
-                    ))}
+                  <div className="rounded-lg border p-2.5 bg-muted/20 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Histórico de Propostas</p>
+                    <Tabs value={proposalsTab} onValueChange={(v) => setProposalsTab(v as any)}>
+                      <TabsList className="grid grid-cols-3 h-8 w-full">
+                        <TabsTrigger value="abertas" className="text-[11px] gap-1">
+                          Em Aberto
+                          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{abertasOrders.length}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="perdidas" className="text-[11px] gap-1">
+                          Perdidas
+                          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{perdidasOrders.length}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="fechadas" className="text-[11px] gap-1">
+                          Fechadas
+                          <Badge variant="secondary" className="h-4 px-1 text-[10px]">{fechadasOrders.length}</Badge>
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="abertas" className="mt-1">
+                        {renderOrders(abertasOrders, 'Nenhuma proposta em aberto.')}
+                      </TabsContent>
+                      <TabsContent value="perdidas" className="mt-1">
+                        {renderOrders(perdidasOrders, 'Nenhuma proposta perdida.', true)}
+                      </TabsContent>
+                      <TabsContent value="fechadas" className="mt-1">
+                        {renderOrders(fechadasOrders, 'Nenhum pedido fechado.')}
+                      </TabsContent>
+                    </Tabs>
+
                     {orderValue != null && orderValue > 0 && orders.length > 0 && (
-                      <p className="text-sm font-semibold text-foreground ml-6">
+                      <p className="text-xs font-semibold text-foreground pt-1 border-t">
                         Total: R$ {orderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     )}
+
                     <Button
                       size="sm"
                       variant="outline"
-                      className="gap-1.5 text-xs"
+                      className="gap-1.5 text-xs w-full"
                       onClick={() => setAddOrderOpen(true)}
                     >
                       <Plus className="h-3.5 w-3.5" />
                       Vincular Pedido
                     </Button>
-                  </>
+                  </div>
                 );
               })()}
             </div>

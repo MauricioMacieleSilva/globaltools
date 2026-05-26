@@ -137,6 +137,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
     fetchComercialData()
       .then((data) => {
         let total = 0;
+        const perOrder: Record<string, number> = {};
 
         for (const num of orderNums) {
           let matches = data.filter(d => String(d.numeropedido).trim() === num);
@@ -168,10 +169,13 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             ? matches.filter(d => d.data_emissao === mostRecentDate)
             : matches;
 
-          total += finalItems.reduce((sum, item) => sum + (item.valor || 0), 0);
+          const orderTotal = finalItems.reduce((sum, item) => sum + (item.valor || 0), 0);
+          perOrder[num] = orderTotal;
+          total += orderTotal;
         }
 
         setOrderValue(total);
+        setOrderValues(perOrder);
 
         if (total > 0 && total !== lead.valor_estimado) {
           (supabase as any)
@@ -180,7 +184,7 @@ export function LeadDrawer({ lead, open, onClose, onStatusChange, onLeadUpdated 
             .eq('id', lead.id);
         }
       })
-      .catch(() => setOrderValue(null));
+      .catch(() => { setOrderValue(null); setOrderValues({}); });
   }, [lead?.budget_number, lead?.empresa, lead?.cliente_nome, lead?.client_name, lead?.valor_estimado, lead?.id, open]);
 
   const handleAddOrderFromDrawer = async (orderNumber: string, orderValue: number, orderClientName: string) => {

@@ -10,11 +10,14 @@
     <meta name="theme-color" content="#1a365d" />
     <meta name="description" content="Ferramentas de análise comercial e gestão para Global Aço" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Global Aço" />
     
     <!-- PWA Icons -->
     <link rel="apple-touch-icon" href="/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
     <link rel="manifest" href="/manifest.json" />
 
     <meta property="og:title" content="Global Aço - Ferramentas" />
@@ -31,36 +34,18 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration -->
+    <!-- Defensive cleanup: unregister any previously installed service workers -->
     <script>
       if ('serviceWorker' in navigator) {
+        // Register the kill-switch SW once so previously-cached SWs are cleaned up,
+        // then it self-unregisters. Also defensively unregister any stragglers.
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-              registration.update().catch(() => {});
-              
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                console.log('Nova versão encontrada, instalando...');
-                
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('Nova versão pronta para uso');
-                    }
-                  });
-                }
-              });
-
-              navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('Service worker updated, reloading...');
-              });
-              
-            })
-            .catch((registrationError) => {
-              console.warn('SW registration failed (expected in dev/preview): ', registrationError);
-            });
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+          setTimeout(() => {
+            navigator.serviceWorker.getRegistrations()
+              .then((regs) => regs.forEach((r) => r.unregister()))
+              .catch(() => {});
+          }, 5000);
         });
       }
     </script>

@@ -1,125 +1,25 @@
-let CACHE_NAME = 'globalaco-v2';
-let currentVersion = null;
-let newVersionAvailable = false;
+// Kill-switch service worker.
+// Removes all caches, claims clients, navigates them to a clean URL, then unregisters itself.
+// This guarantees previously-installed SWs are cleaned up so installation/auth work normally.
+self.addEventListener('install', (e) => e.waitUntil(self.skipWaiting()));
 
-const urlsToCache = [
-  '/manifest.json',
-  '/version.json'
-];
-
-// Fetch version info
-async function fetchVersion() {
+self.addEventListener('activate', (e) => e.waitUntil((async () => {
   try {
-    const response = await fetch('/version.json');
-    const data = await response.json();
-    return data.version;
-  } catch (error) {
-    console.error('Error fetching version:', error);
-    return 'fallback-v1';
-  }
-}
-
-// Install Service Worker
-self.addEventListener('install', (event) => {
-  console.log('Service Worker: Install');
-  
-  event.waitUntil(
-    fetchVersion().then((version) => {
-      currentVersion = version;
-      CACHE_NAME = `globalaco-${version}`;
-      
-      return caches.open(CACHE_NAME)
-        .then((cache) => {
-          console.log('Cache opened:', CACHE_NAME);
-          return cache.addAll(urlsToCache);
-        })
-        .then(() => {
-          console.log('Service Worker installed with version:', version);
-        });
-    })
-  );
-});
-
-// Fetch event
-self.addEventListener('fetch', (event) => {
-  // Do NOT intercept cross-origin requests (Supabase, IBGE, Lovable, etc.).
-  // Let the browser handle them natively to avoid breaking auth/POST bodies.
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  // Only handle GET same-origin requests; pass through everything else.
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  // Network-first for navigation
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('/'))
-    );
-    return;
-  }
-
-  // Cache-first for same-origin static assets
-  event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
-  );
-});
-
-// Activate event
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activate');
-  
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      // Take control of all pages
-      return self.clients.claim();
-    })
-  );
-});
-
-// Listen for messages from the client
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('Received SKIP_WAITING message');
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({
-      type: 'VERSION_INFO',
-      payload: { version: currentVersion || CACHE_NAME }
-    });
-  }
-  
-  if (event.data && event.data.type === 'CHECK_UPDATE') {
-    // Check for version updates
-    fetchVersion().then((version) => {
-      if (version !== currentVersion) {
-        event.ports[0].postMessage({
-          type: 'UPDATE_AVAILABLE',
-          payload: { 
-            updateAvailable: true,
-            currentVersion: currentVersion,
-            newVersion: version
-          }
-        });
-      } else {
-        event.ports[0].postMessage({
-          type: 'NO_UPDATE',
-          payload: { updateAvailable: false }
-        });
+    await self.clients.claim();
+    const names = await caches.keys();
+    await Promise.all(names.map((n) => caches.delete(n)));
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    await Promise.all(clients.map((c) => {
+      try {
+        const url = new URL(c.url);
+        url.searchParams.set('sw-cleanup', Date.now().toString());
+        return c.navigate(url.toString());
+      } catch {
+        return Promise.resolve();
       }
-    });
+    }));
+    await self.registration.unregister();
+  } catch (err) {
+    console.warn('SW cleanup error:', err);
   }
-});
+})()));

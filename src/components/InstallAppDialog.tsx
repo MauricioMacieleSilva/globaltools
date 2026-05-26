@@ -200,7 +200,7 @@ export const InstallAppDialog: React.FC<InstallAppDialogProps> = ({ open, onOpen
               />
             )}
 
-            {(platform === 'android-other' || platform === 'desktop') && !deferredPrompt && platform !== 'in-app-browser' && (
+            {(platform === 'android-other' || platform === 'desktop') && !deferredPrompt && (
               <>
                 <InstructionCard
                   title="🍎 iPhone (Safari)"

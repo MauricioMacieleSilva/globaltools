@@ -42,39 +42,28 @@ self.addEventListener('install', (event) => {
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
-  // Skip Service Worker for IBGE API completely
-  if (event.request.url.includes('servicodados.ibge.gov.br')) {
-    console.log('SW: Skipping IBGE API request entirely');
-    return; // Don't intercept at all
+  // Do NOT intercept cross-origin requests (Supabase, IBGE, Lovable, etc.).
+  // Let the browser handle them natively to avoid breaking auth/POST bodies.
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
   }
-  
-  // Network-first strategy for navigation requests
+
+  // Only handle GET same-origin requests; pass through everything else.
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Network-first for navigation
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .catch(() => caches.match('/'))
+      fetch(event.request).catch(() => caches.match('/'))
     );
     return;
   }
 
-  // For other cross-origin requests, use network-only strategy
-  if (!event.request.url.startsWith(self.location.origin)) {
-    console.log('SW: Cross-origin request, using network-only');
-    event.respondWith(
-      fetch(event.request).catch(error => {
-        console.error('SW: Network request failed:', error);
-        throw error;
-      })
-    );
-    return;
-  }
-
-  // Cache-first strategy for same-origin requests
+  // Cache-first for same-origin static assets
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        return response || fetch(event.request);
-      })
+    caches.match(event.request).then((response) => response || fetch(event.request))
   );
 });
 

@@ -10,15 +10,16 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Camera, Loader2, Sparkles, Smartphone, ChevronDown, ChevronUp } from 'lucide-react';
+import { Camera, Loader2, Sparkles, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { InstallAppDialog } from './InstallAppDialog';
 
 export function UserAvatarMenu() {
   const { userProfile, updateProfile } = useAuth();
   const { isModern, toggleTheme } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [showInstall, setShowInstall] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,42 +165,21 @@ export function UserAvatarMenu() {
 
             <div className="w-full border-t pt-3 mt-1">
               <button
-                onClick={() => setShowInstall(!showInstall)}
-                className="flex items-center justify-between w-full text-left"
+                onClick={() => { setInstallOpen(true); setOpen(false); }}
+                className="flex items-center justify-between w-full text-left hover:opacity-80 transition-opacity"
               >
                 <div className="flex items-center gap-2">
                   <Smartphone className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Instalar no celular</span>
                 </div>
-                {showInstall ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                <span className="text-xs text-primary">Abrir</span>
               </button>
-
-              {showInstall && (
-                <div className="mt-3 space-y-3 text-xs text-muted-foreground">
-                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1.5">
-                    <p className="font-semibold text-foreground flex items-center gap-1">🍎 iPhone (Safari)</p>
-                    <ol className="list-decimal list-inside space-y-0.5 pl-1">
-                      <li>Abra o app no <strong>Safari</strong></li>
-                      <li>Toque no ícone <strong>Compartilhar</strong> (↑)</li>
-                      <li>Role e toque em <strong>"Adicionar à Tela de Início"</strong></li>
-                      <li>Toque em <strong>"Adicionar"</strong></li>
-                    </ol>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-muted/50 space-y-1.5">
-                    <p className="font-semibold text-foreground flex items-center gap-1">🤖 Android (Chrome)</p>
-                    <ol className="list-decimal list-inside space-y-0.5 pl-1">
-                      <li>Abra o app no <strong>Chrome</strong></li>
-                      <li>Toque nos <strong>3 pontos</strong> (⋮) no canto superior</li>
-                      <li>Toque em <strong>"Adicionar à tela inicial"</strong></li>
-                      <li>Confirme tocando em <strong>"Adicionar"</strong></li>
-                    </ol>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </PopoverContent>
       </Popover>
+
+      <InstallAppDialog open={installOpen} onOpenChange={setInstallOpen} />
     </div>
   );
 }

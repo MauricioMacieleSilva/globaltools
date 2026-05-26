@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Download, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { InstallAppDialog } from './InstallAppDialog';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -18,6 +19,7 @@ export const PWAInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -81,9 +83,9 @@ export const PWAInstallPrompt: React.FC = () => {
     if (dismissed) {
       const dismissedTime = new Date(dismissed).getTime();
       const now = new Date().getTime();
-      const oneWeek = 7 * 24 * 60 * 60 * 1000;
-      
-      if (now - dismissedTime < oneWeek) {
+      const threeDays = 3 * 24 * 60 * 60 * 1000;
+
+      if (now - dismissedTime < threeDays) {
         setShowPrompt(false);
         return;
       }
@@ -103,38 +105,7 @@ export const PWAInstallPrompt: React.FC = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      if (isIOS) {
-        toast({
-          title: "Instalar App",
-          description: "No Safari, toque em 'Compartilhar' e depois 'Adicionar à Tela de Início'",
-          duration: 5000
-        });
-      }
-      return;
-    }
-
-    try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        toast({
-          title: "App Instalado!",
-          description: "O app foi adicionado à sua tela inicial."
-        });
-      }
-      
-      setDeferredPrompt(null);
-      setShowPrompt(false);
-    } catch (error) {
-      console.error('Erro ao instalar PWA:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao instalar o app. Tente novamente.",
-        variant: "destructive"
-      });
-    }
+    setDialogOpen(true);
   };
 
   const handleDismiss = () => {
@@ -143,11 +114,14 @@ export const PWAInstallPrompt: React.FC = () => {
   };
 
   // Mostrar somente em dispositivos móveis, quando não instalado e não dispensado
-  if (!isMobile || !showPrompt || localStorage.getItem('pwa-installed')) {
-    return null;
+  const shouldShow = isMobile && showPrompt && !localStorage.getItem('pwa-installed');
+
+  if (!shouldShow) {
+    return <InstallAppDialog open={dialogOpen} onOpenChange={setDialogOpen} />;
   }
 
   return (
+    <>
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96">
       <Card className="border-primary/20 bg-gradient-to-r from-background to-muted/30">
         <CardContent className="p-4">
@@ -160,10 +134,7 @@ export const PWAInstallPrompt: React.FC = () => {
                 Instalar Global Aço App
               </h3>
               <p className="text-xs text-muted-foreground mb-3">
-                {isIOS 
-                  ? "Adicione à tela inicial para acesso rápido e melhor experiência"
-                  : "Instale o app para acesso offline e notificações"
-                }
+                Adicione à tela inicial para acesso rápido em qualquer celular
               </p>
               <div className="flex gap-2">
                 <Button 
@@ -172,7 +143,7 @@ export const PWAInstallPrompt: React.FC = () => {
                   className="text-xs"
                 >
                   <Download className="h-3 w-3 mr-1" />
-                  {isIOS ? 'Como Instalar' : 'Instalar'}
+                  Como instalar
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -196,5 +167,7 @@ export const PWAInstallPrompt: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+    <InstallAppDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+    </>
   );
 };

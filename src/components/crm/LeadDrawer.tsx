@@ -25,6 +25,7 @@ import { AnaliseFinanceiraResponseDialog } from './AnaliseFinanceiraResponseDial
 import { OpenTicketDialog } from './OpenTicketDialog';
 import { fetchComercialData } from '@/services/googleSheetsService';
 import { parseDate } from '@/lib/utils-comercial';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface LeadActivity {
   id: string;

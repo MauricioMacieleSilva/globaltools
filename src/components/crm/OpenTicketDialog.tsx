@@ -43,7 +43,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
     if (!lead) return [];
     const m: string[] = [];
     if (!lead.cliente_cnpj) m.push('CNPJ');
-    if (!lead.contact_name) m.push('Nome do contato');
+    if (!lead.contact_name && !lead.cliente_nome) m.push('Nome do contato');
     if (!lead.contact_phone && !lead.cliente_telefone) m.push('Telefone');
     if (!(numeroPedido?.trim()) && !lead.budget_number && !lead.numero_lead) m.push('Nº Pedido/Orçamento');
     if (!lead.cidade) m.push('Cidade');
@@ -122,7 +122,7 @@ export function OpenTicketDialog({ open, onOpenChange, lead, onCreated }: OpenTi
     // Validação de campos obrigatórios vindos do cadastro do lead/cliente
     const missing: string[] = [];
     if (!lead.cliente_cnpj) missing.push('CNPJ');
-    if (!lead.contact_name) missing.push('Nome do contato');
+    if (!lead.contact_name && !lead.cliente_nome) missing.push('Nome do contato');
     if (!lead.contact_phone && !lead.cliente_telefone) missing.push('Telefone');
     if (!numeroPedido.trim()) missing.push('Nº Pedido/Orçamento');
     if (!lead.cidade) missing.push('Cidade');

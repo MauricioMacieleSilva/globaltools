@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { PoliticaComercialData } from '@/services/politicaComercialService';
+import { useFaixasDesconto, FaixaDesconto } from '@/hooks/useFaixasDesconto';
 
 export interface SimuladorData {
   precoBase: number;
@@ -33,6 +34,9 @@ interface PoliticaComercialContextData {
   calcularDesconto: (peso: number) => number;
   classeAtiva: string;
   setClasseAtiva: (classe: string) => void;
+  faixasDesconto: FaixaDesconto[];
+  faixasLoading: boolean;
+  refetchFaixas: () => Promise<void>;
 }
 
 const PoliticaComercialContext = createContext<PoliticaComercialContextData | undefined>(undefined);
@@ -53,6 +57,7 @@ export function PoliticaComercialProvider({ children }: PoliticaComercialProvide
   const [dados, setDados] = useState<Record<string, PoliticaComercialData[]>>({});
   const [loading, setLoading] = useState(false);
   const [classeAtiva, setClasseAtiva] = useState('ARAMES');
+  const { faixas: faixasDesconto, loading: faixasLoading, refetch: refetchFaixas } = useFaixasDesconto();
   const [simulador, setSimulador] = useState<SimuladorData>({
     precoBase: 0,
     icms: 17, // Referência: 17% ICMS
@@ -65,10 +70,20 @@ export function PoliticaComercialProvider({ children }: PoliticaComercialProvide
   });
 
   const calcularDesconto = (peso: number): number => {
-    if (peso <= 2000) return 2; // 2%
-    if (peso <= 5000) return 3; // 3%  
-    if (peso <= 10000) return 4; // 4%
-    return 5; // 5%
+    if (!faixasDesconto || faixasDesconto.length === 0) {
+      // Fallback enquanto carrega
+      if (peso <= 2000) return 2;
+      if (peso <= 5000) return 3;
+      if (peso <= 10000) return 4;
+      return 5;
+    }
+    const ordenadas = [...faixasDesconto].sort((a, b) => a.ordem - b.ordem);
+    for (const f of ordenadas) {
+      const minOk = peso >= (f.peso_min ?? 0);
+      const maxOk = f.peso_max == null ? true : peso <= f.peso_max;
+      if (minOk && maxOk) return f.desconto_max_percent;
+    }
+    return ordenadas[ordenadas.length - 1].desconto_max_percent;
   };
 
   const calcularSimulacao = (sim: SimuladorData): ResultadoSimulacao => {
@@ -123,7 +138,10 @@ export function PoliticaComercialProvider({ children }: PoliticaComercialProvide
     calcularSimulacao,
     calcularDesconto,
     classeAtiva,
-    setClasseAtiva
+    setClasseAtiva,
+    faixasDesconto,
+    faixasLoading,
+    refetchFaixas,
   };
 
   return (

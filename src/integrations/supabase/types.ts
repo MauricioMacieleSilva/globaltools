@@ -2521,6 +2521,39 @@ export type Database = {
         }
         Relationships: []
       }
+      politica_descontos_faixas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          desconto_max_percent: number
+          id: string
+          ordem: number
+          peso_max: number | null
+          peso_min: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          desconto_max_percent: number
+          id?: string
+          ordem?: number
+          peso_max?: number | null
+          peso_min?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          desconto_max_percent?: number
+          id?: string
+          ordem?: number
+          peso_max?: number | null
+          peso_min?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       production_orders: {
         Row: {
           created_at: string

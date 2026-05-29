@@ -106,7 +106,7 @@ function PoliticaComercialContent() {
         {/* Conteúdo Principal */}
         <div className="lg:col-span-3 space-y-6">
           {/* Política de Descontos */}
-          <PoliticaDescontos />
+          <PoliticaDescontos isAdmin={isAdmin} />
 
           {/* Tabelas de Preços */}
           <Tabs value={classeAtiva} onValueChange={setClasseAtiva} className="w-full">

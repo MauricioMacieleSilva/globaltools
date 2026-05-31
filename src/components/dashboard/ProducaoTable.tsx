@@ -42,7 +42,7 @@ export function ProducaoTable() {
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const stickyScrollRef = useRef<HTMLDivElement>(null);
   const stickyScrollContentRef = useRef<HTMLDivElement>(null);
-  const [stickyScrollMetrics, setStickyScrollMetrics] = useState({ left: 0, width: 0, visible: false, max: 0, value: 0 });
+  const [stickyScrollMetrics, setStickyScrollMetrics] = useState({ left: 0, width: 0, max: 0, value: 0 });
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -246,7 +246,6 @@ export function ProducaoTable() {
       setStickyScrollMetrics({
         left: Math.max(rect.left, 0),
         width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 0),
-        visible: rect.bottom > 0 && rect.top < window.innerHeight && table.scrollWidth > table.clientWidth,
         max: Math.max(table.scrollWidth - table.clientWidth, 0),
         value: table.scrollLeft,
       });
@@ -746,9 +745,8 @@ export function ProducaoTable() {
           <div
             className="fixed bottom-0 z-50 border-t bg-card px-3 py-2 shadow-lg"
             style={{
-              left: stickyScrollMetrics.left,
-              width: stickyScrollMetrics.width,
-              display: stickyScrollMetrics.visible ? 'block' : 'none',
+              left: stickyScrollMetrics.left || 264,
+              width: stickyScrollMetrics.width || 'calc(100vw - 288px)',
             }}
             aria-hidden="true"
           >

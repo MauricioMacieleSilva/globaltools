@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -39,10 +39,6 @@ export function ProducaoTable() {
   const [orderToHide, setOrderToHide] = useState<string | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const tableScrollRef = useRef<HTMLDivElement>(null);
-  const stickyScrollRef = useRef<HTMLDivElement>(null);
-  const stickyScrollContentRef = useRef<HTMLDivElement>(null);
-  const [stickyScrollMetrics, setStickyScrollMetrics] = useState({ left: 0, width: 0, max: 0, value: 0 });
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -212,59 +208,6 @@ export function ProducaoTable() {
     }
   };
 
-  const syncHorizontalScroll = useCallback((source: 'table' | 'sticky') => {
-    const table = tableScrollRef.current;
-    const sticky = stickyScrollRef.current;
-    if (!table || !sticky) return;
-
-    if (source === 'table' && sticky.scrollLeft !== table.scrollLeft) {
-      sticky.scrollLeft = table.scrollLeft;
-      setStickyScrollMetrics(prev => ({ ...prev, value: table.scrollLeft }));
-    }
-
-    if (source === 'sticky' && table.scrollLeft !== sticky.scrollLeft) {
-      table.scrollLeft = sticky.scrollLeft;
-      setStickyScrollMetrics(prev => ({ ...prev, value: sticky.scrollLeft }));
-    }
-  }, []);
-
-  const handleFixedScrollbarChange = useCallback((value: string) => {
-    const nextValue = Number(value);
-    if (tableScrollRef.current) tableScrollRef.current.scrollLeft = nextValue;
-    if (stickyScrollRef.current) stickyScrollRef.current.scrollLeft = nextValue;
-    setStickyScrollMetrics(prev => ({ ...prev, value: nextValue }));
-  }, []);
-
-  useEffect(() => {
-    const table = tableScrollRef.current;
-    const stickyContent = stickyScrollContentRef.current;
-    if (!table || !stickyContent || isMobile) return;
-
-    const updateStickyWidth = () => {
-      stickyContent.style.width = `${table.scrollWidth}px`;
-      const rect = table.getBoundingClientRect();
-      setStickyScrollMetrics({
-        left: Math.max(rect.left, 0),
-        width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 0),
-        max: Math.max(table.scrollWidth - table.clientWidth, 0),
-        value: table.scrollLeft,
-      });
-    };
-
-    updateStickyWidth();
-    const observer = new ResizeObserver(updateStickyWidth);
-    observer.observe(table);
-    const tableElement = table.querySelector('table');
-    if (tableElement) observer.observe(tableElement);
-    window.addEventListener('resize', updateStickyWidth);
-    window.addEventListener('scroll', updateStickyWidth, true);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateStickyWidth);
-      window.removeEventListener('scroll', updateStickyWidth, true);
-    };
-  }, [processedData.length, expandedRows, isAdmin, isMobile]);
 
   const handleHideOrder = (numeroPedido: string) => {
     setOrderToHide(numeroPedido);
@@ -472,13 +415,7 @@ export function ProducaoTable() {
       onHideOrder={handleHideOrder}
     />
         ) : (
-          <div>
-          <div
-            ref={tableScrollRef}
-            className="rounded-md border overflow-x-auto overflow-y-visible kanban-scroll"
-            data-tour="producao-table"
-            onScroll={() => syncHorizontalScroll('table')}
-          >
+          <div className="sticky bottom-0 rounded-md border overflow-x-scroll overflow-y-visible kanban-scroll bg-card" data-tour="producao-table">
             <Table className="min-w-[1280px]">
             <TableHeader>
               <TableRow>
@@ -738,28 +675,6 @@ export function ProducaoTable() {
               )}
             </TableBody>
             </Table>
-          </div>
-          <div ref={stickyScrollRef} className="sr-only overflow-x-scroll" aria-hidden="true">
-            <div ref={stickyScrollContentRef} className="h-1" />
-          </div>
-          <div
-            className="fixed bottom-0 z-50 border-t bg-card px-3 py-2 shadow-lg"
-            style={{
-              left: stickyScrollMetrics.left || 264,
-              width: stickyScrollMetrics.width || 'calc(100vw - 288px)',
-            }}
-            aria-hidden="true"
-          >
-            <input
-              type="range"
-              min={0}
-              max={stickyScrollMetrics.max}
-              value={Math.min(stickyScrollMetrics.value, stickyScrollMetrics.max)}
-              onChange={(event) => handleFixedScrollbarChange(event.target.value)}
-              className="producao-fixed-horizontal-scroll w-full"
-              tabIndex={-1}
-            />
-          </div>
         </div>
         )}
       </CardContent>

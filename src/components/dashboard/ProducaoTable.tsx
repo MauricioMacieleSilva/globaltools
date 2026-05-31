@@ -40,7 +40,9 @@ export function ProducaoTable() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const tableScrollRef = useRef<HTMLDivElement>(null);
-  const [horizontalScroll, setHorizontalScroll] = useState({ left: 0, width: 0, max: 0, value: 0, visible: false });
+  const fixedScrollRef = useRef<HTMLDivElement>(null);
+  const fixedScrollContentRef = useRef<HTMLDivElement>(null);
+  const [horizontalScroll, setHorizontalScroll] = useState({ left: 264, width: 900, contentWidth: 1280 });
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -215,15 +217,17 @@ export function ProducaoTable() {
     if (!tableScroll || isMobile) return;
 
     const rect = tableScroll.getBoundingClientRect();
-    const max = Math.max(tableScroll.scrollWidth - tableScroll.clientWidth, 0);
+    const contentWidth = tableScroll.scrollWidth;
 
     setHorizontalScroll({
       left: Math.max(rect.left, 0),
-      width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 0),
-      max,
-      value: Math.min(tableScroll.scrollLeft, max),
-      visible: max > 0 && rect.bottom > 0 && rect.top < window.innerHeight,
+      width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 240),
+      contentWidth,
     });
+
+    if (fixedScrollRef.current && fixedScrollRef.current.scrollLeft !== tableScroll.scrollLeft) {
+      fixedScrollRef.current.scrollLeft = tableScroll.scrollLeft;
+    }
   }, [isMobile]);
 
   useEffect(() => {
@@ -250,12 +254,10 @@ export function ProducaoTable() {
     };
   }, [processedData.length, expandedRows, updateHorizontalScrollBar, isMobile]);
 
-  const handleFixedHorizontalScroll = (value: string) => {
-    const nextValue = Number(value);
-    if (tableScrollRef.current) {
-      tableScrollRef.current.scrollLeft = nextValue;
+  const handleFixedHorizontalScroll = () => {
+    if (tableScrollRef.current && fixedScrollRef.current) {
+      tableScrollRef.current.scrollLeft = fixedScrollRef.current.scrollLeft;
     }
-    setHorizontalScroll(prev => ({ ...prev, value: nextValue }));
   };
 
 
@@ -465,7 +467,7 @@ export function ProducaoTable() {
       onHideOrder={handleHideOrder}
     />
         ) : (
-          <div ref={tableScrollRef} className="rounded-md border overflow-x-scroll overflow-y-visible kanban-scroll bg-card" data-tour="producao-table">
+          <div ref={tableScrollRef} className="rounded-md border overflow-x-auto overflow-y-visible producao-table-scroll bg-card" data-tour="producao-table">
             <Table className="min-w-[1280px]">
             <TableHeader>
               <TableRow>
@@ -740,21 +742,15 @@ export function ProducaoTable() {
     )}
     {!isMobile && (
       <div
-        className="fixed bottom-0 z-50 border-t bg-card px-3 py-2 shadow-lg"
+        ref={fixedScrollRef}
+        className="fixed bottom-0 z-[9999] h-6 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card px-3 shadow-lg"
         style={{
-          left: horizontalScroll.left || 264,
-          width: horizontalScroll.width || 'calc(100vw - 288px)',
+          left: horizontalScroll.left,
+          width: horizontalScroll.width,
         }}
+        onScroll={handleFixedHorizontalScroll}
       >
-        <input
-          type="range"
-          min={0}
-          max={Math.max(horizontalScroll.max, 1)}
-          value={Math.min(horizontalScroll.value, Math.max(horizontalScroll.max, 1))}
-          onChange={(event) => handleFixedHorizontalScroll(event.target.value)}
-          className="producao-horizontal-scrollbar w-full"
-          aria-label="Rolagem horizontal da tabela de pedidos em produção"
-        />
+        <div ref={fixedScrollContentRef} className="h-1" style={{ width: Math.max(horizontalScroll.contentWidth, 1280) }} />
       </div>
     )}
     </>

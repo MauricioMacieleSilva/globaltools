@@ -42,7 +42,7 @@ export function ProducaoTable() {
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const fixedScrollRef = useRef<HTMLDivElement>(null);
   const fixedScrollContentRef = useRef<HTMLDivElement>(null);
-  const [horizontalScroll, setHorizontalScroll] = useState({ left: 0, width: 0, contentWidth: 0, visible: false });
+  const [horizontalScroll, setHorizontalScroll] = useState({ left: 264, width: 900, contentWidth: 1280 });
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -221,9 +221,8 @@ export function ProducaoTable() {
 
     setHorizontalScroll({
       left: Math.max(rect.left, 0),
-      width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 0),
+      width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 240),
       contentWidth,
-      visible: contentWidth > tableScroll.clientWidth && rect.bottom > 0 && rect.top < window.innerHeight,
     });
 
     if (fixedScrollRef.current && fixedScrollRef.current.scrollLeft !== tableScroll.scrollLeft) {
@@ -741,17 +740,17 @@ export function ProducaoTable() {
         onConfirm={confirmHideOrder}
       />
     )}
-    {!isMobile && horizontalScroll.visible && (
+    {!isMobile && (
       <div
         ref={fixedScrollRef}
-        className="fixed bottom-0 z-50 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card px-3 shadow-lg"
+        className="fixed bottom-0 z-[9999] h-6 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card px-3 shadow-lg"
         style={{
           left: horizontalScroll.left,
           width: horizontalScroll.width,
         }}
         onScroll={handleFixedHorizontalScroll}
       >
-        <div ref={fixedScrollContentRef} className="h-1" style={{ width: horizontalScroll.contentWidth }} />
+        <div ref={fixedScrollContentRef} className="h-1" style={{ width: Math.max(horizontalScroll.contentWidth, 1280) }} />
       </div>
     )}
     </>

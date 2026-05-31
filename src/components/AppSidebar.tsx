@@ -108,14 +108,6 @@ const menuItems = [
     tourId: 'sidebar-ajuda',
   },
   {
-    title: 'Reuniões',
-    url: 'https://global-a-o-secret-rio-digital-399093119582.us-west1.run.app/',
-    icon: Calendar,
-    pageKey: 'reunioes',
-    external: true,
-    tourId: 'sidebar-reunioes',
-  },
-  {
     title: 'Central de Preços',
     url: 'https://centraldeprecos.vercel.app/',
     icon: DollarSign,

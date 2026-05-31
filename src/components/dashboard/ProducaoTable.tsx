@@ -738,16 +738,19 @@ export function ProducaoTable() {
         onConfirm={confirmHideOrder}
       />
     )}
-    {!isMobile && horizontalScroll.visible && (
+    {!isMobile && (
       <div
         className="fixed bottom-0 z-50 border-t bg-card px-3 py-2 shadow-lg"
-        style={{ left: horizontalScroll.left, width: horizontalScroll.width }}
+        style={{
+          left: horizontalScroll.left || 264,
+          width: horizontalScroll.width || 'calc(100vw - 288px)',
+        }}
       >
         <input
           type="range"
           min={0}
-          max={horizontalScroll.max}
-          value={horizontalScroll.value}
+          max={Math.max(horizontalScroll.max, 1)}
+          value={Math.min(horizontalScroll.value, Math.max(horizontalScroll.max, 1))}
           onChange={(event) => handleFixedHorizontalScroll(event.target.value)}
           className="producao-horizontal-scrollbar w-full"
           aria-label="Rolagem horizontal da tabela de pedidos em produção"

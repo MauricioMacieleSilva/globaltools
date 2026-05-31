@@ -609,3 +609,30 @@ body:has(.dashboard-fullscreen-mode) aside {
   background: hsl(var(--primary) / 0.8);
 }
 
+.producao-horizontal-scrollbar {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  border-radius: 999px;
+  background: hsl(var(--muted) / 0.75);
+  cursor: ew-resize;
+}
+
+.producao-horizontal-scrollbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 96px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid hsl(var(--background));
+  background: hsl(var(--primary) / 0.8);
+}
+
+.producao-horizontal-scrollbar::-moz-range-thumb {
+  width: 96px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid hsl(var(--background));
+  background: hsl(var(--primary) / 0.8);
+}
+

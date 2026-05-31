@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,8 @@ export function ProducaoTable() {
   const [orderToHide, setOrderToHide] = useState<string | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const [horizontalScroll, setHorizontalScroll] = useState({ left: 0, width: 0, max: 0, value: 0, visible: false });
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -206,6 +208,54 @@ export function ProducaoTable() {
       setSortField(field);
       setSortOrder('asc');
     }
+  };
+
+  const updateHorizontalScrollBar = useCallback(() => {
+    const tableScroll = tableScrollRef.current;
+    if (!tableScroll || isMobile) return;
+
+    const rect = tableScroll.getBoundingClientRect();
+    const max = Math.max(tableScroll.scrollWidth - tableScroll.clientWidth, 0);
+
+    setHorizontalScroll({
+      left: Math.max(rect.left, 0),
+      width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 0),
+      max,
+      value: Math.min(tableScroll.scrollLeft, max),
+      visible: max > 0 && rect.bottom > 0 && rect.top < window.innerHeight,
+    });
+  }, [isMobile]);
+
+  useEffect(() => {
+    const tableScroll = tableScrollRef.current;
+    if (!tableScroll || isMobile) return;
+
+    const handleTableScroll = () => updateHorizontalScrollBar();
+
+    updateHorizontalScrollBar();
+    tableScroll.addEventListener('scroll', handleTableScroll);
+    window.addEventListener('resize', updateHorizontalScrollBar);
+    window.addEventListener('scroll', updateHorizontalScrollBar, true);
+
+    const resizeObserver = new ResizeObserver(updateHorizontalScrollBar);
+    resizeObserver.observe(tableScroll);
+    const tableElement = tableScroll.querySelector('table');
+    if (tableElement) resizeObserver.observe(tableElement);
+
+    return () => {
+      tableScroll.removeEventListener('scroll', handleTableScroll);
+      window.removeEventListener('resize', updateHorizontalScrollBar);
+      window.removeEventListener('scroll', updateHorizontalScrollBar, true);
+      resizeObserver.disconnect();
+    };
+  }, [processedData.length, expandedRows, updateHorizontalScrollBar, isMobile]);
+
+  const handleFixedHorizontalScroll = (value: string) => {
+    const nextValue = Number(value);
+    if (tableScrollRef.current) {
+      tableScrollRef.current.scrollLeft = nextValue;
+    }
+    setHorizontalScroll(prev => ({ ...prev, value: nextValue }));
   };
 
 
@@ -415,7 +465,7 @@ export function ProducaoTable() {
       onHideOrder={handleHideOrder}
     />
         ) : (
-          <div className="sticky bottom-0 rounded-md border overflow-x-scroll overflow-y-visible kanban-scroll bg-card" data-tour="producao-table">
+          <div ref={tableScrollRef} className="rounded-md border overflow-x-scroll overflow-y-visible kanban-scroll bg-card" data-tour="producao-table">
             <Table className="min-w-[1280px]">
             <TableHeader>
               <TableRow>
@@ -687,6 +737,22 @@ export function ProducaoTable() {
         numeroPedido={orderToHide}
         onConfirm={confirmHideOrder}
       />
+    )}
+    {!isMobile && horizontalScroll.visible && (
+      <div
+        className="fixed bottom-0 z-50 border-t bg-card px-3 py-2 shadow-lg"
+        style={{ left: horizontalScroll.left, width: horizontalScroll.width }}
+      >
+        <input
+          type="range"
+          min={0}
+          max={horizontalScroll.max}
+          value={horizontalScroll.value}
+          onChange={(event) => handleFixedHorizontalScroll(event.target.value)}
+          className="producao-horizontal-scrollbar w-full"
+          aria-label="Rolagem horizontal da tabela de pedidos em produção"
+        />
+      </div>
     )}
     </>
   );

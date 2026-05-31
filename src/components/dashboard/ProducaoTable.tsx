@@ -42,6 +42,7 @@ export function ProducaoTable() {
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const stickyScrollRef = useRef<HTMLDivElement>(null);
   const stickyScrollContentRef = useRef<HTMLDivElement>(null);
+  const [stickyScrollMetrics, setStickyScrollMetrics] = useState({ left: 0, width: 0, visible: false });
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -232,6 +233,12 @@ export function ProducaoTable() {
 
     const updateStickyWidth = () => {
       stickyContent.style.width = `${table.scrollWidth}px`;
+      const rect = table.getBoundingClientRect();
+      setStickyScrollMetrics({
+        left: Math.max(rect.left, 0),
+        width: Math.max(Math.min(rect.width, window.innerWidth - Math.max(rect.left, 0)), 0),
+        visible: rect.bottom > 0 && rect.top < window.innerHeight && table.scrollWidth > table.clientWidth,
+      });
     };
 
     updateStickyWidth();
@@ -240,10 +247,12 @@ export function ProducaoTable() {
     const tableElement = table.querySelector('table');
     if (tableElement) observer.observe(tableElement);
     window.addEventListener('resize', updateStickyWidth);
+    window.addEventListener('scroll', updateStickyWidth, true);
 
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', updateStickyWidth);
+      window.removeEventListener('scroll', updateStickyWidth, true);
     };
   }, [processedData.length, expandedRows, isAdmin, isMobile]);
 
@@ -722,11 +731,16 @@ export function ProducaoTable() {
           </div>
           <div
             ref={stickyScrollRef}
-            className="sticky bottom-0 z-20 mt-2 overflow-x-scroll overflow-y-hidden kanban-scroll bg-card"
+            className="fixed bottom-0 z-50 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card shadow-lg"
+            style={{
+              left: stickyScrollMetrics.left,
+              width: stickyScrollMetrics.width,
+              display: stickyScrollMetrics.visible ? 'block' : 'none',
+            }}
             onScroll={() => syncHorizontalScroll('sticky')}
             aria-hidden="true"
           >
-            <div ref={stickyScrollContentRef} className="h-1" />
+            <div ref={stickyScrollContentRef} className="h-2" />
           </div>
         </div>
         )}

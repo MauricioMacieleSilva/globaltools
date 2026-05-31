@@ -608,3 +608,4 @@ body:has(.dashboard-fullscreen-mode) aside {
 .kanban-scroll::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.8);
 }
+

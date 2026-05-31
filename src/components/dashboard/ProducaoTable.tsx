@@ -469,53 +469,53 @@ export function ProducaoTable() {
             data-tour="producao-table"
             onScroll={() => syncHorizontalScroll('table')}
           >
-            <Table>
+            <Table className="min-w-[1280px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-8"></TableHead>
-                <TableHead>
+                <TableHead className="w-8 min-w-8"></TableHead>
+                <TableHead className="min-w-[110px]">
                   <Button variant="ghost" onClick={() => handleSort('numero_pedido')} className="h-auto p-0 font-semibold">
                     Pedido
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[160px]">
                   <Button variant="ghost" onClick={() => handleSort('cli_nomef')} className="h-auto p-0 font-semibold">
                     Cliente
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[110px]">
                   Peso
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[150px]">
                   <Button variant="ghost" onClick={() => handleSort('percentual_concluido')} className="h-auto p-0 font-semibold">
                     % Concluído
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[120px]">
                   <Button variant="ghost" onClick={() => handleSort('prazo_pcp')} className="h-auto p-0 font-semibold">
                     Prazo
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[170px]">
                   Novo Prazo
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[130px]">
                   <Button variant="ghost" onClick={() => handleSort('status')} className="h-auto p-0 font-semibold">
                     Status
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[150px]">
                   <Button variant="ghost" onClick={() => handleSort('dias_atraso')} className="h-auto p-0 font-semibold">
                     Dias Atraso
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="min-w-[210px]">
                   Situação
                 </TableHead>
                 {isAdmin && <TableHead className="w-[50px]"></TableHead>}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,9 @@ export function ProducaoTable() {
   const [orderToHide, setOrderToHide] = useState<string | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const stickyScrollRef = useRef<HTMLDivElement>(null);
+  const stickyScrollContentRef = useRef<HTMLDivElement>(null);
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -207,6 +210,42 @@ export function ProducaoTable() {
       setSortOrder('asc');
     }
   };
+
+  const syncHorizontalScroll = useCallback((source: 'table' | 'sticky') => {
+    const table = tableScrollRef.current;
+    const sticky = stickyScrollRef.current;
+    if (!table || !sticky) return;
+
+    if (source === 'table' && sticky.scrollLeft !== table.scrollLeft) {
+      sticky.scrollLeft = table.scrollLeft;
+    }
+
+    if (source === 'sticky' && table.scrollLeft !== sticky.scrollLeft) {
+      table.scrollLeft = sticky.scrollLeft;
+    }
+  }, []);
+
+  useEffect(() => {
+    const table = tableScrollRef.current;
+    const stickyContent = stickyScrollContentRef.current;
+    if (!table || !stickyContent || isMobile) return;
+
+    const updateStickyWidth = () => {
+      stickyContent.style.width = `${table.scrollWidth}px`;
+    };
+
+    updateStickyWidth();
+    const observer = new ResizeObserver(updateStickyWidth);
+    observer.observe(table);
+    const tableElement = table.querySelector('table');
+    if (tableElement) observer.observe(tableElement);
+    window.addEventListener('resize', updateStickyWidth);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateStickyWidth);
+    };
+  }, [processedData.length, expandedRows, isAdmin, isMobile]);
 
   const handleHideOrder = (numeroPedido: string) => {
     setOrderToHide(numeroPedido);
@@ -414,7 +453,13 @@ export function ProducaoTable() {
       onHideOrder={handleHideOrder}
     />
         ) : (
-          <div className="rounded-md border overflow-auto kanban-scroll max-h-[calc(100vh-280px)]" data-tour="producao-table">
+          <div>
+          <div
+            ref={tableScrollRef}
+            className="rounded-md border overflow-x-auto overflow-y-visible kanban-scroll"
+            data-tour="producao-table"
+            onScroll={() => syncHorizontalScroll('table')}
+          >
             <Table>
             <TableHeader>
               <TableRow>
@@ -673,7 +718,16 @@ export function ProducaoTable() {
                 ))
               )}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
+          <div
+            ref={stickyScrollRef}
+            className="sticky bottom-0 z-20 mt-2 overflow-x-scroll overflow-y-hidden kanban-scroll bg-card"
+            onScroll={() => syncHorizontalScroll('sticky')}
+            aria-hidden="true"
+          >
+            <div ref={stickyScrollContentRef} className="h-1" />
+          </div>
         </div>
         )}
       </CardContent>

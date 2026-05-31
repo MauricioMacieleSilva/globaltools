@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Calendar, Truck, Kanban, GraduationCap, Ticket, HelpCircle } from 'lucide-react';
+import { BarChart3, Monitor, FileText, Users, Settings, Mail, Target, Factory, LogOut, DollarSign, Truck, Kanban, GraduationCap, Ticket, HelpCircle } from 'lucide-react';
 import { ChapaBlankIcon } from './icons/ChapaBlankIcon';
 import { PerfilUIcon } from './icons/PerfilUIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -106,14 +106,6 @@ const menuItems = [
     icon: HelpCircle,
     pageKey: 'ajuda',
     tourId: 'sidebar-ajuda',
-  },
-  {
-    title: 'Reuniões',
-    url: 'https://global-a-o-secret-rio-digital-399093119582.us-west1.run.app/',
-    icon: Calendar,
-    pageKey: 'reunioes',
-    external: true,
-    tourId: 'sidebar-reunioes',
   },
   {
     title: 'Central de Preços',

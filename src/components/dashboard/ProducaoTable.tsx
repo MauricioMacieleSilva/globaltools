@@ -414,7 +414,7 @@ export function ProducaoTable() {
       onHideOrder={handleHideOrder}
     />
         ) : (
-          <div className="rounded-md border overflow-x-auto" data-tour="producao-table">
+          <div className="rounded-md border overflow-x-scroll kanban-scroll" data-tour="producao-table">
             <Table>
             <TableHeader>
               <TableRow>

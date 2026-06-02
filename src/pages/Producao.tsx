@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generatePDFFromElement } from '@/lib/pdf-utils';
 import { useToast } from '@/hooks/use-toast';
-import { FileDown, EyeOff, ClipboardList, Package, Warehouse, LayoutGrid } from 'lucide-react';
+import { FileDown, EyeOff, ClipboardList, Package, Warehouse, LayoutGrid, ShoppingCart } from 'lucide-react';
 import { useProducao } from '@/context/ProducaoContext';
 import { HiddenOrdersDialog } from '@/components/dashboard/HiddenOrdersDialog';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
@@ -17,6 +17,7 @@ import { EstoqueProvider } from '@/context/EstoqueContext';
 import { ProductionReportButton } from '@/components/dashboard/ProductionReportButton';
 import { LastUpdatedIndicator } from '@/components/ui/last-updated-indicator';
 import { ResumoMateriaisTable } from '@/components/dashboard/ResumoMateriaisTable';
+import { ComprasTab } from '@/components/dashboard/ComprasTab';
 
 export default function Producao() {
   const relatorioRef = useRef<HTMLDivElement>(null);
@@ -93,7 +94,7 @@ export default function Producao() {
           </div>
 
           <Tabs defaultValue="producao" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 max-w-2xl" data-tour="producao-tabs">
+            <TabsList className="grid w-full grid-cols-5 max-w-3xl" data-tour="producao-tabs">
               <TabsTrigger value="producao" className="gap-2">
                 <ClipboardList className="h-4 w-4" />
                 <span className="hidden sm:inline">Produção</span>
@@ -105,6 +106,10 @@ export default function Producao() {
               <TabsTrigger value="materiais" className="gap-2">
                 <Package className="h-4 w-4" />
                 <span className="hidden sm:inline">Materiais</span>
+              </TabsTrigger>
+              <TabsTrigger value="compras" className="gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                <span className="hidden sm:inline">Compras</span>
               </TabsTrigger>
               <TabsTrigger value="estoque" className="gap-2">
                 <Warehouse className="h-4 w-4" />
@@ -130,6 +135,14 @@ export default function Producao() {
             <TabsContent value="materiais" className="space-y-4 mt-4">
               <ErrorBoundary>
                 <MateriaisPendentesSummary />
+              </ErrorBoundary>
+            </TabsContent>
+
+            <TabsContent value="compras" className="space-y-4 mt-4">
+              <ErrorBoundary>
+                <EstoqueProvider>
+                  <ComprasTab />
+                </EstoqueProvider>
               </ErrorBoundary>
             </TabsContent>
 

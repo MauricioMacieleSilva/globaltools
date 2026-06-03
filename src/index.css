@@ -611,15 +611,17 @@ body:has(.dashboard-fullscreen-mode) aside {
   background: hsl(var(--primary) / 0.85);
 }
 
-.producao-table-scroll {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
+.theme-modern .producao-table-scroll::-webkit-scrollbar,
 .producao-table-scroll::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+}
+
+.theme-modern .producao-table-scroll,
+.producao-table-scroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 

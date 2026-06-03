@@ -60,7 +60,9 @@ function extractColor(desc: string): string | null {
     const m2 = u.match(/\b(BRANC[AO]|PRET[AO]|CINZA|AZUL|VERMELH[AO]|AMAREL[AO]|VERDE|BEGE|MARROM)\s+(\d{4})\b/);
     if (m2) ralM = [m2[0], m2[2]] as RegExpMatchArray;
   }
-  const colorWord = COLOR_KEYWORDS.find(c => new RegExp(`\\b${c}\\b`).test(u)) || null;
+  const colorWord = /\bPP\s+BR\b/.test(u)
+    ? 'BRANCA'
+    : COLOR_KEYWORDS.find(c => new RegExp(`\\b${c}\\b`).test(u)) || null;
   const hasPP = /\bPP\b/.test(u);
   const parts: string[] = [];
   if (hasPP) parts.push('PP');

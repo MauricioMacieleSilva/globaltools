@@ -289,7 +289,7 @@ function ComprasConfig() {
     try {
       const { error } = await supabase
         .from('compras_report_schedule' as any)
-        .update({ is_active: config.is_active, send_time: config.send_time, send_days: config.send_days, updated_at: new Date().toISOString() } as any)
+        .update({ is_active: config.is_active, send_time: config.send_time, send_days: config.send_days, last_sent_date: null, updated_at: new Date().toISOString() } as any)
         .eq('id', config.id);
       if (error) throw error;
       const dayLabels = DAYS.filter(d => config.send_days.includes(d.key)).map(d => d.label).join(', ');

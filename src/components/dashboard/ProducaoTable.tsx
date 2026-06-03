@@ -43,8 +43,7 @@ export function ProducaoTable() {
   const fixedScrollRef = useRef<HTMLDivElement>(null);
   const fixedScrollContentRef = useRef<HTMLDivElement>(null);
   const [horizontalScroll, setHorizontalScroll] = useState({ left: 264, width: 900, contentWidth: 1280 });
-  const isSyncingTableScroll = useRef(false);
-  const isSyncingFixedScroll = useRef(false);
+  const activeScrollSource = useRef<'table' | 'fixed' | null>(null);
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -228,29 +227,21 @@ export function ProducaoTable() {
     });
   }, [isMobile]);
 
-  const syncScroll = useCallback((source: 'table' | 'fixed') => {
+  const handleTableScroll = useCallback(() => {
+    if (activeScrollSource.current !== 'table') return;
     const tableScroll = tableScrollRef.current;
     const fixedScroll = fixedScrollRef.current;
-    if (!tableScroll || !fixedScroll) return;
+    if (tableScroll && fixedScroll && fixedScroll.scrollLeft !== tableScroll.scrollLeft) {
+      fixedScroll.scrollLeft = tableScroll.scrollLeft;
+    }
+  }, []);
 
-    if (source === 'table') {
-      if (isSyncingTableScroll.current) {
-        isSyncingTableScroll.current = false;
-        return;
-      }
-      if (Math.abs(fixedScroll.scrollLeft - tableScroll.scrollLeft) >= 1) {
-        isSyncingFixedScroll.current = true;
-        fixedScroll.scrollLeft = tableScroll.scrollLeft;
-      }
-    } else {
-      if (isSyncingFixedScroll.current) {
-        isSyncingFixedScroll.current = false;
-        return;
-      }
-      if (Math.abs(tableScroll.scrollLeft - fixedScroll.scrollLeft) >= 1) {
-        isSyncingTableScroll.current = true;
-        tableScroll.scrollLeft = fixedScroll.scrollLeft;
-      }
+  const handleFixedHorizontalScroll = useCallback(() => {
+    if (activeScrollSource.current !== 'fixed') return;
+    const tableScroll = tableScrollRef.current;
+    const fixedScroll = fixedScrollRef.current;
+    if (tableScroll && fixedScroll && tableScroll.scrollLeft !== fixedScroll.scrollLeft) {
+      tableScroll.scrollLeft = fixedScroll.scrollLeft;
     }
   }, []);
 
@@ -278,21 +269,10 @@ export function ProducaoTable() {
     const tableScroll = tableScrollRef.current;
     if (!tableScroll || isMobile) return;
 
-    const handleTableScroll = () => syncScroll('table');
-    tableScroll.addEventListener('scroll', handleTableScroll, { passive: true });
-
     if (fixedScrollRef.current) {
       fixedScrollRef.current.scrollLeft = tableScroll.scrollLeft;
     }
-
-    return () => {
-      tableScroll.removeEventListener('scroll', handleTableScroll);
-    };
-  }, [syncScroll, isMobile]);
-
-  const handleFixedHorizontalScroll = () => {
-    syncScroll('fixed');
-  };
+  }, [isMobile]);
 
 
   const handleHideOrder = (numeroPedido: string) => {
@@ -501,7 +481,14 @@ export function ProducaoTable() {
       onHideOrder={handleHideOrder}
     />
         ) : (
-          <div ref={tableScrollRef} className="rounded-md border overflow-x-auto overflow-y-visible producao-table-scroll bg-card" data-tour="producao-table">
+          <div 
+            ref={tableScrollRef} 
+            className="rounded-md border overflow-x-auto overflow-y-visible producao-table-scroll bg-card" 
+            data-tour="producao-table"
+            onScroll={handleTableScroll}
+            onMouseEnter={() => { activeScrollSource.current = 'table'; }}
+            onTouchStart={() => { activeScrollSource.current = 'table'; }}
+          >
             <Table className="min-w-[1280px]">
             <TableHeader>
               <TableRow>
@@ -783,6 +770,8 @@ export function ProducaoTable() {
           width: horizontalScroll.width,
         }}
         onScroll={handleFixedHorizontalScroll}
+        onMouseEnter={() => { activeScrollSource.current = 'fixed'; }}
+        onTouchStart={() => { activeScrollSource.current = 'fixed'; }}
       >
         <div ref={fixedScrollContentRef} className="h-1" style={{ width: `${Math.max(horizontalScroll.contentWidth, 1280)}px` }} />
       </div>

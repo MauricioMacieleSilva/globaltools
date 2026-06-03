@@ -200,9 +200,16 @@ export function ComprasTab() {
                       <TableCell className="text-right tabular-nums text-muted-foreground">
                         {formatKg(item.saldoKg)}
                       </TableCell>
-                      <TableCell className="max-w-[220px] truncate" title={item.clientes.join(', ')}>
-                        {item.clientes.slice(0, 2).join(', ')}
-                        {item.clientes.length > 2 && <span className="text-muted-foreground"> +{item.clientes.length - 2}</span>}
+                      <TableCell className="max-w-[260px]" title={item.pedidos.map(p => `${p.cliente} (${p.numero_pedido})`).join(', ')}>
+                        <div className="truncate">
+                          {item.pedidos.slice(0, 2).map((p, idx) => (
+                            <span key={p.numero_pedido}>
+                              {idx > 0 && ', '}
+                              {p.cliente} <span className="text-muted-foreground text-xs">({p.numero_pedido})</span>
+                            </span>
+                          ))}
+                          {item.pedidos.length > 2 && <span className="text-muted-foreground"> +{item.pedidos.length - 2}</span>}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="secondary">{item.pedidos.length}</Badge>

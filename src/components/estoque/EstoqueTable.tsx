@@ -236,7 +236,7 @@ export function EstoqueTable({
             </div>
           ) : (
             dadosFiltrados.map((item) => (
-              <Card key={item.id} className="overflow-hidden">
+              <Card key={item.id} className={`overflow-hidden ${item.segregado ? 'border-amber-500/60 bg-amber-500/5' : ''}`}>
                 <div className="p-3">
                   {/* Header com imagem e ações */}
                   <div className="flex gap-3">
@@ -261,6 +261,11 @@ export function EstoqueTable({
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm leading-tight line-clamp-2">{item.descricao}</p>
+                      {item.segregado && (
+                        <Badge variant="outline" className="mt-1 text-[10px] border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300">
+                          SEGREGADO
+                        </Badge>
+                      )}
                       {item.localizacao && (
                         <p className="text-xs text-muted-foreground mt-0.5 truncate">📍 {item.localizacao}</p>
                       )}
@@ -459,7 +464,7 @@ export function EstoqueTable({
                   </TableRow>
                 ) : (
                   dadosFiltrados.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={item.segregado ? 'bg-amber-500/5 border-l-2 border-l-amber-500' : ''}>
                       <TableCell className="py-2">
                         {item.imagem_url ? (
                           <HoverCard openDelay={200}>
@@ -492,7 +497,16 @@ export function EstoqueTable({
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{item.descricao}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>{item.descricao}</span>
+                          {item.segregado && (
+                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300">
+                              SEGREGADO
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-center">
                         <Badge variant={item.quantidade > 0 ? 'secondary' : 'destructive'}>
                           {item.quantidade.toLocaleString('pt-BR')} {item.unidade}

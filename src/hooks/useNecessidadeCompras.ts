@@ -148,8 +148,9 @@ export function useNecessidadeCompras() {
             espessuraKey = normalizeThicknessKey(espThick);
             cor = extractColor(mat.descricaomat);
             descricao = cor ? `${espessura} mm • ${cor}` : `${espessura} mm`;
-            const catKey = [...cats].sort().join('+');
-            bucketKey = `T|${catKey}|${espessuraKey}|${cor || ''}`;
+            // Agrupa por espessura + cor, independente da origem (CHAPA/BOBINA/SLITTER).
+            // As categorias dos diferentes pedidos se acumulam no bucket para varredura de estoque.
+            bucketKey = `T|${espessuraKey}|${cor || ''}`;
           } else {
             // Outros materiais: agrupa por descricaomat
             isOutro = true;
@@ -171,6 +172,10 @@ export function useNecessidadeCompras() {
               urgencia: pedidoUrgencia,
             };
             necessidadeMap.set(bucketKey, bucket);
+          } else if (!isOutro) {
+            // União das categorias candidatas vindas de diferentes itens da mesma espessura+cor
+            const merged = new Set<EstoqueCategoria>([...bucket.categorias, ...categorias]);
+            bucket.categorias = Array.from(merged);
           }
           bucket.necessarioKg += peso;
           bucket.urgencia = urgenciaMaxima(bucket.urgencia, pedidoUrgencia);

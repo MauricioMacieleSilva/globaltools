@@ -50,6 +50,53 @@ function categorizeForStock(desc: string): string[] {
   return [];
 }
 
+// ---------------- Color / family / equivalent helpers (mirror lib) ----------------
+const COLOR_KEYWORDS = ['BRANCA','BRANCO','PRETA','PRETO','CINZA','AZUL','VERMELHA','VERMELHO','AMARELA','AMARELO','VERDE','BEGE','MARROM','GALVALUME','GALVANIZADA','GALVANIZADO','GALV','ZINCADA','ZINCADO','NATURAL','ZAR'];
+function extractColor(desc: string): string | null {
+  if (!desc) return null;
+  const u = desc.toUpperCase();
+  let ralM = u.match(/RAL\s*(\d{3,4})/);
+  if (!ralM) {
+    const m2 = u.match(/\b(BRANC[AO]|PRET[AO]|CINZA|AZUL|VERMELH[AO]|AMAREL[AO]|VERDE|BEGE|MARROM)\s+(\d{4})\b/);
+    if (m2) ralM = [m2[0], m2[2]] as RegExpMatchArray;
+  }
+  const colorWord = COLOR_KEYWORDS.find(c => new RegExp(`\\b${c}\\b`).test(u)) || null;
+  const hasPP = /\bPP\b/.test(u);
+  const parts: string[] = [];
+  if (hasPP) parts.push('PP');
+  if (colorWord) parts.push(colorWord);
+  if (ralM) parts.push(`RAL ${ralM[1]}`);
+  return parts.length ? parts.join(' ') : null;
+}
+function normThickKey(v: any): string {
+  if (v === null || v === undefined || v === '') return '';
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));
+  if (!isFinite(n) || isNaN(n)) return '';
+  return n.toFixed(2);
+}
+function displayThick(canonical: string): string { return canonical.replace('.', ','); }
+const AUTO_EQ: Array<[string, string]> = [['0.50','0.47'], ['0.43','0.40']];
+function autoEqThicknesses(canon: string): string[] {
+  const out: string[] = [];
+  for (const [a,b] of AUTO_EQ) {
+    if (canon === a) out.push(b);
+    else if (canon === b) out.push(a);
+  }
+  return out;
+}
+function isPPColor(cor: string | null): boolean {
+  if (!cor) return false;
+  return /\bPP\b/.test(cor.toUpperCase());
+}
+function colorMatchesForStock(needCor: string | null, stockCor: string | null): boolean {
+  const needPP = isPPColor(needCor);
+  const stockPP = isPPColor(stockCor);
+  if (needPP || stockPP) return needPP && stockPP && needCor === stockCor;
+  if (!needCor) return true;
+  if (!stockCor) return true;
+  return needCor === stockCor;
+}
+
 // ---------------- Estoque peso ----------------
 const CATEGORIAS_KG = ['BOBINAS'];
 function calcularPesoPeca(item: any): number | null {
@@ -236,17 +283,47 @@ async function loadProducao(excluded: Set<string>, hidden: Set<string>): Promise
 // ---------------- Compute necessidade ----------------
 type Urgencia = 'atraso' | 'prazo' | 'programar';
 interface PedImp { numero_pedido: string; cliente: string; prazo: string; pesoKg: number; status: string; }
-interface Falta { categorias: string[]; espessura: string; necessario: number; estoque: number; falta: number; clientes: string[]; pedidos: PedImp[]; urgencia: Urgencia; }
+interface Falta {
+  categorias: string[];
+  espessura: string;       // display "0,50"
+  espessuraNum: number;
+  cor: string | null;
+  descricao: string;
+  isOutro: boolean;
+  necessario: number;
+  estoque: number;
+  falta: number;
+  clientes: string[];
+  pedidos: PedImp[];
+  urgencia: Urgencia;
+}
 
 function computeFaltas(pedidos: Pedido[], estoque: any[]): Falta[] {
-  const estoqueChave = new Map<string, number>();
-  estoque.forEach(it => {
+  // Estoque indexado por (categoria|espKey) com lista de pacotes {peso, cor}.
+  type StockEntry = { peso: number; cor: string | null };
+  const stockIndex = new Map<string, StockEntry[]>();
+  const addStock = (cat: string, espKey: string, peso: number, cor: string | null) => {
+    const k = `${cat}|${espKey}`;
+    const arr = stockIndex.get(k) || [];
+    arr.push({ peso, cor });
+    stockIndex.set(k, arr);
+  };
+  estoque.forEach((it: any) => {
     if (!it.ativo || !it.espessura) return;
+    if (it.segregado) return;
     const p = calcularPesoTotal(it);
     if (!p || p <= 0) return;
-    const esp = String(it.espessura).replace('.', ',');
-    const k = `${it.categoria}|${esp}`;
-    estoqueChave.set(k, (estoqueChave.get(k) || 0) + p);
+    const cor = extractColor(it.descricao || '');
+    const espKey = normThickKey(it.espessura);
+    if (!espKey) return;
+    addStock(it.categoria, espKey, p, cor);
+    // Auto-equivalentes
+    autoEqThicknesses(espKey).forEach(ek => addStock(it.categoria, ek, p, cor));
+    // Equivalentes manuais
+    (it.espessuras_equivalentes || []).forEach((eq: any) => {
+      const ek = normThickKey(eq);
+      if (ek && ek !== espKey) addStock(it.categoria, ek, p, cor);
+    });
   });
 
   const urg = (s: string): Urgencia => s === 'ATRASO' ? 'atraso' : s === 'PROGRAMAR' ? 'programar' : 'prazo';
@@ -255,7 +332,17 @@ function computeFaltas(pedidos: Pedido[], estoque: any[]): Falta[] {
     return o[a] >= o[b] ? a : b;
   };
 
-  type Bucket = { categorias: string[]; espessura: string; necessario: number; pedidos: Map<string, PedImp>; urgencia: Urgencia };
+  type Bucket = {
+    categorias: string[];
+    espessura: string;
+    espessuraKey: string;
+    cor: string | null;
+    descricao: string;
+    isOutro: boolean;
+    necessario: number;
+    pedidos: Map<string, PedImp>;
+    urgencia: Urgencia;
+  };
   const buckets = new Map<string, Bucket>();
   const ativos = pedidos.filter(p => p.status !== 'FINALIZADO');
 
@@ -265,17 +352,40 @@ function computeFaltas(pedidos: Pedido[], estoque: any[]): Falta[] {
       const s = (op.situacao_op || '').toUpperCase();
       if (s === 'FINALIZADA' || s === 'CONCLUÍDO' || s === 'CONCLUIDO') return;
       op.materiais.forEach(m => {
-        if (!shouldSummarize(m.descricaomat)) return;
-        const esp = extractThickness(m.descricaomat);
-        if (!esp) return;
-        const cats = categorizeForStock(m.descricaomat);
-        if (!cats.length) return;
         const peso = m.peso_kg || m.qtd || 0;
         if (peso <= 0) return;
-        const catKey = [...cats].sort().join('+');
-        const bk = `${catKey}|${esp}`;
+
+        let bk: string;
+        let categorias: string[] = [];
+        let espDisp = '';
+        let espKey = '';
+        let cor: string | null = null;
+        let descricao = '';
+        let isOutro = false;
+
+        const espThick = shouldSummarize(m.descricaomat) ? extractThickness(m.descricaomat) : null;
+        const cats = espThick ? categorizeForStock(m.descricaomat) : [];
+        if (espThick && cats.length > 0) {
+          categorias = cats;
+          espDisp = espThick;
+          espKey = normThickKey(espThick);
+          cor = extractColor(m.descricaomat);
+          descricao = cor ? `${espDisp} mm • ${cor}` : `${espDisp} mm`;
+          bk = `T|${espKey}|${cor || ''}`;
+        } else {
+          isOutro = true;
+          descricao = m.descricaomat;
+          bk = `O|${m.descricaomat}`;
+        }
+
         let b = buckets.get(bk);
-        if (!b) { b = { categorias: cats, espessura: esp, necessario: 0, pedidos: new Map(), urgencia: pu }; buckets.set(bk, b); }
+        if (!b) {
+          b = { categorias, espessura: espDisp, espessuraKey: espKey, cor, descricao, isOutro, necessario: 0, pedidos: new Map(), urgencia: pu };
+          buckets.set(bk, b);
+        } else if (!isOutro) {
+          const merged = new Set<string>([...b.categorias, ...categorias]);
+          b.categorias = Array.from(merged);
+        }
         b.necessario += peso;
         b.urgencia = maxU(b.urgencia, pu);
         const pk = pedido.numero_pedido;
@@ -288,20 +398,42 @@ function computeFaltas(pedidos: Pedido[], estoque: any[]): Falta[] {
 
   const out: Falta[] = [];
   buckets.forEach(b => {
-    const est = b.categorias.reduce((s, c) => s + (estoqueChave.get(`${c}|${b.espessura}`) || 0), 0);
+    let est = 0;
+    if (!b.isOutro && b.espessuraKey) {
+      b.categorias.forEach(cat => {
+        const entries = stockIndex.get(`${cat}|${b.espessuraKey}`) || [];
+        entries.forEach(e => {
+          if (colorMatchesForStock(b.cor, e.cor)) est += e.peso;
+        });
+      });
+    }
     const f = b.necessario - est;
     if (f <= 0) return;
     const peds = Array.from(b.pedidos.values()).sort((a, c) => (a.prazo || '9999').localeCompare(c.prazo || '9999'));
     out.push({
-      categorias: b.categorias, espessura: b.espessura,
-      necessario: b.necessario, estoque: est, falta: f,
+      categorias: b.categorias,
+      espessura: b.espessura,
+      espessuraNum: parseFloat((b.espessura || '0').replace(',', '.')) || 0,
+      cor: b.cor,
+      descricao: b.descricao,
+      isOutro: b.isOutro,
+      necessario: b.necessario,
+      estoque: est,
+      falta: f,
       clientes: Array.from(new Set(peds.map(p => p.cliente))),
-      pedidos: peds, urgencia: b.urgencia,
+      pedidos: peds,
+      urgencia: b.urgencia,
     });
   });
 
-  const ord: Record<Urgencia, number> = { atraso: 1, prazo: 2, programar: 3 };
-  out.sort((a, b) => ord[a.urgencia] - ord[b.urgencia] || b.falta - a.falta);
+  // Ordenação: por espessura crescente, "Outros" no final
+  out.sort((a, b) => {
+    if (a.isOutro !== b.isOutro) return a.isOutro ? 1 : -1;
+    if (a.isOutro && b.isOutro) return a.descricao.localeCompare(b.descricao);
+    const d = a.espessuraNum - b.espessuraNum;
+    if (d !== 0) return d;
+    return (a.cor || '').localeCompare(b.cor || '');
+  });
   return out;
 }
 

@@ -10,16 +10,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  ShoppingCart, AlertTriangle, Package, Users, Mail, Loader2, CheckCircle2,
+  ShoppingCart, AlertTriangle, Package, Users, CheckCircle2, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { useNecessidadeCompras, NecessidadeCompra } from '@/hooks/useNecessidadeCompras';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 function formatKg(kg: number): string {
   if (!kg) return '0 KG';
-  if (kg >= 1000) return `${(kg / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} t`;
   return `${Math.round(kg).toLocaleString('pt-BR')} KG`;
 }
 
@@ -38,42 +34,59 @@ function urgenciaBadge(u: NecessidadeCompra['urgencia']) {
   return <Badge variant="secondary">PROGRAMAR</Badge>;
 }
 
+type SortField = 'material' | 'necessario' | 'estoque' | 'comprar' | 'saldo' | 'urgencia';
+type SortDir = 'asc' | 'desc';
+const URG_ORDER: Record<NecessidadeCompra['urgencia'], number> = { atraso: 0, prazo: 1, programar: 2 };
+
 export function ComprasTab() {
-  const { faltantes, todos, totais } = useNecessidadeCompras();
-  const { isAdmin } = useUserPermissions();
+  const { todos, totais } = useNecessidadeCompras();
   const [filtro, setFiltro] = useState('');
-  const [apenasFaltantes, setApenasFaltantes] = useState(false);
   const [selected, setSelected] = useState<NecessidadeCompra | null>(null);
-  const [sending, setSending] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('material');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+  };
+
+  const SortHeader = ({ field, children, className = '' }: { field: SortField; children: React.ReactNode; className?: string }) => (
+    <TableHead className={`cursor-pointer select-none hover:text-foreground ${className}`} onClick={() => toggleSort(field)}>
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {sortField === field && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+      </span>
+    </TableHead>
+  );
 
   const lista = useMemo(() => {
-    const base = apenasFaltantes ? faltantes : todos;
-    if (!filtro.trim()) return base;
     const f = filtro.trim().toUpperCase();
-    return base.filter(item =>
+    const filtered = !f ? [...todos] : todos.filter(item =>
       item.descricao.toUpperCase().includes(f) ||
       item.espessura.includes(f) ||
+      (item.cor || '').toUpperCase().includes(f) ||
       item.clientes.some(c => c.toUpperCase().includes(f)) ||
       item.pedidos.some(p => p.numero_pedido.includes(f))
     );
-  }, [filtro, apenasFaltantes, faltantes, todos]);
-
-  const enviarEmailAgora = async () => {
-    setSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-compras-report', {
-        body: { manual: true },
-      });
-      if (error) throw error;
-      toast.success('Relatório de compras enviado com sucesso!', {
-        description: `${data?.enviados ?? 0} destinatário(s) notificado(s).`,
-      });
-    } catch (e: any) {
-      toast.error('Falha ao enviar relatório', { description: e?.message });
-    } finally {
-      setSending(false);
-    }
-  };
+    const mul = sortDir === 'asc' ? 1 : -1;
+    filtered.sort((a, b) => {
+      switch (sortField) {
+        case 'material': {
+          if (a.isOutro !== b.isOutro) return (a.isOutro ? 1 : -1) * mul;
+          if (a.isOutro && b.isOutro) return a.descricao.localeCompare(b.descricao) * mul;
+          const d = a.espessuraNum - b.espessuraNum;
+          if (d !== 0) return d * mul;
+          return (a.cor || '').localeCompare(b.cor || '') * mul;
+        }
+        case 'necessario': return (a.necessarioKg - b.necessarioKg) * mul;
+        case 'estoque':    return (a.estoqueKg - b.estoqueKg) * mul;
+        case 'comprar':    return (Math.max(0, a.faltaKg) - Math.max(0, b.faltaKg)) * mul;
+        case 'saldo':      return (a.saldoKg - b.saldoKg) * mul;
+        case 'urgencia':   return (URG_ORDER[a.urgencia] - URG_ORDER[b.urgencia]) * mul;
+      }
+    });
+    return filtered;
+  }, [filtro, todos, sortField, sortDir]);
 
   return (
     <div className="space-y-4">
@@ -127,54 +140,30 @@ export function ComprasTab() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row justify-between gap-2 items-start sm:items-center">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" /> Necessidade de Compras
-              </CardTitle>
-              <CardDescription>
-                Materiais demandados pelos pedidos em produção menos o estoque disponível.
-                Reserva virtual — o estoque não é baixado automaticamente.
-              </CardDescription>
-            </div>
-            {isAdmin && (
-              <Button onClick={enviarEmailAgora} disabled={sending} className="gap-2">
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                Enviar e-mail agora
-              </Button>
-            )}
-          </div>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" /> Necessidade de Compras
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input
-              placeholder="Buscar por categoria, espessura, cliente, pedido..."
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-              className="flex-1"
-            />
-            <Button
-              variant={apenasFaltantes ? 'default' : 'outline'}
-              onClick={() => setApenasFaltantes(v => !v)}
-              className="gap-2"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              {apenasFaltantes ? 'Apenas faltantes' : 'Mostrar todos'}
-            </Button>
-          </div>
+          <Input
+            placeholder="Buscar por material, espessura, cor, cliente, pedido..."
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            className="flex-1"
+          />
 
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Material</TableHead>
-                  <TableHead className="text-right">Necessário</TableHead>
-                  <TableHead className="text-right">Em Estoque</TableHead>
-                  <TableHead className="text-right">A Comprar</TableHead>
-                  <TableHead className="text-right">Saldo Estoque</TableHead>
+                  <SortHeader field="material">Material</SortHeader>
+                  <SortHeader field="necessario" className="text-right">Necessário</SortHeader>
+                  <SortHeader field="estoque" className="text-right">Em Estoque</SortHeader>
+                  <SortHeader field="comprar" className="text-right">A Comprar</SortHeader>
+                  <SortHeader field="saldo" className="text-right">Saldo Estoque</SortHeader>
                   <TableHead>Clientes</TableHead>
                   <TableHead className="text-center">Pedidos</TableHead>
-                  <TableHead className="text-center">Urgência</TableHead>
+                  <SortHeader field="urgencia" className="text-center">Urgência</SortHeader>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -196,7 +185,12 @@ export function ComprasTab() {
                       <TableCell className="font-medium">
                         {item.isOutro
                           ? <span className="text-sm">{item.descricao}</span>
-                          : <span className="font-mono">{item.espessura} mm</span>}
+                          : (
+                            <span className="font-mono">
+                              {item.espessura} mm
+                              {item.cor && <span className="ml-2 text-xs text-muted-foreground font-sans">• {item.cor}</span>}
+                            </span>
+                          )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatKg(item.necessarioKg)}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">{formatKg(item.estoqueKg)}</TableCell>
@@ -233,7 +227,9 @@ export function ComprasTab() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
-                  {selected.isOutro ? selected.descricao : `${selected.espessura} mm`}
+                  {selected.isOutro
+                    ? selected.descricao
+                    : `${selected.espessura} mm${selected.cor ? ` • ${selected.cor}` : ''}`}
                 </DialogTitle>
                 <DialogDescription>
                   {selected.faltaKg > 0 ? (

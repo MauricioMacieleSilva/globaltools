@@ -42,8 +42,9 @@ export function ProducaoTable() {
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const fixedScrollRef = useRef<HTMLDivElement>(null);
   const fixedScrollContentRef = useRef<HTMLDivElement>(null);
-  const [horizontalScroll, setHorizontalScroll] = useState({ left: 264, width: 900, contentWidth: 1280 });
-  const activeScrollSource = useRef<'table' | 'fixed' | null>(null);
+  const [showFloatingScrollbar, setShowFloatingScrollbar] = useState(false);
+  const syncingTable = useRef(false);
+  const syncingFixed = useRef(false);
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -215,10 +216,20 @@ export function ProducaoTable() {
 
   const updateHorizontalScrollLayout = useCallback(() => {
     const tableScroll = tableScrollRef.current;
-    if (!tableScroll || isMobile) return;
+    if (!tableScroll || isMobile) {
+      setShowFloatingScrollbar(false);
+      return;
+    }
 
     const rect = tableScroll.getBoundingClientRect();
     const contentWidth = tableScroll.scrollWidth;
+    const containerWidth = rect.width;
+
+    // Only show if the table has scrollable content and is within the viewport
+    const hasScroll = contentWidth > containerWidth + 2;
+    const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
+
+    setShowFloatingScrollbar(hasScroll && isInViewport);
 
     setHorizontalScroll({
       left: Math.max(rect.left, 0),
@@ -228,19 +239,33 @@ export function ProducaoTable() {
   }, [isMobile]);
 
   const handleTableScroll = useCallback(() => {
-    if (activeScrollSource.current !== 'table') return;
     const tableScroll = tableScrollRef.current;
     const fixedScroll = fixedScrollRef.current;
-    if (tableScroll && fixedScroll && fixedScroll.scrollLeft !== tableScroll.scrollLeft) {
+    if (!tableScroll || !fixedScroll) return;
+
+    if (syncingTable.current) {
+      syncingTable.current = false;
+      return;
+    }
+
+    if (fixedScroll.scrollLeft !== tableScroll.scrollLeft) {
+      syncingFixed.current = true;
       fixedScroll.scrollLeft = tableScroll.scrollLeft;
     }
   }, []);
 
   const handleFixedHorizontalScroll = useCallback(() => {
-    if (activeScrollSource.current !== 'fixed') return;
     const tableScroll = tableScrollRef.current;
     const fixedScroll = fixedScrollRef.current;
-    if (tableScroll && fixedScroll && tableScroll.scrollLeft !== fixedScroll.scrollLeft) {
+    if (!tableScroll || !fixedScroll) return;
+
+    if (syncingFixed.current) {
+      syncingFixed.current = false;
+      return;
+    }
+
+    if (tableScroll.scrollLeft !== fixedScroll.scrollLeft) {
+      syncingTable.current = true;
       tableScroll.scrollLeft = fixedScroll.scrollLeft;
     }
   }, []);
@@ -486,8 +511,6 @@ export function ProducaoTable() {
             className="rounded-md border overflow-x-auto overflow-y-visible producao-table-scroll bg-card" 
             data-tour="producao-table"
             onScroll={handleTableScroll}
-            onMouseEnter={() => { activeScrollSource.current = 'table'; }}
-            onTouchStart={() => { activeScrollSource.current = 'table'; }}
           >
             <Table className="min-w-[1280px]">
             <TableHeader>
@@ -761,17 +784,15 @@ export function ProducaoTable() {
         onConfirm={confirmHideOrder}
       />
     )}
-    {!isMobile && (
+    {!isMobile && showFloatingScrollbar && (
       <div
         ref={fixedScrollRef}
-        className="fixed bottom-0 z-[9999] h-6 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card/90 backdrop-blur-sm px-3 shadow-lg"
+        className="fixed bottom-0 z-[9999] h-4 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card/90 backdrop-blur-sm shadow-lg"
         style={{
-          left: horizontalScroll.left,
-          width: horizontalScroll.width,
+          left: `${horizontalScroll.left}px`,
+          width: `${horizontalScroll.width}px`,
         }}
         onScroll={handleFixedHorizontalScroll}
-        onMouseEnter={() => { activeScrollSource.current = 'fixed'; }}
-        onTouchStart={() => { activeScrollSource.current = 'fixed'; }}
       >
         <div ref={fixedScrollContentRef} className="h-1" style={{ width: `${Math.max(horizontalScroll.contentWidth, 1280)}px` }} />
       </div>

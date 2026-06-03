@@ -42,7 +42,7 @@ export function ComprasTab() {
   const { faltantes, todos, totais } = useNecessidadeCompras();
   const { isAdmin } = useUserPermissions();
   const [filtro, setFiltro] = useState('');
-  const [apenasFaltantes, setApenasFaltantes] = useState(true);
+  const [apenasFaltantes, setApenasFaltantes] = useState(false);
   const [selected, setSelected] = useState<NecessidadeCompra | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -51,7 +51,7 @@ export function ComprasTab() {
     if (!filtro.trim()) return base;
     const f = filtro.trim().toUpperCase();
     return base.filter(item =>
-      item.categorias.some(c => c.includes(f)) ||
+      item.descricao.toUpperCase().includes(f) ||
       item.espessura.includes(f) ||
       item.clientes.some(c => c.toUpperCase().includes(f)) ||
       item.pedidos.some(p => p.numero_pedido.includes(f))
@@ -167,11 +167,11 @@ export function ComprasTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Espessura</TableHead>
+                  <TableHead>Material</TableHead>
                   <TableHead className="text-right">Necessário</TableHead>
                   <TableHead className="text-right">Em Estoque</TableHead>
                   <TableHead className="text-right">A Comprar</TableHead>
+                  <TableHead className="text-right">Saldo Estoque</TableHead>
                   <TableHead>Clientes</TableHead>
                   <TableHead className="text-center">Pedidos</TableHead>
                   <TableHead className="text-center">Urgência</TableHead>
@@ -193,18 +193,18 @@ export function ComprasTab() {
                       className={`cursor-pointer hover:bg-muted/50 ${item.urgencia === 'atraso' ? 'bg-destructive/5' : ''}`}
                       onClick={() => setSelected(item)}
                     >
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {item.categorias.map(c => (
-                            <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
-                          ))}
-                        </div>
+                      <TableCell className="font-medium">
+                        {item.isOutro
+                          ? <span className="text-sm">{item.descricao}</span>
+                          : <span className="font-mono">{item.espessura} mm</span>}
                       </TableCell>
-                      <TableCell className="font-mono font-semibold">{item.espessura} mm</TableCell>
                       <TableCell className="text-right tabular-nums">{formatKg(item.necessarioKg)}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">{formatKg(item.estoqueKg)}</TableCell>
                       <TableCell className={`text-right tabular-nums font-bold ${atendido ? 'text-green-600' : 'text-destructive'}`}>
                         {atendido ? 'OK' : formatKg(item.faltaKg)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatKg(item.saldoKg)}
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate" title={item.clientes.join(', ')}>
                         {item.clientes.slice(0, 2).join(', ')}
@@ -233,7 +233,7 @@ export function ComprasTab() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
-                  {selected.categorias.join(' / ')} • {selected.espessura} mm
+                  {selected.isOutro ? selected.descricao : `${selected.espessura} mm`}
                 </DialogTitle>
                 <DialogDescription>
                   {selected.faltaKg > 0 ? (
@@ -243,7 +243,7 @@ export function ComprasTab() {
                   )}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-3 gap-3 my-4">
+              <div className="grid grid-cols-4 gap-3 my-4">
                 <div className="p-3 rounded bg-muted/40">
                   <p className="text-xs text-muted-foreground">Necessário</p>
                   <p className="text-lg font-bold">{formatKg(selected.necessarioKg)}</p>
@@ -257,6 +257,10 @@ export function ComprasTab() {
                   <p className="text-lg font-bold text-destructive">
                     {selected.faltaKg > 0 ? formatKg(selected.faltaKg) : 'OK'}
                   </p>
+                </div>
+                <div className="p-3 rounded bg-muted/40">
+                  <p className="text-xs text-muted-foreground">Saldo Estoque</p>
+                  <p className="text-lg font-bold">{formatKg(selected.saldoKg)}</p>
                 </div>
               </div>
               <Table>

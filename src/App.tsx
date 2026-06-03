@@ -72,7 +72,7 @@ function AppContent() {
       case '/pipeline':
         return 'Pipeline de Vendas';
       case '/producao':
-        return 'Produção';
+        return 'Fábrica';
       case '/treinamentos':
         return 'Treinamentos';
       case '/fretes':

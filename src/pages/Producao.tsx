@@ -66,33 +66,6 @@ export default function Producao() {
     <ErrorBoundary>
       <div className="min-h-screen w-full bg-background">
         <div className="container mx-auto p-2 space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" data-tour="producao-header">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Fábrica</h1>
-              <LastUpdatedIndicator lastUpdated={lastUpdated} onRefresh={refetchData} loading={loading} />
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto flex-wrap">
-              {isAdmin && (
-                <>
-                  <ProductionReportButton />
-                  <Button
-                    onClick={() => setHiddenDialogOpen(true)}
-                    variant="outline"
-                    className="gap-2 flex-1 sm:flex-none"
-                  >
-                    <EyeOff className="h-4 w-4" />
-                    <span className="hidden sm:inline">Pedidos Ocultos</span>
-                  </Button>
-                </>
-              )}
-              <Button onClick={exportarPDF} className="gap-2 flex-1 sm:flex-none" data-tour="producao-export-btn">
-                <FileDown className="h-4 w-4" />
-                <span className="hidden sm:inline">Exportar Relatório PDF</span>
-                <span className="sm:hidden">Exportar PDF</span>
-              </Button>
-            </div>
-          </div>
-
           <Tabs defaultValue="producao" className="w-full">
             <TabsList className="grid w-full grid-cols-5 max-w-3xl" data-tour="producao-tabs">
               <TabsTrigger value="producao" className="gap-2">
@@ -118,6 +91,29 @@ export default function Producao() {
             </TabsList>
 
             <TabsContent value="producao" className="space-y-4 mt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" data-tour="producao-header">
+                <LastUpdatedIndicator lastUpdated={lastUpdated} onRefresh={refetchData} loading={loading} />
+                <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+                  {isAdmin && (
+                    <>
+                      <ProductionReportButton />
+                      <Button
+                        onClick={() => setHiddenDialogOpen(true)}
+                        variant="outline"
+                        className="gap-2 flex-1 sm:flex-none"
+                      >
+                        <EyeOff className="h-4 w-4" />
+                        <span className="hidden sm:inline">Pedidos Ocultos</span>
+                      </Button>
+                    </>
+                  )}
+                  <Button onClick={exportarPDF} className="gap-2 flex-1 sm:flex-none" data-tour="producao-export-btn">
+                    <FileDown className="h-4 w-4" />
+                    <span className="hidden sm:inline">Exportar Relatório PDF</span>
+                    <span className="sm:hidden">Exportar PDF</span>
+                  </Button>
+                </div>
+              </div>
               <ErrorBoundary>
                 <ProducaoKPIs />
               </ErrorBoundary>

@@ -22,12 +22,15 @@ export interface PedidoImpactado {
 
 export interface NecessidadeCompra {
   key: string;
-  categorias: EstoqueCategoria[]; // categorias onde pode buscar (ex.: CHAPAS+BOBINAS)
-  espessura: string; // ex.: "1,95"
+  categorias: EstoqueCategoria[]; // categorias onde pode buscar (ex.: CHAPAS+BOBINAS) — vazio para "outros"
+  espessura: string; // ex.: "1,95" — vazio para "outros"
   espessuraNum: number;
+  descricao: string; // rótulo exibido na coluna Material
+  isOutro: boolean;
   necessarioKg: number;
   estoqueKg: number;
   faltaKg: number; // positivo = precisa comprar; <=0 = atendido
+  saldoKg: number; // saldo virtual após consumir necessidade (>=0)
   clientes: string[];
   pedidos: PedidoImpactado[];
   urgencia: Urgencia;
@@ -81,6 +84,8 @@ export function useNecessidadeCompras() {
     type Bucket = {
       categorias: EstoqueCategoria[];
       espessura: string;
+      descricao: string;
+      isOutro: boolean;
       necessarioKg: number;
       pedidosMap: Map<string, PedidoImpactado>;
       urgencia: Urgencia;
@@ -96,24 +101,40 @@ export function useNecessidadeCompras() {
         if (sit === 'FINALIZADA' || sit === 'CONCLUÍDO' || sit === 'CONCLUIDO') return;
 
         op.materiais.forEach(mat => {
-          if (!shouldSummarizeByThickness(mat.descricaomat)) return;
-          const espessura = extractThickness(mat.descricaomat);
-          if (!espessura) return;
-          const categorias = categorizeForStock(mat.descricaomat);
-          if (categorias.length === 0) return;
-
           const peso = mat.peso_kg || mat.qtd_pendente || 0;
           if (peso <= 0) return;
 
-          // Chave única por conjunto de categorias + espessura
-          const catKey = [...categorias].sort().join('+');
-          const bucketKey = `${catKey}|${espessura}`;
+          let bucketKey: string;
+          let categorias: EstoqueCategoria[] = [];
+          let espessura = '';
+          let descricao = '';
+          let isOutro = false;
+
+          const espThick = shouldSummarizeByThickness(mat.descricaomat)
+            ? extractThickness(mat.descricaomat)
+            : null;
+          const cats = espThick ? categorizeForStock(mat.descricaomat) : [];
+
+          if (espThick && cats.length > 0) {
+            categorias = cats;
+            espessura = espThick;
+            descricao = `${espThick} mm`;
+            const catKey = [...cats].sort().join('+');
+            bucketKey = `T|${catKey}|${espThick}`;
+          } else {
+            // Outros materiais: agrupa por descricaomat
+            isOutro = true;
+            descricao = mat.descricaomat;
+            bucketKey = `O|${mat.descricaomat}`;
+          }
 
           let bucket = necessidadeMap.get(bucketKey);
           if (!bucket) {
             bucket = {
               categorias,
               espessura,
+              descricao,
+              isOutro,
               necessarioKg: 0,
               pedidosMap: new Map(),
               urgencia: pedidoUrgencia,
@@ -144,10 +165,11 @@ export function useNecessidadeCompras() {
     const todos: NecessidadeCompra[] = [];
 
     necessidadeMap.forEach((bucket, key) => {
-      const estoqueKg = bucket.categorias.reduce((sum, cat) => {
+      const estoqueKg = bucket.isOutro ? 0 : bucket.categorias.reduce((sum, cat) => {
         return sum + (estoquePorChave.get(`${cat}|${bucket.espessura}`) || 0);
       }, 0);
       const faltaKg = bucket.necessarioKg - estoqueKg;
+      const saldoKg = Math.max(0, estoqueKg - bucket.necessarioKg);
       const pedidos = Array.from(bucket.pedidosMap.values()).sort((a, b) => {
         const da = a.prazo || '9999-99-99';
         const db = b.prazo || '9999-99-99';
@@ -160,9 +182,12 @@ export function useNecessidadeCompras() {
         categorias: bucket.categorias,
         espessura: bucket.espessura,
         espessuraNum: parseThicknessNumber(bucket.espessura),
+        descricao: bucket.descricao,
+        isOutro: bucket.isOutro,
         necessarioKg: bucket.necessarioKg,
         estoqueKg,
         faltaKg,
+        saldoKg,
         clientes,
         pedidos,
         urgencia: bucket.urgencia,

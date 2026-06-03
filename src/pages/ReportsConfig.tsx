@@ -250,6 +250,7 @@ function ComprasConfig() {
   const [config, setConfig] = useState<{ id: string; is_active: boolean; send_time: string; send_days: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sending, setSending] = useState(false);
   const { toast } = useToast();
 
   const DAYS = [
@@ -304,6 +305,20 @@ function ComprasConfig() {
     } finally { setSaving(false); }
   };
 
+  const handleSendManual = async () => {
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-compras-report', { body: {} });
+      if (error) throw error;
+      toast({
+        title: 'Relatório de compras enviado',
+        description: `Enviado para ${data?.enviados || 0} contato(s), com ${data?.faltas || 0} item(ns) na lista.`,
+      });
+    } catch (error: any) {
+      toast({ title: 'Erro ao enviar relatório', description: error.message || 'Não foi possível enviar o relatório.', variant: 'destructive' });
+    } finally { setSending(false); }
+  };
+
   if (loading) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   if (!config) return null;
 
@@ -339,7 +354,11 @@ function ComprasConfig() {
           </div>
         </>
       )}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button onClick={handleSendManual} disabled={sending} variant="outline" size="sm" className="gap-2">
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+          Enviar agora
+        </Button>
         <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Salvar

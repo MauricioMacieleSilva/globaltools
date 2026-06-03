@@ -59,12 +59,6 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(JSON.stringify({ message: 'Já enviado hoje' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Idempotência: marca antes de chamar
-    await supabaseAdmin
-      .from('compras_report_schedule')
-      .update({ last_sent_date: todayStr })
-      .eq('id', schedule.id);
-
     console.log('✅ Dentro da janela, chamando send-compras-report...');
     const functionUrl = `${SUPABASE_URL}/functions/v1/send-compras-report`;
 
@@ -80,16 +74,22 @@ const handler = async (req: Request): Promise<Response> => {
       const responseText = await invokeRes.text();
       console.log(`📬 send-compras-report status: ${invokeRes.status}, body: ${responseText.substring(0, 500)}`);
 
-      if (!invokeRes.ok) {
-        await supabaseAdmin.from('compras_report_schedule').update({ last_sent_date: null }).eq('id', schedule.id);
+      let parsedResponse: any = null;
+      try { parsedResponse = JSON.parse(responseText); } catch {}
+
+      if (!invokeRes.ok || parsedResponse?.success === false || parsedResponse?.enviados === 0) {
         return new Response(JSON.stringify({ error: `send-compras-report returned ${invokeRes.status}`, details: responseText.substring(0, 500) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+
+      await supabaseAdmin
+        .from('compras_report_schedule')
+        .update({ last_sent_date: todayStr })
+        .eq('id', schedule.id);
 
       console.log('✅ Relatório de compras agendado enviado com sucesso');
       return new Response(JSON.stringify({ success: true, response: responseText.substring(0, 500) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     } catch (invokeError: any) {
       console.error('❌ Exceção:', invokeError.message);
-      await supabaseAdmin.from('compras_report_schedule').update({ last_sent_date: null }).eq('id', schedule.id);
       return new Response(JSON.stringify({ error: invokeError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
   } catch (error: any) {

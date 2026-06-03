@@ -11,6 +11,7 @@ import {
   extractColor,
   shouldSummarizeByThickness,
   getAutoEquivalentThicknesses,
+  colorMatchesForStock,
 } from '@/lib/material-matching';
 import { calcularPesoTotal } from '@/services/estoqueService';
 
@@ -213,7 +214,7 @@ export function useNecessidadeCompras() {
         bucket.categorias.forEach(cat => {
           const entries = stockIndex.get(`${cat}|${bucket.espessuraKey}`) || [];
           entries.forEach(e => {
-            if (!bucket.cor || !e.cor || e.cor === bucket.cor) {
+            if (colorMatchesForStock(bucket.cor, e.cor)) {
               estoqueKg += e.peso;
             }
           });

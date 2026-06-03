@@ -743,7 +743,7 @@ export function ProducaoTable() {
     {!isMobile && (
       <div
         ref={fixedScrollRef}
-        className="fixed bottom-0 z-[9999] h-6 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card px-3 shadow-lg"
+        className="fixed bottom-0 z-[9999] h-4 overflow-x-scroll overflow-y-hidden kanban-scroll border-t bg-card/90 backdrop-blur-sm px-3 shadow-lg"
         style={{
           left: horizontalScroll.left,
           width: horizontalScroll.width,

@@ -167,11 +167,11 @@ export function ComprasTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Espessura</TableHead>
+                  <TableHead>Material</TableHead>
                   <TableHead className="text-right">Necessário</TableHead>
                   <TableHead className="text-right">Em Estoque</TableHead>
                   <TableHead className="text-right">A Comprar</TableHead>
+                  <TableHead className="text-right">Saldo Estoque</TableHead>
                   <TableHead>Clientes</TableHead>
                   <TableHead className="text-center">Pedidos</TableHead>
                   <TableHead className="text-center">Urgência</TableHead>

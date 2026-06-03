@@ -124,6 +124,37 @@ export function getAutoEquivalentThicknesses(canonical: string): string[] {
 }
 
 /**
+ * Indica se a cor/acabamento extraído corresponde a material Pré-Pintado (PP).
+ * Pré-pintados NÃO podem ser substituídos por (nem substituir) material normal,
+ * mesmo com mesma espessura.
+ */
+export function isPPColor(cor: string | null | undefined): boolean {
+  if (!cor) return false;
+  return /\bPP\b/.test(cor.toUpperCase());
+}
+
+/**
+ * Verifica se o estoque (stockCor) pode atender uma necessidade (needCor).
+ * Regras:
+ * - Necessidade PP: só pode ser atendida por estoque PP de cor exatamente igual.
+ * - Necessidade não-PP (com ou sem cor): só pode ser atendida por estoque não-PP.
+ *   - Sem cor na necessidade: aceita qualquer estoque não-PP (com ou sem cor).
+ *   - Com cor na necessidade: estoque sem cor é universal; com cor precisa bater.
+ */
+export function colorMatchesForStock(needCor: string | null, stockCor: string | null): boolean {
+  const needIsPP = isPPColor(needCor);
+  const stockIsPP = isPPColor(stockCor);
+  if (needIsPP || stockIsPP) {
+    // Famílias PP e normal nunca se misturam.
+    return needIsPP && stockIsPP && needCor === stockCor;
+  }
+  // Ambos não-PP
+  if (!needCor) return true;
+  if (!stockCor) return true;
+  return needCor === stockCor;
+}
+
+/**
  * Determina as categorias de estoque candidatas para suprir um material do pedido.
  * Retorna [] se o material não deve participar do controle de compras por espessura.
  */

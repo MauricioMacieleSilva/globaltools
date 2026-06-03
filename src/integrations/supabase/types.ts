@@ -370,6 +370,36 @@ export type Database = {
           },
         ]
       }
+      compras_report_schedule: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          last_sent_date: string | null
+          send_days: string[]
+          send_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sent_date?: string | null
+          send_days?: string[]
+          send_time?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_sent_date?: string | null
+          send_days?: string[]
+          send_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_business_sectors: {
         Row: {
           created_at: string
@@ -750,12 +780,14 @@ export type Database = {
           created_by: string | null
           descricao: string
           espessura: number | null
+          espessuras_equivalentes: string[]
           id: string
           imagem_url: string | null
           largura: number | null
           localizacao: string | null
           observacoes: string | null
           quantidade: number
+          segregado: boolean
           tipo_perfil: string | null
           unidade: string | null
           updated_at: string | null
@@ -771,12 +803,14 @@ export type Database = {
           created_by?: string | null
           descricao: string
           espessura?: number | null
+          espessuras_equivalentes?: string[]
           id?: string
           imagem_url?: string | null
           largura?: number | null
           localizacao?: string | null
           observacoes?: string | null
           quantidade?: number
+          segregado?: boolean
           tipo_perfil?: string | null
           unidade?: string | null
           updated_at?: string | null
@@ -792,12 +826,14 @@ export type Database = {
           created_by?: string | null
           descricao?: string
           espessura?: number | null
+          espessuras_equivalentes?: string[]
           id?: string
           imagem_url?: string | null
           largura?: number | null
           localizacao?: string | null
           observacoes?: string | null
           quantidade?: number
+          segregado?: boolean
           tipo_perfil?: string | null
           unidade?: string | null
           updated_at?: string | null

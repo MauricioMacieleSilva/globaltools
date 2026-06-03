@@ -32,6 +32,8 @@ export interface EstoqueItem {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  segregado?: boolean;
+  espessuras_equivalentes?: string[];
 }
 
 export type EstoqueItemInsert = Omit<EstoqueItem, 'id' | 'created_at' | 'updated_at'>;

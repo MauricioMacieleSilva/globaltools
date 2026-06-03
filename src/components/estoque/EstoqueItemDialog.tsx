@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -63,6 +66,8 @@ interface FormData {
   imagem_url: string | null;
   localizacao: string;
   observacoes: string;
+  segregado: boolean;
+  espessuras_equivalentes: string[];
 }
 
 const initialFormData: FormData = {
@@ -84,6 +89,8 @@ const initialFormData: FormData = {
   imagem_url: null,
   localizacao: '',
   observacoes: '',
+  segregado: false,
+  espessuras_equivalentes: [],
 };
 
 // Configuração de campos por tipo de perfil
@@ -126,6 +133,7 @@ export function EstoqueItemDialog({
   const [aba2ManualEdit, setAba2ManualEdit] = useState(false);
   const [enrij2ManualEdit, setEnrij2ManualEdit] = useState(false);
   const [enrij4ManualEdit, setEnrij4ManualEdit] = useState(false);
+  const [novaEquivalencia, setNovaEquivalencia] = useState('');
   const isEditing = !!item;
 
   useEffect(() => {
@@ -149,6 +157,8 @@ export function EstoqueItemDialog({
         imagem_url: item.imagem_url,
         localizacao: item.localizacao || '',
         observacoes: item.observacoes || '',
+        segregado: !!(item as any).segregado,
+        espessuras_equivalentes: (item as any).espessuras_equivalentes || [],
       });
     } else {
       const cat = categoriaInicial || 'PERFIS';
@@ -364,7 +374,9 @@ export function EstoqueItemDialog({
         observacoes: form.observacoes.trim() || null,
         ativo: true,
         created_by: user?.id || null,
-      };
+        segregado: form.segregado,
+        espessuras_equivalentes: form.espessuras_equivalentes,
+      } as any;
 
       if (isEditing && item) {
         const { error } = await updateEstoqueItem(item.id, payload);
@@ -881,6 +893,79 @@ export function EstoqueItemDialog({
               placeholder="Informações adicionais sobre o item..."
               rows={3}
             />
+          </div>
+
+          {/* Segregação e Equivalências */}
+          <div className="space-y-4 p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="segregado">Material segregado</Label>
+                <p className="text-xs text-muted-foreground">
+                  Quando marcado, este item NÃO conta como disponível no controle de compras.
+                </p>
+              </div>
+              <Switch
+                id="segregado"
+                checked={form.segregado}
+                onCheckedChange={(checked) => setForm({ ...form, segregado: checked })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Espessuras equivalentes (mm)</Label>
+              <p className="text-xs text-muted-foreground">
+                Bitolas adicionais que este material pode suprir. Ex.: item 2,60 marcado como equivalente a 2,65 cobre pedidos de 2,65.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: 2,65"
+                  value={novaEquivalencia}
+                  onChange={(e) => setNovaEquivalencia(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = novaEquivalencia.trim().replace('.', ',');
+                      if (v && !form.espessuras_equivalentes.includes(v)) {
+                        setForm({ ...form, espessuras_equivalentes: [...form.espessuras_equivalentes, v] });
+                      }
+                      setNovaEquivalencia('');
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const v = novaEquivalencia.trim().replace('.', ',');
+                    if (v && !form.espessuras_equivalentes.includes(v)) {
+                      setForm({ ...form, espessuras_equivalentes: [...form.espessuras_equivalentes, v] });
+                    }
+                    setNovaEquivalencia('');
+                  }}
+                >
+                  Adicionar
+                </Button>
+              </div>
+              {form.espessuras_equivalentes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {form.espessuras_equivalentes.map((eq) => (
+                    <Badge key={eq} variant="secondary" className="gap-1">
+                      {eq} mm
+                      <button
+                        type="button"
+                        onClick={() => setForm({
+                          ...form,
+                          espessuras_equivalentes: form.espessuras_equivalentes.filter(e => e !== eq),
+                        })}
+                        className="hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

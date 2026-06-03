@@ -6,6 +6,9 @@ import {
   categorizeForStock,
   extractThickness,
   parseThicknessNumber,
+  normalizeThicknessKey,
+  displayThickness,
+  extractColor,
   shouldSummarizeByThickness,
 } from '@/lib/material-matching';
 import { calcularPesoTotal } from '@/services/estoqueService';
@@ -23,8 +26,10 @@ export interface PedidoImpactado {
 export interface NecessidadeCompra {
   key: string;
   categorias: EstoqueCategoria[]; // categorias onde pode buscar (ex.: CHAPAS+BOBINAS) — vazio para "outros"
-  espessura: string; // ex.: "1,95" — vazio para "outros"
+  espessura: string; // exibição (ex.: "1,95") — vazio para "outros"
+  espessuraKey: string; // canônico (ex.: "1.95") — vazio para "outros"
   espessuraNum: number;
+  cor: string | null; // cor/acabamento (ex.: "PP BRANCA") — null se não aplicável
   descricao: string; // rótulo exibido na coluna Material
   isOutro: boolean;
   necessarioKg: number;
@@ -59,10 +64,21 @@ export function useNecessidadeCompras() {
   const { items: estoqueItems } = useEstoque();
 
   return useMemo(() => {
-    // 1) Agrega estoque disponível por (categoria, espessura) em KG
-    const estoquePorChave = new Map<string, number>();
+    // 1) Indexa estoque disponível por (categoria, espessura-canônica, cor?)
+    // Estrutura: para cada categoria/espessura, lista de pacotes {peso, cor (ou null)}
+    type StockEntry = { peso: number; cor: string | null };
+    const stockIndex = new Map<string, StockEntry[]>(); // key: `${cat}|${espKey}`
+
+    const addStock = (cat: string, espKey: string, peso: number, cor: string | null) => {
+      const k = `${cat}|${espKey}`;
+      const arr = stockIndex.get(k) || [];
+      arr.push({ peso, cor });
+      stockIndex.set(k, arr);
+    };
+
     estoqueItems.forEach(item => {
       if (!item.ativo || !item.espessura) return;
+      if (item.segregado) return; // segregado não conta como disponível
       const peso = calcularPesoTotal(
         item.categoria as EstoqueCategoria,
         item.quantidade,
@@ -75,15 +91,24 @@ export function useNecessidadeCompras() {
         item.tipo_perfil,
       );
       if (!peso || peso <= 0) return;
-      const espStr = String(item.espessura).replace('.', ',');
-      const key = `${item.categoria}|${espStr}`;
-      estoquePorChave.set(key, (estoquePorChave.get(key) || 0) + peso);
+
+      const cor = extractColor(item.descricao);
+      const espKeyMain = normalizeThicknessKey(item.espessura);
+      if (espKeyMain) addStock(item.categoria, espKeyMain, peso, cor);
+
+      // Espessuras equivalentes (item 2,60 com ["2,65"] também supre necessidade de 2,65)
+      (item.espessuras_equivalentes || []).forEach(eq => {
+        const ek = normalizeThicknessKey(eq);
+        if (ek && ek !== espKeyMain) addStock(item.categoria, ek, peso, cor);
+      });
     });
 
     // 2) Agrega necessidade por (categoriasAlvo, espessura) — pedidos não finalizados
     type Bucket = {
       categorias: EstoqueCategoria[];
-      espessura: string;
+      espessura: string;     // display ex: "0,50"
+      espessuraKey: string;  // canônica ex: "0.50"
+      cor: string | null;
       descricao: string;
       isOutro: boolean;
       necessarioKg: number;
@@ -107,6 +132,8 @@ export function useNecessidadeCompras() {
           let bucketKey: string;
           let categorias: EstoqueCategoria[] = [];
           let espessura = '';
+          let espessuraKey = '';
+          let cor: string | null = null;
           let descricao = '';
           let isOutro = false;
 
@@ -118,9 +145,11 @@ export function useNecessidadeCompras() {
           if (espThick && cats.length > 0) {
             categorias = cats;
             espessura = espThick;
-            descricao = `${espThick} mm`;
+            espessuraKey = normalizeThicknessKey(espThick);
+            cor = extractColor(mat.descricaomat);
+            descricao = cor ? `${espessura} mm • ${cor}` : `${espessura} mm`;
             const catKey = [...cats].sort().join('+');
-            bucketKey = `T|${catKey}|${espThick}`;
+            bucketKey = `T|${catKey}|${espessuraKey}|${cor || ''}`;
           } else {
             // Outros materiais: agrupa por descricaomat
             isOutro = true;
@@ -133,6 +162,8 @@ export function useNecessidadeCompras() {
             bucket = {
               categorias,
               espessura,
+              espessuraKey,
+              cor,
               descricao,
               isOutro,
               necessarioKg: 0,
@@ -161,13 +192,23 @@ export function useNecessidadeCompras() {
       });
     });
 
-    // 3) Constrói lista final cruzando com estoque disponível
+    // 3) Constrói lista final cruzando com estoque disponível.
+    //    Regras de matching cor: estoque sem cor é universal (cobre qualquer cor),
+    //    estoque com cor só cobre necessidades da mesma cor.
     const todos: NecessidadeCompra[] = [];
 
     necessidadeMap.forEach((bucket, key) => {
-      const estoqueKg = bucket.isOutro ? 0 : bucket.categorias.reduce((sum, cat) => {
-        return sum + (estoquePorChave.get(`${cat}|${bucket.espessura}`) || 0);
-      }, 0);
+      let estoqueKg = 0;
+      if (!bucket.isOutro && bucket.espessuraKey) {
+        bucket.categorias.forEach(cat => {
+          const entries = stockIndex.get(`${cat}|${bucket.espessuraKey}`) || [];
+          entries.forEach(e => {
+            if (!bucket.cor || !e.cor || e.cor === bucket.cor) {
+              estoqueKg += e.peso;
+            }
+          });
+        });
+      }
       const faltaKg = bucket.necessarioKg - estoqueKg;
       const saldoKg = Math.max(0, estoqueKg - bucket.necessarioKg);
       const pedidos = Array.from(bucket.pedidosMap.values()).sort((a, b) => {
@@ -181,7 +222,9 @@ export function useNecessidadeCompras() {
         key,
         categorias: bucket.categorias,
         espessura: bucket.espessura,
+        espessuraKey: bucket.espessuraKey,
         espessuraNum: parseThicknessNumber(bucket.espessura),
+        cor: bucket.cor,
         descricao: bucket.descricao,
         isOutro: bucket.isOutro,
         necessarioKg: bucket.necessarioKg,
@@ -194,12 +237,13 @@ export function useNecessidadeCompras() {
       });
     });
 
-    // Ordena: urgência (atraso primeiro) e maior falta
-    const ordemUrgencia: Record<Urgencia, number> = { atraso: 1, prazo: 2, programar: 3 };
+    // Ordenação padrão: por espessura crescente. "Outros" ao final (ordem alfabética).
     todos.sort((a, b) => {
-      const u = ordemUrgencia[a.urgencia] - ordemUrgencia[b.urgencia];
-      if (u !== 0) return u;
-      return b.faltaKg - a.faltaKg;
+      if (a.isOutro !== b.isOutro) return a.isOutro ? 1 : -1;
+      if (a.isOutro && b.isOutro) return a.descricao.localeCompare(b.descricao);
+      const diff = a.espessuraNum - b.espessuraNum;
+      if (diff !== 0) return diff;
+      return (a.cor || '').localeCompare(b.cor || '');
     });
 
     const faltantes = todos.filter(t => t.faltaKg > 0);

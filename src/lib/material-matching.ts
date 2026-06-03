@@ -50,6 +50,52 @@ export function parseThicknessNumber(thickness: string): number {
 }
 
 /**
+ * Chave canônica de espessura (sempre 2 casas decimais com ponto: "0.50", "1.95").
+ * Use para comparar/agrupar estoque e necessidade sem ambiguidade.
+ */
+export function normalizeThicknessKey(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '';
+  const n = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.'));
+  if (!isFinite(n) || isNaN(n)) return '';
+  return n.toFixed(2);
+}
+
+/** Formata espessura canônica para exibição em pt-BR ("0.50" -> "0,50"). */
+export function displayThickness(canonical: string): string {
+  if (!canonical) return '';
+  return canonical.replace('.', ',');
+}
+
+/**
+ * Lista de palavras-chave de cor/acabamento que diferenciam materiais
+ * com mesma espessura (ex.: "PP BRANCA" vs "GALV").
+ */
+const COLOR_KEYWORDS = [
+  'BRANCA', 'BRANCO', 'PRETA', 'PRETO', 'CINZA',
+  'AZUL', 'VERMELHA', 'VERMELHO', 'AMARELA', 'AMARELO',
+  'VERDE', 'BEGE', 'MARROM',
+  'GALVALUME', 'GALVANIZADA', 'GALVANIZADO', 'GALV',
+  'ZINCADA', 'ZINCADO', 'NATURAL', 'ZAR',
+];
+
+/**
+ * Extrai um identificador de cor/acabamento da descrição. Retorna null se
+ * não houver indicação de cor específica.
+ */
+export function extractColor(desc: string): string | null {
+  if (!desc) return null;
+  const u = desc.toUpperCase();
+  const ralM = u.match(/RAL\s*(\d{3,4})/);
+  const colorWord = COLOR_KEYWORDS.find(c => new RegExp(`\\b${c}\\b`).test(u)) || null;
+  const hasPP = /\bPP\b/.test(u);
+  const parts: string[] = [];
+  if (hasPP) parts.push('PP');
+  if (colorWord) parts.push(colorWord);
+  if (ralM) parts.push(`RAL ${ralM[1]}`);
+  return parts.length ? parts.join(' ') : null;
+}
+
+/**
  * Determina as categorias de estoque candidatas para suprir um material do pedido.
  * Retorna [] se o material não deve participar do controle de compras por espessura.
  */

@@ -21,5 +21,8 @@ verify_jwt = false
 [functions.send-scheduled-estoque-report]
 verify_jwt = false
 
+[functions.send-scheduled-compras-report]
+verify_jwt = false
+
 [functions.send-estoque-report]
 verify_jwt = false

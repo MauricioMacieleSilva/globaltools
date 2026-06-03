@@ -85,7 +85,12 @@ const COLOR_KEYWORDS = [
 export function extractColor(desc: string): string | null {
   if (!desc) return null;
   const u = desc.toUpperCase();
-  const ralM = u.match(/RAL\s*(\d{3,4})/);
+  // RAL pode vir com prefixo "RAL 5010" ou apenas como número 4 dígitos após a cor (ex.: "PP AZUL 5010")
+  let ralM = u.match(/RAL\s*(\d{3,4})/);
+  if (!ralM) {
+    const m2 = u.match(/\b(BRANC[AO]|PRET[AO]|CINZA|AZUL|VERMELH[AO]|AMAREL[AO]|VERDE|BEGE|MARROM)\s+(\d{4})\b/);
+    if (m2) ralM = [m2[0], m2[2]] as RegExpMatchArray;
+  }
   const colorWord = COLOR_KEYWORDS.find(c => new RegExp(`\\b${c}\\b`).test(u)) || null;
   const hasPP = /\bPP\b/.test(u);
   const parts: string[] = [];
@@ -93,6 +98,29 @@ export function extractColor(desc: string): string | null {
   if (colorWord) parts.push(colorWord);
   if (ralM) parts.push(`RAL ${ralM[1]}`);
   return parts.length ? parts.join(' ') : null;
+}
+
+/**
+ * Pares de espessuras automaticamente equivalentes (bidirecional).
+ * Ex.: estoque 0,50 supre necessidade 0,47 e vice-versa.
+ * Vale para qualquer cor/acabamento (inclusive PP).
+ */
+const AUTO_EQUIVALENT_PAIRS: Array<[string, string]> = [
+  ['0.50', '0.47'],
+  ['0.43', '0.40'],
+];
+
+/**
+ * Retorna a lista de espessuras canônicas equivalentes (não inclui a própria).
+ */
+export function getAutoEquivalentThicknesses(canonical: string): string[] {
+  if (!canonical) return [];
+  const out: string[] = [];
+  for (const [a, b] of AUTO_EQUIVALENT_PAIRS) {
+    if (canonical === a) out.push(b);
+    else if (canonical === b) out.push(a);
+  }
+  return out;
 }
 
 /**

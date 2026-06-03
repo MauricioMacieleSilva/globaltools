@@ -43,8 +43,8 @@ export function ProducaoTable() {
   const fixedScrollRef = useRef<HTMLDivElement>(null);
   const fixedScrollContentRef = useRef<HTMLDivElement>(null);
   const [horizontalScroll, setHorizontalScroll] = useState({ left: 264, width: 900, contentWidth: 1280 });
-  const activeScrollSource = useRef<'table' | 'fixed' | null>(null);
-  const scrollTimeoutRef = useRef<any>(null);
+  const isSyncingTableScroll = useRef(false);
+  const isSyncingFixedScroll = useRef(false);
 
   // Check if user can edit production data
   const { canEdit } = checkPageAccess('producao');
@@ -233,23 +233,25 @@ export function ProducaoTable() {
     const fixedScroll = fixedScrollRef.current;
     if (!tableScroll || !fixedScroll) return;
 
-    if (activeScrollSource.current && activeScrollSource.current !== source) return;
-    activeScrollSource.current = source;
-
     if (source === 'table') {
-      if (fixedScroll.scrollLeft !== tableScroll.scrollLeft) {
+      if (isSyncingTableScroll.current) {
+        isSyncingTableScroll.current = false;
+        return;
+      }
+      if (Math.abs(fixedScroll.scrollLeft - tableScroll.scrollLeft) >= 1) {
+        isSyncingFixedScroll.current = true;
         fixedScroll.scrollLeft = tableScroll.scrollLeft;
       }
     } else {
-      if (tableScroll.scrollLeft !== fixedScroll.scrollLeft) {
+      if (isSyncingFixedScroll.current) {
+        isSyncingFixedScroll.current = false;
+        return;
+      }
+      if (Math.abs(tableScroll.scrollLeft - fixedScroll.scrollLeft) >= 1) {
+        isSyncingTableScroll.current = true;
         tableScroll.scrollLeft = fixedScroll.scrollLeft;
       }
     }
-
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => {
-      activeScrollSource.current = null;
-    }, 50);
   }, []);
 
   useEffect(() => {
@@ -285,7 +287,6 @@ export function ProducaoTable() {
 
     return () => {
       tableScroll.removeEventListener('scroll', handleTableScroll);
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, [syncScroll, isMobile]);
 
@@ -783,7 +784,7 @@ export function ProducaoTable() {
         }}
         onScroll={handleFixedHorizontalScroll}
       >
-        <div ref={fixedScrollContentRef} className="h-1" style={{ width: Math.max(horizontalScroll.contentWidth, 1280) }} />
+        <div ref={fixedScrollContentRef} className="h-1" style={{ width: `${Math.max(horizontalScroll.contentWidth, 1280)}px` }} />
       </div>
     )}
     </>

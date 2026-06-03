@@ -611,17 +611,41 @@ body:has(.dashboard-fullscreen-mode) aside {
   background: hsl(var(--primary) / 0.85);
 }
 
+/* Hide horizontal scrollbar of producao table completely */
+.theme-modern div.producao-table-scroll::-webkit-scrollbar,
 .theme-modern .producao-table-scroll::-webkit-scrollbar,
+div.producao-table-scroll::-webkit-scrollbar,
 .producao-table-scroll::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
+.theme-modern div.producao-table-scroll,
 .theme-modern .producao-table-scroll,
+div.producao-table-scroll,
 .producao-table-scroll {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+}
+
+/* Force style of custom fixed horizontal scrollbar (blue) */
+.theme-modern .kanban-scroll::-webkit-scrollbar-thumb,
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.8) !important;
+  border-radius: 9999px !important;
+  border: 1px solid transparent !important;
+}
+
+.theme-modern .kanban-scroll::-webkit-scrollbar-thumb:hover,
+.kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.95) !important;
+}
+
+.theme-modern .kanban-scroll::-webkit-scrollbar-track,
+.kanban-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.15) !important;
+  border-radius: 9999px !important;
 }
 
 

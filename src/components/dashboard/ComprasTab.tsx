@@ -42,7 +42,7 @@ export function ComprasTab() {
   const { faltantes, todos, totais } = useNecessidadeCompras();
   const { isAdmin } = useUserPermissions();
   const [filtro, setFiltro] = useState('');
-  const [apenasFaltantes, setApenasFaltantes] = useState(true);
+  const [apenasFaltantes, setApenasFaltantes] = useState(false);
   const [selected, setSelected] = useState<NecessidadeCompra | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -51,7 +51,7 @@ export function ComprasTab() {
     if (!filtro.trim()) return base;
     const f = filtro.trim().toUpperCase();
     return base.filter(item =>
-      item.categorias.some(c => c.includes(f)) ||
+      item.descricao.toUpperCase().includes(f) ||
       item.espessura.includes(f) ||
       item.clientes.some(c => c.toUpperCase().includes(f)) ||
       item.pedidos.some(p => p.numero_pedido.includes(f))

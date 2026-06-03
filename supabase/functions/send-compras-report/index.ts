@@ -45,7 +45,7 @@ function categorizeForStock(desc: string): string[] {
   if (/\bSLITTER\b/.test(d)) return ['BOBINAS', 'TIRAS'];
   if (/^BGL\b/.test(d) || /^BZN\b/.test(d) || /\bBOBINA\b/.test(d)) return ['BOBINAS'];
   if (/\bCHAPA\b/.test(d)) return ['CHAPAS'];
-  if (/\bTELHA\b/.test(d) || /\bTP\d+/.test(d) || /\bCUMEEIRA/.test(d)) return ['TELHAS'];
+  if (/\bTELHA\b/.test(d) || /\bTP\d+/.test(d) || /\bCUMEEIRA/.test(d)) return ['BOBINAS', 'TIRAS', 'CHAPAS'];
   if (/CH\b/.test(d) && /\d+[.,]\d+/.test(d)) return ['CHAPAS', 'BOBINAS'];
   return [];
 }

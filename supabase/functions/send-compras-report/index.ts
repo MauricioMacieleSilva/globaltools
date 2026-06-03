@@ -528,7 +528,7 @@ function buildHTML(faltas: Falta[]): string {
         ${mainTable}
         <div style="background:#eff6ff;padding:20px;border-radius:8px;margin-top:24px;border-left:4px solid #2563eb;">
           <h3 style="margin:0 0 8px 0;font-size:16px;color:#2d3748;">💡 Como funciona</h3>
-          <p style="margin:0;color:#4a5568;font-size:13px;line-height:1.5;">O sistema cruza os materiais demandados pelos pedidos em produção (agrupados por espessura) com o estoque disponível. A reserva é virtual — o estoque não é baixado automaticamente. Para conferir e ajustar acesse Fábrica → Compras.</p>
+          <p style="margin:0;color:#4a5568;font-size:13px;line-height:1.5;">O sistema cruza os materiais demandados pelos pedidos em produção (agrupados por espessura) com o estoque disponível. A reserva é virtual — O estoque precisa estar sempre atualizado para que a demanda de compras esteja correta. Para conferir e ajustar acesse Fábrica → Estoque.</p>
         </div>
       </div>
       <div style="background:#f7fafc;padding:20px;text-align:center;font-size:13px;color:#718096;border-top:1px solid #e2e8f0;">

@@ -84,6 +84,8 @@ export function useNecessidadeCompras() {
     type Bucket = {
       categorias: EstoqueCategoria[];
       espessura: string;
+      descricao: string;
+      isOutro: boolean;
       necessarioKg: number;
       pedidosMap: Map<string, PedidoImpactado>;
       urgencia: Urgencia;

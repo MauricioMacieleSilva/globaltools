@@ -12,7 +12,7 @@ const DENSIDADE_ACO = 0.000008;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // ---------------- Matching helpers (mirror src/lib/material-matching.ts) ----------------
@@ -583,7 +583,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Destinatários — mesmo da config de e-mail de relatórios
     const { data: configs } = await supabaseAdmin
       .from('email_reports_config')
-      .select('email')
+      .select('id, email')
       .eq('is_active', true);
 
     if (!configs || configs.length === 0) {
@@ -612,13 +612,15 @@ const handler = async (req: Request): Promise<Response> => {
         results.push({ email, success: res.ok, data });
         try {
           await supabaseAdmin.from('email_reports_log').insert({
-            config_id: '00000000-0000-0000-0000-000000000003',
+            config_id: (configs as any[]).find((c: any) => c.email === email)?.id || '00000000-0000-0000-0000-000000000000',
             email, report_date: todayISO, report_type: 'compras',
             status: res.ok ? 'success' : 'failed',
             error_message: res.ok ? null : JSON.stringify(data),
             is_scheduled: isScheduled,
           });
-        } catch {}
+        } catch (logError: any) {
+          console.warn('⚠️ [send-compras-report] Falha ao registrar log:', logError?.message);
+        }
       } catch (e: any) {
         results.push({ email, success: false, error: e.message });
       }

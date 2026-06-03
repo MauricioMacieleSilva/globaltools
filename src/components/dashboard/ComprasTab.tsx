@@ -233,7 +233,7 @@ export function ComprasTab() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
-                  {selected.categorias.join(' / ')} • {selected.espessura} mm
+                  {selected.isOutro ? selected.descricao : `${selected.espessura} mm`}
                 </DialogTitle>
                 <DialogDescription>
                   {selected.faltaKg > 0 ? (
@@ -243,7 +243,7 @@ export function ComprasTab() {
                   )}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-3 gap-3 my-4">
+              <div className="grid grid-cols-4 gap-3 my-4">
                 <div className="p-3 rounded bg-muted/40">
                   <p className="text-xs text-muted-foreground">Necessário</p>
                   <p className="text-lg font-bold">{formatKg(selected.necessarioKg)}</p>
@@ -257,6 +257,10 @@ export function ComprasTab() {
                   <p className="text-lg font-bold text-destructive">
                     {selected.faltaKg > 0 ? formatKg(selected.faltaKg) : 'OK'}
                   </p>
+                </div>
+                <div className="p-3 rounded bg-muted/40">
+                  <p className="text-xs text-muted-foreground">Saldo Estoque</p>
+                  <p className="text-lg font-bold">{formatKg(selected.saldoKg)}</p>
                 </div>
               </div>
               <Table>

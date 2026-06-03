@@ -193,18 +193,18 @@ export function ComprasTab() {
                       className={`cursor-pointer hover:bg-muted/50 ${item.urgencia === 'atraso' ? 'bg-destructive/5' : ''}`}
                       onClick={() => setSelected(item)}
                     >
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {item.categorias.map(c => (
-                            <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
-                          ))}
-                        </div>
+                      <TableCell className="font-medium">
+                        {item.isOutro
+                          ? <span className="text-sm">{item.descricao}</span>
+                          : <span className="font-mono">{item.espessura} mm</span>}
                       </TableCell>
-                      <TableCell className="font-mono font-semibold">{item.espessura} mm</TableCell>
                       <TableCell className="text-right tabular-nums">{formatKg(item.necessarioKg)}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">{formatKg(item.estoqueKg)}</TableCell>
                       <TableCell className={`text-right tabular-nums font-bold ${atendido ? 'text-green-600' : 'text-destructive'}`}>
                         {atendido ? 'OK' : formatKg(item.faltaKg)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatKg(item.saldoKg)}
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate" title={item.clientes.join(', ')}>
                         {item.clientes.slice(0, 2).join(', ')}

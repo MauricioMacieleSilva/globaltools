@@ -454,70 +454,38 @@ function buildHTML(faltas: Falta[]): string {
   const clientesSet = new Set<string>(); const atrSet = new Set<string>();
   faltas.forEach(f => { f.clientes.forEach(c => clientesSet.add(c)); f.pedidos.forEach(p => { if (p.status === 'ATRASO') atrSet.add(p.numero_pedido); }); });
 
-  const urgentes = faltas.filter(f => f.urgencia === 'atraso');
-  const prazo = faltas.filter(f => f.urgencia !== 'atraso');
-
-  const rowsHtml = (list: Falta[]) => list.map((f, i) => {
+  const rowsHtml = faltas.map((f, i) => {
     const bg = i % 2 === 0 ? '#ffffff' : '#f9fafb';
+    const material = f.isOutro
+      ? `<span style="font-size:12px;color:#2d3748;">${f.descricao}</span>`
+      : `<span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:700;color:#2d3748;">${f.espessura} mm</span>${f.cor ? `<span style="margin-left:6px;font-size:11px;color:#718096;">• ${f.cor}</span>` : ''}`;
+    const clientesPedidos = f.pedidos.slice(0, 4)
+      .map(p => `${p.cliente} <span style="color:#718096;">(${p.numero_pedido})</span>`)
+      .join(', ') + (f.pedidos.length > 4 ? ` <span style="color:#718096;">+${f.pedidos.length - 4}</span>` : '');
     return `<tr style="background:${bg};">
-      <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:12px;">
-        ${f.categorias.map(c => `<span style="display:inline-block;padding:2px 8px;border-radius:8px;background:#eff6ff;color:#1e40af;font-weight:600;font-size:11px;margin-right:4px;">${c}</span>`).join('')}
-      </td>
-      <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:13px;font-weight:700;color:#2d3748;">${f.espessura} mm</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;">${material}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:12px;text-align:right;color:#4a5568;">${fmtKg(f.necessario)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:12px;text-align:right;color:#718096;">${fmtKg(f.estoque)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:13px;text-align:right;font-weight:700;color:#b91c1c;">${fmtKg(f.falta)}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:11px;color:#2d3748;">${f.clientes.slice(0, 4).join(', ')}${f.clientes.length > 4 ? ` +${f.clientes.length - 4}` : ''}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:11px;text-align:center;">${f.pedidos.map(p => p.numero_pedido).join(', ')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;font-size:11px;color:#2d3748;">${clientesPedidos}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;text-align:center;">${urgBadge(f.urgencia)}</td>
     </tr>`;
   }).join('');
 
-  const tableSection = (title: string, list: Falta[], headerBg: string) => list.length === 0 ? '' : `
+  const mainTable = faltas.length === 0 ? '' : `
     <div style="margin-bottom:24px;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-      <div style="background:${headerBg};padding:12px 18px;">
-        <h3 style="margin:0;font-size:16px;font-weight:700;color:#ffffff;">${title} <span style="opacity:0.85;font-weight:500;font-size:13px;">(${list.length} item${list.length === 1 ? '' : 's'})</span></h3>
-      </div>
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="background:#f7fafc;">
-          <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Categoria</th>
-          <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Espessura</th>
+          <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Material</th>
           <th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Necessário</th>
           <th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Em Estoque</th>
           <th style="padding:10px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">A Comprar</th>
-          <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Clientes</th>
-          <th style="padding:10px 12px;text-align:center;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Pedidos</th>
+          <th style="padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Clientes (Pedido)</th>
           <th style="padding:10px 12px;text-align:center;font-size:10px;text-transform:uppercase;color:#718096;font-weight:600;">Urgência</th>
         </tr></thead>
-        <tbody>${rowsHtml(list)}</tbody>
+        <tbody>${rowsHtml}</tbody>
       </table>
     </div>`;
-
-  const detailHtml = faltas.map(f => `
-    <div style="margin-bottom:18px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-      <div style="background:#f1f5f9;padding:10px 14px;display:flex;justify-content:space-between;">
-        <div>
-          <strong style="color:#1e40af;">${f.categorias.join(' / ')} • ${f.espessura} mm</strong>
-        </div>
-        <div style="color:#b91c1c;font-weight:700;">A comprar: ${fmtKg(f.falta)}</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:#f7fafc;">
-          <th style="padding:8px;text-align:left;font-size:10px;color:#718096;text-transform:uppercase;">Pedido</th>
-          <th style="padding:8px;text-align:left;font-size:10px;color:#718096;text-transform:uppercase;">Cliente</th>
-          <th style="padding:8px;text-align:left;font-size:10px;color:#718096;text-transform:uppercase;">Prazo</th>
-          <th style="padding:8px;text-align:right;font-size:10px;color:#718096;text-transform:uppercase;">Peso</th>
-          <th style="padding:8px;text-align:center;font-size:10px;color:#718096;text-transform:uppercase;">Status</th>
-        </tr></thead>
-        <tbody>${f.pedidos.map((p, i) => `<tr style="background:${i % 2 === 0 ? '#ffffff' : '#fafbfc'};">
-          <td style="padding:8px;font-size:12px;font-weight:600;">${p.numero_pedido}</td>
-          <td style="padding:8px;font-size:12px;">${p.cliente}</td>
-          <td style="padding:8px;font-size:12px;">${fmtDate(p.prazo)}</td>
-          <td style="padding:8px;font-size:12px;text-align:right;">${fmtKg(p.pesoKg)}</td>
-          <td style="padding:8px;text-align:center;">${p.status === 'ATRASO' ? urgBadge('atraso') : `<span style="font-size:11px;color:#4a5568;">${p.status}</span>`}</td>
-        </tr>`).join('')}</tbody>
-      </table>
-    </div>`).join('');
 
   const emptyState = faltas.length === 0 ? `
     <div style="padding:40px;text-align:center;background:#f0fdf4;border-radius:10px;border:1px solid #16a34a;">
@@ -555,9 +523,7 @@ function buildHTML(faltas: Falta[]): string {
           </div></td>
         </tr></table>
         ${emptyState}
-        ${tableSection('🔴 A Comprar — URGENTE (Pedidos Atrasados)', urgentes, '#b91c1c')}
-        ${tableSection('🟠 A Comprar — Prazo/Programar', prazo, '#1e40af')}
-        ${faltas.length > 0 ? `<h2 style="font-size:18px;font-weight:600;color:#2d3748;margin:30px 0 15px 0;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">📋 Detalhamento por Material</h2>${detailHtml}` : ''}
+        ${mainTable}
         <div style="background:#eff6ff;padding:20px;border-radius:8px;margin-top:24px;border-left:4px solid #2563eb;">
           <h3 style="margin:0 0 8px 0;font-size:16px;color:#2d3748;">💡 Como funciona</h3>
           <p style="margin:0;color:#4a5568;font-size:13px;line-height:1.5;">O sistema cruza os materiais demandados pelos pedidos em produção (agrupados por espessura) com o estoque disponível. A reserva é virtual — o estoque não é baixado automaticamente. Para conferir e ajustar acesse Fábrica → Compras.</p>
@@ -626,7 +592,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emails = [...new Set(configs.map((c: any) => c.email))];
     const todayFmt = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const subject = `🛒 Necessidade de Compras — ${todayFmt}`;
+    const subject = `🛒 Necessidade de Compras - ${todayFmt}`;
     const todayISO = new Date().toISOString().split('T')[0];
 
     const results: any[] = [];

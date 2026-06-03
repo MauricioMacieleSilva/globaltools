@@ -10,6 +10,7 @@ import {
   displayThickness,
   extractColor,
   shouldSummarizeByThickness,
+  getAutoEquivalentThicknesses,
 } from '@/lib/material-matching';
 import { calcularPesoTotal } from '@/services/estoqueService';
 
@@ -96,7 +97,11 @@ export function useNecessidadeCompras() {
       const espKeyMain = normalizeThicknessKey(item.espessura);
       if (espKeyMain) addStock(item.categoria, espKeyMain, peso, cor);
 
-      // Espessuras equivalentes (item 2,60 com ["2,65"] também supre necessidade de 2,65)
+      // Espessuras equivalentes automáticas (ex.: 0,50 <-> 0,47, 0,43 <-> 0,40)
+      const autoEq = espKeyMain ? getAutoEquivalentThicknesses(espKeyMain) : [];
+      autoEq.forEach(ek => addStock(item.categoria, ek, peso, cor));
+
+      // Espessuras equivalentes manuais (configuradas no cadastro do item)
       (item.espessuras_equivalentes || []).forEach(eq => {
         const ek = normalizeThicknessKey(eq);
         if (ek && ek !== espKeyMain) addStock(item.categoria, ek, peso, cor);

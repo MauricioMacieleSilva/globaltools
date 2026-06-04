@@ -843,14 +843,6 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  return new Response(JSON.stringify({
-    url: SUPABASE_URL,
-    key: SUPABASE_SERVICE_ROLE_KEY
-  }), {
-    status: 200,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-
   try {
     const { configId } = await req.json();
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);

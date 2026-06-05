@@ -43,6 +43,7 @@ export function ProducaoTable() {
   const fixedScrollRef = useRef<HTMLDivElement>(null);
   const fixedScrollContentRef = useRef<HTMLDivElement>(null);
   const [showFloatingScrollbar, setShowFloatingScrollbar] = useState(false);
+  const [horizontalScroll, setHorizontalScroll] = useState({ left: 264, width: 900, contentWidth: 1280 });
   const syncingTable = useRef(false);
   const syncingFixed = useRef(false);
 

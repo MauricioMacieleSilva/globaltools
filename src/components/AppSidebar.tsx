@@ -79,13 +79,7 @@ const menuItems = [
     pageKey: 'corteblank',
     tourId: 'sidebar-corte-blank',
   },
-  {
-    title: 'Assistente Global',
-    url: '/assistente-global',
-    icon: Monitor,
-    pageKey: 'assistente',
-    tourId: 'sidebar-assistente',
-  },
+
   {
     title: 'Treinamentos',
     url: '/treinamentos',

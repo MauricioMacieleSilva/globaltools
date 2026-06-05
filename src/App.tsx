@@ -14,6 +14,7 @@ import { CRMDataProvider } from "./context/CRMDataContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { TourProvider } from "./components/tour/TourProvider";
@@ -132,6 +133,8 @@ function AppContent() {
     <Routes>
       {/* Public route - Auth page */}
       <Route path="/auth" element={<Auth />} />
+      {/* Public route - Email confirmation */}
+      <Route path="/confirm-email" element={<EmailConfirmation />} />
       
       {/* Protected routes - All other pages */}
       <Route

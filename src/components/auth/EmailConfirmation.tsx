@@ -78,7 +78,8 @@ export const EmailConfirmation: React.FC = () => {
 
           // Redirecionar após 2 segundos
           setTimeout(() => {
-            navigate('/', { replace: true })
+            const redirectPath = type === 'recovery' ? '/auth?view=reset-password' : '/';
+            navigate(redirectPath, { replace: true })
           }, 2000)
         } else {
           setStatus('error')

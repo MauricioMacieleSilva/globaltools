@@ -2,18 +2,27 @@ import React, { useState, useEffect } from 'react'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { SignUpForm } from '@/components/auth/SignUpForm'
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm'
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm'
 import { useAuth } from '@/context/AuthContext'
 import { Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 
-type AuthView = 'login' | 'signup' | 'forgot-password'
+type AuthView = 'login' | 'signup' | 'forgot-password' | 'reset-password'
 
 const Auth: React.FC = () => {
   const [currentView, setCurrentView] = useState<AuthView>('login')
   const { user, loading } = useAuth()
 
-  // Redirecionar usuários autenticados para a página inicial
-  if (user && !loading) {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const view = params.get('view')
+    if (view === 'reset-password') {
+      setCurrentView('reset-password')
+    }
+  }, [])
+
+  // Redirecionar usuários autenticados para a página inicial, EXCETO se estiverem redefinindo a senha
+  if (user && !loading && currentView !== 'reset-password') {
     return <Navigate to="/" replace />
   }
 
@@ -47,6 +56,12 @@ const Auth: React.FC = () => {
         
         {currentView === 'forgot-password' && (
           <ForgotPasswordForm
+            onBackToLogin={() => setCurrentView('login')}
+          />
+        )}
+
+        {currentView === 'reset-password' && (
+          <ResetPasswordForm
             onBackToLogin={() => setCurrentView('login')}
           />
         )}

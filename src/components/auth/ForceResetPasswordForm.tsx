@@ -52,11 +52,21 @@ export const ForceResetPasswordForm: React.FC = () => {
         password: password
       })
 
-      if (updateAuthError) {
+      const isSamePasswordError = updateAuthError && (
+        updateAuthError.message?.toLowerCase().includes('should be different') ||
+        updateAuthError.message?.toLowerCase().includes('same as the old') ||
+        updateAuthError.message?.toLowerCase().includes('diferente')
+      )
+
+      if (updateAuthError && !isSamePasswordError) {
         console.error('❌ Erro no auth.updateUser:', updateAuthError)
         setError(`Erro ao atualizar credenciais: ${updateAuthError.message}`)
         setLoading(false)
         return
+      }
+
+      if (isSamePasswordError) {
+        console.log('ℹ️ Usuário utilizou a mesma senha anterior. Permitindo fluxo prosseguir.')
       }
 
       // 2. Atualizar o perfil do usuário removendo a flag de redefinição obrigatória

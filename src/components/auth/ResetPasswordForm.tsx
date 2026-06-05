@@ -47,17 +47,29 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
         password: password
       })
 
-      if (updateError) {
+      const isSamePasswordError = updateError && (
+        updateError.message?.toLowerCase().includes('should be different') ||
+        updateError.message?.toLowerCase().includes('same as the old') ||
+        updateError.message?.toLowerCase().includes('diferente')
+      )
+
+      if (updateError && !isSamePasswordError) {
         setError(updateError.message)
         return
       }
 
       // 2. Limpar a flag needs_password_reset no perfil do usuario
-      if (updateData?.user?.id) {
+      let userId = updateData?.user?.id
+      if (!userId) {
+        const { data: userData } = await supabase.auth.getUser()
+        userId = userData?.user?.id
+      }
+
+      if (userId) {
         await supabase
           .from('user_profiles')
           .update({ needs_password_reset: false })
-          .eq('id', updateData.user.id)
+          .eq('id', userId)
       }
 
       setSuccess('Sua senha foi redefinida com sucesso!')

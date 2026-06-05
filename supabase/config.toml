@@ -1,4 +1,4 @@
-project_id = "xhkdwfpnmjvmfbmokvct"
+project_id = "eknqsstybtmmofphyvmj"
 
 [functions.generate-report-preview]
 verify_jwt = false

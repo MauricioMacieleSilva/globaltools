@@ -19,7 +19,10 @@ ADD COLUMN client_code TEXT,
 ALTER COLUMN budget_number DROP NOT NULL;
 
 -- Update existing records to use new enum values (mapping old to new)
--- First update the column type
+-- First drop the default constraint to allow changing column type
+ALTER TABLE public.budget_followups ALTER COLUMN type DROP DEFAULT;
+
+-- Update the column type
 ALTER TABLE public.budget_followups 
 ALTER COLUMN type TYPE followup_type USING 
   CASE 
@@ -29,6 +32,9 @@ ALTER COLUMN type TYPE followup_type USING
     WHEN type::text = 'outros' THEN 'enviar_material_apoio'::followup_type
     ELSE 'reforcar_proposta'::followup_type
   END;
+
+-- Restore the default constraint with the new enum type
+ALTER TABLE public.budget_followups ALTER COLUMN type SET DEFAULT 'reforcar_proposta'::followup_type;
 
 -- Drop the old enum type
 DROP TYPE followup_type_old;

@@ -18,7 +18,14 @@ CREATE TYPE followup_type AS ENUM (
   'outro'
 );
 
--- Update the budget_followups table to use the new enum
+-- Drop default constraint
+ALTER TABLE budget_followups ALTER COLUMN type DROP DEFAULT;
+
+-- Convert the column to use the new enum type
+ALTER TABLE budget_followups 
+ALTER COLUMN type TYPE followup_type USING type::text::followup_type;
+
+-- Set the new default
 ALTER TABLE budget_followups 
 ALTER COLUMN type SET DEFAULT 'reforcar_proposta'::followup_type;
 
@@ -27,10 +34,6 @@ UPDATE budget_followups SET type = 'reforcar_proposta'::followup_type WHERE type
 UPDATE budget_followups SET type = 'ligar_followup'::followup_type WHERE type::text = 'ligar_followup';
 UPDATE budget_followups SET type = 'enviar_material'::followup_type WHERE type::text = 'enviar_material';
 UPDATE budget_followups SET type = 'agendar_reuniao'::followup_type WHERE type::text = 'agendar_reuniao';
-
--- Convert the column to use the new enum type
-ALTER TABLE budget_followups 
-ALTER COLUMN type TYPE followup_type USING type::text::followup_type;
 
 -- Drop the old enum type
 DROP TYPE followup_type_old;

@@ -43,6 +43,7 @@ CREATE TABLE public.client_budget_ratings (
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS budget_number TEXT;
 
 -- Create check_invitation_rate_limit function
+DROP FUNCTION IF EXISTS public.check_invitation_rate_limit(uuid);
 CREATE OR REPLACE FUNCTION public.check_invitation_rate_limit(user_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql

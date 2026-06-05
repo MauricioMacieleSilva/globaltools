@@ -71,7 +71,10 @@ const handler = async (req: Request): Promise<Response> => {
       subject: `Novo Lead Encaminhado: ${lead_client_name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Novo Lead Encaminhado</h2>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height:50px;" />
+          </div>
+          <h2 style="color: #2563eb; text-align: center;">Novo Lead Encaminhado</h2>
           <p>Olá ${vendor_name},</p>
           <p>Um novo lead foi encaminhado para você:</p>
           

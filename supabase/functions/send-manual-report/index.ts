@@ -674,7 +674,7 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <img src="https://xhkdwfpnmjvmfbmokvct.supabase.co/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 60px; margin-bottom: 12px;" />
+          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 60px; margin-bottom: 12px;" />
           <h1>Relatório Comercial</h1>
           <p class="header-subtitle">Gerado em ${reportDate}</p>
           <p class="header-subtitle"><strong>Período:</strong> ${periodo}</p>

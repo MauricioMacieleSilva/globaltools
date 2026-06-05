@@ -622,7 +622,7 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <img src="https://xhkdwfpnmjvmfbmokvct.supabase.co/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 60px; margin-bottom: 12px;" />
+          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 60px; margin-bottom: 12px;" />
           <h1>Relatório de Fechamento</h1>
           <p class="header-subtitle"><strong>${monthName}/${year}</strong></p>
           <p class="header-subtitle">Período: ${periodo}</p>

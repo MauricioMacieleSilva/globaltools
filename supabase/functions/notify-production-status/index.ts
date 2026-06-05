@@ -120,7 +120,7 @@ function generateNotificationHTML(data: NotifyRequest): string {
         
         <!-- Header -->
         <div style="background: ${headerColor}; color: #ffffff; padding: 30px; text-align: center;">
-          <img src="https://xhkdwfpnmjvmfbmokvct.supabase.co/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
+          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
           <h1 style="margin: 0; font-size: 22px; color: #ffffff;">${titulo}</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${subtitulo}</p>
         </div>

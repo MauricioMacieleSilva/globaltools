@@ -500,7 +500,7 @@ function buildHTML(faltas: Falta[]): string {
   <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;background:#f5f5f5;color:#2d3748;">
     <div style="max-width:900px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
       <div style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#ffffff;padding:30px;text-align:center;">
-        <img src="${SUPABASE_URL}/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height:50px;margin-bottom:12px;" />
+        <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height:50px;margin-bottom:12px;" />
         <h1 style="margin:0;font-size:24px;color:#ffffff;font-weight:700;">🛒 Necessidade de Compras</h1>
         <p style="margin:8px 0 0 0;opacity:0.95;font-size:14px;color:#ffffff;">${today}</p>
       </div>

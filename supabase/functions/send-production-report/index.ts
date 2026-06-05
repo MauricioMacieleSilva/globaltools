@@ -407,7 +407,7 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
       <div class="container">
         <!-- Header -->
         <div style="background: #1e40af; color: #ffffff; padding: 30px; text-align: center;">
-          <img src="https://xhkdwfpnmjvmfbmokvct.supabase.co/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
+          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
           <h1 style="margin: 0; font-size: 22px; color: #ffffff;">Relatório de Produção</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${today}</p>
         </div>

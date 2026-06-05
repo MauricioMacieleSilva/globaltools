@@ -38,6 +38,7 @@ const createEmailTemplate = (email: string, role: string, inviterName: string, c
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+        <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height:50px;margin-bottom:12px;" />
         <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">
           Você foi convidado!
         </h1>

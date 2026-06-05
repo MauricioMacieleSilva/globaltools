@@ -97,7 +97,10 @@ Deno.serve(async (req) => {
 
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #1a1a2e;">🚚 Solicitação de Aprovação de Frete</h2>
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height:50px;" />
+        </div>
+        <h2 style="color: #1a1a2e; text-align: center;">🚚 Solicitação de Aprovação de Frete</h2>
         <p>Um novo frete foi enviado para sua aprovação:</p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">

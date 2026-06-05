@@ -73,6 +73,9 @@ Deno.serve(async (req) => {
 <head><meta charset="utf-8"></head>
 <body style="font-family: Arial, sans-serif; background: #f4f4f7; padding: 20px; margin: 0;">
   <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <div style="background: #fff; padding: 15px 24px; text-align: center; border-bottom: 1px solid #eee;">
+      <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height:45px;" />
+    </div>
     <div style="background: ${pc.border}; padding: 20px 24px;">
       <h1 style="color: #fff; margin: 0; font-size: 18px;">${pc.emoji} Chamado Respondido — ${parecerLabel || parecer}</h1>
       <p style="color: #fff; opacity: 0.9; margin: 4px 0 0; font-size: 12px;">${ticketNumber || ""}</p>

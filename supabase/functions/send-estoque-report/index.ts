@@ -320,7 +320,7 @@ function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { 
         
         <!-- Header - Global Aço brand blue -->
         <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; padding: 30px; text-align: center;">
-          <img src="${SUPABASE_URL}/storage/v1/object/public/assets/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
+          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
           <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: 700;">📦 Relatório de Estoque</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${today}</p>
         </div>

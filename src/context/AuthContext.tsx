@@ -1,4 +1,4 @@
-import * as React from 'react'
+﻿import * as React from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { UserProfile, isGlobalAcoEmail } from '@/lib/supabase'
@@ -7,14 +7,14 @@ import { toast } from 'sonner'
 // Ensure React is properly imported before using hooks
 const { createContext, useContext, useEffect, useState } = React
 
-// Função para limpar completamente o estado de autenticação
+// FunÃ§Ã£o para limpar completamente o estado de autenticaÃ§Ã£o
 const cleanupAuthState = () => {
-  console.log('🧹 Limpando estado de autenticação...')
+  console.log('ðŸ§¹ Limpando estado de autenticaÃ§Ã£o...')
   
   // Remover todas as chaves relacionadas ao Supabase do localStorage
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      console.log('🗑️ Removendo:', key)
+      console.log('ðŸ—‘ï¸ Removendo:', key)
       localStorage.removeItem(key)
     }
   })
@@ -23,15 +23,15 @@ const cleanupAuthState = () => {
   try {
     Object.keys(sessionStorage || {}).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        console.log('🗑️ Removendo do session:', key)
+        console.log('ðŸ—‘ï¸ Removendo do session:', key)
         sessionStorage.removeItem(key)
       }
     })
   } catch (e) {
-    // sessionStorage pode não estar disponível
+    // sessionStorage pode nÃ£o estar disponÃ­vel
   }
   
-  console.log('✅ Limpeza de autenticação concluída')
+  console.log('âœ… Limpeza de autenticaÃ§Ã£o concluÃ­da')
 }
 
 interface AuthContextType {
@@ -68,10 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Função para atualizar last_login
+  // FunÃ§Ã£o para atualizar last_login
   const updateLastLogin = async (userId: string) => {
     try {
-      console.log('🔄 Atualizando last_login para usuário:', userId)
+      console.log('ðŸ”„ Atualizando last_login para usuÃ¡rio:', userId)
       const { error } = await supabase
         .from('user_profiles')
         .update({ 
@@ -81,12 +81,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
       
       if (error) {
-        console.error('❌ Erro ao atualizar last_login:', error)
+        console.error('âŒ Erro ao atualizar last_login:', error)
       } else {
-        console.log('✅ Last_login atualizado com sucesso')
+        console.log('âœ… Last_login atualizado com sucesso')
       }
     } catch (error) {
-      console.error('❌ Erro inesperado ao atualizar last_login:', error)
+      console.error('âŒ Erro inesperado ao atualizar last_login:', error)
     }
   }
 
@@ -94,9 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true
     let timeoutId: ReturnType<typeof setTimeout>
     
-    // Verificar sessão atual com timeout de segurança
+    // Verificar sessÃ£o atual com timeout de seguranÃ§a
     const sessionTimeout = setTimeout(() => {
-      console.log('⚠️ Timeout na verificação de sessão - prosseguindo sem sessão')
+      console.log('âš ï¸ Timeout na verificaÃ§Ã£o de sessÃ£o - prosseguindo sem sessÃ£o')
       setLoading(false)
     }, 3000)
     
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!mounted) return
       
       if (error) {
-        console.error('❌ Erro ao obter sessão:', error)
+        console.error('âŒ Erro ao obter sessÃ£o:', error)
         cleanupAuthState()
         setSession(null)
         setUser(null)
@@ -119,13 +119,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null)
       
       if (session?.user) {
-        // Atualizar last_login imediatamente ao detectar sessão ativa
+        // Atualizar last_login imediatamente ao detectar sessÃ£o ativa
         updateLastLogin(session.user.id)
         
-        // Primeiro tentar buscar o perfil no banco, depois criar em memória se necessário
+        // Primeiro tentar buscar o perfil no banco, depois criar em memÃ³ria se necessÃ¡rio
         setTimeout(async () => {
           try {
-            console.log('👤 Buscando perfil no banco para:', session.user.email)
+            console.log('ðŸ‘¤ Buscando perfil no banco para:', session.user.email)
             const { data: existingProfile, error } = await supabase
               .from('user_profiles')
               .select('*')
@@ -139,11 +139,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .eq('user_id', session.user.id)
                 .maybeSingle()
               
-              console.log('✅ Perfil encontrado no banco:', existingProfile.email)
+              console.log('âœ… Perfil encontrado no banco:', existingProfile.email)
               setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
             } else {
-              console.log('📝 Perfil não encontrado, criando em memória...')
-              // Criar perfil em memória apenas se não existir no banco
+              console.log('ðŸ“ Perfil nÃ£o encontrado, criando em memÃ³ria...')
+              // Criar perfil em memÃ³ria apenas se nÃ£o existir no banco
               const email = session.user.email!
               const profile: UserProfile = {
                 id: session.user.id,
@@ -154,12 +154,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 created_at: new Date().toISOString(),
               }
               
-              console.log('✅ Perfil criado em memória:', profile.email, 'role:', profile.role)
+              console.log('âœ… Perfil criado em memÃ³ria:', profile.email, 'role:', profile.role)
               setUserProfile(profile)
             }
           } catch (error) {
-            console.error('❌ Erro ao buscar perfil:', error)
-            // Fallback: criar perfil em memória
+            console.error('âŒ Erro ao buscar perfil:', error)
+            // Fallback: criar perfil em memÃ³ria
             const email = session.user.email!
             const profile: UserProfile = {
               id: session.user.id,
@@ -181,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(sessionTimeout)
       if (!mounted) return
       
-      console.error('❌ Erro crítico ao verificar sessão:', error)
+      console.error('âŒ Erro crÃ­tico ao verificar sessÃ£o:', error)
       cleanupAuthState()
       setSession(null)
       setUser(null)
@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false)
     })
 
-    // Escutar mudanças de autenticação
+    // Escutar mudanÃ§as de autenticaÃ§Ã£o
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -198,13 +198,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null)
       
       if (session?.user) {
-        // Atualizar last_login sempre que detectar sessão
+        // Atualizar last_login sempre que detectar sessÃ£o
         updateLastLogin(session.user.id)
         
-        // Primeiro tentar buscar o perfil no banco, depois criar em memória se necessário
+        // Primeiro tentar buscar o perfil no banco, depois criar em memÃ³ria se necessÃ¡rio
         setTimeout(async () => {
           try {
-            console.log('👤 Buscando perfil no banco para:', session.user.email)
+            console.log('ðŸ‘¤ Buscando perfil no banco para:', session.user.email)
             const { data: existingProfile, error } = await supabase
               .from('user_profiles')
               .select('*')
@@ -218,11 +218,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .eq('user_id', session.user.id)
                 .maybeSingle()
               
-              console.log('✅ Perfil encontrado no banco:', existingProfile.email)
+              console.log('âœ… Perfil encontrado no banco:', existingProfile.email)
               setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
             } else {
-              console.log('📝 Perfil não encontrado, criando em memória...')
-              // Criar perfil em memória apenas se não existir no banco
+              console.log('ðŸ“ Perfil nÃ£o encontrado, criando em memÃ³ria...')
+              // Criar perfil em memÃ³ria apenas se nÃ£o existir no banco
               const email = session.user.email!
               const profile: UserProfile = {
                 id: session.user.id,
@@ -233,12 +233,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 created_at: new Date().toISOString(),
               }
               
-              console.log('✅ Perfil criado em memória:', profile.email, 'role:', profile.role)
+              console.log('âœ… Perfil criado em memÃ³ria:', profile.email, 'role:', profile.role)
               setUserProfile(profile)
             }
           } catch (error) {
-            console.error('❌ Erro ao buscar perfil:', error)
-            // Fallback: criar perfil em memória
+            console.error('âŒ Erro ao buscar perfil:', error)
+            // Fallback: criar perfil em memÃ³ria
             const email = session.user.email!
             const profile: UserProfile = {
               id: session.user.id,
@@ -271,7 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const loadUserProfile = async (userId: string) => {
-    console.log('👤 Carregando perfil para usuário:', userId)
+    console.log('ðŸ‘¤ Carregando perfil para usuÃ¡rio:', userId)
     
     try {
       const { data, error } = await supabase
@@ -281,8 +281,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle()
 
       if (error) {
-        console.log('❌ Erro ao carregar perfil:', error.message)
-        console.log('🔧 Criando perfil automaticamente...')
+        console.log('âŒ Erro ao carregar perfil:', error.message)
+        console.log('ðŸ”§ Criando perfil automaticamente...')
         await createUserProfile(userId)
         return
       }
@@ -294,14 +294,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('user_id', userId)
           .maybeSingle()
         
-        console.log('✅ Perfil carregado:', data.email)
+        console.log('âœ… Perfil carregado:', data.email)
         setUserProfile({ ...data, role: roleData?.role || 'visitante' } as UserProfile)
       } else {
-        console.log('📝 Perfil não encontrado, criando...')
+        console.log('ðŸ“ Perfil nÃ£o encontrado, criando...')
         await createUserProfile(userId)
       }
     } catch (error) {
-      console.error('💥 Erro inesperado ao carregar perfil:', error)
+      console.error('ðŸ’¥ Erro inesperado ao carregar perfil:', error)
       await createUserProfile(userId)
     } finally {
       setLoading(false)
@@ -309,12 +309,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const createUserProfile = async (userId: string) => {
-    console.log('🔧 Criando perfil para usuário:', userId)
+    console.log('ðŸ”§ Criando perfil para usuÃ¡rio:', userId)
     
     try {
       const user = await supabase.auth.getUser()
       if (!user.data.user) {
-        console.log('❌ Usuário não encontrado')
+        console.log('âŒ UsuÃ¡rio nÃ£o encontrado')
         setLoading(false)
         return
       }
@@ -331,44 +331,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         created_at: new Date().toISOString(),
       }
       
-      console.log('✅ Perfil criado:', profile.email)
+      console.log('âœ… Perfil criado:', profile.email)
       setUserProfile(profile)
       setLoading(false)
     } catch (error) {
-      console.error('💥 Erro ao criar perfil:', error)
+      console.error('ðŸ’¥ Erro ao criar perfil:', error)
       setLoading(false)
     }
   }
 
   const signIn = async (email: string, password: string) => {
-    console.log('🔥 INICIANDO signIn function')
+    console.log('ðŸ”¥ INICIANDO signIn function')
     
     try {
-      console.log('🧹 Limpando estado...')
+      console.log('ðŸ§¹ Limpando estado...')
       cleanupAuthState()
       
-      console.log('📤 Chamando supabase.auth.signInWithPassword...')
+      console.log('ðŸ“¤ Chamando supabase.auth.signInWithPassword...')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      console.log('📥 Resposta do Supabase:', { data: !!data, error: error?.message })
+      console.log('ðŸ“¥ Resposta do Supabase:', { data: !!data, error: error?.message })
 
       if (error) {
-        console.log('❌ Erro de login:', error.message)
+        console.log('âŒ Erro de login:', error.message)
         return { error: error.message }
       }
 
-      console.log('✅ Login Supabase bem-sucedido!')
-      console.log('👤 Dados do usuário:', data.user?.id, data.user?.email)
+      console.log('âœ… Login Supabase bem-sucedido!')
+      console.log('ðŸ‘¤ Dados do usuÃ¡rio:', data.user?.id, data.user?.email)
       
       return {}
     } catch (error) {
-      console.error('💥 Erro capturado no signIn:', error)
+      console.error('ðŸ’¥ Erro capturado no signIn:', error)
       return { error: 'Erro inesperado durante o login' }
     } finally {
-      console.log('🏁 Fim da função signIn')
+      console.log('ðŸ Fim da funÃ§Ã£o signIn')
     }
   }
 
@@ -379,7 +379,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isCorpEmail = isGlobalAcoEmail(email)
       
       if (!isCorpEmail) {
-        // Verificar se existe convite válido para este email
+        // Verificar se existe convite vÃ¡lido para este email
         const { data: invitation, error: invError } = await supabase
           .from('user_invitations')
           .select('id, expires_at, used_at')
@@ -390,10 +390,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .maybeSingle()
 
         if (invError || !invitation) {
-          return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuários convidados pelo administrador podem se cadastrar.' }
+          return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuÃ¡rios convidados pelo administrador podem se cadastrar.' }
         }
 
-        // Verificar se o convite não expirou
+        // Verificar se o convite nÃ£o expirou
         if (new Date(invitation.expires_at) < new Date()) {
           return { error: 'Seu convite expirou. Solicite um novo convite ao administrador.' }
         }
@@ -445,11 +445,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Sign out global falhou, continuando...')
       }
       
-      // Forçar redirect para página de login
+      // ForÃ§ar redirect para pÃ¡gina de login
       window.location.href = '/auth'
     } catch (error) {
       console.error('Erro no logout:', error)
-      // Mesmo com erro, forçar limpeza e redirect
+      // Mesmo com erro, forÃ§ar limpeza e redirect
       cleanupAuthState()
       window.location.href = '/auth'
     }
@@ -458,7 +458,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/confirm-email`,
+        redirectTo: `${window.location.origin}/auth?view=reset-password`,
       })
 
       if (error) {
@@ -472,7 +472,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return { error: 'Usuário não autenticado' }
+    if (!user) return { error: 'UsuÃ¡rio nÃ£o autenticado' }
 
     try {
       const { error } = await supabase

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,22 +36,32 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
+      setError('As senhas nao coincidem')
       return
     }
 
     setLoading(true)
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
+      // 1. Atualizar a senha no Supabase Auth
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: password
       })
 
       if (updateError) {
         setError(updateError.message)
-      } else {
-        setSuccess('Sua senha foi redefinida com sucesso!')
-        setIsSubmitted(true)
+        return
       }
+
+      // 2. Limpar a flag needs_password_reset no perfil do usuario
+      if (updateData?.user?.id) {
+        await supabase
+          .from('user_profiles')
+          .update({ needs_password_reset: false })
+          .eq('id', updateData.user.id)
+      }
+
+      setSuccess('Sua senha foi redefinida com sucesso!')
+      setIsSubmitted(true)
     } catch (err: any) {
       setError('Erro ao redefinir senha. Tente novamente.')
     } finally {
@@ -95,7 +105,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -146,7 +156,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
             
             <div className="text-center space-y-2 pt-2">
               <p className="text-sm text-muted-foreground">
-                Sua senha foi atualizada. Você já está conectado e pode prosseguir.
+                Sua senha foi atualizada. Voce ja esta conectado e pode prosseguir.
               </p>
               <Button
                 type="button"

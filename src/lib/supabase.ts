@@ -11,6 +11,7 @@ export interface UserProfile {
   created_at: string
   last_login?: string
   avatar_url?: string
+  needs_password_reset?: boolean
 }
 
 // Função para verificar se o email é do domínio Global Aço

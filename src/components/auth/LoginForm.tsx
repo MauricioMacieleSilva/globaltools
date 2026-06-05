@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react'
+﻿import React, { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react'
+import { Loader2, Mail, Lock, Eye, EyeOff, UserPlus, MailCheck } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { ZeGlobalIcon } from '@/components/icons/ZeGlobalIcon'
 import { supabase } from '@/integrations/supabase/client'
@@ -24,133 +24,94 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
   const [error, setError] = useState('')
   const [suggestSignUp, setSuggestSignUp] = useState(false)
   const [debugInfo, setDebugInfo] = useState('')
-  const { signIn, loading, user, userProfile } = useAuth()
+  // Fluxo B: controle de redefinicao obrigatoria de senha
+  const [needsReset, setNeedsReset] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
+  const { signIn, resetPassword, loading, user, userProfile } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
 
-  // Redirecionar se já estiver logado
+  // Redirecionar se ja estiver logado
   useEffect(() => {
     if (user && !loading) {
-      console.log('👤 Usuário já logado, redirecionando...')
+      console.log('Usuario ja logado, redirecionando...')
       navigate('/')
     }
   }, [user, loading, navigate])
 
-  // Debug effect to monitor error state changes
   useEffect(() => {
     if (error) {
       console.log('Estado de erro atualizado:', error)
       setDebugInfo(`Erro definido: ${error} | Timestamp: ${new Date().toLocaleTimeString()}`)
-      
-      // Toast como fallback para garantir que o usuário veja o erro
       toast({
         variant: "destructive",
-        title: "Erro de autenticação",
+        title: "Erro de autenticacao",
         description: error,
         duration: 5000,
       })
     }
   }, [error, toast])
 
-  // Debug effect to monitor suggestSignUp changes
   useEffect(() => {
     if (suggestSignUp) {
-      console.log('Estado suggestSignUp ativado')
       toast({
-        title: "Sugestão",
+        title: "Sugestao",
         description: "Clique em 'Criar Nova Conta' para se cadastrar",
         duration: 4000,
       })
     }
   }, [suggestSignUp, toast])
 
-  const checkUserExists = async (email: string): Promise<{ exists: boolean; tableExists: boolean }> => {
-    try {
-      console.log('Verificando se usuário existe:', email)
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('email')
-        .eq('email', email)
-        .single()
-      
-      if (error) {
-        console.log('Erro ao verificar usuário:', error)
-        // Se a tabela não existe, retornamos que a tabela não existe
-        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
-          console.log('Tabela user_profiles não existe')
-          return { exists: false, tableExists: false }
-        }
-        // Se é erro de "not found", significa que a tabela existe mas o usuário não
-        if (error.code === 'PGRST116' || error.details?.includes('0 rows')) {
-          return { exists: false, tableExists: true }
-        }
-      }
-      
-      return { exists: !!data, tableExists: true }
-    } catch (error) {
-      console.log('Erro na verificação do usuário:', error)
-      return { exists: false, tableExists: false }
-    }
-  }
-
-  const displayError = useCallback((errorMessage: string, shouldSuggestSignUp: boolean = false) => {
-    console.log('🔴 DEFININDO ERRO:', errorMessage)
-    console.log('🔴 SUGERIR CADASTRO:', shouldSuggestSignUp)
-    
-    // Force um pequeno delay para garantir que o loading terminou
-    setTimeout(() => {
-      setError(errorMessage)
-      setSuggestSignUp(shouldSuggestSignUp)
-      
-      // Garantir que o erro seja visível via toast também
-      toast({
-        variant: "destructive",
-        title: "Erro de Login",
-        description: errorMessage,
-        duration: 6000,
-      })
-      
-      console.log('✅ ERRO DEFINIDO NO ESTADO:', errorMessage)
-    }, 100)
-  }, [toast])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('🚀 INICIANDO LOGIN')
-    
-    // Limpar estados anteriores
     setError('')
     setSuggestSignUp(false)
     setDebugInfo('')
 
-    // Validações básicas
-    if (!email || !password) {
-      console.log('❌ Campos vazios')
+    if (!email) {
+      setError('Por favor, informe seu email')
+      return
+    }
+
+    if (!needsReset && !password) {
       setError('Por favor, preencha todos os campos')
       return
     }
 
-    console.log('📧 Tentando login com:', email)
-    console.log('🔄 Estado loading atual:', loading)
-
     try {
-      console.log('⏳ Chamando signIn...')
+      if (!needsReset) {
+        const { data: needsResetResult, error: rpcError } = await supabase
+          .rpc('check_user_needs_reset', { email_to_check: email.toLowerCase().trim() })
+
+        if (!rpcError && needsResetResult === true) {
+          setNeedsReset(true)
+          const { error: resetError } = await resetPassword(email)
+          if (!resetError) {
+            setResetEmailSent(true)
+            toast({
+              title: 'Email enviado!',
+              description: 'Verifique sua caixa de entrada para criar sua nova senha.',
+              duration: 6000,
+            })
+          } else {
+            setError('Nao foi possivel enviar o email de redefinicao. Tente novamente.')
+          }
+          return
+        }
+      }
+
+      if (!password) {
+        setError('Por favor, informe sua senha')
+        return
+      }
+
       const result = await signIn(email, password)
-      console.log('📥 Resultado completo do signIn:', result)
-      
       if (result?.error) {
-        console.log('❌ Erro de login:', result.error)
         setError('Erro: ' + result.error)
-      } else {
-        console.log('✅ Login bem-sucedido, aguardando redirecionamento...')
-        // Não fazer nada, deixar o AuthContext gerenciar
       }
     } catch (error) {
-      console.error('💥 Erro inesperado capturado:', error)
       setError('Erro inesperado. Tente novamente.')
     }
-    
-    console.log('🏁 Fim do handleSubmit')
   }
 
   return (
@@ -160,24 +121,49 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
             <img 
               src="/lovable-uploads/f96100cc-9725-48af-9945-a9be6b4fa4b0.png" 
-              alt="Global Aço" 
+              alt="Global Aco" 
               className="w-10 h-10"
             />
           </div>
         </div>
         <div>
           <CardTitle className="text-2xl font-bold text-foreground">
-            Global Aço
+            Global Aco
           </CardTitle>
           <CardDescription className="text-muted-foreground mt-2">
-            Sistema de Gestão Corporativa
+            Sistema de Gestao Corporativa
           </CardDescription>
         </div>
       </CardHeader>
       
       <CardContent>
+        {resetEmailSent ? (
+          <div className="space-y-5 py-2">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                <MailCheck className="w-8 h-8 text-green-600" />
+              </div>
+            </div>
+            <div className="text-center space-y-3">
+              <h3 className="font-semibold text-foreground text-lg">Verifique seu e-mail</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {`Ola! O sistema da Global Aco passou por melhorias e atualizacoes recentes. Para garantir a seguranca da sua conta, enviamos um link para ${email} para que voce cadastre sua nova senha pessoal.`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Nao encontrou? Verifique tambem a caixa de spam.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => { setResetEmailSent(false); setNeedsReset(false); setEmail('') }}
+            >
+              Usar outro e-mail
+            </Button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Debug info - only show in development */}
           {debugInfo && import.meta.env.DEV && (
             <Alert>
               <AlertDescription className="text-xs font-mono">
@@ -198,7 +184,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
             <Alert className="border-2 border-primary/50 bg-primary/5">
               <UserPlus className="h-4 w-4" />
               <AlertDescription className="font-medium">
-                Parece que você ainda não tem uma conta. Clique em "Criar Nova Conta" abaixo para se cadastrar.
+                Parece que voce ainda nao tem uma conta. Clique em "Criar Nova Conta" abaixo para se cadastrar.
               </AlertDescription>
             </Alert>
           )}
@@ -214,7 +200,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
                 type="email"
                 placeholder="seu.nome@globalaco.com.br"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setNeedsReset(false); setResetEmailSent(false) }}
                 className="pl-10"
                 disabled={loading}
                 autoComplete="email"
@@ -264,6 +250,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
             )}
           </Button>
         </form>
+        )}
 
         <div className="mt-6 space-y-4">
           <div className="text-center">
@@ -291,9 +278,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
           <Button
             type="button"
             variant={suggestSignUp ? "default" : "outline"}
-            className={`w-full transition-all duration-200 ${
-              suggestSignUp ? 'ring-2 ring-primary/20 shadow-lg' : ''
-            }`}
+            className={`w-full transition-all duration-200 ${suggestSignUp ? 'ring-2 ring-primary/20 shadow-lg' : ''}`}
             onClick={onSwitchToSignUp}
             disabled={loading}
           >
@@ -304,9 +289,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
 
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            Acesso restrito aos colaboradores da Global Aço.
+            Acesso restrito aos colaboradores da Global Aco.
             <br />
-            Usuários externos devem ser convidados.
+            Usuarios externos devem ser convidados.
           </p>
         </div>
       </CardContent>

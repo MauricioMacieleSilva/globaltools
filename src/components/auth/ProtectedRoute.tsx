@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Shield, AlertTriangle } from 'lucide-react'
+import { ForceResetPasswordForm } from './ForceResetPasswordForm'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -55,6 +56,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         </Card>
       </div>
     )
+  }
+
+  // Interceptar redefinição obrigatória de senha
+  if (userProfile.needs_password_reset) {
+    return <ForceResetPasswordForm />
   }
 
   // Bloquear visitantes não autorizados (emails externos sem convite)

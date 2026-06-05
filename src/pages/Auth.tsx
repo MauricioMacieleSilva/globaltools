@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { SignUpForm } from '@/components/auth/SignUpForm'
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm'
@@ -14,19 +14,34 @@ const Auth: React.FC = () => {
   const { user, loading } = useAuth()
 
   useEffect(() => {
+    // Detectar via query string: ?view=reset-password
     const params = new URLSearchParams(window.location.search)
     const view = params.get('view')
     if (view === 'reset-password') {
       setCurrentView('reset-password')
+      return
+    }
+
+    // Detectar via hash do Supabase: #type=recovery&access_token=...
+    const hash = window.location.hash
+    if (hash && hash.includes('type=recovery')) {
+      setCurrentView('reset-password')
+      return
+    }
+
+    // Detectar via hash do Supabase PKCE: #access_token=...&type=recovery
+    if (hash && hash.includes('access_token') && hash.includes('recovery')) {
+      setCurrentView('reset-password')
+      return
     }
   }, [])
 
-  // Redirecionar usuários autenticados para a página inicial, EXCETO se estiverem redefinindo a senha
+  // Redirecionar usuarios autenticados para a pagina inicial, EXCETO se estiverem redefinindo a senha
   if (user && !loading && currentView !== 'reset-password') {
     return <Navigate to="/" replace />
   }
 
-  // Mostrar loading enquanto verifica autenticação
+  // Mostrar loading enquanto verifica autenticacao
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">

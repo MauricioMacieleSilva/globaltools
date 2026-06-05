@@ -93,10 +93,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
               description: 'Verifique sua caixa de entrada para criar sua nova senha.',
               duration: 6000,
             })
+            return
           } else {
-            setError('Nao foi possivel enviar o email de redefinicao. Tente novamente.')
+            console.warn('⚠️ Falha ao enviar email de redefinição, continuando para fluxo interno:', resetError)
+            // Se falhar o envio do email, prosseguimos para o login direto.
+            // O ProtectedRoute irá interceptar e forçar o reset em tela de qualquer forma.
           }
-          return
         }
       }
 

@@ -137,3 +137,22 @@ export async function deletePoliticaComercialItem(id: string): Promise<{ error: 
 
   return { error: null };
 }
+
+
+// Bulk adjust prices by percentage
+export async function bulkAdjustPrices(
+  classe: string,
+  percentage: number
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('bulk_adjust_prices', {
+    target_classe: classe,
+    percentage_variation: percentage
+  });
+
+  if (error) {
+    console.error('Error in bulkAdjustPrices:', error);
+    return { error: new Error(error.message) };
+  }
+
+  return { error: null };
+}

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchPerfilPrecos } from '@/services/perfilPrecosService';
+import { AjusteMassaPrecosDialog } from '@/components/politica-comercial/AjusteMassaPrecosDialog';
 
 const classes = [
   { key: 'ARAMES', label: 'Arames' },
@@ -102,6 +103,11 @@ function PoliticaComercialContent() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {isAdmin && (
+        <div className="flex justify-end" data-tour="politica-ajuste-massa">
+          <AjusteMassaPrecosDialog onDataChanged={loadData} />
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Conteúdo Principal */}
         <div className="lg:col-span-3 space-y-6">

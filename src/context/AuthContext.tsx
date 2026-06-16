@@ -1,37 +1,27 @@
-﻿import * as React from 'react'
+import * as React from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { UserProfile, isGlobalAcoEmail } from '@/lib/supabase'
 import { toast } from 'sonner'
 
-// Ensure React is properly imported before using hooks
 const { createContext, useContext, useEffect, useState } = React
 
-// FunÃ§Ã£o para limpar completamente o estado de autenticaÃ§Ã£o
+// Limpa tokens do Supabase do storage (usar apenas no signOut)
 const cleanupAuthState = () => {
-  console.log('ðŸ§¹ Limpando estado de autenticaÃ§Ã£o...')
-  
-  // Remover todas as chaves relacionadas ao Supabase do localStorage
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      console.log('ðŸ—‘ï¸ Removendo:', key)
       localStorage.removeItem(key)
     }
   })
-  
-  // Remover do sessionStorage se existir
   try {
     Object.keys(sessionStorage || {}).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        console.log('ðŸ—‘ï¸ Removendo do session:', key)
         sessionStorage.removeItem(key)
       }
     })
   } catch (e) {
-    // sessionStorage pode nÃ£o estar disponÃ­vel
+    // sessionStorage pode nao estar disponivel
   }
-  
-  console.log('âœ… Limpeza de autenticaÃ§Ã£o concluÃ­da')
 }
 
 interface AuthContextType {
@@ -56,10 +46,32 @@ export const useAuth = () => {
   return context
 }
 
+// Busca perfil e role em paralelo para maior velocidade
+const fetchUserProfileAndRole = async (userId: string, email: string): Promise<UserProfile> => {
+  const [profileResult, roleResult] = await Promise.all([
+    supabase.from('user_profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+  ])
+
+  const role = roleResult.data?.role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante')
+
+  if (profileResult.data && !profileResult.error) {
+    return { ...profileResult.data, role } as UserProfile
+  }
+
+  // Fallback: perfil em memoria
+  return {
+    id: userId,
+    email,
+    full_name: email.split('@')[0],
+    role,
+    is_external: !isGlobalAcoEmail(email),
+    created_at: new Date().toISOString(),
+  } as UserProfile
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Add safety check for React hooks
   if (!React || !useState) {
-    console.error('React hooks not available')
     return <div>Loading...</div>
   }
 
@@ -68,191 +80,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // FunÃ§Ã£o para atualizar last_login
   const updateLastLogin = async (userId: string) => {
     try {
-      console.log('ðŸ”„ Atualizando last_login para usuÃ¡rio:', userId)
-      const { error } = await supabase
+      await supabase
         .from('user_profiles')
-        .update({ 
+        .update({
           last_login: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', userId)
-      
-      if (error) {
-        console.error('âŒ Erro ao atualizar last_login:', error)
-      } else {
-        console.log('âœ… Last_login atualizado com sucesso')
-      }
-    } catch (error) {
-      console.error('âŒ Erro inesperado ao atualizar last_login:', error)
+    } catch (e) {
+      // nao critico
     }
   }
 
   useEffect(() => {
     let mounted = true
-    let timeoutId: ReturnType<typeof setTimeout>
-    
-    // Verificar sessÃ£o atual com timeout de seguranÃ§a
+
+    // Timeout de seguranca de 5s (em vez de 3s, para redes lentas)
     const sessionTimeout = setTimeout(() => {
-      console.log('âš ï¸ Timeout na verificaÃ§Ã£o de sessÃ£o - prosseguindo sem sessÃ£o')
-      setLoading(false)
-    }, 3000)
-    
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (mounted) setLoading(false)
+    }, 5000)
+
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       clearTimeout(sessionTimeout)
-      
       if (!mounted) return
-      
+
       if (error) {
-        console.error('âŒ Erro ao obter sessÃ£o:', error)
-        cleanupAuthState()
-        setSession(null)
-        setUser(null)
-        setUserProfile(null)
+        console.error('[Auth] Erro ao obter sessao:', error)
         setLoading(false)
         return
       }
-      
+
       setSession(session)
       setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        // Atualizar last_login imediatamente ao detectar sessÃ£o ativa
-        updateLastLogin(session.user.id)
-        
-        // Primeiro tentar buscar o perfil no banco, depois criar em memÃ³ria se necessÃ¡rio
-        setTimeout(async () => {
-          try {
-            console.log('ðŸ‘¤ Buscando perfil no banco para:', session.user.email)
-            const { data: existingProfile, error } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
 
-            if (existingProfile && !error) {
-              const { data: roleData } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .maybeSingle()
-              
-              console.log('âœ… Perfil encontrado no banco:', existingProfile.email)
-              setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
-            } else {
-              console.log('ðŸ“ Perfil nÃ£o encontrado, criando em memÃ³ria...')
-              // Criar perfil em memÃ³ria apenas se nÃ£o existir no banco
-              const email = session.user.email!
-              const profile: UserProfile = {
-                id: session.user.id,
-                email,
-                full_name: session.user.user_metadata?.full_name || email.split('@')[0],
-                role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-                is_external: !isGlobalAcoEmail(email),
-                created_at: new Date().toISOString(),
-              }
-              
-              console.log('âœ… Perfil criado em memÃ³ria:', profile.email, 'role:', profile.role)
-              setUserProfile(profile)
-            }
-          } catch (error) {
-            console.error('âŒ Erro ao buscar perfil:', error)
-            // Fallback: criar perfil em memÃ³ria
-            const email = session.user.email!
-            const profile: UserProfile = {
-              id: session.user.id,
-              email,
-              full_name: session.user.user_metadata?.full_name || email.split('@')[0],
-              role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-              is_external: !isGlobalAcoEmail(email),
-              created_at: new Date().toISOString(),
-            }
-            setUserProfile(profile)
-          } finally {
-            setLoading(false)
-          }
-        }, 0)
+      if (session?.user) {
+        updateLastLogin(session.user.id)
+        try {
+          const profile = await fetchUserProfileAndRole(session.user.id, session.user.email!)
+          if (mounted) setUserProfile(profile)
+        } catch (e) {
+          console.error('[Auth] Erro ao buscar perfil:', e)
+        } finally {
+          if (mounted) setLoading(false)
+        }
       } else {
         setLoading(false)
       }
     }).catch((error) => {
       clearTimeout(sessionTimeout)
       if (!mounted) return
-      
-      console.error('âŒ Erro crÃ­tico ao verificar sessÃ£o:', error)
-      cleanupAuthState()
-      setSession(null)
-      setUser(null)
-      setUserProfile(null)
+      console.error('[Auth] Erro critico ao verificar sessao:', error)
       setLoading(false)
     })
 
-    // Escutar mudanÃ§as de autenticaÃ§Ã£o
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session?.user?.id)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[Auth] State change:', event)
+      if (!mounted) return
+
       setSession(session)
       setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        // Atualizar last_login sempre que detectar sessÃ£o
-        updateLastLogin(session.user.id)
-        
-        // Primeiro tentar buscar o perfil no banco, depois criar em memÃ³ria se necessÃ¡rio
-        setTimeout(async () => {
-          try {
-            console.log('ðŸ‘¤ Buscando perfil no banco para:', session.user.email)
-            const { data: existingProfile, error } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
 
-            if (existingProfile && !error) {
-              const { data: roleData } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .maybeSingle()
-              
-              console.log('âœ… Perfil encontrado no banco:', existingProfile.email)
-              setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
-            } else {
-              console.log('ðŸ“ Perfil nÃ£o encontrado, criando em memÃ³ria...')
-              // Criar perfil em memÃ³ria apenas se nÃ£o existir no banco
-              const email = session.user.email!
-              const profile: UserProfile = {
-                id: session.user.id,
-                email,
-                full_name: session.user.user_metadata?.full_name || email.split('@')[0],
-                role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-                is_external: !isGlobalAcoEmail(email),
-                created_at: new Date().toISOString(),
-              }
-              
-              console.log('âœ… Perfil criado em memÃ³ria:', profile.email, 'role:', profile.role)
-              setUserProfile(profile)
-            }
-          } catch (error) {
-            console.error('âŒ Erro ao buscar perfil:', error)
-            // Fallback: criar perfil em memÃ³ria
-            const email = session.user.email!
-            const profile: UserProfile = {
-              id: session.user.id,
-              email,
-              full_name: session.user.user_metadata?.full_name || email.split('@')[0],
-              role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-              is_external: !isGlobalAcoEmail(email),
-              created_at: new Date().toISOString(),
-            }
+      if (session?.user) {
+        updateLastLogin(session.user.id)
+        // Busca perfil em background (nao bloqueia o redirecionamento)
+        fetchUserProfileAndRole(session.user.id, session.user.email!).then((profile) => {
+          if (mounted) {
             setUserProfile(profile)
-          } finally {
             setLoading(false)
           }
-        }, 0)
+        }).catch((e) => {
+          console.error('[Auth] Erro ao buscar perfil no state change:', e)
+          if (mounted) setLoading(false)
+        })
       } else {
         setUserProfile(null)
         setLoading(false)
@@ -270,105 +171,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [])
 
-  const loadUserProfile = async (userId: string) => {
-    console.log('ðŸ‘¤ Carregando perfil para usuÃ¡rio:', userId)
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (error) {
-        console.log('âŒ Erro ao carregar perfil:', error.message)
-        console.log('ðŸ”§ Criando perfil automaticamente...')
-        await createUserProfile(userId)
-        return
-      }
-
-      if (data) {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .maybeSingle()
-        
-        console.log('âœ… Perfil carregado:', data.email)
-        setUserProfile({ ...data, role: roleData?.role || 'visitante' } as UserProfile)
-      } else {
-        console.log('ðŸ“ Perfil nÃ£o encontrado, criando...')
-        await createUserProfile(userId)
-      }
-    } catch (error) {
-      console.error('ðŸ’¥ Erro inesperado ao carregar perfil:', error)
-      await createUserProfile(userId)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const createUserProfile = async (userId: string) => {
-    console.log('ðŸ”§ Criando perfil para usuÃ¡rio:', userId)
-    
-    try {
-      const user = await supabase.auth.getUser()
-      if (!user.data.user) {
-        console.log('âŒ UsuÃ¡rio nÃ£o encontrado')
-        setLoading(false)
-        return
-      }
-
-      const email = user.data.user.email!
-      const isExternal = !isGlobalAcoEmail(email)
-      
-      const profile: UserProfile = {
-        id: userId,
-        email,
-        full_name: user.data.user.user_metadata?.full_name || email.split('@')[0],
-        role: isExternal ? 'visitante' : 'operacional',
-        is_external: isExternal,
-        created_at: new Date().toISOString(),
-      }
-      
-      console.log('âœ… Perfil criado:', profile.email)
-      setUserProfile(profile)
-      setLoading(false)
-    } catch (error) {
-      console.error('ðŸ’¥ Erro ao criar perfil:', error)
-      setLoading(false)
-    }
-  }
-
   const signIn = async (email: string, password: string) => {
-    console.log('ðŸ”¥ INICIANDO signIn function')
-    
+    // NAO chamar cleanupAuthState aqui - interfere com o SDK do Supabase
     try {
-      console.log('ðŸ§¹ Limpando estado...')
-      cleanupAuthState()
-      
-      console.log('ðŸ“¤ Chamando supabase.auth.signInWithPassword...')
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      console.log('ðŸ“¥ Resposta do Supabase:', { data: !!data, error: error?.message })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
       if (error) {
-        console.log('âŒ Erro de login:', error.message)
         return { error: error.message }
       }
 
-      console.log('âœ… Login Supabase bem-sucedido!')
-      console.log('ðŸ‘¤ Dados do usuÃ¡rio:', data.user?.id, data.user?.email)
-      
+      console.log('[Auth] Login bem-sucedido:', data.user?.email)
       return {}
     } catch (error) {
-      console.error('ðŸ’¥ Erro capturado no signIn:', error)
+      console.error('[Auth] Erro no signIn:', error)
       return { error: 'Erro inesperado durante o login' }
-    } finally {
-      console.log('ðŸ Fim da funÃ§Ã£o signIn')
     }
   }
 
@@ -377,9 +193,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true)
 
       const isCorpEmail = isGlobalAcoEmail(email)
-      
+
       if (!isCorpEmail) {
-        // Verificar se existe convite vÃ¡lido para este email
         const { data: invitation, error: invError } = await supabase
           .from('user_invitations')
           .select('id, expires_at, used_at')
@@ -390,10 +205,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .maybeSingle()
 
         if (invError || !invitation) {
-          return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuÃ¡rios convidados pelo administrador podem se cadastrar.' }
+          return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuarios convidados pelo administrador podem se cadastrar.' }
         }
 
-        // Verificar se o convite nÃ£o expirou
         if (new Date(invitation.expires_at) < new Date()) {
           return { error: 'Seu convite expirou. Solicite um novo convite ao administrador.' }
         }
@@ -403,9 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          data: {
-            full_name: fullName,
-          },
+          data: { full_name: fullName },
           emailRedirectTo: `${window.location.origin}/auth`
         },
       })
@@ -414,7 +226,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: error.message }
       }
 
-      // Marcar convite como usado (se externo)
       if (!isCorpEmail) {
         await supabase
           .from('user_invitations')
@@ -434,22 +245,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setLoading(true)
-      
-      // Limpar estado primeiro
       cleanupAuthState()
-      
-      // Tentar sign out global
       try {
         await supabase.auth.signOut({ scope: 'global' })
       } catch (err) {
-        console.log('Sign out global falhou, continuando...')
+        console.log('[Auth] Sign out global falhou, continuando...')
       }
-      
-      // ForÃ§ar redirect para pÃ¡gina de login
       window.location.href = '/auth'
     } catch (error) {
-      console.error('Erro no logout:', error)
-      // Mesmo com erro, forÃ§ar limpeza e redirect
+      console.error('[Auth] Erro no logout:', error)
       cleanupAuthState()
       window.location.href = '/auth'
     }
@@ -472,7 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return { error: 'UsuÃ¡rio nÃ£o autenticado' }
+    if (!user) return { error: 'Usuario nao autenticado' }
 
     try {
       const { error } = await supabase

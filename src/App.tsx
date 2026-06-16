@@ -83,7 +83,6 @@ function AppContent() {
       case '/ajuda':
         return 'Central de Ajuda';
       case '/admin/usuarios':
-      case '/admin/usuarios':
         return 'Gerenciamento de Usuários';
       default:
         return 'Global Aço';

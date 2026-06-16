@@ -1,15 +1,12 @@
-﻿import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Lock, Eye, EyeOff, UserPlus, MailCheck } from 'lucide-react'
+import { Loader2, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { ZeGlobalIcon } from '@/components/icons/ZeGlobalIcon'
-import { supabase } from '@/integrations/supabase/client'
-import { isGlobalAcoEmail } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
 
 interface LoginFormProps {
@@ -23,12 +20,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [suggestSignUp, setSuggestSignUp] = useState(false)
-  const [debugInfo, setDebugInfo] = useState('')
-  // Fluxo B: controle de redefinicao obrigatoria de senha
-  const [needsReset, setNeedsReset] = useState(false)
-  const [resetEmailSent, setResetEmailSent] = useState(false)
-  const { signIn, resetPassword, loading, user, userProfile } = useAuth()
-  const { toast } = useToast()
+  const { signIn, loading, user } = useAuth()
   const navigate = useNavigate()
 
   // Redirecionar se ja estiver logado
@@ -39,79 +31,29 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
     }
   }, [user, loading, navigate])
 
-  useEffect(() => {
-    if (error) {
-      console.log('Estado de erro atualizado:', error)
-      setDebugInfo(`Erro definido: ${error} | Timestamp: ${new Date().toLocaleTimeString()}`)
-      toast({
-        variant: "destructive",
-        title: "Erro de autenticacao",
-        description: error,
-        duration: 5000,
-      })
-    }
-  }, [error, toast])
-
-  useEffect(() => {
-    if (suggestSignUp) {
-      toast({
-        title: "Sugestao",
-        description: "Clique em 'Criar Nova Conta' para se cadastrar",
-        duration: 4000,
-      })
-    }
-  }, [suggestSignUp, toast])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setSuggestSignUp(false)
-    setDebugInfo('')
 
-    if (!email) {
-      setError('Por favor, informe seu email')
-      return
-    }
-
-    if (!needsReset && !password) {
+    if (!email || !password) {
       setError('Por favor, preencha todos os campos')
       return
     }
 
     try {
-      if (!needsReset) {
-        const { data: needsResetResult, error: rpcError } = await supabase
-          .rpc('check_user_needs_reset', { email_to_check: email.toLowerCase().trim() })
-
-        if (!rpcError && needsResetResult === true) {
-          setNeedsReset(true)
-          const { error: resetError } = await resetPassword(email)
-          if (!resetError) {
-            setResetEmailSent(true)
-            toast({
-              title: 'Email enviado!',
-              description: 'Verifique sua caixa de entrada para criar sua nova senha.',
-              duration: 6000,
-            })
-            return
-          } else {
-            console.warn('⚠️ Falha ao enviar email de redefinição, continuando para fluxo interno:', resetError)
-            // Se falhar o envio do email, prosseguimos para o login direto.
-            // O ProtectedRoute irá interceptar e forçar o reset em tela de qualquer forma.
-          }
-        }
-      }
-
-      if (!password) {
-        setError('Por favor, informe sua senha')
-        return
-      }
-
       const result = await signIn(email, password)
       if (result?.error) {
-        setError('Erro: ' + result.error)
+        const errMsg = result.error.toLowerCase()
+        if (errMsg.includes('invalid login') || errMsg.includes('invalid credentials') || errMsg.includes('email not confirmed')) {
+          setError('Email ou senha incorretos')
+          setSuggestSignUp(true)
+        } else {
+          setError(result.error)
+        }
       }
-    } catch (error) {
+      // Se login OK, o AuthContext atualiza user e Auth.tsx redireciona para /
+    } catch (err) {
       setError('Erro inesperado. Tente novamente.')
     }
   }
@@ -139,41 +81,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
       </CardHeader>
       
       <CardContent>
-        {resetEmailSent ? (
-          <div className="space-y-5 py-2">
-            <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <MailCheck className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-            <div className="text-center space-y-3">
-              <h3 className="font-semibold text-foreground text-lg">Verifique seu e-mail</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {`Ola! O sistema da Global Aco passou por melhorias e atualizacoes recentes. Para garantir a seguranca da sua conta, enviamos um link para ${email} para que voce cadastre sua nova senha pessoal.`}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Nao encontrou? Verifique tambem a caixa de spam.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => { setResetEmailSent(false); setNeedsReset(false); setEmail('') }}
-            >
-              Usar outro e-mail
-            </Button>
-          </div>
-        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          {debugInfo && import.meta.env.DEV && (
-            <Alert>
-              <AlertDescription className="text-xs font-mono">
-                DEBUG: {debugInfo}
-              </AlertDescription>
-            </Alert>
-          )}
-          
           {error && (
             <Alert variant="destructive" className="border-2 border-destructive/50">
               <AlertDescription className="font-medium">
@@ -202,7 +110,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
                 type="email"
                 placeholder="seu.nome@globalaco.com.br"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setNeedsReset(false); setResetEmailSent(false) }}
+                onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
                 disabled={loading}
                 autoComplete="email"
@@ -252,7 +160,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
             )}
           </Button>
         </form>
-        )}
 
         <div className="mt-6 space-y-4">
           <div className="text-center">

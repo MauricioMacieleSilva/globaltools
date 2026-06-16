@@ -20,26 +20,33 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    console.error('🚨 ErrorBoundary capturou erro:', error);
-    
-    // Detect chunk load errors (dynamic import failures due to new deploys)
-    const errorMsg = error?.message?.toLowerCase() || '';
-    const isChunkError = errorMsg.includes('failed to fetch') || 
-                         errorMsg.includes('dynamically imported') || 
-                         errorMsg.includes('importing a module script failed') ||
-                         errorMsg.includes('chunkloaderror');
-                         
-    if (isChunkError) {
-      console.warn('🔄 Erro de carregamento de módulo detectado. Forçando recarregamento da página para obter versão recente...');
-      // Clear cache-related parameters and reload the page
-      window.location.reload();
-    }
-    
+    console.error('[ErrorBoundary] Erro capturado:', error);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('🚨 Detalhes do erro:', error, errorInfo);
+    console.error('[ErrorBoundary] Detalhes do erro:', error, errorInfo);
+
+    // Detect chunk load errors (dynamic import failures due to new deploys)
+    // Only reload ONCE to avoid infinite loops
+    const errorMsg = (error && error.message) ? error.message.toLowerCase() : '';
+    const isChunkError = errorMsg.includes('failed to fetch') ||
+                         errorMsg.includes('dynamically imported') ||
+                         errorMsg.includes('importing a module script failed') ||
+                         errorMsg.includes('chunkloaderror');
+
+    if (isChunkError) {
+      const RELOAD_KEY = 'chunk-error-reload';
+      const alreadyReloaded = sessionStorage.getItem(RELOAD_KEY);
+      if (!alreadyReloaded) {
+        sessionStorage.setItem(RELOAD_KEY, '1');
+        console.warn('[ErrorBoundary] Chunk error detectado. Recarregando pagina uma vez...');
+        window.location.reload();
+      } else {
+        sessionStorage.removeItem(RELOAD_KEY);
+        console.warn('[ErrorBoundary] Chunk error persiste apos reload. Exibindo erro.');
+      }
+    }
   }
 
   handleRetry = () => {
@@ -58,16 +65,16 @@ export class ErrorBoundary extends Component<Props, State> {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
               <span>
-                Ops! Algo deu errado neste componente. 
-                {this.state.error?.message && (
+                Ops! Algo deu errado neste componente.
+                {this.state.error && this.state.error.message && (
                   <div className="text-xs mt-1 opacity-70">
                     {this.state.error.message}
                   </div>
                 )}
               </span>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={this.handleRetry}
                 className="ml-2"
               >

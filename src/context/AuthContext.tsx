@@ -6,8 +6,46 @@ import { toast } from 'sonner'
 
 const { createContext, useContext, useEffect, useState } = React
 
-// Limpa tokens do Supabase do storage (usar apenas no signOut)
+// =============================================
+// Cache do perfil em localStorage (TTL 10 min)
+// Evita queries ao banco a cada carregamento de pagina
+// =============================================
+const PROFILE_CACHE_KEY = 'gtools_profile_v1'
+const PROFILE_CACHE_TTL = 10 * 60 * 1000 // 10 minutos
+
+function saveProfileCache(userId: string, profile: UserProfile) {
+  try {
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+      userId,
+      profile,
+      expiresAt: Date.now() + PROFILE_CACHE_TTL
+    }))
+  } catch (e) { /* storage cheio ou indisponivel */ }
+}
+
+function loadProfileCache(userId: string): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
+    if (!raw) return null
+    const cached = JSON.parse(raw)
+    if (cached.userId !== userId) return null
+    if (Date.now() > cached.expiresAt) {
+      localStorage.removeItem(PROFILE_CACHE_KEY)
+      return null
+    }
+    return cached.profile as UserProfile
+  } catch (e) {
+    return null
+  }
+}
+
+function clearProfileCache() {
+  try { localStorage.removeItem(PROFILE_CACHE_KEY) } catch (e) {}
+}
+
+// Limpa tokens do Supabase (usar apenas no signOut)
 const cleanupAuthState = () => {
+  clearProfileCache()
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
       localStorage.removeItem(key)
@@ -19,9 +57,7 @@ const cleanupAuthState = () => {
         sessionStorage.removeItem(key)
       }
     })
-  } catch (e) {
-    // sessionStorage pode nao estar disponivel
-  }
+  } catch (e) {}
 }
 
 interface AuthContextType {
@@ -46,25 +82,35 @@ export const useAuth = () => {
   return context
 }
 
-// Busca perfil e role em paralelo para maior velocidade
-const fetchUserProfileAndRole = async (userId: string, email: string): Promise<UserProfile> => {
-  const [profileResult, roleResult] = await Promise.all([
-    supabase.from('user_profiles').select('*').eq('id', userId).maybeSingle(),
-    supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
-  ])
+// Busca perfil no banco - usa user_profiles.role diretamente para evitar query extra
+// O campo role em user_profiles e a fonte de verdade
+async function fetchProfile(userId: string, email: string): Promise<UserProfile> {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
 
-  const role = roleResult.data?.role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante')
-
-  if (profileResult.data && !profileResult.error) {
-    return { ...profileResult.data, role } as UserProfile
+  if (data && !error) {
+    // Busca role separadamente apenas se nao tiver no perfil
+    let role = (data as any).role
+    if (!role) {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle()
+      role = roleData?.role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante')
+    }
+    return { ...data, role } as UserProfile
   }
 
-  // Fallback: perfil em memoria
+  // Fallback em memoria (nao acessa o banco)
   return {
     id: userId,
     email,
     full_name: email.split('@')[0],
-    role,
+    role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
     is_external: !isGlobalAcoEmail(email),
     created_at: new Date().toISOString(),
   } as UserProfile
@@ -72,7 +118,7 @@ const fetchUserProfileAndRole = async (userId: string, email: string): Promise<U
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (!React || !useState) {
-    return <div>Loading...</div>
+    return <div>Carregando...</div>
   }
 
   const [user, setUser] = useState<User | null>(null)
@@ -80,27 +126,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const updateLastLogin = async (userId: string) => {
-    try {
-      await supabase
+  // Atualiza last_login de forma fire-and-forget, sem bloquear o fluxo
+  const updateLastLoginAsync = (userId: string) => {
+    setTimeout(() => {
+      supabase
         .from('user_profiles')
-        .update({
-          last_login: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('id', userId)
-    } catch (e) {
-      // nao critico
-    }
+        .then(() => {})
+        .catch(() => {})
+    }, 3000) // Aguarda 3s para nao competir com queries criticas de login
   }
 
   useEffect(() => {
     let mounted = true
 
-    // Timeout de seguranca de 5s (em vez de 3s, para redes lentas)
+    // Timeout de seguranca: se getSession() travar, libera a tela em 4s
     const sessionTimeout = setTimeout(() => {
-      if (mounted) setLoading(false)
-    }, 5000)
+      if (mounted) {
+        console.warn('[Auth] Timeout na sessao - liberando tela')
+        setLoading(false)
+      }
+    }, 4000)
 
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       clearTimeout(sessionTimeout)
@@ -116,14 +163,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null)
 
       if (session?.user) {
-        updateLastLogin(session.user.id)
-        try {
-          const profile = await fetchUserProfileAndRole(session.user.id, session.user.email!)
-          if (mounted) setUserProfile(profile)
-        } catch (e) {
-          console.error('[Auth] Erro ao buscar perfil:', e)
-        } finally {
-          if (mounted) setLoading(false)
+        // 1. Serve o cache imediatamente (zero latencia)
+        const cached = loadProfileCache(session.user.id)
+        if (cached) {
+          setUserProfile(cached)
+          setLoading(false)
+          // Atualiza em background sem bloquear
+          fetchProfile(session.user.id, session.user.email!).then(fresh => {
+            if (mounted) {
+              setUserProfile(fresh)
+              saveProfileCache(session.user.id, fresh)
+            }
+          }).catch(() => {})
+        } else {
+          // Sem cache: busca no banco
+          try {
+            const profile = await fetchProfile(session.user.id, session.user.email!)
+            if (mounted) {
+              setUserProfile(profile)
+              saveProfileCache(session.user.id, profile)
+            }
+          } catch (e) {
+            console.error('[Auth] Erro ao buscar perfil:', e)
+          } finally {
+            if (mounted) setLoading(false)
+          }
         }
       } else {
         setLoading(false)
@@ -131,30 +195,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }).catch((error) => {
       clearTimeout(sessionTimeout)
       if (!mounted) return
-      console.error('[Auth] Erro critico ao verificar sessao:', error)
+      console.error('[Auth] Erro critico:', error)
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[Auth] State change:', event)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Auth] Event:', event)
       if (!mounted) return
 
       setSession(session)
       setUser(session?.user ?? null)
 
       if (session?.user) {
-        updateLastLogin(session.user.id)
-        // Busca perfil em background (nao bloqueia o redirecionamento)
-        fetchUserProfileAndRole(session.user.id, session.user.email!).then((profile) => {
-          if (mounted) {
-            setUserProfile(profile)
-            setLoading(false)
+        if (event === 'SIGNED_IN') {
+          // Login real: busca perfil fresco e salva no cache
+          updateLastLoginAsync(session.user.id)
+          try {
+            const profile = await fetchProfile(session.user.id, session.user.email!)
+            if (mounted) {
+              setUserProfile(profile)
+              saveProfileCache(session.user.id, profile)
+              setLoading(false)
+            }
+          } catch (e) {
+            if (mounted) setLoading(false)
           }
-        }).catch((e) => {
-          console.error('[Auth] Erro ao buscar perfil no state change:', e)
+        } else if (event === 'INITIAL_SESSION') {
+          // Ja tratado no getSession() acima
+          // Nao faz nada aqui para evitar double-fetch
+        } else {
+          // TOKEN_REFRESHED, USER_UPDATED etc: usa cache se disponivel
+          const cached = loadProfileCache(session.user.id)
+          if (cached && mounted) {
+            setUserProfile(cached)
+          }
           if (mounted) setLoading(false)
-        })
+        }
       } else {
+        clearProfileCache()
         setUserProfile(null)
         setLoading(false)
       }
@@ -172,18 +250,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    // NAO chamar cleanupAuthState aqui - interfere com o SDK do Supabase
+    // Sem cleanupAuthState aqui - nao interfere no SDK
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
-      if (error) {
-        return { error: error.message }
-      }
-
-      console.log('[Auth] Login bem-sucedido:', data.user?.email)
+      if (error) return { error: error.message }
+      console.log('[Auth] Login OK:', data.user?.email)
       return {}
     } catch (error) {
-      console.error('[Auth] Erro no signIn:', error)
       return { error: 'Erro inesperado durante o login' }
     }
   }
@@ -191,7 +264,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true)
-
       const isCorpEmail = isGlobalAcoEmail(email)
 
       if (!isCorpEmail) {
@@ -207,7 +279,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (invError || !invitation) {
           return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuarios convidados pelo administrador podem se cadastrar.' }
         }
-
         if (new Date(invitation.expires_at) < new Date()) {
           return { error: 'Seu convite expirou. Solicite um novo convite ao administrador.' }
         }
@@ -222,9 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       })
 
-      if (error) {
-        return { error: error.message }
-      }
+      if (error) return { error: error.message }
 
       if (!isCorpEmail) {
         await supabase
@@ -248,12 +317,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cleanupAuthState()
       try {
         await supabase.auth.signOut({ scope: 'global' })
-      } catch (err) {
-        console.log('[Auth] Sign out global falhou, continuando...')
-      }
+      } catch (err) {}
       window.location.href = '/auth'
     } catch (error) {
-      console.error('[Auth] Erro no logout:', error)
       cleanupAuthState()
       window.location.href = '/auth'
     }
@@ -264,11 +330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth?view=reset-password`,
       })
-
-      if (error) {
-        return { error: error.message }
-      }
-
+      if (error) return { error: error.message }
       return {}
     } catch (error) {
       return { error: 'Erro inesperado ao resetar senha' }
@@ -277,38 +339,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return { error: 'Usuario nao autenticado' }
-
     try {
       const { error } = await supabase
         .from('user_profiles')
         .update(updates)
         .eq('id', user.id)
-
-      if (error) {
-        return { error: error.message }
-      }
-
-      setUserProfile(prev => prev ? { ...prev, ...updates } : null)
+      if (error) return { error: error.message }
+      const updated = { ...userProfile, ...updates } as UserProfile
+      setUserProfile(updated)
+      if (user) saveProfileCache(user.id, updated)
       return {}
     } catch (error) {
       return { error: 'Erro inesperado ao atualizar perfil' }
     }
   }
 
-  const value = {
-    user,
-    userProfile,
-    session,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    resetPassword,
-    updateProfile,
-  }
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, userProfile, session, loading, signIn, signUp, signOut, resetPassword, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

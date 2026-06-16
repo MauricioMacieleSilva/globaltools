@@ -21,6 +21,20 @@ export class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     console.error('🚨 ErrorBoundary capturou erro:', error);
+    
+    // Detect chunk load errors (dynamic import failures due to new deploys)
+    const errorMsg = error?.message?.toLowerCase() || '';
+    const isChunkError = errorMsg.includes('failed to fetch') || 
+                         errorMsg.includes('dynamically imported') || 
+                         errorMsg.includes('importing a module script failed') ||
+                         errorMsg.includes('chunkloaderror');
+                         
+    if (isChunkError) {
+      console.warn('🔄 Erro de carregamento de módulo detectado. Forçando recarregamento da página para obter versão recente...');
+      // Clear cache-related parameters and reload the page
+      window.location.reload();
+    }
+    
     return { hasError: true, error };
   }
 

@@ -220,7 +220,7 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
         if (leadsToFix.length > 0) {
           import('@/services/googleSheetsService').then(({ fetchComercialData }) => {
             import('@/lib/utils-comercial').then(({ parseDate }) => {
-              fetchComercialData().then((comercialData) => {
+              fetchComercialData().then(async (comercialData) => {
                 const norm = (s: string) => (s || '').trim().toLowerCase();
                 for (const lead of leadsToFix) {
                   const orderNums = lead.budget_number.split(',').map((s: string) => s.trim()).filter(Boolean);
@@ -257,8 +257,14 @@ export function CRMDataProvider({ children }: { children: ReactNode }) {
                     total += finalItems.reduce((sum: number, item: any) => sum + (item.valor || 0), 0);
                   }
                   if (total !== (lead.valor_estimado || 0)) {
-                    (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
-                    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, valor_estimado: total } : l));
+                    try {
+                      await (supabase as any).from('leads').update({ valor_estimado: total }).eq('id', lead.id);
+                      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, valor_estimado: total } : l));
+                      // Espera 500ms entre updates para não saturar a CPU/conexões do Supabase NANO
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                    } catch (e) {
+                      console.warn('Erro ao atualizar valor estimado do lead no Supabase:', e);
+                    }
                   }
                 }
               }).catch(() => {});

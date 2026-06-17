@@ -73,9 +73,9 @@ export function AjusteMassaPrecosDialog({ onDataChanged }: AjusteMassaPrecosDial
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 border-primary/20 hover:border-primary/40 text-foreground hover:bg-accent">
+        <Button variant="outline" className="w-full gap-2 border-primary/20 hover:border-primary/40 text-foreground hover:bg-accent py-5">
           <Percent className="h-4 w-4 text-primary" />
-          Ajuste em Massa
+          Ajuste de Preço
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">

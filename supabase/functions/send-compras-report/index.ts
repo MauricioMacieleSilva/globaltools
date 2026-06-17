@@ -45,13 +45,13 @@ function categorizeForStock(desc: string): string[] {
   if (/\bSLITTER\b/.test(d)) return ['BOBINAS', 'TIRAS'];
   if (/^BGL\b/.test(d) || /^BZN\b/.test(d) || /\bBOBINA\b/.test(d)) return ['BOBINAS'];
   if (/\bCHAPA\b/.test(d)) return ['CHAPAS'];
-  if (/\bTELHA\b/.test(d) || /\bTP\d+/.test(d) || /\bCUMEEIRA/.test(d)) return ['BOBINAS', 'TIRAS', 'CHAPAS'];
+  if (/\bTELHA\b/.test(d) || /\bTP\d+/.test(d) || /\bCUMEEIRA/.test(d) || /\bCALHEIRO/.test(d)) return ['BOBINAS', 'TIRAS', 'CHAPAS'];
   if (/CH\b/.test(d) && /\d+[.,]\d+/.test(d)) return ['CHAPAS', 'BOBINAS'];
   return [];
 }
 
 // ---------------- Color / family / equivalent helpers (mirror lib) ----------------
-const COLOR_KEYWORDS = ['BRANCA','BRANCO','PRETA','PRETO','CINZA','AZUL','VERMELHA','VERMELHO','AMARELA','AMARELO','VERDE','BEGE','MARROM','GALVALUME','GALVANIZADA','GALVANIZADO','GALV','ZINCADA','ZINCADO','NATURAL','ZAR'];
+const COLOR_KEYWORDS = ['BRANCA','BRANCO','PRETA','PRETO','CINZA','AZUL','VERMELHA','VERMELHO','AMARELA','AMARELO','VERDE','BEGE','MARROM'];
 function extractColor(desc: string): string | null {
   if (!desc) return null;
   const u = desc.toUpperCase();

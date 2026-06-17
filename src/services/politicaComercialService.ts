@@ -156,3 +156,32 @@ export async function bulkAdjustPrices(
 
   return { error: null };
 }
+
+export interface PoliticaComercialHistorico {
+  id: string;
+  item_id: string | null;
+  descricao: string;
+  classe: string;
+  preco_anterior: number | null;
+  preco_novo: number | null;
+  percentual_ajuste: number | null;
+  tipo_ajuste: string;
+  usuario_id: string | null;
+  usuario_nome: string | null;
+  created_at: string;
+}
+
+// Fetch pricing changes history
+export async function fetchPoliticaComercialHistory(): Promise<{ data: PoliticaComercialHistorico[] | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('politica_comercial_historico')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching pricing history:', error);
+    return { data: null, error: new Error(error.message) };
+  }
+
+  return { data: data as PoliticaComercialHistorico[], error: null };
+}

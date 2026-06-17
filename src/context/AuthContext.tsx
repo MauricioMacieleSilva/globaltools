@@ -85,35 +85,47 @@ export const useAuth = () => {
 // Busca perfil no banco - usa user_profiles.role diretamente para evitar query extra
 // O campo role em user_profiles e a fonte de verdade
 async function fetchProfile(userId: string, email: string): Promise<UserProfile> {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle()
-
-  if (data && !error) {
-    // Busca role separadamente apenas se nao tiver no perfil
-    let role = (data as any).role
-    if (!role) {
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle()
-      role = roleData?.role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante')
-    }
-    return { ...data, role } as UserProfile
-  }
-
-  // Fallback em memoria (nao acessa o banco)
-  return {
+  const fallbackProfile: UserProfile = {
     id: userId,
     email,
     full_name: email.split('@')[0],
     role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
     is_external: !isGlobalAcoEmail(email),
     created_at: new Date().toISOString(),
-  } as UserProfile
+  } as UserProfile;
+
+  try {
+    const fetchPromise = (async () => {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data && !error) {
+        let role = (data as any).role;
+        if (!role) {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .maybeSingle();
+          role = roleData?.role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante');
+        }
+        return { ...data, role } as UserProfile;
+      }
+      return fallbackProfile;
+    })();
+
+    const timeoutPromise = new Promise<UserProfile>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 3000)
+    );
+
+    return await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (e) {
+    console.warn('[Auth] fetchProfile falhou ou excedeu timeout - usando fallback em memoria:', e);
+    return fallbackProfile;
+  }
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -125,6 +137,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Refs para obter os valores atualizados dentro da closure do timeout
+  const userRef = React.useRef<User | null>(null)
+  const userProfileRef = React.useRef<UserProfile | null>(null)
+  const sessionRef = React.useRef<Session | null>(null)
+
+  React.useEffect(() => { userRef.current = user }, [user])
+  React.useEffect(() => { userProfileRef.current = userProfile }, [userProfile])
+  React.useEffect(() => { sessionRef.current = session }, [session])
 
   // Atualiza last_login de forma fire-and-forget, sem bloquear o fluxo
   const updateLastLoginAsync = (userId: string) => {
@@ -142,34 +163,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true
 
     // Timeout de seguranca: se getSession() travar, libera a tela em 4s
-    const sessionTimeout = setTimeout(async () => {
+    const sessionTimeout = setTimeout(() => {
       if (mounted) {
         console.warn('[Auth] Timeout na sessao - liberando tela')
         setLoading(false)
         
-        try {
-          // Tenta obter a sessao atual direto do client do supabase
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          const currentUser = currentSession?.user;
+        const currentUser = userRef.current;
+        const currentProfile = userProfileRef.current;
+        
+        if (currentUser && !currentProfile) {
+          console.warn('[Auth] Usando perfil de fallback em memoria devido a timeout');
+          const email = currentUser.email || '';
+          const fallback = {
+            id: currentUser.id,
+            email,
+            full_name: email.split('@')[0],
+            role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
+            is_external: !isGlobalAcoEmail(email),
+            created_at: new Date().toISOString(),
+          };
           
-          if (currentUser && !userProfile) {
-            console.warn('[Auth] Usando perfil de fallback em memoria devido a timeout')
-            const email = currentUser.email || '';
-            const fallback = {
-              id: currentUser.id,
-              email,
-              full_name: email.split('@')[0],
-              role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-              is_external: !isGlobalAcoEmail(email),
-              created_at: new Date().toISOString(),
-            };
-            
-            setUser(currentUser);
-            setSession(currentSession);
-            setUserProfile(fallback as any);
-          }
-        } catch (e) {
-          console.error('[Auth] Erro no fallback de timeout:', e);
+          setUserProfile(fallback as any);
         }
       }
     }, 4000)

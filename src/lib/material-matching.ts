@@ -178,8 +178,8 @@ export function categorizeForStock(descricaomat: string): EstoqueCategoria[] {
   }
   // CHAPA literal -> CHAPAS
   if (/\bCHAPA\b/.test(desc)) return ['CHAPAS'];
-  // TELHA/CUMEEIRA usam matéria-prima de bobinas/tiras/chapas no controle de compras.
-  if (/\bTELHA\b/.test(desc) || /\bTP\d+/.test(desc) || /\bCUMEEIRA/.test(desc)) {
+  // TELHA/CUMEEIRA/ROLO/CALHEIRO usam matéria-prima de bobinas/tiras/chapas no controle de compras.
+  if (/\bTELHA\b/.test(desc) || /\bTP\d+/.test(desc) || /\bCUMEEIRA/.test(desc) || /\bROLO\b/.test(desc) || /\bCALHEIRO\b/.test(desc)) {
     return ['BOBINAS', 'TIRAS', 'CHAPAS'];
   }
 

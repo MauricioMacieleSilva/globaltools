@@ -142,10 +142,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true
 
     // Timeout de seguranca: se getSession() travar, libera a tela em 4s
-    const sessionTimeout = setTimeout(() => {
+    const sessionTimeout = setTimeout(async () => {
       if (mounted) {
         console.warn('[Auth] Timeout na sessao - liberando tela')
         setLoading(false)
+        
+        try {
+          // Tenta obter a sessao atual direto do client do supabase
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          const currentUser = currentSession?.user;
+          
+          if (currentUser && !userProfile) {
+            console.warn('[Auth] Usando perfil de fallback em memoria devido a timeout')
+            const email = currentUser.email || '';
+            const fallback = {
+              id: currentUser.id,
+              email,
+              full_name: email.split('@')[0],
+              role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
+              is_external: !isGlobalAcoEmail(email),
+              created_at: new Date().toISOString(),
+            };
+            
+            setUser(currentUser);
+            setSession(currentSession);
+            setUserProfile(fallback as any);
+          }
+        } catch (e) {
+          console.error('[Auth] Erro no fallback de timeout:', e);
+        }
       }
     }, 4000)
 

@@ -8,14 +8,14 @@ export function LeadAssignmentNotification() {
   const [notification, setNotification] = useState<{ leadName: string; assignerName: string } | null>(null);
 
   useEffect(() => {
-    let userId: string | null = null;
+    let active = true;
+    let channel: any = null;
 
     const setup = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      userId = user.id;
+      if (!user || !active) return;
 
-      const channel = supabase
+      channel = supabase
         .channel('lead-assignments')
         .on(
           'postgres_changes',
@@ -30,8 +30,8 @@ export function LeadAssignmentNotification() {
             
             // Check if vendedor_id changed to current user AND status moved from passagem_bastao
             if (
-              newRow.vendedor_id === userId &&
-              oldRow.vendedor_id !== userId &&
+              newRow.vendedor_id === user.id &&
+              oldRow.vendedor_id !== user.id &&
               oldRow.status === 'passagem_bastao'
             ) {
               setNotification({
@@ -42,11 +42,16 @@ export function LeadAssignmentNotification() {
           }
         )
         .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
     };
 
     setup();
+
+    return () => {
+      active = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   if (!notification) return null;

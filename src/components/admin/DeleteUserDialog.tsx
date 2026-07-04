@@ -42,22 +42,43 @@ export const DeleteUserDialog: React.FC<DeleteUserDialogProps> = ({
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/delete-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user.id }),
+      let response: Response | null = null;
+      let result: any = null;
+      
+      try {
+        response = await fetch(
+          `${supabaseUrl}/functions/v1/delete-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId: user.id }),
+          }
+        );
+        if (response.ok) {
+          result = await response.json();
         }
-      )
+      } catch (e) {
+        console.warn('Falha ao chamar a Edge Function delete-user, tentando exclusão direta:', e);
+      }
 
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro ao remover usuário')
+      // Se a Edge Function não foi encontrada ou falhou com 404 (não implantada no novo projeto)
+      if (!response || response.status === 404) {
+        console.log('Edge Function não encontrada ou indisponível. Executando exclusão direta no banco...');
+        
+        // Excluir diretamente da tabela user_profiles (a RLS permite que Admins deletem)
+        const { error: dbError } = await supabase
+          .from('user_profiles')
+          .delete()
+          .eq('id', user.id);
+          
+        if (dbError) {
+          throw new Error(`Erro ao excluir perfil diretamente: ${dbError.message}`);
+        }
+      } else if (!response.ok) {
+        throw new Error(result?.error || 'Erro ao remover usuário');
       }
 
       toast({

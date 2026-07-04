@@ -123,7 +123,11 @@ async function fetchProfile(userId: string, email: string): Promise<UserProfile>
 
     return await Promise.race([fetchPromise, timeoutPromise]);
   } catch (e) {
-    console.warn('[Auth] fetchProfile falhou ou excedeu timeout - usando fallback em memoria:', e);
+    console.warn('[Auth] fetchProfile falhou ou excedeu timeout - usando fallback:', e);
+    const cached = loadProfileCache(userId);
+    if (cached) {
+      return cached;
+    }
     return fallbackProfile;
   }
 }
@@ -172,18 +176,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentProfile = userProfileRef.current;
         
         if (currentUser && !currentProfile) {
-          console.warn('[Auth] Usando perfil de fallback em memoria devido a timeout');
+          console.warn('[Auth] Usando perfil de fallback em memoria/cache devido a timeout');
           const email = currentUser.email || '';
-          const fallback = {
-            id: currentUser.id,
-            email,
-            full_name: email.split('@')[0],
-            role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-            is_external: !isGlobalAcoEmail(email),
-            created_at: new Date().toISOString(),
-          };
-          
-          setUserProfile(fallback as any);
+          const cached = loadProfileCache(currentUser.id);
+          if (cached) {
+            setUserProfile(cached);
+          } else {
+            const fallback = {
+              id: currentUser.id,
+              email,
+              full_name: email.split('@')[0],
+              role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
+              is_external: !isGlobalAcoEmail(email),
+              created_at: new Date().toISOString(),
+            };
+            setUserProfile(fallback as any);
+          }
         }
       }
     }, 4000)

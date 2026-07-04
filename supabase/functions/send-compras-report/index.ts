@@ -627,7 +627,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const ok = results.filter(r => r.success).length;
-    return new Response(JSON.stringify({ success: true, faltas: faltas.length, enviados: ok, total: emails.length, results }), {
+    return new Response(JSON.stringify({ success: true, version: "debug-compras-v1", faltas: faltas.length, enviados: ok, total: emails.length, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e: any) {

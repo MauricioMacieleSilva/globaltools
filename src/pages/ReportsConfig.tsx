@@ -5,6 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import { ReportConfigTable } from "@/components/admin/ReportConfigTable";
 import { ReportHistoryTable } from "@/components/admin/ReportHistoryTable";
@@ -307,16 +318,30 @@ function ComprasConfig() {
 
   const handleSendManual = async () => {
     setSending(true);
+    const activeToast = toast({
+      title: "Enviando relatório...",
+      description: "Por favor, aguarde enquanto o relatório de compras está sendo processado e enviado.",
+    });
+    
     try {
       const { data, error } = await supabase.functions.invoke('send-compras-report', { body: {} });
       if (error) throw error;
+      
+      activeToast.dismiss();
       toast({
         title: 'Relatório de compras enviado',
-        description: `Enviado para ${data?.enviados || 0} contato(s), com ${data?.faltas || 0} item(ns) na lista.`,
+        description: `Enviado com sucesso! ${data?.enviados || 0} contato(s) notificado(s), com ${data?.faltas || 0} item(ns) na lista.`,
       });
     } catch (error: any) {
-      toast({ title: 'Erro ao enviar relatório', description: error.message || 'Não foi possível enviar o relatório.', variant: 'destructive' });
-    } finally { setSending(false); }
+      activeToast.dismiss();
+      toast({ 
+        title: 'Erro ao enviar relatório', 
+        description: error.message || 'Não foi possível enviar o relatório.', 
+        variant: 'destructive' 
+      });
+    } finally { 
+      setSending(false); 
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
@@ -355,10 +380,26 @@ function ComprasConfig() {
         </>
       )}
       <div className="flex justify-end gap-2">
-        <Button onClick={handleSendManual} disabled={sending} variant="outline" size="sm" className="gap-2">
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-          Enviar agora
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button disabled={sending} variant="outline" size="sm" className="gap-2">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              Enviar agora
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Enviar Relatório de Compras</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja enviar o relatório de compras agora? Isso disparará um e-mail para todos os destinatários configurados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSendManual}>Confirmar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Salvar

@@ -39,7 +39,7 @@ const Auth: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#07162c] flex items-center justify-center p-4">
+      <div className="h-screen w-screen bg-[#07162c] flex items-center justify-center p-4 overflow-hidden">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-[#00c6ff] mx-auto mb-4" />
           <p className="text-sm text-slate-300">Carregando...</p>
@@ -50,7 +50,7 @@ const Auth: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-cover bg-center flex items-center justify-center p-4 relative overflow-hidden"
+      className="h-screen w-screen bg-cover bg-center flex items-center justify-center p-4 relative overflow-hidden"
       style={{ backgroundImage: "url('/login-bg.png')" }}
     >
       {/* Deep blue glass overlay */}

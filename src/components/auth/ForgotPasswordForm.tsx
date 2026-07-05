@@ -40,15 +40,13 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
 
   return (
     <Card className="w-full max-w-md mx-auto bg-[#0e2238]/85 backdrop-blur-xl border border-[#009bde]/30 text-white shadow-[0_8px_32px_0_rgba(0,92,138,0.3)]">
-      <CardHeader className="text-center space-y-4 pb-6">
+      <CardHeader className="text-center space-y-3 pb-4">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full border border-[#009bde]/30 overflow-hidden flex items-center justify-center bg-[#07162c] shadow-md">
-            <img
-              src="/login-bg.png"
-              alt="Global Aço Logo"
-              className="w-24 h-24 object-cover scale-[1.7]"
-            />
-          </div>
+          <img
+            src="/lovable-uploads/f96100cc-9725-48af-9945-a9be6b4fa4b0.png"
+            alt="Global Aço"
+            className="w-24 h-auto object-contain"
+          />
         </div>
         <div>
           <CardTitle className="text-2xl font-bold text-white bg-gradient-to-r from-white via-slate-200 to-[#8fc9eb] bg-clip-text text-transparent">
@@ -62,7 +60,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
       
       <CardContent>
         {!isSubmitted ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -104,7 +102,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
             </Button>
           </form>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <Alert className="border-green-200 bg-green-50 text-green-800">
               <AlertDescription>{success}</AlertDescription>
             </Alert>

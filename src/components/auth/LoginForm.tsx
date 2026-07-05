@@ -79,7 +79,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
         </div>
         <div>
           <CardTitle className="text-2xl font-bold text-white bg-gradient-to-r from-white via-slate-200 to-[#8fc9eb] bg-clip-text text-transparent">
-            Global Aco
+            Global Aço
           </CardTitle>
           <CardDescription className="text-slate-300 mt-2">
             Sistema de Gestao Corporativa
@@ -193,8 +193,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
 
           <Button
             type="button"
-            variant="outline"
-            className="w-full border-[#009bde]/30 text-slate-300 hover:bg-[#009bde]/15 hover:text-white transition-all duration-200"
+            className="w-full bg-transparent border border-[#009bde]/50 text-slate-200 hover:bg-[#009bde]/20 hover:border-[#009bde] hover:text-white transition-all duration-200"
             onClick={onSwitchToSignUp}
             disabled={isBusy}
           >
@@ -205,7 +204,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
 
         <div className="mt-6 text-center">
           <p className="text-xs text-slate-400">
-            Acesso restrito aos colaboradores da Global Aco.
+            Acesso restrito aos colaboradores da Global Aço.
             <br />
             Usuarios externos devem ser convidados.
           </p>

@@ -82,10 +82,10 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-transparent border-0 shadow-none p-0">
+    <Card className="w-full max-w-md mx-auto bg-[#0e2238]/85 backdrop-blur-xl border border-[#009bde]/30 text-white shadow-[0_8px_32px_0_rgba(0,92,138,0.3)]">
       <CardHeader className="text-center space-y-4 pb-6">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full border border-[#009bde]/30 overflow-hidden flex items-center justify-center bg-[#07162c] shadow-inner">
+          <div className="w-16 h-16 rounded-full border border-[#009bde]/30 overflow-hidden flex items-center justify-center bg-[#07162c] shadow-md">
             <img
               src="/login-bg.png"
               alt="Global Aço Logo"
@@ -97,7 +97,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
           <CardTitle className="text-2xl font-bold text-white bg-gradient-to-r from-white via-slate-200 to-[#8fc9eb] bg-clip-text text-transparent">
             Definir Nova Senha
           </CardTitle>
-          <CardDescription className="text-slate-400 mt-2">
+          <CardDescription className="text-slate-300 mt-2">
             Digite e confirme sua nova senha de acesso
           </CardDescription>
         </div>
@@ -124,7 +124,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
                   placeholder="Minimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 bg-[#07162c]/50 border-[#009bde]/20 focus-visible:ring-[#009bde] text-white placeholder-slate-500"
+                  className="pl-10 bg-[#07162c]/65 border-[#009bde]/30 focus-visible:ring-[#00c6ff] text-white placeholder-slate-500"
                   disabled={loading}
                 />
               </div>
@@ -142,7 +142,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
                   placeholder="Confirme sua senha"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 bg-[#07162c]/50 border-[#009bde]/20 focus-visible:ring-[#009bde] text-white placeholder-slate-500"
+                  className="pl-10 bg-[#07162c]/65 border-[#009bde]/30 focus-visible:ring-[#00c6ff] text-white placeholder-slate-500"
                   disabled={loading}
                 />
               </div>

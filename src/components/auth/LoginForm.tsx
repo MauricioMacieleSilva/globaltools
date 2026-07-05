@@ -68,22 +68,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
   const isBusy = isSubmitting || loading
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/50">
+    <Card className="w-full max-w-md mx-auto bg-transparent border-0 shadow-none p-0">
       <CardHeader className="text-center space-y-4 pb-6">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full border border-[#009bde]/30 overflow-hidden flex items-center justify-center bg-[#07162c] shadow-inner">
             <img
-              src="/lovable-uploads/f96100cc-9725-48af-9945-a9be6b4fa4b0.png"
-              alt="Global Aco"
-              className="w-10 h-10"
+              src="/login-bg.png"
+              alt="Global Aço Logo"
+              className="w-24 h-24 object-cover scale-[1.7]"
             />
           </div>
         </div>
         <div>
-          <CardTitle className="text-2xl font-bold text-foreground">
+          <CardTitle className="text-2xl font-bold text-white bg-gradient-to-r from-white via-slate-200 to-[#8fc9eb] bg-clip-text text-transparent">
             Global Aco
           </CardTitle>
-          <CardDescription className="text-muted-foreground mt-2">
+          <CardDescription className="text-slate-400 mt-2">
             Sistema de Gestao Corporativa
           </CardDescription>
         </div>
@@ -120,7 +120,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
                 placeholder="seu.nome@globalaco.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-[#07162c]/50 border-[#009bde]/20 focus-visible:ring-[#009bde] text-white placeholder-slate-500"
                 disabled={isBusy}
                 autoComplete="email"
               />
@@ -139,7 +139,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
                 placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10"
+                className="pl-10 pr-10 bg-[#07162c]/50 border-[#009bde]/20 focus-visible:ring-[#009bde] text-white placeholder-slate-500"
                 disabled={isBusy}
                 autoComplete="current-password"
               />
@@ -156,7 +156,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
 
           <Button
             type="submit"
-            className="w-full"
+            className="w-full bg-gradient-to-r from-[#005c8a] to-[#009bde] hover:from-[#007cb3] hover:to-[#00c6ff] text-white shadow-[0_0_15px_rgba(0,155,222,0.3)] transition-all duration-300"
             disabled={isBusy}
           >
             {isBusy ? (
@@ -195,8 +195,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignUp, onForgot
 
           <Button
             type="button"
-            variant={suggestSignUp ? "default" : "outline"}
-            className={`w-full transition-all duration-200 ${suggestSignUp ? 'ring-2 ring-primary/20 shadow-lg' : ''}`}
+            variant="outline"
+            className="w-full border-[#009bde]/30 text-slate-300 hover:bg-[#009bde]/10 hover:text-white transition-all duration-200"
             onClick={onSwitchToSignUp}
             disabled={isBusy}
           >

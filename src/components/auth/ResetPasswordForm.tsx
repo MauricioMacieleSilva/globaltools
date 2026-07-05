@@ -82,18 +82,22 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/50">
+    <Card className="w-full max-w-md mx-auto bg-transparent border-0 shadow-none p-0">
       <CardHeader className="text-center space-y-4 pb-6">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <ZeGlobalIcon className="w-10 h-10 text-primary" />
+          <div className="w-16 h-16 rounded-full border border-[#009bde]/30 overflow-hidden flex items-center justify-center bg-[#07162c] shadow-inner">
+            <img
+              src="/login-bg.png"
+              alt="Global Aço Logo"
+              className="w-24 h-24 object-cover scale-[1.7]"
+            />
           </div>
         </div>
         <div>
-          <CardTitle className="text-2xl font-bold text-foreground">
+          <CardTitle className="text-2xl font-bold text-white bg-gradient-to-r from-white via-slate-200 to-[#8fc9eb] bg-clip-text text-transparent">
             Definir Nova Senha
           </CardTitle>
-          <CardDescription className="text-muted-foreground mt-2">
+          <CardDescription className="text-slate-400 mt-2">
             Digite e confirme sua nova senha de acesso
           </CardDescription>
         </div>
@@ -120,7 +124,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
                   placeholder="Minimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-[#07162c]/50 border-[#009bde]/20 focus-visible:ring-[#009bde] text-white placeholder-slate-500"
                   disabled={loading}
                 />
               </div>
@@ -138,7 +142,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
                   placeholder="Confirme sua senha"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-[#07162c]/50 border-[#009bde]/20 focus-visible:ring-[#009bde] text-white placeholder-slate-500"
                   disabled={loading}
                 />
               </div>
@@ -146,7 +150,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[#005c8a] to-[#009bde] hover:from-[#007cb3] hover:to-[#00c6ff] text-white shadow-[0_0_15px_rgba(0,155,222,0.3)] transition-all duration-300"
               disabled={loading}
             >
               {loading ? (
@@ -186,7 +190,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
             <Button
               type="button"
               variant="ghost"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[#005c8a] to-[#009bde] hover:from-[#007cb3] hover:to-[#00c6ff] text-white shadow-[0_0_15px_rgba(0,155,222,0.3)] transition-all duration-300"
               onClick={onBackToLogin}
               disabled={loading}
             >

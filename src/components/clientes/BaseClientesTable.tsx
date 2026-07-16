@@ -165,12 +165,12 @@ export function BaseClientesTable() {
         "Status": status,
         "Pedido": item.numeropedido,
         "NF": item.numeronf,
-        "Faturamento": item.valor, // Valor Bruto
         "Data Emissão": parseDate(item.data_emissao) || item.data_emissao,
         "Descrição do Item": item.descricaomat || "Sem descrição",
         "Quantidade": item.qtd,
         "Peso (kg)": item.peso || 0,
-        "Preço Unitário": item.valor_un_bruto,
+        "Preço Unit.": item.valor_un_bruto,
+        "Faturamento": item.valor, // Valor Bruto
         "Vendedor": item.vendedor || "Não informado"
       };
     });
@@ -179,25 +179,25 @@ export function BaseClientesTable() {
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
     
     for (let R = 1; R <= range.e.r; R++) {
-      // Faturamento (Col 4 - index 4)
-      const fatRef = XLSX.utils.encode_cell({ r: R, c: 4 });
-      if (ws[fatRef]) ws[fatRef].z = '"R$" #,##0.00';
-
-      // Data Emissão (Col 5 - index 5)
-      const dateRef = XLSX.utils.encode_cell({ r: R, c: 5 });
+      // Data Emissão (Col 4 - index 4)
+      const dateRef = XLSX.utils.encode_cell({ r: R, c: 4 });
       if (ws[dateRef]) ws[dateRef].z = 'dd/mm/yyyy';
 
-      // Quantidade (Col 7 - index 7)
-      const qtdRef = XLSX.utils.encode_cell({ r: R, c: 7 });
+      // Quantidade (Col 6 - index 6)
+      const qtdRef = XLSX.utils.encode_cell({ r: R, c: 6 });
       if (ws[qtdRef]) ws[qtdRef].z = '#,##0.00';
 
-      // Peso (Col 8 - index 8)
-      const pesoRef = XLSX.utils.encode_cell({ r: R, c: 8 });
+      // Peso (Col 7 - index 7)
+      const pesoRef = XLSX.utils.encode_cell({ r: R, c: 7 });
       if (ws[pesoRef]) ws[pesoRef].z = '#,##0.00';
 
-      // Preço Unitário (Col 9 - index 9)
-      const priceRef = XLSX.utils.encode_cell({ r: R, c: 9 });
+      // Preço Unit. (Col 8 - index 8)
+      const priceRef = XLSX.utils.encode_cell({ r: R, c: 8 });
       if (ws[priceRef]) ws[priceRef].z = '"R$" #,##0.00';
+
+      // Faturamento (Col 9 - index 9)
+      const fatRef = XLSX.utils.encode_cell({ r: R, c: 9 });
+      if (ws[fatRef]) ws[fatRef].z = '"R$" #,##0.00';
     }
 
     ws["!cols"] = [
@@ -205,12 +205,12 @@ export function BaseClientesTable() {
       { wch: 10 }, // Status
       { wch: 12 }, // Pedido
       { wch: 12 }, // NF
-      { wch: 16 }, // Faturamento
       { wch: 14 }, // Data Emissão
       { wch: 35 }, // Descrição do Item
       { wch: 12 }, // Quantidade
       { wch: 12 }, // Peso (kg)
-      { wch: 16 }, // Preço Unitário
+      { wch: 16 }, // Preço Unit.
+      { wch: 16 }, // Faturamento
       { wch: 25 }  // Vendedor
     ];
 

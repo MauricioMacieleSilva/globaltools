@@ -166,7 +166,7 @@ export function BaseClientesTable() {
         "Número Pedido": item.numeropedido,
         "NF": item.numeronf,
         "Faturamento": item.valor, // Valor Bruto
-        "Data Emissão": item.data_emissao,
+        "Data Emissão": parseDate(item.data_emissao) || item.data_emissao,
         "Descrição do Item": item.descricaomat || "Sem descrição",
         "Quantidade": item.qtd,
         "Peso (kg)": item.peso || 0,
@@ -176,13 +176,17 @@ export function BaseClientesTable() {
       };
     });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    const ws = XLSX.utils.json_to_sheet(exportData, { cellDates: true });
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
     
     for (let R = 1; R <= range.e.r; R++) {
       // Faturamento (Col 4 - index 4)
       const fatRef = XLSX.utils.encode_cell({ r: R, c: 4 });
       if (ws[fatRef]) ws[fatRef].z = '"R$" #,##0.00';
+
+      // Data Emissão (Col 5 - index 5)
+      const dateRef = XLSX.utils.encode_cell({ r: R, c: 5 });
+      if (ws[dateRef]) ws[dateRef].z = 'dd/mm/yyyy';
 
       // Quantidade (Col 7 - index 7)
       const qtdRef = XLSX.utils.encode_cell({ r: R, c: 7 });

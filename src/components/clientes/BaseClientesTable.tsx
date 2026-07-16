@@ -48,7 +48,8 @@ interface ClienteInfo {
 }
 
 export function BaseClientesTable() {
-  const { data } = useComercial();
+  const { data, isLoading } = useComercial();
+  const isRealData = data && data.length > 500;
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [vendorFilter, setVendorFilter] = useState("all");
@@ -144,8 +145,8 @@ export function BaseClientesTable() {
   }, [clientesProcessados]);
 
   const handleExportFaturamento = () => {
-    if (!data || data.length === 0) {
-      toast.error("Nenhum dado disponível para exportação");
+    if (!data || data.length < 500) {
+      toast.error("Aguarde o carregamento dos dados reais antes de exportar.");
       return;
     }
 
@@ -630,10 +631,17 @@ export function BaseClientesTable() {
         </div>
         <Button
           onClick={handleExportFaturamento}
-          className="gap-2 h-10 bg-green-700 hover:bg-green-800 text-white flex-shrink-0"
+          disabled={isLoading || !isRealData}
+          className="gap-2 h-10 bg-green-700 hover:bg-green-800 text-white flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <FileSpreadsheet className="h-4 w-4" />
-          <span className="hidden sm:inline">Exportar Faturamento</span>
+          {isLoading ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="h-4 w-4" />
+          )}
+          <span className="hidden sm:inline">
+            {isLoading ? "Aguardando..." : !isRealData ? "Aguardando dados..." : "Exportar Faturamento"}
+          </span>
         </Button>
       </div>
 

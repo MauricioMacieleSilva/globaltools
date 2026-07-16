@@ -163,7 +163,7 @@ export function BaseClientesTable() {
       return {
         "Cliente": item.cliente,
         "Status": status,
-        "Número Pedido": item.numeropedido,
+        "Pedido": item.numeropedido,
         "NF": item.numeronf,
         "Faturamento": item.valor, // Valor Bruto
         "Data Emissão": parseDate(item.data_emissao) || item.data_emissao,
@@ -171,7 +171,6 @@ export function BaseClientesTable() {
         "Quantidade": item.qtd,
         "Peso (kg)": item.peso || 0,
         "Preço Unitário": item.valor_un_bruto,
-        "Valor Total": item.valor_total_liq || item.valor, // Valor Líquido
         "Vendedor": item.vendedor || "Não informado"
       };
     });
@@ -199,16 +198,12 @@ export function BaseClientesTable() {
       // Preço Unitário (Col 9 - index 9)
       const priceRef = XLSX.utils.encode_cell({ r: R, c: 9 });
       if (ws[priceRef]) ws[priceRef].z = '"R$" #,##0.00';
-
-      // Valor Total (Col 10 - index 10)
-      const valRef = XLSX.utils.encode_cell({ r: R, c: 10 });
-      if (ws[valRef]) ws[valRef].z = '"R$" #,##0.00';
     }
 
     ws["!cols"] = [
       { wch: 40 }, // Cliente
       { wch: 10 }, // Status
-      { wch: 15 }, // Número Pedido
+      { wch: 12 }, // Pedido
       { wch: 12 }, // NF
       { wch: 16 }, // Faturamento
       { wch: 14 }, // Data Emissão
@@ -216,7 +211,6 @@ export function BaseClientesTable() {
       { wch: 12 }, // Quantidade
       { wch: 12 }, // Peso (kg)
       { wch: 16 }, // Preço Unitário
-      { wch: 16 }, // Valor Total
       { wch: 25 }  // Vendedor
     ];
 

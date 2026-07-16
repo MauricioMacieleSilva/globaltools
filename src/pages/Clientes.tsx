@@ -14,24 +14,14 @@ export default function Clientes() {
 
   return (
     <div className="min-h-screen p-3 sm:p-6 space-y-4">
-      {/* Header */}
-      <div data-tour="clientes-header">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl sm:text-3xl font-bold">Central de Clientes</h1>
-          <LastUpdatedIndicator lastUpdated={cacheStatus.lastUpdate} onRefresh={refreshData} loading={isLoading} />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Gerencie e analise sua base de clientes
-        </p>
-      </div>
-
       {/* Main Card */}
       <Card>
-        <CardHeader className="p-3 sm:p-6">
+        <CardHeader className="p-3 sm:p-6 flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <Users className="h-4 w-4 sm:h-5 sm:w-5" />
             Central de Clientes
           </CardTitle>
+          <LastUpdatedIndicator lastUpdated={cacheStatus.lastUpdate} onRefresh={refreshData} loading={isLoading} />
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>

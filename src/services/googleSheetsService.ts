@@ -332,6 +332,7 @@ async function _fetchComercialDataImpl(): Promise<ComercialData[]> {
             un: row[12] || "", // Coluna M
             valor_un_bruto: parseFloat(row[13]?.replace(",", ".")) || 0, // Coluna N
             valor: parseFloat(row[14]?.replace(",", ".")) || 0, // Coluna O
+            valor_total_liq: parseFloat(row[15]?.replace(",", ".")) || parseFloat(row[14]?.replace(",", ".")) || 0, // Coluna P
             peso: parseFloat(row[19]?.replace(",", ".")) || 0, // Coluna T
             classe: normalizeField(row[21] || ""), // Coluna V - NORMALIZADA
             cli_nomefantasia: row[29] || "", // Coluna AD

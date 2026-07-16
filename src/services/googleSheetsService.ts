@@ -272,14 +272,7 @@ async function _fetchComercialDataImpl(): Promise<ComercialData[]> {
       console.log("Attempting to fetch from CSV URL (cache-bust):", fetchUrl);
 
       // Tenta acessar via CSV primeiro
-      const response = await fetch(fetchUrl, {
-        method: "GET",
-        cache: "no-store",
-        headers: {
-          Accept: "text/csv",
-          "Cache-Control": "no-cache",
-        },
-      });
+      const response = await fetch(fetchUrl);
 
       if (!response.ok) {
         console.warn("CSV request failed with status:", response.status);

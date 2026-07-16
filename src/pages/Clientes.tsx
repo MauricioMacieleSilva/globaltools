@@ -10,7 +10,12 @@ import { useComercial } from "@/context/ComercialContext";
 
 export default function Clientes() {
   const [activeTab, setActiveTab] = useState("base");
-  const { cacheStatus, refreshData, isLoading } = useComercial();
+  const { cacheStatus, refreshData, clearCache, isLoading } = useComercial();
+
+  const handleRefresh = () => {
+    clearCache();
+    refreshData();
+  };
 
   return (
     <div className="min-h-screen p-3 sm:p-6 space-y-4">
@@ -21,7 +26,7 @@ export default function Clientes() {
             <Users className="h-4 w-4 sm:h-5 sm:w-5" />
             Central de Clientes
           </CardTitle>
-          <LastUpdatedIndicator lastUpdated={cacheStatus.lastUpdate} onRefresh={refreshData} loading={isLoading} />
+          <LastUpdatedIndicator lastUpdated={cacheStatus.lastUpdate} onRefresh={handleRefresh} loading={isLoading} />
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -54,13 +54,13 @@ function AppContent() {
     switch (currentPath) {
       case '/':
       case '/dashboard-comercial':
-        return 'Vendas';
+        return 'Dashboard Comercial';
       case '/crm':
         return 'CRM';
       case '/pre-vendas':
         return 'Pré-Vendas';
       case '/clientes':
-        return 'Gestão de Clientes';
+        return 'Clientes';
       case '/corte-chapa':
       case '/corte-blank':
         return 'Corte Blank';
@@ -77,54 +77,17 @@ function AppContent() {
       case '/treinamentos':
         return 'Treinamentos';
       case '/fretes':
-        return 'Controle de Fretes';
+        return 'Fretes';
       case '/chamados':
-        return 'Chamados Financeiro';
+        return 'Chamados';
       case '/ajuda':
         return 'Central de Ajuda';
       case '/admin/usuarios':
-        return 'Gerenciamento de Usuários';
+        return 'Administração';
+      case '/admin/relatorios':
+        return 'Configuração de Relatórios';
       default:
         return 'Global Aço';
-    }
-  };
-
-  const getPageSubtitle = () => {
-    switch (currentPath) {
-      case '/':
-      case '/dashboard-comercial':
-        return 'Análise de Desempenho de Vendas';
-      case '/crm':
-        return 'Gestão de Leads e Pipeline de Vendas';
-      case '/pre-vendas':
-        return 'Gestão de Leads e Pré-Vendas';
-      case '/clientes':
-        return 'Orçamentos, Base de Clientes e Análise ABC';
-      case '/corte-chapa':
-      case '/corte-blank':
-        return 'Otimização de corte para chapas metálicas';
-      case '/corte-perfil':
-        return 'Cálculo de corte para perfis metálicos';
-      case '/politica-comercial':
-        return 'Tabelas de preços e simulação de formação de preços';
-      case '/assistente-global':
-        return 'Assistente de Conhecimento Organizacional';
-      case '/pipeline':
-        return 'Leads encaminhados pelos SDRs para atendimento comercial';
-      case '/producao':
-        return 'Acompanhamento de pedidos em produção';
-      case '/treinamentos':
-        return 'Materiais de capacitação e treinamento';
-      case '/fretes':
-        return 'Gestão de fretes e entregas por pedido';
-      case '/chamados':
-        return 'Solicitações e chamados para o financeiro';
-      case '/ajuda':
-        return 'Documentação completa do sistema';
-      case '/admin/usuarios':
-        return 'Controle de usuários e permissões do sistema';
-      default:
-        return 'Cálculo | Corte';
     }
   };
 
@@ -160,7 +123,6 @@ function AppContent() {
                                 />
                                 <div className="min-w-0 flex-1">
                                   <h1 className="text-sm sm:text-lg font-semibold text-foreground truncate">{getPageTitle()}</h1>
-                                  <p className="text-xs text-muted-foreground truncate hidden sm:block">{getPageSubtitle()}</p>
                                 </div>
                               </div>
                               {userProfile && <UserAvatarMenu />}

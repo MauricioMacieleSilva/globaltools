@@ -412,13 +412,6 @@ function ComprasConfig() {
 export default function ReportsConfig() {
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Relatórios Automáticos</h1>
-        <p className="text-muted-foreground">
-          Configure destinatários, horários e acompanhe o histórico de envios
-        </p>
-      </div>
-
       <Tabs defaultValue="config" className="space-y-4">
         <TabsList>
           <TabsTrigger value="config" className="gap-2">

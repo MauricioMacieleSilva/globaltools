@@ -9,11 +9,6 @@ const AssistenteGlobal: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full p-4 sm:p-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold mb-2">Assistente Zé da Global</h1>
-        <p className="text-muted-foreground">Converse por texto ou voz com seu assistente de IA</p>
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-4" data-tour="assistente-tabs">
           <TabsTrigger value="text" className="flex items-center gap-2">

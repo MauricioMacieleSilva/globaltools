@@ -82,53 +82,44 @@ export const useAuth = () => {
   return context
 }
 
-// Busca perfil no banco - usa user_profiles.role diretamente para evitar query extra
-// O campo role em user_profiles e a fonte de verdade
+// Busca perfil no banco - usa user_roles como fonte de verdade para a role
 async function fetchProfile(userId: string, email: string): Promise<UserProfile> {
-  const fallbackProfile: UserProfile = {
-    id: userId,
-    email,
-    full_name: email.split('@')[0],
-    role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-    is_external: !isGlobalAcoEmail(email),
-    created_at: new Date().toISOString(),
-  } as UserProfile;
-
   try {
     const fetchPromise = (async () => {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      // Busca dados do perfil e a role em paralelo para máxima performance
+      const [profileRes, roleRes] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(),
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle()
+      ]);
 
-      if (data && !error) {
-        let role = (data as any).role;
-        if (!role) {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userId)
-            .maybeSingle();
-          role = roleData?.role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante');
-        }
-        return { ...data, role } as UserProfile;
-      }
-      return fallbackProfile;
+      if (profileRes.error) throw profileRes.error;
+      if (!profileRes.data) throw new Error('Perfil não encontrado no banco');
+
+      if (roleRes.error) throw roleRes.error;
+
+      // A role da tabela user_roles é a fonte de verdade para RLS e permissões.
+      // Se não existir, usamos a role da tabela user_profiles ou o fallback por email
+      const role = roleRes.data?.role || (profileRes.data as any).role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante');
+
+      return { ...profileRes.data, role } as UserProfile;
     })();
 
     const timeoutPromise = new Promise<UserProfile>((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 3000)
+      setTimeout(() => reject(new Error('timeout')), 6000) // Aumentado para 6 segundos para resiliência
     );
 
     return await Promise.race([fetchPromise, timeoutPromise]);
   } catch (e) {
-    console.warn('[Auth] fetchProfile falhou ou excedeu timeout - usando fallback:', e);
-    const cached = loadProfileCache(userId);
-    if (cached) {
-      return cached;
-    }
-    return fallbackProfile;
+    console.error('[Auth] Erro em fetchProfile:', e);
+    throw e; // Propaga o erro para o chamador decidir o que fazer (evita overwriting de cache)
   }
 }
 
@@ -221,7 +212,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUserProfile(fresh)
               saveProfileCache(session.user.id, fresh)
             }
-          }).catch(() => {})
+          }).catch((err) => {
+            console.warn('[Auth] Falha ao atualizar perfil em background (mantendo cache ativo):', err);
+          })
         } else {
           // Sem cache: busca no banco
           try {
@@ -231,7 +224,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               saveProfileCache(session.user.id, profile)
             }
           } catch (e) {
-            console.error('[Auth] Erro ao buscar perfil:', e)
+            console.error('[Auth] Erro ao buscar perfil sem cache:', e)
+            if (mounted) {
+              // Se falhou e não temos cache, usamos o fallback apenas como última opção
+              const fallback = {
+                id: session.user.id,
+                email: session.user.email!,
+                full_name: session.user.email!.split('@')[0],
+                role: isGlobalAcoEmail(session.user.email!) ? 'operacional' : 'visitante',
+                is_external: !isGlobalAcoEmail(session.user.email!),
+                created_at: new Date().toISOString(),
+              } as UserProfile;
+              setUserProfile(fallback);
+            }
           } finally {
             if (mounted) setLoading(false)
           }
@@ -265,7 +270,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setLoading(false)
             }
           } catch (e) {
-            if (mounted) setLoading(false)
+            console.error('[Auth] Erro ao buscar perfil após SIGNED_IN:', e);
+            if (mounted) {
+              const fallback = {
+                id: session.user.id,
+                email: session.user.email!,
+                full_name: session.user.email!.split('@')[0],
+                role: isGlobalAcoEmail(session.user.email!) ? 'operacional' : 'visitante',
+                is_external: !isGlobalAcoEmail(session.user.email!),
+                created_at: new Date().toISOString(),
+              } as UserProfile;
+              setUserProfile(fallback);
+              setLoading(false);
+            }
           }
         } else if (event === 'INITIAL_SESSION') {
           // Ja tratado no getSession() acima

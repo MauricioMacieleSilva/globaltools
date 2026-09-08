@@ -310,14 +310,14 @@ export async function fetchProducaoData(): Promise<ProducaoData[]> {
     console.log('Fetching produção data from Google Sheets...');
     
     // Google Sheets CSV export URL using stable gid for the "PRODUÇÃO" sheet
-    const sheetId = '13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo';
-    const gid = '407047369';
+    const sheetId = '1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY';
+    const gid = '1438227670';
     // Cache-busting param to force fresh data on every fetch
     const cacheBuster = `&_t=${Date.now()}`;
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}${cacheBuster}`;
     
     // Also fetch commercial sheet to get peso_kg
-    const comercialGid = '1086211541';
+    const comercialGid = '0';
     const comercialCsvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${comercialGid}${cacheBuster}`;
     
     console.log('Fetching production and commercial data (cache-bust)...');

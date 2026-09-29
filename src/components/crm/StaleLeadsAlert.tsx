@@ -14,7 +14,7 @@ interface StaleLeadsAlertProps {
   onOpenBulkArchive?: () => void;
 }
 
-export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
+export function StaleLeadsAlert({ leads, onLeadClick, onOpenBulkArchive }: StaleLeadsAlertProps) {
   const [open, setOpen] = useState(false);
   const [staleLeads, setStaleLeads] = useState<(CRMLead & { daysSinceContact: number; vendedor_name: string })[]>([]);
   const { user, userProfile } = useAuth();

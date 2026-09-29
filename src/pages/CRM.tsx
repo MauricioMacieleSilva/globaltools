@@ -10,7 +10,7 @@ import { CRMFilters } from '@/components/crm/CRMFilters';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords, ArrowRightLeft, ClipboardList } from 'lucide-react';
+import { Plus, LayoutGrid, List, CalendarDays, PieChart, Sparkles, Monitor, Users, X, Clock, Swords, ArrowRightLeft, ClipboardList, Archive } from 'lucide-react';
 import { StaleLeadsAlert } from '@/components/crm/StaleLeadsAlert';
 import { useCommercialVendors } from '@/hooks/useCommercialVendors';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +38,7 @@ const CompetitorProposalsView = lazy(() => import('@/components/crm/CompetitorPr
 const HandoffHistory = lazy(() => import('@/components/crm/HandoffHistory').then(m => ({ default: m.HandoffHistory })));
 const DashboardCarousel = lazy(() => import('@/components/dashboard/DashboardCarousel').then(m => ({ default: m.DashboardCarousel })));
 const DashboardComercial = lazy(() => import('@/pages/DashboardComercial'));
+const BulkArchiveDialog = lazy(() => import('@/components/crm/BulkArchiveDialog').then(m => ({ default: m.BulkArchiveDialog })));
 
 const TabFallback = () => (
   <div className="space-y-3 p-2">
@@ -139,6 +140,7 @@ export default function CRM() {
   const debouncedSearchQuery = useDebounce(searchQuery, 150);
   const [vendorFilter, setVendorFilter] = useState('');
   const [origemFilter, setOrigemFilter] = useState('all');
+  const [bulkArchiveOpen, setBulkArchiveOpen] = useState(false);
 
   
 
@@ -860,7 +862,7 @@ export default function CRM() {
                 <ClipboardList className="h-3.5 w-3.5" /> Relatório
               </TabsTrigger>
             </TabsList>
-            <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} />
+            <StaleLeadsAlert leads={leads} onLeadClick={openLeadDrawer} onOpenBulkArchive={() => setBulkArchiveOpen(true)} />
           </div>
         </div>
 
@@ -890,6 +892,16 @@ export default function CRM() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkArchiveOpen(true)}
+              className="gap-1.5 h-8 text-amber-700 border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950/40 font-medium"
+              title="Mover leads inativos do Kanban para a Carteira em massa"
+            >
+              <Archive className="h-3.5 w-3.5" />
+              {!isMobile && 'Mover para Carteira'}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setCarouselOpen(true)} className="gap-1.5 h-8 hidden sm:flex" title="Modo TV - Alternar dashboards">
               <Monitor className="h-3.5 w-3.5" />
               {!isMobile && 'Modo TV'}
@@ -1147,6 +1159,21 @@ export default function CRM() {
             <CRMDashboard leads={leads} lastUpdated={lastUpdated} onRefresh={loadLeads} isRefreshing={loading} tvMode vendorFilter={vendorFilter} origemFilter={origemFilter} />
             <DashboardComercial tvMode />
           </DashboardCarousel>
+        </Suspense>
+      )}
+
+      {bulkArchiveOpen && (
+        <Suspense fallback={null}>
+          <BulkArchiveDialog
+            open={bulkArchiveOpen}
+            onOpenChange={setBulkArchiveOpen}
+            leads={leads}
+            cardMeta={cardMeta}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            initialVendorFilter={vendorFilter}
+            onSuccess={loadLeads}
+          />
         </Suspense>
       )}
     </div>

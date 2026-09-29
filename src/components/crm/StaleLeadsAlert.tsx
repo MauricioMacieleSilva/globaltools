@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Clock, ExternalLink, User } from 'lucide-react';
+import { AlertTriangle, Clock, ExternalLink, User, Archive } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import type { CRMLead } from '@/pages/CRM';
@@ -11,6 +11,7 @@ import type { CRMLead } from '@/pages/CRM';
 interface StaleLeadsAlertProps {
   leads: CRMLead[];
   onLeadClick: (lead: CRMLead) => void;
+  onOpenBulkArchive?: () => void;
 }
 
 export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
@@ -218,8 +219,22 @@ export function StaleLeadsAlert({ leads, onLeadClick }: StaleLeadsAlertProps) {
             </div>
           </ScrollArea>
 
-          <div className="flex justify-end pt-2">
-            <Button variant="ghost" onClick={() => setOpen(false)}>
+          <div className="flex items-center justify-between pt-2">
+            {onOpenBulkArchive && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenBulkArchive();
+                }}
+                className="gap-1.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950/40"
+              >
+                <Archive className="h-3.5 w-3.5" />
+                Mover parados (+30d) para a Carteira
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setOpen(false)} className={!onOpenBulkArchive ? 'ml-auto' : ''}>
               Fechar
             </Button>
           </div>

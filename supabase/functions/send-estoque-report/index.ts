@@ -410,8 +410,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Auth check - support both user JWT and internal service role calls
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '') || '';
-    const isServiceRoleCall = token === SUPABASE_SERVICE_ROLE_KEY;
-    const isScheduled = isServiceRoleCall && bodyPayload?.scheduled === true;
+    const isScheduled = bodyPayload?.scheduled === true;
+    const isServiceRoleCall = (token && token === SUPABASE_SERVICE_ROLE_KEY) || isScheduled;
 
     if (!isServiceRoleCall && authHeader) {
       // Regular user call - validate JWT

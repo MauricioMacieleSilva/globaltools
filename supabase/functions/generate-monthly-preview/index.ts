@@ -10,8 +10,8 @@ const corsHeaders = {
 };
 
 // Mesmos IDs da planilha
-const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
-const GID = "1086211541";
+const SHEET_ID = "1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY";
+const GID = "0";
 
 // Interface IGUAL ao send-monthly-closing
 interface ComercialData {

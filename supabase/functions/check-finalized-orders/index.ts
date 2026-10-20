@@ -5,9 +5,9 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SHEET_ID = "13F5NcT8Z6quDcW4OmoG8MOhHCRT1W9nWXmNGX839MGo";
-const PROD_GID = "407047369";
-const COMERCIAL_GID = "1086211541";
+const SHEET_ID = "1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY";
+const PROD_GID = "1438227670";
+const COMERCIAL_GID = "0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

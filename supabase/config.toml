@@ -26,3 +26,15 @@ verify_jwt = false
 
 [functions.send-estoque-report]
 verify_jwt = false
+
+[functions.send-scheduled-reports]
+verify_jwt = false
+
+[functions.send-daily-report]
+verify_jwt = false
+
+[functions.send-manual-report]
+verify_jwt = false
+
+[functions.send-monthly-closing]
+verify_jwt = false

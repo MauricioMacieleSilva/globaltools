@@ -202,12 +202,21 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
     let isAuthorized = false;
 
-    if (token === SUPABASE_SERVICE_ROLE_KEY) {
-      isAuthorized = true;
-    } else {
+    // Check if token is service role
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        if (payload.role === 'service_role') {
+          isAuthorized = true;
+        }
+      }
+    } catch (_) {}
+
+    if (!isAuthorized) {
       const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
       if (authError || !user) {
         return new Response(JSON.stringify({ error: 'Não autorizado' }), { 

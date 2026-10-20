@@ -7,7 +7,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, prefer, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
 interface NotifyRequest {
@@ -120,7 +121,6 @@ function generateNotificationHTML(data: NotifyRequest): string {
         
         <!-- Header -->
         <div style="background: ${headerColor}; color: #ffffff; padding: 30px; text-align: center;">
-          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
           <h1 style="margin: 0; font-size: 22px; color: #ffffff;">${titulo}</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${subtitulo}</p>
         </div>
@@ -188,13 +188,13 @@ function generateNotificationHTML(data: NotifyRequest): string {
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Verify user is admin
+    // Verify user is admin or operational
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Não autorizado' }), { 
@@ -203,22 +203,32 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), { 
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
+    let isAuthorized = false;
+
+    if (token === SUPABASE_SERVICE_ROLE_KEY) {
+      isAuthorized = true;
+    } else {
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Não autorizado' }), { 
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+
+      // Check admin or operacional role
+      const { data: roleData } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (roleData && (roleData.role === 'admin' || roleData.role === 'operacional')) {
+        isAuthorized = true;
+      }
     }
 
-    // Check admin role
-    const { data: roleData } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    
-    if (!roleData || roleData.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Apenas administradores podem enviar notificações' }), { 
+    if (!isAuthorized) {
+      return new Response(JSON.stringify({ error: 'Apenas administradores ou operadores podem enviar notificações' }), { 
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }

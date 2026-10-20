@@ -11,7 +11,8 @@ const COMERCIAL_GID = "0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, prefer, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
 // Allowed windows (Brasília time) - 6 min after each DB update
@@ -336,7 +337,6 @@ function generateNotificationHTML(data: {
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #2d3748;">
       <div style="max-width: 700px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <div style="background: #059669; color: #ffffff; padding: 30px; text-align: center;">
-          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
           <h1 style="margin: 0; font-size: 22px; color: #ffffff;">🎉 Pedido ${data.numero_pedido} Finalizado!</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">Todas as ordens de produção foram finalizadas</p>
         </div>
@@ -368,7 +368,7 @@ function generateNotificationHTML(data: {
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {

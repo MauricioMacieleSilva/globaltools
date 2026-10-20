@@ -1,9 +1,7 @@
 import { ComercialData } from "@/context/ComercialContext";
 
 const SHEET_ID = "1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY";
-const SHEET_ID = "1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY";
 const GID = "0"; // ID da aba BASE
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
 interface SheetRow {

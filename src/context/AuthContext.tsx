@@ -4,34 +4,60 @@ import { supabase } from '@/integrations/supabase/client'
 import { UserProfile, isGlobalAcoEmail } from '@/lib/supabase'
 import { toast } from 'sonner'
 
-// Ensure React is properly imported before using hooks
 const { createContext, useContext, useEffect, useState } = React
 
-// Função para limpar completamente o estado de autenticação
+// =============================================
+// Cache do perfil em localStorage (TTL 10 min)
+// Evita queries ao banco a cada carregamento de pagina
+// =============================================
+const PROFILE_CACHE_KEY = 'gtools_profile_v1'
+const PROFILE_CACHE_TTL = 10 * 60 * 1000 // 10 minutos
+
+function saveProfileCache(userId: string, profile: UserProfile) {
+  try {
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+      userId,
+      profile,
+      expiresAt: Date.now() + PROFILE_CACHE_TTL
+    }))
+  } catch (e) { /* storage cheio ou indisponivel */ }
+}
+
+function loadProfileCache(userId: string): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
+    if (!raw) return null
+    const cached = JSON.parse(raw)
+    if (cached.userId !== userId) return null
+    if (Date.now() > cached.expiresAt) {
+      localStorage.removeItem(PROFILE_CACHE_KEY)
+      return null
+    }
+    return cached.profile as UserProfile
+  } catch (e) {
+    return null
+  }
+}
+
+function clearProfileCache() {
+  try { localStorage.removeItem(PROFILE_CACHE_KEY) } catch (e) {}
+}
+
+// Limpa tokens do Supabase (usar apenas no signOut)
 const cleanupAuthState = () => {
-  console.log('🧹 Limpando estado de autenticação...')
-  
-  // Remover todas as chaves relacionadas ao Supabase do localStorage
+  clearProfileCache()
   Object.keys(localStorage).forEach((key) => {
     if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      console.log('🗑️ Removendo:', key)
       localStorage.removeItem(key)
     }
   })
-  
-  // Remover do sessionStorage se existir
   try {
     Object.keys(sessionStorage || {}).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        console.log('🗑️ Removendo do session:', key)
         sessionStorage.removeItem(key)
       }
     })
-  } catch (e) {
-    // sessionStorage pode não estar disponível
-  }
-  
-  console.log('✅ Limpeza de autenticação concluída')
+  } catch (e) {}
 }
 
 interface AuthContextType {
@@ -56,11 +82,50 @@ export const useAuth = () => {
   return context
 }
 
+// Busca perfil no banco - usa user_roles como fonte de verdade para a role
+async function fetchProfile(userId: string, email: string): Promise<UserProfile> {
+  try {
+    const fetchPromise = (async () => {
+      // Busca dados do perfil e a role em paralelo para máxima performance
+      const [profileRes, roleRes] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle(),
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle()
+      ]);
+
+      if (profileRes.error) throw profileRes.error;
+      if (!profileRes.data) throw new Error('Perfil não encontrado no banco');
+
+      if (roleRes.error) throw roleRes.error;
+
+      // A role da tabela user_roles é a fonte de verdade para RLS e permissões.
+      // Se não existir, usamos a role da tabela user_profiles ou o fallback por email
+      const role = roleRes.data?.role || (profileRes.data as any).role || (isGlobalAcoEmail(email) ? 'operacional' : 'visitante');
+
+      return { ...profileRes.data, role } as UserProfile;
+    })();
+
+    const timeoutPromise = new Promise<UserProfile>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 6000) // Aumentado para 6 segundos para resiliência
+    );
+
+    return await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (e) {
+    console.error('[Auth] Erro em fetchProfile:', e);
+    throw e; // Propaga o erro para o chamador decidir o que fazer (evita overwriting de cache)
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Add safety check for React hooks
   if (!React || !useState) {
-    console.error('React hooks not available')
-    return <div>Loading...</div>
+    return <div>Carregando...</div>
   }
 
   const [user, setUser] = useState<User | null>(null)
@@ -68,192 +133,170 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Função para atualizar last_login
-  const updateLastLogin = async (userId: string) => {
-    try {
-      console.log('🔄 Atualizando last_login para usuário:', userId)
-      const { error } = await supabase
+  // Refs para obter os valores atualizados dentro da closure do timeout
+  const userRef = React.useRef<User | null>(null)
+  const userProfileRef = React.useRef<UserProfile | null>(null)
+  const sessionRef = React.useRef<Session | null>(null)
+
+  React.useEffect(() => { userRef.current = user }, [user])
+  React.useEffect(() => { userProfileRef.current = userProfile }, [userProfile])
+  React.useEffect(() => { sessionRef.current = session }, [session])
+
+  // Atualiza last_login de forma fire-and-forget, sem bloquear o fluxo
+  const updateLastLoginAsync = (userId: string) => {
+    setTimeout(() => {
+      supabase
         .from('user_profiles')
-        .update({ 
-          last_login: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('id', userId)
-      
-      if (error) {
-        console.error('❌ Erro ao atualizar last_login:', error)
-      } else {
-        console.log('✅ Last_login atualizado com sucesso')
-      }
-    } catch (error) {
-      console.error('❌ Erro inesperado ao atualizar last_login:', error)
-    }
+        .then(() => {})
+        .catch(() => {})
+    }, 3000) // Aguarda 3s para nao competir com queries criticas de login
   }
 
   useEffect(() => {
     let mounted = true
-    let timeoutId: ReturnType<typeof setTimeout>
-    
-    // Verificar sessão atual com timeout de segurança
-    const sessionTimeout = setTimeout(() => {
-      console.log('⚠️ Timeout na verificação de sessão - prosseguindo sem sessão')
-      setLoading(false)
-    }, 3000)
-    
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      clearTimeout(sessionTimeout)
-      
-      if (!mounted) return
-      
-      if (error) {
-        console.error('❌ Erro ao obter sessão:', error)
-        cleanupAuthState()
-        setSession(null)
-        setUser(null)
-        setUserProfile(null)
-        setLoading(false)
-        return
-      }
-      
-      setSession(session)
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        // Atualizar last_login imediatamente ao detectar sessão ativa
-        updateLastLogin(session.user.id)
-        
-        // Primeiro tentar buscar o perfil no banco, depois criar em memória se necessário
-        setTimeout(async () => {
-          try {
-            console.log('👤 Buscando perfil no banco para:', session.user.email)
-            const { data: existingProfile, error } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
 
-            if (existingProfile && !error) {
-              const { data: roleData } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .maybeSingle()
-              
-              console.log('✅ Perfil encontrado no banco:', existingProfile.email)
-              setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
-            } else {
-              console.log('📝 Perfil não encontrado, criando em memória...')
-              // Criar perfil em memória apenas se não existir no banco
-              const email = session.user.email!
-              const profile: UserProfile = {
-                id: session.user.id,
-                email,
-                full_name: session.user.user_metadata?.full_name || email.split('@')[0],
-                role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-                is_external: !isGlobalAcoEmail(email),
-                created_at: new Date().toISOString(),
-              }
-              
-              console.log('✅ Perfil criado em memória:', profile.email, 'role:', profile.role)
-              setUserProfile(profile)
-            }
-          } catch (error) {
-            console.error('❌ Erro ao buscar perfil:', error)
-            // Fallback: criar perfil em memória
-            const email = session.user.email!
-            const profile: UserProfile = {
-              id: session.user.id,
+    // Timeout de seguranca: se getSession() travar, libera a tela em 4s
+    const sessionTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn('[Auth] Timeout na sessao - liberando tela')
+        setLoading(false)
+        
+        const currentUser = userRef.current;
+        const currentProfile = userProfileRef.current;
+        
+        if (currentUser && !currentProfile) {
+          console.warn('[Auth] Usando perfil de fallback em memoria/cache devido a timeout');
+          const email = currentUser.email || '';
+          const cached = loadProfileCache(currentUser.id);
+          if (cached) {
+            setUserProfile(cached);
+          } else {
+            const fallback = {
+              id: currentUser.id,
               email,
-              full_name: session.user.user_metadata?.full_name || email.split('@')[0],
+              full_name: email.split('@')[0],
               role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
               is_external: !isGlobalAcoEmail(email),
               created_at: new Date().toISOString(),
-            }
-            setUserProfile(profile)
-          } finally {
-            setLoading(false)
+            };
+            setUserProfile(fallback as any);
           }
-        }, 0)
+        }
+      }
+    }, 4000)
+
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      clearTimeout(sessionTimeout)
+      if (!mounted) return
+
+      if (error) {
+        console.error('[Auth] Erro ao obter sessao:', error)
+        setLoading(false)
+        return
+      }
+
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      if (session?.user) {
+        // 1. Serve o cache imediatamente (zero latencia)
+        const cached = loadProfileCache(session.user.id)
+        if (cached) {
+          setUserProfile(cached)
+          setLoading(false)
+          // Atualiza em background sem bloquear
+          fetchProfile(session.user.id, session.user.email!).then(fresh => {
+            if (mounted) {
+              setUserProfile(fresh)
+              saveProfileCache(session.user.id, fresh)
+            }
+          }).catch((err) => {
+            console.warn('[Auth] Falha ao atualizar perfil em background (mantendo cache ativo):', err);
+          })
+        } else {
+          // Sem cache: busca no banco
+          try {
+            const profile = await fetchProfile(session.user.id, session.user.email!)
+            if (mounted) {
+              setUserProfile(profile)
+              saveProfileCache(session.user.id, profile)
+            }
+          } catch (e) {
+            console.error('[Auth] Erro ao buscar perfil sem cache:', e)
+            if (mounted) {
+              // Se falhou e não temos cache, usamos o fallback apenas como última opção
+              const fallback = {
+                id: session.user.id,
+                email: session.user.email!,
+                full_name: session.user.email!.split('@')[0],
+                role: isGlobalAcoEmail(session.user.email!) ? 'operacional' : 'visitante',
+                is_external: !isGlobalAcoEmail(session.user.email!),
+                created_at: new Date().toISOString(),
+              } as UserProfile;
+              setUserProfile(fallback);
+            }
+          } finally {
+            if (mounted) setLoading(false)
+          }
+        }
       } else {
         setLoading(false)
       }
     }).catch((error) => {
       clearTimeout(sessionTimeout)
       if (!mounted) return
-      
-      console.error('❌ Erro crítico ao verificar sessão:', error)
-      cleanupAuthState()
-      setSession(null)
-      setUser(null)
-      setUserProfile(null)
+      console.error('[Auth] Erro critico:', error)
       setLoading(false)
     })
 
-    // Escutar mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session?.user?.id)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Auth] Event:', event)
+      if (!mounted) return
+
       setSession(session)
       setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        // Atualizar last_login sempre que detectar sessão
-        updateLastLogin(session.user.id)
-        
-        // Primeiro tentar buscar o perfil no banco, depois criar em memória se necessário
-        setTimeout(async () => {
-          try {
-            console.log('👤 Buscando perfil no banco para:', session.user.email)
-            const { data: existingProfile, error } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
 
-            if (existingProfile && !error) {
-              const { data: roleData } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .maybeSingle()
-              
-              console.log('✅ Perfil encontrado no banco:', existingProfile.email)
-              setUserProfile({ ...existingProfile, role: roleData?.role || 'visitante' } as UserProfile)
-            } else {
-              console.log('📝 Perfil não encontrado, criando em memória...')
-              // Criar perfil em memória apenas se não existir no banco
-              const email = session.user.email!
-              const profile: UserProfile = {
-                id: session.user.id,
-                email,
-                full_name: session.user.user_metadata?.full_name || email.split('@')[0],
-                role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-                is_external: !isGlobalAcoEmail(email),
-                created_at: new Date().toISOString(),
-              }
-              
-              console.log('✅ Perfil criado em memória:', profile.email, 'role:', profile.role)
+      if (session?.user) {
+        if (event === 'SIGNED_IN') {
+          // Login real: busca perfil fresco e salva no cache
+          updateLastLoginAsync(session.user.id)
+          try {
+            const profile = await fetchProfile(session.user.id, session.user.email!)
+            if (mounted) {
               setUserProfile(profile)
+              saveProfileCache(session.user.id, profile)
+              setLoading(false)
             }
-          } catch (error) {
-            console.error('❌ Erro ao buscar perfil:', error)
-            // Fallback: criar perfil em memória
-            const email = session.user.email!
-            const profile: UserProfile = {
-              id: session.user.id,
-              email,
-              full_name: session.user.user_metadata?.full_name || email.split('@')[0],
-              role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-              is_external: !isGlobalAcoEmail(email),
-              created_at: new Date().toISOString(),
+          } catch (e) {
+            console.error('[Auth] Erro ao buscar perfil após SIGNED_IN:', e);
+            if (mounted) {
+              const fallback = {
+                id: session.user.id,
+                email: session.user.email!,
+                full_name: session.user.email!.split('@')[0],
+                role: isGlobalAcoEmail(session.user.email!) ? 'operacional' : 'visitante',
+                is_external: !isGlobalAcoEmail(session.user.email!),
+                created_at: new Date().toISOString(),
+              } as UserProfile;
+              setUserProfile(fallback);
+              setLoading(false);
             }
-            setUserProfile(profile)
-          } finally {
-            setLoading(false)
           }
-        }, 0)
+        } else if (event === 'INITIAL_SESSION') {
+          // Ja tratado no getSession() acima
+          // Nao faz nada aqui para evitar double-fetch
+        } else {
+          // TOKEN_REFRESHED, USER_UPDATED etc: usa cache se disponivel
+          const cached = loadProfileCache(session.user.id)
+          if (cached && mounted) {
+            setUserProfile(cached)
+          }
+          if (mounted) setLoading(false)
+        }
       } else {
+        clearProfileCache()
         setUserProfile(null)
         setLoading(false)
       }
@@ -270,116 +313,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [])
 
-  const loadUserProfile = async (userId: string) => {
-    console.log('👤 Carregando perfil para usuário:', userId)
-    
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (error) {
-        console.log('❌ Erro ao carregar perfil:', error.message)
-        console.log('🔧 Criando perfil automaticamente...')
-        await createUserProfile(userId)
-        return
-      }
-
-      if (data) {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .maybeSingle()
-        
-        console.log('✅ Perfil carregado:', data.email)
-        setUserProfile({ ...data, role: roleData?.role || 'visitante' } as UserProfile)
-      } else {
-        console.log('📝 Perfil não encontrado, criando...')
-        await createUserProfile(userId)
-      }
-    } catch (error) {
-      console.error('💥 Erro inesperado ao carregar perfil:', error)
-      await createUserProfile(userId)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const createUserProfile = async (userId: string) => {
-    console.log('🔧 Criando perfil para usuário:', userId)
-    
-    try {
-      const user = await supabase.auth.getUser()
-      if (!user.data.user) {
-        console.log('❌ Usuário não encontrado')
-        setLoading(false)
-        return
-      }
-
-      const email = user.data.user.email!
-      const isExternal = !isGlobalAcoEmail(email)
-      
-      const profile: UserProfile = {
-        id: userId,
-        email,
-        full_name: user.data.user.user_metadata?.full_name || email.split('@')[0],
-        role: isExternal ? 'visitante' : 'operacional',
-        is_external: isExternal,
-        created_at: new Date().toISOString(),
-      }
-      
-      console.log('✅ Perfil criado:', profile.email)
-      setUserProfile(profile)
-      setLoading(false)
-    } catch (error) {
-      console.error('💥 Erro ao criar perfil:', error)
-      setLoading(false)
-    }
-  }
-
   const signIn = async (email: string, password: string) => {
-    console.log('🔥 INICIANDO signIn function')
-    
+    // Sem cleanupAuthState aqui - nao interfere no SDK
     try {
-      console.log('🧹 Limpando estado...')
-      cleanupAuthState()
-      
-      console.log('📤 Chamando supabase.auth.signInWithPassword...')
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      console.log('📥 Resposta do Supabase:', { data: !!data, error: error?.message })
-
-      if (error) {
-        console.log('❌ Erro de login:', error.message)
-        return { error: error.message }
-      }
-
-      console.log('✅ Login Supabase bem-sucedido!')
-      console.log('👤 Dados do usuário:', data.user?.id, data.user?.email)
-      
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) return { error: error.message }
+      console.log('[Auth] Login OK:', data.user?.email)
       return {}
     } catch (error) {
-      console.error('💥 Erro capturado no signIn:', error)
       return { error: 'Erro inesperado durante o login' }
-    } finally {
-      console.log('🏁 Fim da função signIn')
     }
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true)
-
       const isCorpEmail = isGlobalAcoEmail(email)
-      
+
       if (!isCorpEmail) {
-        // Verificar se existe convite válido para este email
         const { data: invitation, error: invError } = await supabase
           .from('user_invitations')
           .select('id, expires_at, used_at')
@@ -390,10 +341,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .maybeSingle()
 
         if (invError || !invitation) {
-          return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuários convidados pelo administrador podem se cadastrar.' }
+          return { error: 'Acesso restrito. Apenas emails @globalaco.com.br ou usuarios convidados pelo administrador podem se cadastrar.' }
         }
-
-        // Verificar se o convite não expirou
         if (new Date(invitation.expires_at) < new Date()) {
           return { error: 'Seu convite expirou. Solicite um novo convite ao administrador.' }
         }
@@ -403,18 +352,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          data: {
-            full_name: fullName,
-          },
+          data: { full_name: fullName },
           emailRedirectTo: `${window.location.origin}/auth`
         },
       })
 
-      if (error) {
-        return { error: error.message }
-      }
+      if (error) return { error: error.message }
 
-      // Marcar convite como usado (se externo)
       if (!isCorpEmail) {
         await supabase
           .from('user_invitations')
@@ -434,22 +378,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setLoading(true)
-      
-      // Limpar estado primeiro
       cleanupAuthState()
-      
-      // Tentar sign out global
       try {
         await supabase.auth.signOut({ scope: 'global' })
-      } catch (err) {
-        console.log('Sign out global falhou, continuando...')
-      }
-      
-      // Forçar redirect para página de login
+      } catch (err) {}
       window.location.href = '/auth'
     } catch (error) {
-      console.error('Erro no logout:', error)
-      // Mesmo com erro, forçar limpeza e redirect
       cleanupAuthState()
       window.location.href = '/auth'
     }
@@ -458,13 +392,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/confirm-email`,
+        redirectTo: `${window.location.origin}/auth?view=reset-password`,
       })
-
-      if (error) {
-        return { error: error.message }
-      }
-
+      if (error) return { error: error.message }
       return {}
     } catch (error) {
       return { error: 'Erro inesperado ao resetar senha' }
@@ -472,39 +402,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return { error: 'Usuário não autenticado' }
-
+    if (!user) return { error: 'Usuario nao autenticado' }
     try {
       const { error } = await supabase
         .from('user_profiles')
         .update(updates)
         .eq('id', user.id)
-
-      if (error) {
-        return { error: error.message }
-      }
-
-      setUserProfile(prev => prev ? { ...prev, ...updates } : null)
+      if (error) return { error: error.message }
+      const updated = { ...userProfile, ...updates } as UserProfile
+      setUserProfile(updated)
+      if (user) saveProfileCache(user.id, updated)
       return {}
     } catch (error) {
       return { error: 'Erro inesperado ao atualizar perfil' }
     }
   }
 
-  const value = {
-    user,
-    userProfile,
-    session,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    resetPassword,
-    updateProfile,
-  }
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, userProfile, session, loading, signIn, signUp, signOut, resetPassword, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

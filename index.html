@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR" class="notranslate" translate="no">
   <head>
+    <meta name="google" content="notranslate" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Global Aço - Ferramentas</title>
@@ -34,19 +35,16 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Defensive cleanup: unregister any previously installed service workers -->
+    <!-- Unregister any previously installed service workers safely without reload loops -->
     <script>
       if ('serviceWorker' in navigator) {
-        // Register the kill-switch SW once so previously-cached SWs are cleaned up,
-        // then it self-unregisters. Also defensively unregister any stragglers.
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
-          setTimeout(() => {
-            navigator.serviceWorker.getRegistrations()
-              .then((regs) => regs.forEach((r) => r.unregister()))
-              .catch(() => {});
-          }, 5000);
-        });
+        navigator.serviceWorker.getRegistrations()
+          .then((registrations) => {
+            for (const registration of registrations) {
+              registration.unregister();
+            }
+          })
+          .catch((err) => console.warn('Error unregistering service worker:', err));
       }
     </script>
   </body>

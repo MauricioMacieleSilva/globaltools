@@ -226,7 +226,7 @@ export function TabelaPrecos({
                   <TableHead className="min-w-[300px]">Descrição</TableHead>
                   {isTelhas ? (
                     <>
-                      <TableHead className="w-32 text-right">R$/M²</TableHead>
+                      <TableHead className="w-32 text-right">R$/M</TableHead>
                       <TableHead className="w-32 text-right">R$/KG</TableHead>
                       <TableHead className="w-20">IPI</TableHead>
                     </>
@@ -401,7 +401,7 @@ export function TabelaPrecos({
             {isTelhas && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="precoM2">Preço/M²</Label>
+                  <Label htmlFor="precoM2">Preço/M</Label>
                   <Input
                     id="precoM2"
                     type="number"

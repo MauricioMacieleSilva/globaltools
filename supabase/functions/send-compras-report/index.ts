@@ -13,7 +13,8 @@ const DENSIDADE_ACO = 0.000008;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, prefer, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
 // ---------------- Matching helpers (mirror src/lib/material-matching.ts) ----------------
@@ -46,13 +47,13 @@ function categorizeForStock(desc: string): string[] {
   if (/\bSLITTER\b/.test(d)) return ['BOBINAS', 'TIRAS'];
   if (/^BGL\b/.test(d) || /^BZN\b/.test(d) || /\bBOBINA\b/.test(d)) return ['BOBINAS'];
   if (/\bCHAPA\b/.test(d)) return ['CHAPAS'];
-  if (/\bTELHA\b/.test(d) || /\bTP\d+/.test(d) || /\bCUMEEIRA/.test(d)) return ['BOBINAS', 'TIRAS', 'CHAPAS'];
+  if (/\bTELHA\b/.test(d) || /\bTP\d+/.test(d) || /\bCUMEEIRA/.test(d) || /\bCALHEIRO/.test(d)) return ['BOBINAS', 'TIRAS', 'CHAPAS'];
   if (/CH\b/.test(d) && /\d+[.,]\d+/.test(d)) return ['CHAPAS', 'BOBINAS'];
   return [];
 }
 
 // ---------------- Color / family / equivalent helpers (mirror lib) ----------------
-const COLOR_KEYWORDS = ['BRANCA','BRANCO','PRETA','PRETO','CINZA','AZUL','VERMELHA','VERMELHO','AMARELA','AMARELO','VERDE','BEGE','MARROM','GALVALUME','GALVANIZADA','GALVANIZADO','GALV','ZINCADA','ZINCADO','NATURAL','ZAR'];
+const COLOR_KEYWORDS = ['BRANCA','BRANCO','PRETA','PRETO','CINZA','AZUL','VERMELHA','VERMELHO','AMARELA','AMARELO','VERDE','BEGE','MARROM'];
 function extractColor(desc: string): string | null {
   if (!desc) return null;
   const u = desc.toUpperCase();
@@ -628,7 +629,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const ok = results.filter(r => r.success).length;
-    return new Response(JSON.stringify({ success: true, faltas: faltas.length, enviados: ok, total: emails.length, results }), {
+    return new Response(JSON.stringify({ success: true, version: "debug-compras-v1", faltas: faltas.length, enviados: ok, total: emails.length, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e: any) {

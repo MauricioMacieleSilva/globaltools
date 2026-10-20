@@ -137,3 +137,51 @@ export async function deletePoliticaComercialItem(id: string): Promise<{ error: 
 
   return { error: null };
 }
+
+
+// Bulk adjust prices by percentage
+export async function bulkAdjustPrices(
+  classe: string,
+  percentage: number
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc('bulk_adjust_prices', {
+    target_classe: classe,
+    percentage_variation: percentage
+  });
+
+  if (error) {
+    console.error('Error in bulkAdjustPrices:', error);
+    return { error: new Error(error.message) };
+  }
+
+  return { error: null };
+}
+
+export interface PoliticaComercialHistorico {
+  id: string;
+  item_id: string | null;
+  descricao: string;
+  classe: string;
+  preco_anterior: number | null;
+  preco_novo: number | null;
+  percentual_ajuste: number | null;
+  tipo_ajuste: string;
+  usuario_id: string | null;
+  usuario_nome: string | null;
+  created_at: string;
+}
+
+// Fetch pricing changes history
+export async function fetchPoliticaComercialHistory(): Promise<{ data: PoliticaComercialHistorico[] | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('politica_comercial_historico')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching pricing history:', error);
+    return { data: null, error: new Error(error.message) };
+  }
+
+  return { data: data as PoliticaComercialHistorico[], error: null };
+}

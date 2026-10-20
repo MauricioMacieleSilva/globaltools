@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,22 +36,44 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
+      setError('As senhas nao coincidem')
       return
     }
 
     setLoading(true)
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
+      // 1. Atualizar a senha no Supabase Auth
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: password
       })
 
-      if (updateError) {
+      const isSamePasswordError = updateError && (
+        updateError.message?.toLowerCase().includes('should be different') ||
+        updateError.message?.toLowerCase().includes('same as the old') ||
+        updateError.message?.toLowerCase().includes('diferente')
+      )
+
+      if (updateError && !isSamePasswordError) {
         setError(updateError.message)
-      } else {
-        setSuccess('Sua senha foi redefinida com sucesso!')
-        setIsSubmitted(true)
+        return
       }
+
+      // 2. Limpar a flag needs_password_reset no perfil do usuario
+      let userId = updateData?.user?.id
+      if (!userId) {
+        const { data: userData } = await supabase.auth.getUser()
+        userId = userData?.user?.id
+      }
+
+      if (userId) {
+        await supabase
+          .from('user_profiles')
+          .update({ needs_password_reset: false })
+          .eq('id', userId)
+      }
+
+      setSuccess('Sua senha foi redefinida com sucesso!')
+      setIsSubmitted(true)
     } catch (err: any) {
       setError('Erro ao redefinir senha. Tente novamente.')
     } finally {
@@ -60,18 +82,20 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/50">
-      <CardHeader className="text-center space-y-4 pb-6">
+    <Card className="w-full max-w-md mx-auto bg-[#0e2238]/85 backdrop-blur-xl border border-[#009bde]/30 text-white shadow-[0_8px_32px_0_rgba(0,92,138,0.3)]">
+      <CardHeader className="text-center space-y-3 pb-4">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <ZeGlobalIcon className="w-10 h-10 text-primary" />
-          </div>
+          <img
+            src="/lovable-uploads/f96100cc-9725-48af-9945-a9be6b4fa4b0.png"
+            alt="Global Aço"
+            className="w-24 h-auto object-contain"
+          />
         </div>
         <div>
-          <CardTitle className="text-2xl font-bold text-foreground">
+          <CardTitle className="text-2xl font-bold text-white bg-gradient-to-r from-white via-slate-200 to-[#8fc9eb] bg-clip-text text-transparent">
             Definir Nova Senha
           </CardTitle>
-          <CardDescription className="text-muted-foreground mt-2">
+          <CardDescription className="text-slate-300 mt-2">
             Digite e confirme sua nova senha de acesso
           </CardDescription>
         </div>
@@ -79,7 +103,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
       
       <CardContent>
         {!isSubmitted ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -95,10 +119,10 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-[#07162c]/65 border-[#009bde]/30 focus-visible:ring-[#00c6ff] text-white placeholder-slate-500"
                   disabled={loading}
                 />
               </div>
@@ -116,7 +140,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
                   placeholder="Confirme sua senha"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-[#07162c]/65 border-[#009bde]/30 focus-visible:ring-[#00c6ff] text-white placeholder-slate-500"
                   disabled={loading}
                 />
               </div>
@@ -124,7 +148,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[#005c8a] to-[#009bde] hover:from-[#007cb3] hover:to-[#00c6ff] text-white shadow-[0_0_15px_rgba(0,155,222,0.3)] transition-all duration-300"
               disabled={loading}
             >
               {loading ? (
@@ -138,7 +162,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
             </Button>
           </form>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <Alert className="border-green-200 bg-green-50 text-green-800 flex items-start gap-2">
               <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
               <AlertDescription className="font-medium">{success}</AlertDescription>
@@ -146,7 +170,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
             
             <div className="text-center space-y-2 pt-2">
               <p className="text-sm text-muted-foreground">
-                Sua senha foi atualizada. Você já está conectado e pode prosseguir.
+                Sua senha foi atualizada. Voce ja esta conectado e pode prosseguir.
               </p>
               <Button
                 type="button"
@@ -164,7 +188,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onBackToLo
             <Button
               type="button"
               variant="ghost"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[#005c8a] to-[#009bde] hover:from-[#007cb3] hover:to-[#00c6ff] text-white shadow-[0_0_15px_rgba(0,155,222,0.3)] transition-all duration-300"
               onClick={onBackToLogin}
               disabled={loading}
             >

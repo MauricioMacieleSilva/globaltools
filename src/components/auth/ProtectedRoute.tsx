@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Shield, AlertTriangle } from 'lucide-react'
+import { ForceResetPasswordForm } from './ForceResetPasswordForm'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -48,13 +49,37 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">
         <Card className="w-full max-w-md mx-auto shadow-xl border-border/50">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-sm text-muted-foreground">Carregando perfil...</p>
+          <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+            <p className="text-sm text-muted-foreground text-center">Carregando perfil...</p>
+            <div className="flex gap-2 w-full pt-4">
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline" 
+                className="flex-1 text-xs"
+              >
+                Recarregar Página
+              </Button>
+              <Button 
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  window.location.href = '/auth';
+                }} 
+                variant="ghost" 
+                className="flex-1 text-xs text-destructive hover:bg-destructive/10"
+              >
+                Sair / Fazer Login
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     )
+  }
+
+  // Interceptar redefinição obrigatória de senha
+  if (userProfile.needs_password_reset) {
+    return <ForceResetPasswordForm />
   }
 
   // Bloquear visitantes não autorizados (emails externos sem convite)

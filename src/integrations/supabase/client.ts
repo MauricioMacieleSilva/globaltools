@@ -13,5 +13,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: {
+    headers: {
+      // Nao faz COUNT(*) em cada query - economiza muito CPU no plano NANO
+      'Prefer': 'count=none',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
 });

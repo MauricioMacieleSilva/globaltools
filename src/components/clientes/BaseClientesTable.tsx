@@ -8,13 +8,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, History, Eye, ChevronDown, ChevronRight, MessageSquare, RefreshCw, X } from "lucide-react";
+import { Search, History, Eye, ChevronDown, ChevronRight, MessageSquare, RefreshCw, X, FileSpreadsheet } from "lucide-react";
 import { useComercial } from "@/context/ComercialContext";
-import { isFaturado, formatCurrency, getDiasEntreDatas, formatDateSafe } from "@/lib/utils-comercial";
+import { isFaturado, formatCurrency, getDiasEntreDatas, formatDateSafe, parseDate } from "@/lib/utils-comercial";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePagination } from "@/hooks/usePagination";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ClientFollowUpDialog } from "./ClientFollowUpDialog";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { BaseClientesTableMobile } from "./BaseClientesTableMobile";
 import { ClientesKPIsMobile } from "./ClientesKPIsMobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +48,8 @@ interface ClienteInfo {
 }
 
 export function BaseClientesTable() {
-  const { data } = useComercial();
+  const { data, isLoading } = useComercial();
+  const isRealData = data && data.length > 500;
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState("");
   const [vendorFilter, setVendorFilter] = useState("all");
@@ -132,6 +135,94 @@ export function BaseClientesTable() {
       }))
       .sort((a, b) => b.totalFaturado - a.totalFaturado);
   }, [data]);
+
+  const clientStatusMap = useMemo(() => {
+    const map = new Map<string, string>();
+    clientesProcessados.forEach(c => {
+      map.set(c.nome, c.ativo ? "Ativo" : "Inativo");
+    });
+    return map;
+  }, [clientesProcessados]);
+
+  const handleExportFaturamento = () => {
+    if (!data || data.length < 500) {
+      toast.error("Aguarde o carregamento dos dados reais antes de exportar.");
+      return;
+    }
+
+    const faturados = data.filter(
+      (item) => isFaturado(item.situacao) && item.faturamento_tipo === 1
+    );
+
+    if (faturados.length === 0) {
+      toast.error("Nenhuma nota faturada encontrada para exportação");
+      return;
+    }
+
+    const exportData = faturados.map((item) => {
+      const status = clientStatusMap.get(item.cliente) || "Inativo";
+      return {
+        "Cliente": item.cliente,
+        "Status": status,
+        "Pedido": item.numeropedido,
+        "NF": item.numeronf,
+        "Data Emissão": parseDate(item.data_emissao) || item.data_emissao,
+        "Descrição do Item": item.descricaomat || "Sem descrição",
+        "Quantidade": item.qtd,
+        "Peso (kg)": item.peso || 0,
+        "Preço Unit.": item.valor_un_bruto,
+        "Faturamento": item.valor, // Valor Bruto
+        "Vendedor": item.vendedor || "Não informado"
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportData, { cellDates: true });
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    
+    for (let R = 1; R <= range.e.r; R++) {
+      // Data Emissão (Col 4 - index 4)
+      const dateRef = XLSX.utils.encode_cell({ r: R, c: 4 });
+      if (ws[dateRef]) ws[dateRef].z = 'dd/mm/yyyy';
+
+      // Quantidade (Col 6 - index 6)
+      const qtdRef = XLSX.utils.encode_cell({ r: R, c: 6 });
+      if (ws[qtdRef]) ws[qtdRef].z = '#,##0.00';
+
+      // Peso (Col 7 - index 7)
+      const pesoRef = XLSX.utils.encode_cell({ r: R, c: 7 });
+      if (ws[pesoRef]) ws[pesoRef].z = '#,##0.00';
+
+      // Preço Unit. (Col 8 - index 8)
+      const priceRef = XLSX.utils.encode_cell({ r: R, c: 8 });
+      if (ws[priceRef]) ws[priceRef].z = '"R$" #,##0.00';
+
+      // Faturamento (Col 9 - index 9)
+      const fatRef = XLSX.utils.encode_cell({ r: R, c: 9 });
+      if (ws[fatRef]) ws[fatRef].z = '"R$" #,##0.00';
+    }
+
+    ws["!cols"] = [
+      { wch: 40 }, // Cliente
+      { wch: 10 }, // Status
+      { wch: 12 }, // Pedido
+      { wch: 12 }, // NF
+      { wch: 14 }, // Data Emissão
+      { wch: 35 }, // Descrição do Item
+      { wch: 12 }, // Quantidade
+      { wch: 12 }, // Peso (kg)
+      { wch: 16 }, // Preço Unit.
+      { wch: 16 }, // Faturamento
+      { wch: 25 }  // Vendedor
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Faturamento Completo");
+    
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `relatorio-faturamento-completo-${dateStr}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success("Relatório de faturamento baixado com sucesso!");
+  };
 
   // Invalidar cache de histórico quando dados mudam
   React.useEffect(() => {
@@ -538,6 +629,20 @@ export function BaseClientesTable() {
             </div>
           )}
         </div>
+        <Button
+          onClick={handleExportFaturamento}
+          disabled={isLoading || !isRealData}
+          className="gap-2 h-10 bg-green-700 hover:bg-green-800 text-white flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="h-4 w-4" />
+          )}
+          <span className="hidden sm:inline">
+            {isLoading ? "Aguardando..." : !isRealData ? "Aguardando dados..." : "Exportar Faturamento"}
+          </span>
+        </Button>
       </div>
 
       {/* Lista de Clientes */}

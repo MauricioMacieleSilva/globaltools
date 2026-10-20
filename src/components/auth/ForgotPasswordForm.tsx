@@ -39,18 +39,20 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-border/50">
-      <CardHeader className="text-center space-y-4 pb-6">
+    <Card className="w-full max-w-md mx-auto bg-[#0e2238]/85 backdrop-blur-xl border border-[#009bde]/30 text-white shadow-[0_8px_32px_0_rgba(0,92,138,0.3)]">
+      <CardHeader className="text-center space-y-3 pb-4">
         <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <ZeGlobalIcon className="w-10 h-10 text-primary" />
-          </div>
+          <img
+            src="/lovable-uploads/f96100cc-9725-48af-9945-a9be6b4fa4b0.png"
+            alt="Global Aço"
+            className="w-24 h-auto object-contain"
+          />
         </div>
         <div>
-          <CardTitle className="text-2xl font-bold text-foreground">
+          <CardTitle className="text-2xl font-bold text-white bg-gradient-to-r from-white via-slate-200 to-[#8fc9eb] bg-clip-text text-transparent">
             Recuperar Senha
           </CardTitle>
-          <CardDescription className="text-muted-foreground mt-2">
+          <CardDescription className="text-slate-300 mt-2">
             Digite seu email para receber instruções
           </CardDescription>
         </div>
@@ -58,7 +60,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
       
       <CardContent>
         {!isSubmitted ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -70,14 +72,14 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
                 Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300 w-4 h-4" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu.email@globalaco.com.br"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-[#07162c]/65 border-[#009bde]/30 focus-visible:ring-[#00c6ff] text-white placeholder-slate-500"
                   disabled={loading}
                   autoComplete="email"
                 />
@@ -86,7 +88,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[#005c8a] to-[#009bde] hover:from-[#007cb3] hover:to-[#00c6ff] text-white shadow-[0_0_15px_rgba(0,155,222,0.3)] transition-all duration-300"
               disabled={loading}
             >
               {loading ? (
@@ -100,16 +102,16 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
             </Button>
           </form>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <Alert className="border-green-200 bg-green-50 text-green-800">
               <AlertDescription>{success}</AlertDescription>
             </Alert>
             
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-slate-300">
                 Verifique sua caixa de entrada e spam.
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-slate-300">
                 Não recebeu? Verifique se o email está correto e tente novamente.
               </p>
             </div>
@@ -120,7 +122,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackTo
           <Button
             type="button"
             variant="ghost"
-            className="w-full"
+            className="w-full bg-gradient-to-r from-[#005c8a] to-[#009bde] hover:from-[#007cb3] hover:to-[#00c6ff] text-white shadow-[0_0_15px_rgba(0,155,222,0.3)] transition-all duration-300"
             onClick={onBackToLogin}
             disabled={loading}
           >

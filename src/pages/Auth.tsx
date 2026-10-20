@@ -18,29 +18,49 @@ const Auth: React.FC = () => {
     const view = params.get('view')
     if (view === 'reset-password') {
       setCurrentView('reset-password')
+      return
+    }
+
+    const hash = window.location.hash
+    if (hash && hash.includes('type=recovery')) {
+      setCurrentView('reset-password')
+      return
+    }
+
+    if (hash && hash.includes('access_token') && hash.includes('recovery')) {
+      setCurrentView('reset-password')
+      return
     }
   }, [])
 
-  // Redirecionar usuários autenticados para a página inicial, EXCETO se estiverem redefinindo a senha
   if (user && !loading && currentView !== 'reset-password') {
     return <Navigate to="/" replace />
   }
 
-  // Mostrar loading enquanto verifica autenticação
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">
+      <div className="h-screen w-screen bg-[#07162c] flex items-center justify-center p-4 overflow-hidden">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-[#00c6ff] mx-auto mb-4" />
+          <p className="text-sm text-slate-300">Carregando...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div 
+      className="h-screen w-screen bg-cover bg-center flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ backgroundImage: "url('/login-bg.png')" }}
+    >
+      {/* Deep blue glass overlay */}
+      <div className="absolute inset-0 bg-[#08182b]/60 backdrop-blur-md pointer-events-none" />
+      
+      {/* Extra metallic blue glow highlights */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#005c8a]/15 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#009bde]/10 blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
         {currentView === 'login' && (
           <LoginForm
             onSwitchToSignUp={() => setCurrentView('signup')}

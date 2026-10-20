@@ -144,8 +144,9 @@ export function SimuladorPreco() {
                     className="h-8 text-xs flex-1"
                     onClick={() => handleTipoPrecoChange('m2')}
                   >
-                    Preço/M²
+                    Preço/M
                   </Button>
+
                 </div>
               </div>
               {tipoPrecoTelha === 'kg' && (

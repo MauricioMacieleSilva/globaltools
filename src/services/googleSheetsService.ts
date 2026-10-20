@@ -1,7 +1,9 @@
 import { ComercialData } from "@/context/ComercialContext";
 
 const SHEET_ID = "1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY";
-const GID = "0"; // ID da aba BASE ANTIGA
+const SHEET_ID = "1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY";
+const GID = "0"; // ID da aba BASE
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
 interface SheetRow {
@@ -272,14 +274,7 @@ async function _fetchComercialDataImpl(): Promise<ComercialData[]> {
       console.log("Attempting to fetch from CSV URL (cache-bust):", fetchUrl);
 
       // Tenta acessar via CSV primeiro
-      const response = await fetch(fetchUrl, {
-        method: "GET",
-        cache: "no-store",
-        headers: {
-          Accept: "text/csv",
-          "Cache-Control": "no-cache",
-        },
-      });
+      const response = await fetch(fetchUrl);
 
       if (!response.ok) {
         console.warn("CSV request failed with status:", response.status);
@@ -332,6 +327,7 @@ async function _fetchComercialDataImpl(): Promise<ComercialData[]> {
             un: row[12] || "", // Coluna M
             valor_un_bruto: parseFloat(row[13]?.replace(",", ".")) || 0, // Coluna N
             valor: parseFloat(row[14]?.replace(",", ".")) || 0, // Coluna O
+            valor_total_liq: parseFloat(row[15]?.replace(",", ".")) || parseFloat(row[14]?.replace(",", ".")) || 0, // Coluna P
             peso: parseFloat(row[19]?.replace(",", ".")) || 0, // Coluna T
             classe: normalizeField(row[21] || ""), // Coluna V - NORMALIZADA
             cli_nomefantasia: row[29] || "", // Coluna AD

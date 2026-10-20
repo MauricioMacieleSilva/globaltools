@@ -20,6 +20,7 @@ export interface ComercialData {
   un: string;                // Coluna M
   valor_un_bruto: number;    // Coluna N
   valor: number;             // Coluna O
+  valor_total_liq?: number;  // Coluna P - Valor Total Líquido
   peso: number;              // Coluna T
   classe: string;            // Coluna V
   cli_nomefantasia: string;  // Coluna AC

@@ -408,9 +408,7 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
       <div class="container">
         <!-- Header -->
         <div style="background: #1e40af; color: #ffffff; padding: 30px; text-align: center;">
-          <div style="text-align: center; margin-bottom: 12px;">
-            <img src="cid:logo-global-aco" alt="GLOBAL AÇO" width="180" height="48" style="display: inline-block; margin: 0 auto; height: 48px; max-width: 180px; border: 0; outline: none; font-size: 22px; font-weight: 800; color: #ffffff; text-decoration: none;" />
-          </div>
+          
           <h1 style="margin: 0; font-size: 22px; color: #ffffff;">Relatório de Produção</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${today}</p>
         </div>
@@ -650,15 +648,7 @@ const handler = async (req: Request): Promise<Response> => {
             from: "Produção Global Aço <onboarding@resend.dev>",
             to: [email],
             subject,
-            html: htmlContent,
-            attachments: [
-              {
-                path: `${STORAGE_BASE}/logo-global-aco.png`,
-                filename: "logo-global-aco.png",
-                content_id: "logo-global-aco",
-                contentId: "logo-global-aco"
-              }
-            ]
+            html: htmlContent
           }),
         });
         const data = await res.json();

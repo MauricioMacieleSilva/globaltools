@@ -468,6 +468,7 @@ function formatDate(date: Date): string {
 
 function generateReportHTML(
   kpis: EmailKPIs,
+  kpisMesAtual: EmailKPIs,
   reportDate: string,
   meta: number,
   mesAnterior: ComparativoMes | null,
@@ -475,8 +476,9 @@ function generateReportHTML(
   allDataLength: number,
   crmIndicators: CRMIndicators | null = null
 ): string {
-  const percentualMeta = meta > 0 ? (kpis.faturamento / meta) * 100 : 0;
-  const faltaMeta = meta - kpis.faturamento;
+  const faturamentoMes = kpisMesAtual.faturamento;
+  const percentualMeta = meta > 0 ? (faturamentoMes / meta) * 100 : 0;
+  const faltaMeta = meta - faturamentoMes;
   
   let statusMeta = '✗';
   let corMeta = '#f56565';
@@ -538,9 +540,7 @@ function generateReportHTML(
     <body>
       <div class="container">
         <div class="header">
-          <div style="text-align: center; margin-bottom: 12px;">
-            <img src="cid:logo-global-aco" alt="GLOBAL AÇO" width="180" height="48" style="display: inline-block; margin: 0 auto; height: 48px; max-width: 180px; border: 0; outline: none; font-size: 22px; font-weight: 800; color: #ffffff; text-decoration: none;" />
-          </div>
+          
           <h1>Relatório Comercial</h1>
           <p class="header-subtitle"><strong>Ontem:</strong> ${reportDate}</p>
         </div>
@@ -580,8 +580,8 @@ function generateReportHTML(
                 <div class="meta-value">${formatCurrency(meta)}</div>
               </div>
               <div class="meta-item">
-                <div class="meta-label">Realizado</div>
-                <div class="meta-value">${formatCurrency(kpis.faturamento)}</div>
+                <div class="meta-label">Realizado no Mês</div>
+                <div class="meta-value">${formatCurrency(faturamentoMes)}</div>
               </div>
               <div class="meta-item">
                 <div class="meta-label">Atingimento</div>
@@ -625,6 +625,7 @@ function generateReportHTML(
           <div class="analysis">
             <h3 class="section-title" style="color: #2d3748 !important;">💡 Análise Rápida</h3>
             <p style="color: #4a5568 !important;">• Faturamento de ontem: <strong style="color: #2d3748 !important;">${formatCurrency(kpis.faturamento)}</strong></p>
+            <p style="color: #4a5568 !important;">• Faturamento acumulado no mês: <strong style="color: #2d3748 !important;">${formatCurrency(faturamentoMes)}</strong> (${percentualMeta.toFixed(1)}% da meta)</p>
             ${mesAnterior ? `<p style="color: #4a5568 !important;">• Mês atual com ${mesAnterior.variacao >= 0 ? 'aumento' : 'redução'} de <strong style="color: #2d3748 !important;">${Math.abs(mesAnterior.variacao).toFixed(1)}%</strong> vs mês anterior</p>` : ''}
             ${faltaMeta > 0 ? `<p style="color: #4a5568 !important;">• Ainda faltam <strong style="color: #2d3748 !important;">${formatCurrency(faltaMeta)}</strong> para atingir a meta mensal</p>` : `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">Meta atingida!</strong> Superou em ${formatCurrency(Math.abs(faltaMeta))}</p>`}
             ${kpis.pedidosNaoFaturados > 0 ? `<p style="color: #4a5568 !important;">• <strong style="color: #2d3748 !important;">${kpis.pedidosNaoFaturados}</strong> pedidos aguardando faturamento</p>` : ''}
@@ -786,7 +787,7 @@ const handler = async (req: Request): Promise<Response> => {
     const crmIndicators = await fetchCRMIndicators(supabaseAdmin);
     console.log(`📊 CRM: ${crmIndicators.leadsAtivos} leads ativos, pipeline ${crmIndicators.pipelineValor}`);
 
-    const htmlContent = generateReportHTML(kpis, reportDate, metaMensal, mesAnterior, melhorMes, allData.length, crmIndicators);
+    const htmlContent = generateReportHTML(kpis, kpisMesAtual, reportDate, metaMensal, mesAnterior, melhorMes, allData.length, crmIndicators);
 
     const results = [];
     for (const config of configs) {
@@ -801,14 +802,6 @@ const handler = async (req: Request): Promise<Response> => {
             ? `📊 Relatório Comercial Diário - ${reportDate} [TESTE]`
             : `📊 Relatório Comercial Diário - ${reportDate}`,
           html: htmlContent,
-          attachments: [
-            {
-              path: `${STORAGE_BASE}/logo-global-aco.png`,
-              filename: "logo-global-aco.png",
-              content_id: "logo-global-aco",
-              contentId: "logo-global-aco"
-            }
-          ],
           ...(isTestMode && { test: true })
         };
 

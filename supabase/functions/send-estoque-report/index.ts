@@ -225,15 +225,8 @@ function generateCategorySection(cat: CategoriaStats, precosMap: Record<number, 
     <!-- ${cat.label} -->
     <div style="margin-bottom:28px;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid ${colors.border}20;">
       <div style="background:${colors.headerBg};padding:14px 20px;">
-        <table cellpadding="0" cellspacing="0" width="100%"><tr>
-          <td width="48" style="vertical-align:middle;">
-            <img src="${imageUrl}" alt="${cat.label}" width="42" height="42" style="border-radius:6px;object-fit:cover;display:block;" />
-          </td>
-          <td style="padding-left:12px;vertical-align:middle;">
-            <h3 style="margin:0;font-size:17px;font-weight:700;color:${colors.headerColor};">${cat.label}</h3>
-            <p style="margin:2px 0 0 0;font-size:12px;color:${colors.headerColor};opacity:0.9;">${cat.totalItens} ${cat.totalItens === 1 ? 'item' : 'itens'} • ${cat.totalPecas} ${cat.totalPecas === 1 ? 'peça' : 'peças'} • ${formatWeight(cat.totalPeso)}</p>
-          </td>
-        </tr></table>
+        <h3 style="margin:0;font-size:17px;font-weight:700;color:${colors.headerColor};">${cat.label}</h3>
+        <p style="margin:3px 0 0 0;font-size:12px;color:${colors.headerColor};opacity:0.9;">${cat.totalItens} ${cat.totalItens === 1 ? 'item' : 'itens'} • ${cat.totalPecas} ${cat.totalPecas === 1 ? 'peça' : 'peças'} • ${formatWeight(cat.totalPeso)}</p>
       </div>
       
       <!-- Summary KPIs -->
@@ -297,10 +290,9 @@ function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { 
       return `
         <td width="${100 / Math.min(5, categorias.length)}%" style="padding:4px;">
           <div style="background:${colors.bg};border-radius:8px;padding:10px 8px;border-left:3px solid ${colors.border};text-align:center;">
-            <img src="${imageUrl}" alt="${cat.label}" width="32" height="32" style="border-radius:4px;object-fit:cover;display:inline-block;" />
-            <div style="font-size:11px;font-weight:600;color:#2d3748;margin-top:4px;">${cat.label}</div>
-            <div style="font-size:16px;font-weight:700;color:${colors.border};margin-top:2px;">${cat.totalItens}</div>
-            <div style="font-size:10px;color:#718096;">${formatWeight(cat.totalPeso)}</div>
+            <div style="font-size:12px;font-weight:700;color:#1e293b;letter-spacing:0.2px;">${cat.label}</div>
+            <div style="font-size:18px;font-weight:800;color:${colors.border};margin:4px 0 2px;">${cat.totalItens}</div>
+            <div style="font-size:10px;color:#64748b;font-weight:500;">${formatWeight(cat.totalPeso)}</div>
           </div>
         </td>
       `;
@@ -320,7 +312,9 @@ function generateEstoqueReportHTML(categorias: CategoriaStats[], globalStats: { 
         
         <!-- Header - Global Aço brand blue -->
         <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); color: #ffffff; padding: 30px; text-align: center;">
-          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
+          <div style="text-align: center; margin-bottom: 12px;">
+            <img src="cid:logo-global-aco" alt="GLOBAL AÇO" width="180" height="48" style="display: inline-block; margin: 0 auto; height: 48px; max-width: 180px; border: 0; outline: none; font-size: 22px; font-weight: 800; color: #ffffff; text-decoration: none;" />
+          </div>
           <h1 style="margin: 0; font-size: 24px; color: #ffffff; font-weight: 700;">📦 Relatório de Estoque</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${today}</p>
         </div>
@@ -577,6 +571,14 @@ const handler = async (req: Request): Promise<Response> => {
             to: [email],
             subject,
             html: htmlContent,
+            attachments: [
+              {
+                path: `${STORAGE_BASE}/logo-global-aco.png`,
+                filename: "logo-global-aco.png",
+                content_id: "logo-global-aco",
+                contentId: "logo-global-aco"
+              }
+            ]
           }),
         });
         const data = await res.json();

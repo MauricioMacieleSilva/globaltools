@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/assets`;
 
 // Production sheet
 const SHEET_ID = "1p98-L2AH1y6NLII70eskJkh20dnZGjfnBkRas5be_ZY";
@@ -407,7 +408,9 @@ function generateProductionReportHTML(data: ProducaoData[], kpis: ProductionKPIs
       <div class="container">
         <!-- Header -->
         <div style="background: #1e40af; color: #ffffff; padding: 30px; text-align: center;">
-          <img src="https://globinho.vercel.app/logo-global-aco.png" alt="Global Aço" style="height: 50px; margin-bottom: 12px;" />
+          <div style="text-align: center; margin-bottom: 12px;">
+            <img src="cid:logo-global-aco" alt="GLOBAL AÇO" width="180" height="48" style="display: inline-block; margin: 0 auto; height: 48px; max-width: 180px; border: 0; outline: none; font-size: 22px; font-weight: 800; color: #ffffff; text-decoration: none;" />
+          </div>
           <h1 style="margin: 0; font-size: 22px; color: #ffffff;">Relatório de Produção</h1>
           <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; color: #ffffff;">${today}</p>
         </div>
@@ -648,6 +651,14 @@ const handler = async (req: Request): Promise<Response> => {
             to: [email],
             subject,
             html: htmlContent,
+            attachments: [
+              {
+                path: `${STORAGE_BASE}/logo-global-aco.png`,
+                filename: "logo-global-aco.png",
+                content_id: "logo-global-aco",
+                contentId: "logo-global-aco"
+              }
+            ]
           }),
         });
         const data = await res.json();

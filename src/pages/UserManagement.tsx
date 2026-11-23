@@ -22,6 +22,7 @@ import { DefaultPermissionsConfig } from '@/components/admin/DefaultPermissionsC
 import { GoalsManagement } from '@/components/admin/GoalsManagement'
 import { VendorGoalsManagement } from '@/components/admin/VendorGoalsManagement'
 import { LeadClientAssignment } from '@/components/admin/LeadClientAssignment'
+import { getUserAccessStatus } from '@/lib/user-status'
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -49,7 +50,7 @@ export const UserManagement: React.FC = () => {
       const { data: profiles, error: profilesError } = await supabase
         .from('user_profiles')
         .select('id, email, full_name, department, is_external, invited_by, created_at, last_login, avatar_url')
-        .order('created_at', { ascending: false })
+        .order('full_name', { ascending: true })
 
       if (profilesError) {
         console.error('❌ Erro ao buscar perfis:', profilesError)
@@ -167,9 +168,7 @@ export const UserManagement: React.FC = () => {
     
     const matchesRole = roleFilter === 'all' || user.role === roleFilter
     
-    // Um usuário é considerado ativo se fez login nas últimas 24 horas
-    const isUserActive = user.last_login && 
-      new Date(user.last_login).getTime() > Date.now() - (24 * 60 * 60 * 1000)
+    const isUserActive = getUserAccessStatus(user.last_login) === 'active'
     
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'active' && isUserActive) ||
@@ -203,7 +202,7 @@ export const UserManagement: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="default-permissions" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              Permissões Padrão
+              Telas por Perfil
             </TabsTrigger>
             <TabsTrigger value="lead-config" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -248,12 +247,14 @@ export const UserManagement: React.FC = () => {
                   <div className="flex gap-2">
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
                       <SelectTrigger className="w-[140px]">
-                        <SelectValue placeholder="Role" />
+                        <SelectValue placeholder="Perfil" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todos os roles</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="all">Todos os perfis</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
                         <SelectItem value="comercial">Comercial</SelectItem>
+                        <SelectItem value="sdr">SDR</SelectItem>
+                        <SelectItem value="financeiro">Financeiro</SelectItem>
                         <SelectItem value="operacional">Operacional</SelectItem>
                         <SelectItem value="visitante">Visitante</SelectItem>
                       </SelectContent>

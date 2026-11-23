@@ -9,12 +9,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, prefer, x-supabase-api-version, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const DEFAULT_MODEL = 'gemini-3.8-flash'
+// Ordem definida medindo a velocidade real (23/11/2026). Pode ser trocada sem
+// mexer no código pelos secrets GEMINI_MODEL e GEMINI_FALLBACK_MODELS.
+const DEFAULT_MODEL = 'gemini-3-flash-preview'
 // Reservas quando o principal está sobrecarregado (modelos que a chave pode usar)
-const FALLBACK_MODELS = (Deno.env.get('GEMINI_FALLBACK_MODELS') || 'gemini-3.6-flash,gemini-3.5-flash').split(',').map(m => m.trim()).filter(Boolean)
+const FALLBACK_MODELS = (Deno.env.get('GEMINI_FALLBACK_MODELS') || 'gemini-3.8-flash,gemini-flash-lite-latest,gemini-3.6-flash').split(',').map(m => m.trim()).filter(Boolean)
 const MAX_BODY_BYTES = 600_000
 const MAX_CONTENTS = 80
 
@@ -24,13 +27,27 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
-async function callGemini(model: string, apiKey: string, payload: unknown) {
+// Tempo máximo por tentativa: se um modelo travar, passa para o próximo
+const CALL_TIMEOUT_MS = Number(Deno.env.get('GEMINI_TIMEOUT_MS') || 20_000)
+
+async function callGemini(model: string, apiKey: string, payload: unknown, timeoutMs = CALL_TIMEOUT_MS) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-  return fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify(payload),
-  })
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    return await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    })
+  } catch (e) {
+    // Timeout ou falha de rede: devolve 504 para entrar na lógica de nova tentativa
+    console.warn(`ze-assistente: ${model} sem resposta (${(e as Error).name})`)
+    return new Response(JSON.stringify({ error: { message: 'timeout' } }), { status: 504 })
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 serve(async (req) => {
@@ -67,6 +84,18 @@ serve(async (req) => {
         .filter((m: { supportedGenerationMethods?: string[] }) => m.supportedGenerationMethods?.includes('generateContent'))
         .map((m: { name: string }) => m.name.replace('models/', ''))
       return json({ ok: true, models })
+    }
+    // Diagnóstico: mede o tempo de resposta de cada modelo
+    if (Array.isArray(body.benchmark)) {
+      const tests = await Promise.all(body.benchmark.slice(0, 8).map(async (m: string) => {
+        const t0 = Date.now()
+        const r = await callGemini(String(m), apiKey, {
+          contents: [{ role: 'user', parts: [{ text: 'Responda só: ok' }] }],
+          generationConfig: { maxOutputTokens: 20, thinkingConfig: { thinkingLevel: 'low' } },
+        }, 30_000)
+        return { model: m, status: r.status, ms: Date.now() - t0 }
+      }))
+      return json({ ok: true, tests })
     }
     const contents = Array.isArray(body.contents) ? body.contents : []
     if (contents.length === 0) return json({ ok: false, code: 'empty', error: 'Mensagem vazia.' })

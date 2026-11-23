@@ -7,8 +7,7 @@ import { cn } from '@/lib/utils'
 
 const ZeChat = lazy(() => import('./ZeChat'))
 
-// Botão "Pergunte ao Zé" presente em todas as telas (ao lado do botão de ajuda)
-// e o painel lateral com a conversa.
+// Botão "Pergunte ao Zé" presente em todas as telas e o painel lateral com a conversa.
 export const ZeLauncher: React.FC = () => {
   const [open, setOpen] = useState(false)
   const { busy } = useZeStore()
@@ -23,8 +22,18 @@ export const ZeLauncher: React.FC = () => {
         setOpen(o => !o)
       }
     }
+    // O Zé fecha o painel quando abre um tutorial guiado na tela
+    // e outras telas (ex.: Central de Ajuda) podem abrir o Zé
+    const onClose = () => setOpen(false)
+    const onOpen = () => setOpen(true)
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('ze:close', onClose)
+    window.addEventListener('ze:open', onOpen)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('ze:close', onClose)
+      window.removeEventListener('ze:open', onOpen)
+    }
   }, [])
 
   if (location.pathname === '/assistente-global') return null
@@ -37,7 +46,7 @@ export const ZeLauncher: React.FC = () => {
         aria-label="Pergunte ao Zé"
         title="Pergunte ao Zé (Ctrl+J)"
         className={cn(
-          'ze-launcher fixed bottom-4 right-[4.5rem] z-50 flex h-12 items-center gap-2 rounded-full border border-sky-200 bg-white/95 pl-1.5 pr-1.5 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:shadow-xl sm:pr-4',
+          'ze-launcher fixed bottom-4 right-4 z-50 flex h-12 items-center gap-2 rounded-full border border-sky-200 bg-white/95 pl-1.5 pr-1.5 shadow-lg backdrop-blur transition hover:-translate-y-0.5 hover:shadow-xl sm:pr-4',
           open && 'pointer-events-none opacity-0',
         )}
       >
@@ -56,8 +65,8 @@ export const ZeLauncher: React.FC = () => {
           <div className="flex items-center gap-3 border-b bg-gradient-to-r from-sky-50 to-background px-4 py-3">
             <img src="/brand/globo.webp" alt="" className="h-9 w-9" />
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-base leading-tight">Zé</SheetTitle>
-              <p className="text-xs text-muted-foreground">Assistente da Global Aço</p>
+              <SheetTitle className="text-base leading-tight">Zé da Global</SheetTitle>
+              <p className="text-xs text-muted-foreground">Dados da empresa e ajuda com o sistema</p>
             </div>
             <button
               type="button"

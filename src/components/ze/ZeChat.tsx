@@ -15,26 +15,41 @@ const PAGE_NAMES: Record<string, string> = {
   '/dashboard-comercial': 'Dashboard Comercial',
   '/crm': 'CRM',
   '/clientes': 'Clientes',
-  '/producao': 'Fábrica (produção e estoque)',
+  '/producao': 'Fábrica (produção, compras e estoque)',
   '/fretes': 'Fretes',
   '/politica-comercial': 'Política Comercial',
   '/chamados': 'Chamados',
   '/corte-perfil': 'Corte Perfil',
   '/corte-blank': 'Corte Blank',
+  '/treinamentos': 'Treinamentos',
+  '/ajuda': 'Central de Ajuda',
+  '/assistente-global': 'Zé (tela cheia)',
+  '/admin/usuarios': 'Administração',
+  '/admin/relatorios': 'Configuração de Relatórios',
 }
 
+// pages vazio = sugestão para todos
 const SUGGESTIONS: { pages: PageKey[]; paths: string[]; text: string }[] = [
+  { pages: ['dashboard'], paths: ['/', '/dashboard-comercial'], text: 'Vamos bater a meta deste mês? Quanto falta por dia útil?' },
   { pages: ['dashboard'], paths: ['/', '/dashboard-comercial'], text: 'Como está o faturamento deste mês comparado ao mês passado?' },
   { pages: ['dashboard'], paths: ['/', '/dashboard-comercial'], text: 'Ranking de vendedores no ano, com peso e ticket médio' },
   { pages: ['dashboard'], paths: ['/', '/dashboard-comercial', '/clientes'], text: 'Quais orçamentos em aberto passam de R$ 100 mil?' },
   { pages: ['dashboard', 'clientes'], paths: ['/clientes'], text: 'Quais clientes bons estão há mais de 90 dias sem comprar?' },
   { pages: ['dashboard'], paths: ['/', '/dashboard-comercial'], text: 'Por que perdemos orçamentos este ano? Mostre os motivos' },
+  { pages: ['crm'], paths: ['/crm'], text: 'O que preciso preencher para passar o bastão?' },
   { pages: ['crm'], paths: ['/crm'], text: 'Quantos contatos cada vendedor fez esta semana?' },
   { pages: ['crm'], paths: ['/crm'], text: 'Quais follow-ups estão atrasados?' },
   { pages: ['producao'], paths: ['/producao'], text: 'O que está atrasado na fábrica?' },
+  { pages: ['producao'], paths: ['/producao'], text: 'O que precisamos comprar para atender os pedidos?' },
   { pages: ['estoque', 'producao'], paths: ['/producao'], text: 'Quanto temos de bobina em estoque?' },
-  { pages: ['fretes'], paths: ['/fretes'], text: 'Qual o custo médio de frete por kg este mês?' },
-  { pages: ['politica'], paths: ['/politica-comercial'], text: 'Qual o preço do perfil U 100?' },
+  { pages: ['fretes'], paths: ['/fretes'], text: 'Como funciona a aprovação de frete?' },
+  { pages: ['politica'], paths: ['/politica-comercial'], text: 'Qual o desconto máximo para um pedido de 8 toneladas?' },
+  { pages: ['chamados'], paths: ['/chamados'], text: 'Qual o prazo do financeiro para cada tipo de chamado?' },
+  { pages: ['corteperfil'], paths: ['/corte-perfil'], text: 'Me mostra como funciona esta tela' },
+  { pages: ['corteblank'], paths: ['/corte-blank'], text: 'Me mostra como funciona esta tela' },
+  { pages: ['treinamentos'], paths: ['/treinamentos'], text: 'Quais treinamentos estão disponíveis?' },
+  { pages: [], paths: ['/ajuda'], text: 'Quais telas eu tenho liberadas?' },
+  { pages: [], paths: [], text: 'Esqueci minha senha, o que faço?' },
 ]
 
 let counter = 0
@@ -128,10 +143,10 @@ export const ZeChat: React.FC<ZeChatProps> = ({ variant = 'panel', autoFocus }) 
   const pagina = PAGE_NAMES[location.pathname]
 
   const suggestions = useMemo(() => {
-    const allowed = SUGGESTIONS.filter(s => isAdmin || s.pages.some(p => ctx.canView(p)))
+    const allowed = SUGGESTIONS.filter(s => isAdmin || !s.pages.length || s.pages.some(p => ctx.canView(p)))
     const here = allowed.filter(s => s.paths.includes(location.pathname))
     const rest = allowed.filter(s => !s.paths.includes(location.pathname))
-    return [...here, ...rest].slice(0, 4)
+    return [...here, ...rest].slice(0, 5)
   }, [ctx, isAdmin, location.pathname])
 
   useEffect(() => {
@@ -191,11 +206,11 @@ export const ZeChat: React.FC<ZeChatProps> = ({ variant = 'panel', autoFocus }) 
               <img src="/brand/globo.webp" alt="" className="brand-loader__globe h-20 w-20" />
             </div>
             <h2 className="mt-3 text-lg font-semibold text-foreground">
-              {firstName ? `Fala, ${firstName}! ` : ''}Eu sou o Zé.
+              {firstName ? `Fala, ${firstName}! ` : ''}Eu sou o Zé da Global.
             </h2>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Pergunte do seu jeito sobre vendas, clientes, pedidos, orçamentos, produção, estoque e CRM. Eu consulto os
-              dados do sistema e faço as contas.
+              Pergunte do seu jeito sobre vendas, clientes, pedidos, orçamentos, produção, estoque e CRM, ou tire
+              dúvidas sobre como usar o sistema. Eu consulto os dados, faço as contas e te mostro o caminho.
             </p>
             <div className="mt-5 grid w-full max-w-md gap-2">
               {suggestions.map(s => (

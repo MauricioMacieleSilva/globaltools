@@ -10,42 +10,13 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { UserCard } from './UserCard'
+import { ACCESS_STATUS_CLASS, ACCESS_STATUS_LABEL, getRoleBadgeVariant, getRoleLabel, getUserAccessStatus } from '@/lib/user-status'
 
 interface UserTableProps {
   users: UserProfile[]
   loading: boolean
   onEditUser: (user: UserProfile) => void
   onDeleteUser: (user: UserProfile) => void
-}
-
-const getRoleBadgeVariant = (role: string) => {
-  switch (role) {
-    case 'admin':
-      return 'destructive'
-    case 'comercial':
-      return 'default'
-    case 'operacional':
-      return 'secondary'
-    case 'visitante':
-      return 'outline'
-    default:
-      return 'outline'
-  }
-}
-
-const getRoleLabel = (role: string) => {
-  switch (role) {
-    case 'admin':
-      return 'Administrador'
-    case 'comercial':
-      return 'Comercial'
-    case 'operacional':
-      return 'Operacional'
-    case 'visitante':
-      return 'Visitante'
-    default:
-      return role
-  }
 }
 
 export const UserTable: React.FC<UserTableProps> = ({ users, loading, onEditUser, onDeleteUser }) => {
@@ -84,7 +55,7 @@ export const UserTable: React.FC<UserTableProps> = ({ users, loading, onEditUser
           <TableRow>
             <TableHead>Usuário</TableHead>
             <TableHead className="hidden sm:table-cell">Email</TableHead>
-            <TableHead>Role</TableHead>
+            <TableHead>Perfil</TableHead>
             <TableHead className="hidden lg:table-cell">Último Acesso</TableHead>
             <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -129,23 +100,16 @@ export const UserTable: React.FC<UserTableProps> = ({ users, loading, onEditUser
                       </span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground text-xs">Nunca acessou</span>
+                    <span className="text-muted-foreground text-xs">—</span>
                   )}
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 {(() => {
-                  // Um usuário é considerado ativo se fez login nas últimas 24 horas
-                  const isActive = user.last_login && 
-                    new Date(user.last_login).getTime() > Date.now() - (24 * 60 * 60 * 1000)
-                  
-                  return isActive ? (
-                    <Badge variant="default" className="bg-green-100 text-green-800 text-xs">
-                      Ativo
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-orange-600 text-xs">
-                      Inativo
+                  const status = getUserAccessStatus(user.last_login)
+                  return (
+                    <Badge variant="outline" className={`whitespace-nowrap text-xs ${ACCESS_STATUS_CLASS[status]}`}>
+                      {ACCESS_STATUS_LABEL[status]}
                     </Badge>
                   )
                 })()}

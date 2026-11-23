@@ -7,31 +7,12 @@ import { Edit, Trash2, User, Building2, Globe, Calendar } from 'lucide-react'
 import { UserProfile } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ACCESS_STATUS_CLASS, ACCESS_STATUS_LABEL, getRoleBadgeVariant, getRoleLabel, getUserAccessStatus } from '@/lib/user-status'
 
 interface UserCardProps {
   user: UserProfile
   onEdit: (user: UserProfile) => void
   onDelete: (user: UserProfile) => void
-}
-
-const getRoleBadgeVariant = (role: string) => {
-  switch (role) {
-    case 'admin': return 'destructive'
-    case 'comercial': return 'default'
-    case 'operacional': return 'secondary'
-    case 'visitante': return 'outline'
-    default: return 'outline'
-  }
-}
-
-const getRoleLabel = (role: string) => {
-  switch (role) {
-    case 'admin': return 'Admin'
-    case 'comercial': return 'Comercial'
-    case 'operacional': return 'Operacional'
-    case 'visitante': return 'Visitante'
-    default: return role
-  }
 }
 
 export const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onDelete }) => {
@@ -91,17 +72,10 @@ export const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onDelete }) =>
                 </div>
                 
                 {(() => {
-                  // Um usuário é considerado ativo se fez login nas últimas 24 horas
-                  const isActive = user.last_login && 
-                    new Date(user.last_login).getTime() > Date.now() - (24 * 60 * 60 * 1000)
-                  
-                  return isActive ? (
-                    <Badge variant="outline" className="text-xs text-green-600">
-                      Ativo
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs text-orange-600">
-                      Inativo
+                  const status = getUserAccessStatus(user.last_login)
+                  return (
+                    <Badge variant="outline" className={`whitespace-nowrap text-xs ${ACCESS_STATUS_CLASS[status]}`}>
+                      {ACCESS_STATUS_LABEL[status]}
                     </Badge>
                   )
                 })()}

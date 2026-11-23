@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { SYSTEM_PAGES, PageKey } from '@/hooks/useUserPermissions'
 
-type UserRole = 'visitante' | 'operacional' | 'sdr' | 'comercial'
+type UserRole = 'visitante' | 'operacional' | 'sdr' | 'comercial' | 'financeiro'
 
 interface PermissionState {
   [pageKey: string]: {
@@ -28,6 +28,7 @@ const CONFIGURABLE_ROLES: { value: UserRole; label: string; description: string 
   { value: 'operacional', label: 'Operacional', description: 'Acesso às áreas de produção' },
   { value: 'sdr', label: 'SDR', description: 'Acesso ao pipeline e pré-vendas' },
   { value: 'comercial', label: 'Comercial', description: 'Acesso completo às áreas comerciais' },
+  { value: 'financeiro', label: 'Financeiro', description: 'Acesso às rotinas do financeiro' },
 ]
 
 // Agrupar páginas por categoria
@@ -55,7 +56,7 @@ export const DefaultPermissionsConfig: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [permissions, setPermissions] = useState<RolePermissions>({})
-  const [activeRole, setActiveRole] = useState<UserRole>('visitante')
+  const [activeRole, setActiveRole] = useState<UserRole>('comercial')
   const { toast } = useToast()
 
   const pageGroups = groupPagesByCategory()
@@ -212,15 +213,15 @@ export const DefaultPermissionsConfig: React.FC = () => {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-primary" />
-          <CardTitle>Permissões Padrão para Novos Usuários</CardTitle>
+          <CardTitle>Telas liberadas por perfil</CardTitle>
         </div>
         <CardDescription>
-          Configure quais permissões novos usuários receberão automaticamente ao se cadastrar com cada perfil.
+          Defina quais telas cada perfil enxerga. Vale para todos os usuários do perfil, novos e existentes. Administradores sempre têm acesso total.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs value={activeRole} onValueChange={(v) => setActiveRole(v as UserRole)}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             {CONFIGURABLE_ROLES.map(role => (
               <TabsTrigger key={role.value} value={role.value} className="text-xs sm:text-sm">
                 {role.label}
@@ -287,7 +288,7 @@ export const DefaultPermissionsConfig: React.FC = () => {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Alterações afetam <strong>todos os usuários</strong> com este perfil. Permissões individuais configuradas por usuário continuam válidas adicionalmente.
+            Alterações afetam <strong>todos os usuários</strong> com este perfil. Liberações extras feitas em um usuário específico (aba Telas Liberadas, ao editar o usuário) continuam valendo além do perfil.
           </AlertDescription>
         </Alert>
 

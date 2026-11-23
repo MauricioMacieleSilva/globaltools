@@ -82,3 +82,31 @@ export function buildAccessMessage({ email, fullName, tempPassword }: AccessCred
     'No primeiro acesso o sistema vai pedir para você criar a sua própria senha.',
   ].join('\n')
 }
+
+export type PagePermissionMap = Record<string, { view: boolean; edit: boolean }>
+
+// Telas que um perfil libera (tabela default_role_permissions, editada na aba
+// "Telas por Perfil"). Administrador não usa esta tabela: tem acesso total.
+export async function fetchRolePages(role: UserRole): Promise<PagePermissionMap> {
+  const map: PagePermissionMap = {}
+  if (role === 'admin') return map
+
+  const { data, error } = await supabase
+    .from('default_role_permissions')
+    .select('page_key, access_type')
+    .eq('role', role)
+    .eq('is_active', true)
+
+  if (error) throw error
+
+  ;(data || []).forEach((row) => {
+    if (!map[row.page_key]) map[row.page_key] = { view: false, edit: false }
+    if (row.access_type === 'view') map[row.page_key].view = true
+    if (row.access_type === 'edit') {
+      map[row.page_key].edit = true
+      map[row.page_key].view = true
+    }
+  })
+
+  return map
+}

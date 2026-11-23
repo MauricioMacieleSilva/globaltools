@@ -307,7 +307,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
             </TabsTrigger>
             <TabsTrigger value="permissions" className="flex items-center gap-2">
               <Lock className="w-4 h-4" />
-              Permissões de Acesso
+              Telas Liberadas
             </TabsTrigger>
             <TabsTrigger value="access" className="flex items-center gap-2">
               <KeyRound className="w-4 h-4" />
@@ -381,7 +381,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role">Perfil de acesso</Label>
             <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
               <SelectTrigger>
                 <SelectValue />

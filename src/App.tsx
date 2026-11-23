@@ -1,5 +1,6 @@
-
+import { lazy, Suspense } from 'react';
 import { Toaster } from 'sonner';
+import { BrandLoader } from './components/BrandLoader';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
@@ -18,27 +19,27 @@ import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { TourProvider } from "./components/tour/TourProvider";
-import CorteBlank from "./pages/CorteBlank";
-import CortePerfil from "./pages/CortePerfil";
-import DashboardComercial from '@/pages/DashboardComercial';
-import { PreVendas } from '@/pages/PreVendas';
-import Clientes from "./pages/Clientes";
-import PoliticaComercial from "./pages/PoliticaComercial";
-import AssistenteGlobal from "./pages/AssistenteGlobal";
+const CorteBlank = lazy(() => import("./pages/CorteBlank"));
+const CortePerfil = lazy(() => import("./pages/CortePerfil"));
+const DashboardComercial = lazy(() => import("@/pages/DashboardComercial"));
 
-import { UserManagement } from "./pages/UserManagement";
-import ReportsConfig from "./pages/ReportsConfig";
+const Clientes = lazy(() => import("./pages/Clientes"));
+const PoliticaComercial = lazy(() => import("./pages/PoliticaComercial"));
+const AssistenteGlobal = lazy(() => import("./pages/AssistenteGlobal"));
+
+const UserManagement = lazy(() => import("./pages/UserManagement").then(m => ({ default: m.UserManagement })));
+const ReportsConfig = lazy(() => import("./pages/ReportsConfig"));
 
 import NotFound from "./pages/NotFound";
-import { Pipeline } from "./pages/Pipeline";
-import Producao from "./pages/Producao";
-import CRM from "./pages/CRM";
+
+const Producao = lazy(() => import("./pages/Producao"));
+const CRM = lazy(() => import("./pages/CRM"));
 import { Navigate } from "react-router-dom";
-import Fretes from "./pages/Fretes";
+const Fretes = lazy(() => import("./pages/Fretes"));
 import Auth from "./pages/Auth";
-import Treinamentos from "./pages/Treinamentos";
-import Chamados from "./pages/Chamados";
-import Ajuda from "./pages/Ajuda";
+const Treinamentos = lazy(() => import("./pages/Treinamentos"));
+const Chamados = lazy(() => import("./pages/Chamados"));
+const Ajuda = lazy(() => import("./pages/Ajuda"));
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { LeadAssignmentNotification } from "@/components/crm/LeadAssignmentNotification";
 
@@ -129,6 +130,7 @@ function AppContent() {
                             </header>
                             <main className="flex-1">
                               <TourProvider>
+                                <Suspense fallback={<BrandLoader messages={['Abrindo a tela', 'Buscando os dados', 'Quase lá']} />}>
                                 <Routes>
                                   <Route
                                     path="/"
@@ -267,6 +269,7 @@ function AppContent() {
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                                 <Route path="*" element={<NotFound />} />
                                 </Routes>
+                                </Suspense>
                               </TourProvider>
                             </main>
                           </SidebarInset>

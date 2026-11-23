@@ -11,7 +11,9 @@ import { supabase } from '@/integrations/supabase/client'
 import { UserProfile, UserRole } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { UserPermissionsTab } from './UserPermissionsTab'
-import { Save, X, User, Lock, Camera, Loader2 } from 'lucide-react'
+import { UserAccessCard } from './UserAccessCard'
+import { AccessCredentials, manageUser } from '@/lib/admin-users'
+import { Save, X, User, Lock, Camera, Loader2, KeyRound } from 'lucide-react'
 
 interface UserEditDialogProps {
   user: UserProfile | null
@@ -37,6 +39,55 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+
+  // Aba "Acesso": gerar senha provisória / passar o usuário para outra pessoa
+  const [accessName, setAccessName] = useState('')
+  const [accessLoading, setAccessLoading] = useState(false)
+  const [accessConfirming, setAccessConfirming] = useState(false)
+  const [accessError, setAccessError] = useState<string | null>(null)
+  const [accessCredentials, setAccessCredentials] = useState<AccessCredentials | null>(null)
+
+  // A senha provisória nunca pode ficar na tela de um usuário para outro.
+  useEffect(() => {
+    setAccessName(user?.full_name || '')
+    setAccessLoading(false)
+    setAccessConfirming(false)
+    setAccessError(null)
+    setAccessCredentials(null)
+  }, [user?.id, user?.full_name, open])
+
+  const handleGenerateAccess = async () => {
+    if (!user || accessLoading) return
+
+    setAccessLoading(true)
+    setAccessError(null)
+
+    const result = await manageUser({
+      action: 'reassign',
+      userId: user.id,
+      fullName: accessName.trim(),
+    })
+
+    setAccessLoading(false)
+    setAccessConfirming(false)
+
+    if (result.ok === true) {
+      setAccessCredentials(result.credentials)
+      setFormData(prev => ({ ...prev, full_name: result.credentials.fullName }))
+      return
+    }
+
+    setAccessError(result.error)
+  }
+
+  // Fechar o diálogo depois de gerar um acesso recarrega a lista (o nome pode ter mudado).
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && accessCredentials) {
+      onUserUpdated()
+      return
+    }
+    onOpenChange(nextOpen)
+  }
 
   useEffect(() => {
     if (user) {
@@ -235,7 +286,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -249,7 +300,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Dados do Perfil
@@ -257,6 +308,10 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
             <TabsTrigger value="permissions" className="flex items-center gap-2">
               <Lock className="w-4 h-4" />
               Permissões de Acesso
+            </TabsTrigger>
+            <TabsTrigger value="access" className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4" />
+              Senha e Acesso
             </TabsTrigger>
           </TabsList>
 
@@ -385,6 +440,76 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
 
       <TabsContent value="permissions">
         <UserPermissionsTab user={user} />
+      </TabsContent>
+
+      <TabsContent value="access" className="space-y-4">
+        {accessCredentials ? (
+          <UserAccessCard credentials={accessCredentials} />
+        ) : (
+          <>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold">Gerar novo acesso</h3>
+              <p className="text-sm text-muted-foreground">
+                Use quando a pessoa esqueceu a senha ou quando este e-mail passou para outra pessoa.
+                Uma senha provisória é gerada, quem estava logado com este usuário é desconectado e
+                no primeiro acesso a pessoa cria a própria senha.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="access_email">E-mail de acesso</Label>
+              <Input id="access_email" value={formData.email} disabled className="bg-muted" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="access_name">Nome de quem vai usar</Label>
+              <Input
+                id="access_name"
+                value={accessName}
+                onChange={(e) => {
+                  setAccessName(e.target.value)
+                  setAccessConfirming(false)
+                  setAccessError(null)
+                }}
+                placeholder="Nome de quem vai usar este acesso"
+                maxLength={255}
+              />
+              <p className="text-xs text-muted-foreground">
+                Se o e-mail mudou de dono, troque o nome aqui. Carteira, leads e histórico continuam ligados a este usuário.
+              </p>
+            </div>
+
+            {accessError && (
+              <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                {accessError}
+              </p>
+            )}
+
+            {accessConfirming ? (
+              <div className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <p className="text-sm text-foreground">
+                  A senha atual de <strong>{formData.email}</strong> deixa de funcionar agora. Confirma?
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setAccessConfirming(false)} disabled={accessLoading}>
+                    Voltar
+                  </Button>
+                  <Button type="button" onClick={handleGenerateAccess} disabled={accessLoading}>
+                    {accessLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Confirmar e gerar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-end">
+                <Button type="button" onClick={() => setAccessConfirming(true)} disabled={!accessName.trim()}>
+                  <KeyRound className="w-4 h-4 mr-2" />
+                  Gerar senha provisória
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </TabsContent>
     </Tabs>
   </DialogContent>

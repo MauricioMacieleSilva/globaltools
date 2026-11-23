@@ -529,19 +529,32 @@ const TOOLS: ZeTool[] = [
     declaration: {
       name: 'consultar_producao',
       description:
-        'Pedidos na fábrica (planilha de produção): status (PROGRAMAR, PARCIALMENTE_FINALIZADO, ATRASO, FINALIZADO), prazo do PCP, dias de atraso, % concluído, peso e ordens de produção. Use para "o que está atrasado", "situação do pedido X", "carga da fábrica".',
+        'Pedidos na fábrica (planilha de produção), com os mesmos números da tela Fábrica: status (NO_PRAZO, ATRASO, PROGRAMAR = a programar, PARCIALMENTE_FINALIZADO, FINALIZADO), prazo do PCP, dias de atraso, % concluído, peso e ordens de produção. Use para "o que está atrasado", "situação do pedido X", "carga da fábrica".',
       parameters: {
         type: 'OBJECT',
         properties: {
           numero_pedido: S('Número do pedido'),
           cliente: S('Parte do nome do cliente'),
-          status: S('Filtrar por status', { enum: ['PROGRAMAR', 'PARCIALMENTE_FINALIZADO', 'ATRASO', 'FINALIZADO'] }),
+          status: S('Filtrar por status', { enum: ['NO_PRAZO', 'ATRASO', 'PROGRAMAR', 'PARCIALMENTE_FINALIZADO', 'FINALIZADO'] }),
           limite: N('Máximo de pedidos listados (padrão 20)'),
         },
       },
     },
     async run(a) {
-      const dados = await fetchProducaoData()
+      // Mesmos filtros da tela Fábrica: sem pedidos ocultos e sem os excluídos dos indicadores
+      const [todos, ocultos, excluidos] = await Promise.all([
+        fetchProducaoData(),
+        supabase.from('hidden_production_orders').select('numero_pedido'),
+        supabase.from('excluded_orders').select('numero_pedido'),
+      ])
+      const fora = new Set([
+        ...(ocultos.data || []).map((o: { numero_pedido: string }) => String(o.numero_pedido)),
+        ...(excluidos.data || []).map((o: { numero_pedido: string }) => String(o.numero_pedido)),
+      ])
+      const dados = todos.filter(p => !fora.has(String(p.numero_pedido)))
+      // Peso como na tela: soma das unidades KG e T da planilha de produção (metros não entram)
+      const pesoKg = (p: (typeof dados)[number]) =>
+        Object.entries(p.pesos_por_unidade || {}).reduce((s, [un, v]) => s + (un === 'T' ? Number(v) * 1000 : un === 'KG' ? Number(v) : 0), 0)
       const lista = dados.filter(p =>
         (!a.numero_pedido || String(p.numero_pedido) === String(a.numero_pedido)) &&
         matches(p.cli_nomef, a.cliente) &&
@@ -551,10 +564,12 @@ const TOOLS: ZeTool[] = [
       dados.forEach(p => {
         porStatus[p.status] ||= { pedidos: 0, peso_kg: 0 }
         porStatus[p.status].pedidos++
-        porStatus[p.status].peso_kg = r2(porStatus[p.status].peso_kg + (p.peso_total_kg || 0))
+        porStatus[p.status].peso_kg = r2(porStatus[p.status].peso_kg + pesoKg(p))
       })
       const limite = Math.min(Math.max(Number(a.limite) || 20, 1), 60)
       return {
+        total_pedidos: dados.length,
+        peso_total_kg: r2(dados.reduce((s, p) => s + pesoKg(p), 0)),
         resumo_geral_por_status: porStatus,
         encontrados: lista.length,
         pedidos: lista
@@ -568,7 +583,7 @@ const TOOLS: ZeTool[] = [
             prazo_pcp: p.prazo_pcp,
             dias_atraso: p.dias_atraso || 0,
             percentual_concluido: r2(p.percentual_concluido || 0),
-            peso_total_kg: r2(p.peso_total_kg || 0),
+            peso_total_kg: r2(pesoKg(p)),
             ordens: p.ops.map(o => ({ op: o.numero_op, situacao: o.situacao_op, materiais: o.materiais.length })),
           })),
       }

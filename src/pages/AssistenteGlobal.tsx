@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ZeChat } from '@/components/ze/ZeChat';
 import { VoiceInterface } from '@/components/chat/VoiceInterface';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Mic } from 'lucide-react';
@@ -8,25 +8,25 @@ const AssistenteGlobal: React.FC = () => {
   const [activeTab, setActiveTab] = useState('text');
 
   return (
-    <div className="flex flex-col h-full p-4 sm:p-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full max-w-md grid-cols-2 mb-4" data-tour="assistente-tabs">
+    <div className="flex h-[calc(100dvh-4rem)] flex-col p-3 sm:p-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
+        <TabsList className="mx-auto mb-3 grid w-full max-w-sm grid-cols-2" data-tour="assistente-tabs">
           <TabsTrigger value="text" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
-            Chat de Texto
+            Conversa
           </TabsTrigger>
           <TabsTrigger value="voice" className="flex items-center gap-2">
             <Mic className="h-4 w-4" />
-            Conversa por Voz
+            Por voz
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="text" className="flex-1 flex flex-col mt-0" data-tour="assistente-chat">
-          <ChatInterface />
+        <TabsContent value="text" className="mt-0 min-h-0 flex-1 overflow-hidden rounded-2xl border bg-background shadow-sm data-[state=inactive]:hidden" data-tour="assistente-chat">
+          <ZeChat variant="page" autoFocus />
         </TabsContent>
 
-        <TabsContent value="voice" className="flex-1 mt-0" data-tour="assistente-voice">
-          <div className="max-w-2xl mx-auto">
+        <TabsContent value="voice" className="mt-0 flex-1" data-tour="assistente-voice">
+          <div className="mx-auto max-w-2xl">
             <VoiceInterface />
           </div>
         </TabsContent>

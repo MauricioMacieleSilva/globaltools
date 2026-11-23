@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertTriangle, Loader2, UserPlus } from 'lucide-react'
 import { UserRole } from '@/lib/supabase'
-import { AccessCredentials, ExistingUserInfo, manageUser } from '@/lib/admin-users'
+import { AccessCredentials, ExistingUserInfo, PagePermissionMap, fetchRolePages, manageUser } from '@/lib/admin-users'
+import { SYSTEM_PAGES } from '@/hooks/useUserPermissions'
+import { getRoleLabel } from '@/lib/user-status'
 import { UserAccessCard } from './UserAccessCard'
 
 interface CreateUserDialogProps {
@@ -28,6 +30,22 @@ export const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ open, onOpen
   const [error, setError] = useState<string | null>(null)
   const [existingUser, setExistingUser] = useState<ExistingUserInfo | null>(null)
   const [credentials, setCredentials] = useState<AccessCredentials | null>(null)
+  const [rolePages, setRolePages] = useState<PagePermissionMap | null>(null)
+
+  // Mostra, antes de criar, quais telas o perfil escolhido libera
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setRolePages(null)
+    fetchRolePages(form.role)
+      .then(map => { if (!cancelled) setRolePages(map) })
+      .catch(() => { if (!cancelled) setRolePages({}) })
+    return () => { cancelled = true }
+  }, [open, form.role])
+
+  const roleScreens = Object.entries(SYSTEM_PAGES)
+    .filter(([key, info]) => info.category !== 'Administrativas' && rolePages?.[key]?.view)
+    .map(([key, info]) => ({ key, label: info.label, edit: !!rolePages?.[key]?.edit }))
 
   // Sempre abre limpo: a senha provisória não pode ficar na tela de uma vez para outra.
   useEffect(() => {
@@ -182,6 +200,40 @@ export const CreateUserDialog: React.FC<CreateUserDialogProps> = ({ open, onOpen
                   maxLength={100}
                 />
               </div>
+            </div>
+
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-sm font-medium text-foreground">
+                Telas liberadas pelo perfil {getRoleLabel(form.role)}
+              </p>
+              {form.role === 'admin' ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Acesso total, incluindo a Administração.
+                </p>
+              ) : rolePages === null ? (
+                <p className="mt-1 text-sm text-muted-foreground">Carregando...</p>
+              ) : roleScreens.length === 0 ? (
+                <p className="mt-1 text-sm text-amber-700">
+                  Este perfil ainda não tem telas configuradas. Ajuste em "Telas por Perfil" antes de criar o usuário.
+                </p>
+              ) : (
+                <>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {roleScreens.map(screen => (
+                      <span
+                        key={screen.key}
+                        className="rounded-md border bg-background px-2 py-0.5 text-xs text-foreground"
+                      >
+                        {screen.label}
+                        <span className="text-muted-foreground">{screen.edit ? ' · edita' : ' · só vê'}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    O usuário já nasce com essas telas. Para mudar o perfil inteiro, use "Telas por Perfil".
+                  </p>
+                </>
+              )}
             </div>
 
             {existingUser && (

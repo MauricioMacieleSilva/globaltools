@@ -126,8 +126,20 @@ async function fetchProfile(userId: string, email: string, timeoutMs = 6000): Pr
 // ultima copia conhecida (mesmo vencida) ou null. NUNCA inventa um perfil: um
 // perfil "operacional" de emergencia fazia administradores e comerciais verem
 // "Acesso Negado" sempre que o banco respondia devagar.
-async function loadProfileResilient(userId: string, email: string): Promise<UserProfile | null> {
-  const timeouts = [6000, 10000, 15000]
+// Evita buscar o mesmo perfil duas vezes ao mesmo tempo (getSession e o
+// evento SIGNED_IN chegam juntos ao abrir o sistema).
+const profileInFlight = new Map<string, Promise<UserProfile | null>>()
+
+function loadProfileResilient(userId: string, email: string): Promise<UserProfile | null> {
+  const pending = profileInFlight.get(userId)
+  if (pending) return pending
+  const promise = loadProfileWithRetries(userId, email).finally(() => profileInFlight.delete(userId))
+  profileInFlight.set(userId, promise)
+  return promise
+}
+
+async function loadProfileWithRetries(userId: string, email: string): Promise<UserProfile | null> {
+  const timeouts = [6000, 10000]
   for (let attempt = 0; attempt < timeouts.length; attempt++) {
     try {
       const profile = await fetchProfile(userId, email, timeouts[attempt])
@@ -241,13 +253,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserProfile(cached)
           setLoading(false)
           // Atualiza em background sem bloquear
-          fetchProfile(session.user.id, session.user.email!).then(fresh => {
-            if (mounted) {
-              setUserProfile(fresh)
-              saveProfileCache(session.user.id, fresh)
-            }
-          }).catch((err) => {
-            console.warn('[Auth] Falha ao atualizar perfil em background (mantendo cache ativo):', err);
+          loadProfileResilient(session.user.id, session.user.email!).then(fresh => {
+            if (mounted && fresh) setUserProfile(fresh)
           })
         } else {
           // Sem cache: busca no banco (com novas tentativas)
@@ -267,7 +274,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // IMPORTANTE: este callback precisa ser sincrono. O Supabase segura um
+    // bloqueio interno enquanto ele roda, e qualquer consulta feita (e
+    // aguardada) aqui dentro fica esperando esse mesmo bloqueio: travava o
+    // perfil ate estourar o tempo (30s de "Verificando autenticacao", e antes
+    // disso o perfil "operacional" de emergencia que gerava "Acesso Negado").
+    // Por isso o trabalho assincrono vai para fora com setTimeout(..., 0).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[Auth] Event:', event)
       if (!mounted) return
 
@@ -276,13 +289,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         if (event === 'SIGNED_IN') {
-          // Login real: busca perfil fresco e salva no cache
-          updateLastLoginAsync(session.user.id, true)
-          const profile = await loadProfileResilient(session.user.id, session.user.email!)
-          if (mounted) {
-            if (profile) setUserProfile(profile)
+          const signedUser = session.user
+          // Se ja ha perfil em cache deste usuario, libera a tela na hora
+          const cachedNow = loadProfileCache(signedUser.id)
+          if (cachedNow) {
+            setUserProfile(cachedNow)
             setLoading(false)
           }
+          setTimeout(async () => {
+            if (!mounted) return
+            updateLastLoginAsync(signedUser.id)
+            const profile = await loadProfileResilient(signedUser.id, signedUser.email!)
+            if (mounted) {
+              if (profile) setUserProfile(profile)
+              setLoading(false)
+            }
+          }, 0)
         } else if (event === 'INITIAL_SESSION') {
           // Ja tratado no getSession() acima
           // Nao faz nada aqui para evitar double-fetch

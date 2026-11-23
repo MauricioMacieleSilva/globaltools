@@ -29,10 +29,35 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@globalaco" />
     <meta name="twitter:image" content="/icon-512x512.png" />
+
+    <!-- Loading da marca: aparece antes do JavaScript terminar de carregar -->
+    <link rel="preload" href="/brand/globo.webp" as="image" type="image/webp" />
+    <link rel="stylesheet" href="/brand/loader.css" />
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-loader" role="status" aria-live="polite">
+        <div class="brand-loader__stage">
+          <span class="brand-loader__glow" aria-hidden="true"></span>
+          <svg class="brand-loader__ring" viewBox="0 0 160 160" aria-hidden="true">
+            <defs>
+              <linearGradient id="bootArc" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0" />
+                <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.9" />
+                <stop offset="100%" stop-color="#0ea5e9" />
+              </linearGradient>
+            </defs>
+            <circle cx="80" cy="80" r="74" class="brand-loader__track" />
+            <circle cx="80" cy="80" r="74" class="brand-loader__arc" stroke="url(#bootArc)" />
+          </svg>
+          <img class="brand-loader__globe" src="/brand/globo.webp" alt="Global Aço" />
+        </div>
+        <p class="boot-loader__brand">Global Aço</p>
+        <p class="boot-loader__text">Abrindo o Globinho<span class="brand-loader__dots"><span>.</span><span>.</span><span>.</span></span></p>
+        <div class="brand-loader__bar"><span></span></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Unregister any previously installed service workers safely without reload loops -->

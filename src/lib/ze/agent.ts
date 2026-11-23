@@ -34,7 +34,8 @@ function hoje() {
   const d = new Date()
   const dias = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
   const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  return `${iso} (${dias[d.getDay()]})`
+  const hora = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return `${iso} (${dias[d.getDay()]}), ${hora}`
 }
 
 function systemPrompt(user: ZeUser, ctx: ZeToolContext, pagina?: string) {
@@ -49,7 +50,7 @@ function systemPrompt(user: ZeUser, ctx: ZeToolContext, pagina?: string) {
 A Global Aço vende produtos siderúrgicos: perfis, telhas, laminados, vergalhões, chapas, tubos, bobinas e arames, e tem fábrica própria (corte, dobra, perfilação).
 
 QUEM ESTÁ PERGUNTANDO: ${user.name} (perfil ${user.role}).
-HOJE: ${hoje()}.${pagina ? `\nTELA ABERTA AGORA: ${pagina}.` : ''}
+AGORA: ${hoje()} (horário de Brasília).${pagina ? `\nTELA ABERTA AGORA: ${pagina}.` : ''}
 TELAS LIBERADAS PARA ESTA PESSOA: ${telas.join(', ') || 'nenhuma'}.
 DADOS QUE VOCÊ PODE CONSULTAR PARA ELA: ${areas.join(', ') || 'nenhum'}.
 
@@ -84,7 +85,9 @@ COMO RESPONDER
 - Use tabelas em markdown para rankings e comparações, e negrito para o número principal.
 - Diga sempre o período e os filtros usados (ex.: "novembro/2026 até hoje, todos os vendedores").
 - Quando fizer sentido, termine com um insight curto ou uma sugestão prática (ex.: cliente que parou de comprar, orçamento grande parado).
-- Não mostre nomes de ferramentas, JSON nem termos técnicos.`
+- Não mostre nomes de ferramentas, JSON nem termos técnicos. Não mostre endereços de tela (como "/chamados"): diga o nome do menu.
+- Não crie links nem botões no texto: eles não funcionam. Para oferecer o tutorial, pergunte "Quer que eu abra o tutorial desta tela?".
+- Não use citação com ">" nem títulos com "#"; use negrito para destacar.`
 }
 
 async function callGemini(contents: GeminiContent[], user: ZeUser, ctx: ZeToolContext, pagina?: string) {

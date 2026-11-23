@@ -1,15 +1,11 @@
 import React from 'react';
-import { TourButton } from './TourButton';
 
 interface TourProviderProps {
   children: React.ReactNode;
 }
 
 export const TourProvider: React.FC<TourProviderProps> = ({ children }) => {
-  return (
-    <>
-      {children}
-      <TourButton />
-    </>
-  );
+  // O antigo botão "Ajuda e Tutoriais" saiu: os tutoriais agora são abertos
+  // pelo Zé ("me mostra como funciona esta tela").
+  return <>{children}</>;
 };

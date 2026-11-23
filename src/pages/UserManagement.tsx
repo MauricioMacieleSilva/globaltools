@@ -11,7 +11,7 @@ import { UserProfile, UserRole } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { UserTable } from '@/components/admin/UserTable'
 import { UserEditDialog } from '@/components/admin/UserEditDialog'
-import { InviteUserDialog } from '@/components/admin/InviteUserDialog'
+import { CreateUserDialog } from '@/components/admin/CreateUserDialog'
 import { UserStats } from '@/components/admin/UserStats'
 import { SessionResetDialog } from '@/components/admin/SessionResetDialog'
 import { LeadQualificationConfig } from '@/components/admin/LeadQualificationConfig'
@@ -31,7 +31,7 @@ export const UserManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [sessionResetDialogOpen, setSessionResetDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const { toast } = useToast()
@@ -159,14 +159,6 @@ export const UserManagement: React.FC = () => {
     }
   }
 
-  const handleInviteSent = () => {
-    setInviteDialogOpen(false)
-    toast({
-      title: 'Convite enviado',
-      description: 'O convite foi enviado com sucesso',
-    })
-  }
-
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -237,9 +229,9 @@ export const UserManagement: React.FC = () => {
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Atualizar Acessos
                     </Button>
-                    <Button onClick={() => setInviteDialogOpen(true)} size="sm">
+                    <Button onClick={() => setCreateDialogOpen(true)} size="sm">
                       <UserPlus className="mr-2 h-4 w-4" />
-                      Convidar Usuário
+                      Novo Usuário
                     </Button>
                   </div>
                 </div>
@@ -321,10 +313,10 @@ export const UserManagement: React.FC = () => {
           onUserUpdated={handleUserUpdated}
         />
 
-        <InviteUserDialog
-          open={inviteDialogOpen}
-          onOpenChange={setInviteDialogOpen}
-          onInviteSent={handleInviteSent}
+        <CreateUserDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          onUserSaved={loadUsers}
         />
 
         <DeleteUserDialog

@@ -296,12 +296,13 @@ const TOOLS: ZeTool[] = [
     declaration: {
       name: 'detalhar_pedidos',
       description:
-        'Lista pedidos/orçamentos com seus itens (material, quantidade, peso, valor, datas, situação, vendedor, cliente, motivo de perda). Use para "o que tem no pedido 1234", "últimos pedidos do cliente X", "orçamentos abertos do vendedor Y".',
+        'Lista pedidos/orçamentos com seus itens (material, quantidade, peso, valor, datas, situação, vendedor, cliente, motivo de perda). Use para "o que tem no pedido 1234", "últimos pedidos do cliente X", "orçamentos abertos do vendedor Y". Para "maior venda/maior pedido" use ordenar="valor" (ou "peso"); para vendas use tipo="faturado".',
       parameters: {
         type: 'OBJECT',
         properties: {
           tipo: TIPO_PARAM,
           ...FILTROS_COMERCIAIS,
+          ordenar: { type: 'STRING', enum: ['data', 'valor', 'peso'], description: 'Ordem da lista: data (mais recentes, padrão), valor ou peso (maiores primeiro)' },
           limite: N('Máximo de pedidos (padrão 10, máx. 40)'),
         },
       },
@@ -342,7 +343,11 @@ const TOOLS: ZeTool[] = [
             })),
           }
         })
-        .sort((x, y) => (y.data || '').localeCompare(x.data || ''))
+        .sort((x, y) => {
+          if (a.ordenar === 'valor') return (Number(y.valor_reais) || 0) - (Number(x.valor_reais) || 0)
+          if (a.ordenar === 'peso') return (Number(y.peso_kg) || 0) - (Number(x.peso_kg) || 0)
+          return (y.data || '').localeCompare(x.data || '')
+        })
       const limite = Math.min(Math.max(Number(a.limite) || 10, 1), 40)
       return { encontrados: pedidos.length, mostrando: Math.min(limite, pedidos.length), pedidos: pedidos.slice(0, limite) }
     },

@@ -23,16 +23,15 @@ function saveProfileCache(userId: string, profile: UserProfile) {
   } catch (e) { /* storage cheio ou indisponivel */ }
 }
 
-function loadProfileCache(userId: string): UserProfile | null {
+function loadProfileCache(userId: string, allowExpired = false): UserProfile | null {
   try {
     const raw = localStorage.getItem(PROFILE_CACHE_KEY)
     if (!raw) return null
     const cached = JSON.parse(raw)
     if (cached.userId !== userId) return null
-    if (Date.now() > cached.expiresAt) {
-      localStorage.removeItem(PROFILE_CACHE_KEY)
-      return null
-    }
+    // Vencido: nao serve como dado fresco, mas continua guardado como reserva
+    // para quando o banco nao responder (melhor que inventar um perfil).
+    if (Date.now() > cached.expiresAt && !allowExpired) return null
     return cached.profile as UserProfile
   } catch (e) {
     return null
@@ -83,7 +82,7 @@ export const useAuth = () => {
 }
 
 // Busca perfil no banco - usa user_roles como fonte de verdade para a role
-async function fetchProfile(userId: string, email: string): Promise<UserProfile> {
+async function fetchProfile(userId: string, email: string, timeoutMs = 6000): Promise<UserProfile> {
   try {
     const fetchPromise = (async () => {
       // Busca dados do perfil e a role em paralelo para máxima performance
@@ -113,7 +112,7 @@ async function fetchProfile(userId: string, email: string): Promise<UserProfile>
     })();
 
     const timeoutPromise = new Promise<UserProfile>((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 6000) // Aumentado para 6 segundos para resiliência
+      setTimeout(() => reject(new Error('timeout')), timeoutMs)
     );
 
     return await Promise.race([fetchPromise, timeoutPromise]);
@@ -121,6 +120,24 @@ async function fetchProfile(userId: string, email: string): Promise<UserProfile>
     console.error('[Auth] Erro em fetchProfile:', e);
     throw e; // Propaga o erro para o chamador decidir o que fazer (evita overwriting de cache)
   }
+}
+
+// Busca o perfil insistindo quando o banco demora. Se nao conseguir, devolve a
+// ultima copia conhecida (mesmo vencida) ou null. NUNCA inventa um perfil: um
+// perfil "operacional" de emergencia fazia administradores e comerciais verem
+// "Acesso Negado" sempre que o banco respondia devagar.
+async function loadProfileResilient(userId: string, email: string): Promise<UserProfile | null> {
+  const timeouts = [6000, 10000, 15000]
+  for (let attempt = 0; attempt < timeouts.length; attempt++) {
+    try {
+      const profile = await fetchProfile(userId, email, timeouts[attempt])
+      saveProfileCache(userId, profile)
+      return profile
+    } catch (e) {
+      console.warn(`[Auth] Tentativa ${attempt + 1} de carregar o perfil falhou`)
+    }
+  }
+  return loadProfileCache(userId, true)
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -142,17 +159,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   React.useEffect(() => { userProfileRef.current = userProfile }, [userProfile])
   React.useEffect(() => { sessionRef.current = session }, [session])
 
-  // Atualiza last_login de forma fire-and-forget, sem bloquear o fluxo
-  const updateLastLoginAsync = (userId: string) => {
-    setTimeout(() => {
-      supabase
+  // Registra o ultimo acesso (last_login) sem bloquear o fluxo.
+  // Chamado no login, ao abrir o sistema e quando a aba volta a ficar visivel,
+  // porque a sessao dura semanas e o login em si quase nunca se repete.
+  // Limitado a uma gravacao a cada 15 minutos por navegador.
+  const LAST_SEEN_KEY = 'gtools_last_seen_v1'
+  const LAST_SEEN_INTERVAL = 15 * 60 * 1000
+
+  const updateLastLoginAsync = (userId: string, force = false) => {
+    try {
+      const raw = localStorage.getItem(LAST_SEEN_KEY)
+      const saved = raw ? JSON.parse(raw) : null
+      if (!force && saved?.userId === userId && Date.now() - saved.at < LAST_SEEN_INTERVAL) return
+      localStorage.setItem(LAST_SEEN_KEY, JSON.stringify({ userId, at: Date.now() }))
+    } catch (e) { /* storage indisponivel: grava mesmo assim */ }
+
+    setTimeout(async () => {
+      const { error } = await supabase
         .from('user_profiles')
-        .update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .update({ last_login: new Date().toISOString() })
         .eq('id', userId)
-        .then(() => {})
-        .catch(() => {})
+      if (error) {
+        console.warn('[Auth] Nao foi possivel registrar o ultimo acesso:', error.message)
+        try { localStorage.removeItem(LAST_SEEN_KEY) } catch (e) { /* ignora */ }
+      }
     }, 3000) // Aguarda 3s para nao competir com queries criticas de login
   }
+
+  // Aba voltou a ficar visivel: conta como acesso (respeitando o limite acima)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && userRef.current) {
+        updateLastLoginAsync(userRef.current.id)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -167,22 +210,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentProfile = userProfileRef.current;
         
         if (currentUser && !currentProfile) {
-          console.warn('[Auth] Usando perfil de fallback em memoria/cache devido a timeout');
-          const email = currentUser.email || '';
-          const cached = loadProfileCache(currentUser.id);
-          if (cached) {
-            setUserProfile(cached);
-          } else {
-            const fallback = {
-              id: currentUser.id,
-              email,
-              full_name: email.split('@')[0],
-              role: isGlobalAcoEmail(email) ? 'operacional' : 'visitante',
-              is_external: !isGlobalAcoEmail(email),
-              created_at: new Date().toISOString(),
-            };
-            setUserProfile(fallback as any);
-          }
+          // Sem perfil ainda: usa a ultima copia conhecida, se houver.
+          // Sem copia, a tela fica em "Carregando perfil..." ate o banco responder.
+          const cached = loadProfileCache(currentUser.id, true);
+          if (cached) setUserProfile(cached);
         }
       }
     }, 4000)
@@ -201,6 +232,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null)
 
       if (session?.user) {
+        // Abrir o sistema com sessao valida conta como acesso
+        updateLastLoginAsync(session.user.id)
+
         // 1. Serve o cache imediatamente (zero latencia)
         const cached = loadProfileCache(session.user.id)
         if (cached) {
@@ -216,29 +250,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.warn('[Auth] Falha ao atualizar perfil em background (mantendo cache ativo):', err);
           })
         } else {
-          // Sem cache: busca no banco
-          try {
-            const profile = await fetchProfile(session.user.id, session.user.email!)
-            if (mounted) {
-              setUserProfile(profile)
-              saveProfileCache(session.user.id, profile)
-            }
-          } catch (e) {
-            console.error('[Auth] Erro ao buscar perfil sem cache:', e)
-            if (mounted) {
-              // Se falhou e não temos cache, usamos o fallback apenas como última opção
-              const fallback = {
-                id: session.user.id,
-                email: session.user.email!,
-                full_name: session.user.email!.split('@')[0],
-                role: isGlobalAcoEmail(session.user.email!) ? 'operacional' : 'visitante',
-                is_external: !isGlobalAcoEmail(session.user.email!),
-                created_at: new Date().toISOString(),
-              } as UserProfile;
-              setUserProfile(fallback);
-            }
-          } finally {
-            if (mounted) setLoading(false)
+          // Sem cache: busca no banco (com novas tentativas)
+          const profile = await loadProfileResilient(session.user.id, session.user.email!)
+          if (mounted) {
+            if (profile) setUserProfile(profile)
+            setLoading(false)
           }
         }
       } else {
@@ -261,28 +277,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         if (event === 'SIGNED_IN') {
           // Login real: busca perfil fresco e salva no cache
-          updateLastLoginAsync(session.user.id)
-          try {
-            const profile = await fetchProfile(session.user.id, session.user.email!)
-            if (mounted) {
-              setUserProfile(profile)
-              saveProfileCache(session.user.id, profile)
-              setLoading(false)
-            }
-          } catch (e) {
-            console.error('[Auth] Erro ao buscar perfil após SIGNED_IN:', e);
-            if (mounted) {
-              const fallback = {
-                id: session.user.id,
-                email: session.user.email!,
-                full_name: session.user.email!.split('@')[0],
-                role: isGlobalAcoEmail(session.user.email!) ? 'operacional' : 'visitante',
-                is_external: !isGlobalAcoEmail(session.user.email!),
-                created_at: new Date().toISOString(),
-              } as UserProfile;
-              setUserProfile(fallback);
-              setLoading(false);
-            }
+          updateLastLoginAsync(session.user.id, true)
+          const profile = await loadProfileResilient(session.user.id, session.user.email!)
+          if (mounted) {
+            if (profile) setUserProfile(profile)
+            setLoading(false)
           }
         } else if (event === 'INITIAL_SESSION') {
           // Ja tratado no getSession() acima

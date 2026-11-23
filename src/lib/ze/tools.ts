@@ -4,6 +4,7 @@ import { fetchProducaoData } from '@/services/producaoService'
 import type { ComercialData } from '@/context/ComercialContext'
 import type { PageKey } from '@/hooks/useUserPermissions'
 import { calcular } from './calc'
+import { helpArticles, helpArticlesFor, searchHelp, type HelpArticle } from '@/content/help'
 
 // =====================================================================
 // Ferramentas do Zé
@@ -802,6 +803,154 @@ const TOOLS: ZeTool[] = [
     },
   },
   {
+    name: 'consultar_manual',
+    label: 'Manual do sistema',
+    pages: 'any',
+    declaration: {
+      name: 'consultar_manual',
+      description:
+        'Manual do Globinho: como usar cada tela, passo a passo, regras ("o que acontece se…", o que é obrigatório, quem pode fazer), perguntas frequentes e erros comuns. Use SEMPRE que a pergunta for sobre como fazer algo no sistema, onde fica uma função, por que algo não funciona, o que significa um status/indicador, ou quem tem acesso. Assuntos: primeiros passos/login/senha, perfis e acessos, Dashboard Comercial, CRM (funil, bastão, perdido, crédito, follow-up), outras abas do CRM (agenda, prospecção, carteira, importar), Clientes, Fábrica/produção/compras, Estoque, Fretes, Política Comercial, Corte Perfil, Corte Blank, Chamados/SLA, Treinamentos, Zé, Administração de usuários, Relatórios.',
+      parameters: {
+        type: 'OBJECT',
+        properties: { assunto: S('Do que se trata, com as palavras da pessoa. Ex.: "passar o bastão", "esqueci a senha", "aprovar frete", "SLA chamado"') },
+        required: ['assunto'],
+      },
+    },
+    async run(a, ctx) {
+      const visiveis = helpArticlesFor(p => ctx.canView(p as PageKey), ctx.isAdmin)
+      const achados = searchHelp(visiveis, String(a.assunto || ''), 3)
+      const formatar = (art: HelpArticle) => ({
+        titulo: art.title,
+        tela: art.route || null,
+        resumo: art.intro,
+        quem_acessa: art.access,
+        passo_a_passo: art.steps.map(st => `${st.title}: ${st.description}`),
+        regras: art.rules,
+        perguntas_frequentes: art.faq,
+        dicas: art.tips,
+        erros_comuns: art.troubleshooting,
+      })
+      if (achados.length) return { artigos: achados.map(formatar) }
+      const bloqueado = searchHelp(helpArticles, String(a.assunto || ''), 1)[0]
+      if (bloqueado && !visiveis.includes(bloqueado)) {
+        return { aviso: `O assunto é da tela "${bloqueado.title}", que não está liberada para o perfil desta pessoa. Explique isso e sugira pedir acesso ao administrador.` }
+      }
+      return { aviso: 'Nada no manual sobre isso. Não invente botões nem caminhos: diga que não encontrou e sugira a Central de Ajuda ou o administrador.', assuntos_disponiveis: visiveis.map(x => x.title) }
+    },
+  },
+  {
+    name: 'mostrar_tutorial',
+    label: 'Tutorial na tela',
+    pages: 'any',
+    declaration: {
+      name: 'mostrar_tutorial',
+      description:
+        'Abre o tutorial guiado (passo a passo destacando os elementos) da tela que a pessoa está vendo agora, ou do menu lateral. Use quando pedirem "me mostra", "faz um tour", "tutorial", "não sei usar essa tela". O painel do Zé fecha para o tutorial aparecer.',
+      parameters: {
+        type: 'OBJECT',
+        properties: { qual: S('"tela" = tutorial da tela atual (padrão); "menu" = tour pelo menu lateral', { enum: ['tela', 'menu'] }) },
+      },
+    },
+    async run(a) {
+      const [{ driver }, { tourStepsByRoute, sidebarSteps }] = await Promise.all([
+        import('driver.js'),
+        import('@/components/tour/tourSteps'),
+        import('driver.js/dist/driver.css'),
+      ])
+      const path = window.location.pathname
+      const cfg = a.qual === 'menu' ? { title: 'Menu lateral', steps: sidebarSteps } : tourStepsByRoute[path]
+      if (!cfg) return { erro: 'Esta tela não tem tutorial guiado. Explique o uso pelo manual (consultar_manual).' }
+      const existe = (st: { element?: unknown }) => typeof st.element !== 'string' || !!document.querySelector(st.element)
+      const passos = cfg.steps.filter(existe)
+      if (!passos.length) return { erro: 'Os elementos do tutorial não estão visíveis agora. Explique pelo manual.' }
+      window.dispatchEvent(new CustomEvent('ze:close'))
+      setTimeout(() => {
+        const d = driver({
+          showProgress: true,
+          showButtons: ['next', 'previous', 'close'],
+          nextBtnText: 'Próximo',
+          prevBtnText: 'Anterior',
+          doneBtnText: 'Concluir',
+          progressText: '{{current}} de {{total}}',
+          popoverClass: 'global-aco-tour-popover',
+          overlayColor: 'rgba(0, 0, 0, 0.75)',
+          stagePadding: 8,
+          stageRadius: 8,
+          allowClose: true,
+        })
+        d.setSteps(cfg.steps.filter(existe))
+        d.drive()
+      }, 450)
+      return { ok: true, tutorial: cfg.title, passos: passos.length, instrucao: 'O tutorial já abriu na tela. Responda em uma frase curta, sem repetir os passos.' }
+    },
+  },
+  {
+    name: 'consultar_meta',
+    label: 'Meta do mês',
+    pages: ['dashboard'],
+    declaration: {
+      name: 'consultar_meta',
+      description:
+        'Meta mensal de faturamento x faturado (igual ao indicador "Meta do Mês" do Dashboard): meta, faturado, % atingido, quanto falta, dias restantes e quanto precisa faturar por dia útil. Use para "vamos bater a meta?", "quanto falta?", "% da meta".',
+      parameters: {
+        type: 'OBJECT',
+        properties: { mes: S('Mês no formato AAAA-MM (padrão: mês atual)') },
+      },
+    },
+    async run(a) {
+      const hojeD = new Date()
+      const [ano, mes] = /^\d{4}-\d{2}$/.test(String(a.mes || ''))
+        ? String(a.mes).split('-').map(Number)
+        : [hojeD.getFullYear(), hojeD.getMonth() + 1]
+      const chave = `${ano}-${String(mes).padStart(2, '0')}`
+      const { data: g } = await supabase.from('admin_goals').select('monthly_revenue_goal').eq('month_year', chave).maybeSingle()
+      const metaCadastrada = Number(g?.monthly_revenue_goal) || 0
+      const meta = metaCadastrada || 2_000_000
+      const ultimoDia = new Date(ano, mes, 0).getDate()
+      const rows = filtrarComercial(await carregarComercial(), { tipo: 'faturado', data_inicio: `${chave}-01`, data_fim: `${chave}-${ultimoDia}` })
+      const t = totais(rows)
+      const faturado = Number(t.valor_reais) || 0
+      const mesAtual = ano === hojeD.getFullYear() && mes === hojeD.getMonth() + 1
+      let diasRestantes = 0
+      let diasUteis = 0
+      if (mesAtual) {
+        diasRestantes = ultimoDia - hojeD.getDate()
+        for (let d = hojeD.getDate(); d <= ultimoDia; d++) {
+          const wd = new Date(ano, mes - 1, d).getDay()
+          if (wd !== 0 && wd !== 6) diasUteis++
+        }
+      }
+      const falta = Math.max(0, meta - faturado)
+      return {
+        mes: chave,
+        meta: r2(meta),
+        meta_origem: metaCadastrada ? 'cadastrada pelo Admin' : 'padrão do sistema (mês sem meta cadastrada)',
+        faturado: r2(faturado),
+        percentual_atingido: r2((faturado / meta) * 100),
+        falta: r2(falta),
+        ...(mesAtual
+          ? { dias_restantes_no_mes: diasRestantes, dias_uteis_restantes_incluindo_hoje: diasUteis, precisa_por_dia_util: diasUteis ? r2(falta / diasUteis) : null }
+          : {}),
+      }
+    },
+  },
+  {
+    name: 'listar_treinamentos',
+    label: 'Treinamentos',
+    pages: ['treinamentos'],
+    declaration: {
+      name: 'listar_treinamentos',
+      description: 'Lista os materiais de treinamento disponíveis na tela Treinamentos (título, categoria e descrição).',
+      parameters: { type: 'OBJECT', properties: { categoria: S('Filtrar por categoria (opcional)') } },
+    },
+    async run(a) {
+      const { data, error } = await supabase.from('treinamentos').select('titulo, categoria, descricao').eq('is_active', true).order('categoria')
+      if (error) throw error
+      const lista = (data || []).filter(t => !a.categoria || matches(t.categoria, a.categoria))
+      return { total: lista.length, treinamentos: lista, onde: 'Menu Treinamentos; clique no card para abrir em tela cheia.' }
+    },
+  },
+  {
     name: 'calcular',
     label: 'Calculadora',
     pages: 'any',
@@ -837,7 +986,7 @@ export function getToolDeclarations(ctx: ZeToolContext) {
 }
 
 export function getAllowedAreas(ctx: ZeToolContext): string[] {
-  return TOOLS.filter(t => allowed(t, ctx) && t.name !== 'calcular' && t.name !== 'listar_nomes').map(t => t.label)
+  return TOOLS.filter(t => allowed(t, ctx) && !['calcular', 'listar_nomes', 'consultar_manual', 'mostrar_tutorial'].includes(t.name)).map(t => t.label)
 }
 
 export function getToolLabel(name: string) {

@@ -42,6 +42,7 @@ const Chamados = lazy(() => import("./pages/Chamados"));
 const Ajuda = lazy(() => import("./pages/Ajuda"));
 import { UserAvatarMenu } from "@/components/UserAvatarMenu";
 import { LeadAssignmentNotification } from "@/components/crm/LeadAssignmentNotification";
+import { ZeLauncher } from "@/components/ze/ZeLauncher";
 
 const queryClient = new QueryClient();
 
@@ -201,7 +202,7 @@ function AppContent() {
                                 <Route
                                   path="/assistente-global"
                                   element={
-                                    <ProtectedRoute requirePageAccess="/assistente-global">
+                                    <ProtectedRoute>
                                       <AssistenteGlobal />
                                     </ProtectedRoute>
                                   }
@@ -275,6 +276,7 @@ function AppContent() {
                           </SidebarInset>
                           <PWAInstallPrompt />
                           <LeadAssignmentNotification />
+                          <ZeLauncher />
                         </div>
                       </SidebarProvider>
                       </CRMDataProvider>

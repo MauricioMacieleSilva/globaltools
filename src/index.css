@@ -649,3 +649,27 @@ div.producao-table-scroll,
 }
 
 
+
+
+/* ===== Zé: respostas formatadas ===== */
+.ze-markdown > :first-child { margin-top: 0; }
+.ze-markdown > :last-child { margin-bottom: 0; }
+.ze-markdown p { margin: 0.4rem 0; }
+.ze-markdown strong { font-weight: 600; color: hsl(var(--foreground)); }
+.ze-markdown ul, .ze-markdown ol { margin: 0.4rem 0; padding-left: 1.2rem; }
+.ze-markdown ul { list-style: disc; }
+.ze-markdown ol { list-style: decimal; }
+.ze-markdown li { margin: 0.15rem 0; }
+.ze-markdown h1, .ze-markdown h2, .ze-markdown h3 { font-weight: 600; margin: 0.7rem 0 0.3rem; font-size: 0.95rem; }
+.ze-markdown table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.8rem; }
+.ze-markdown th, .ze-markdown td { border: 1px solid hsl(var(--border)); padding: 0.3rem 0.55rem; white-space: nowrap; }
+.ze-markdown th { background: hsl(var(--muted)); font-weight: 600; text-align: left; }
+.ze-markdown tr:nth-child(even) td { background: hsl(var(--muted) / 0.35); }
+.ze-markdown code { font-size: 0.8em; background: hsl(var(--muted)); padding: 0 0.25rem; border-radius: 4px; }
+.ze-markdown a { color: hsl(var(--primary)); text-decoration: underline; }
+
+@keyframes ze-pulse {
+  0%, 100% { transform: scale(0.85); opacity: 0; }
+  50% { transform: scale(1.15); opacity: 0.6; }
+}
+.ze-launcher__pulse { animation: ze-pulse 3.2s ease-in-out infinite; }
